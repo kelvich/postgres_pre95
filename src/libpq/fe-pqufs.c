@@ -108,6 +108,11 @@ int p_open(fname,mode)
       return -1;
     else {
 	p_errno = fd>=0 ? 0 : -fd;
+
+	/* have to do this to reset offset in shared fd cache */
+	if (p_lseek(fd, 0L, L_SET) < 0)
+	    return -1;
+
 	return fd;
     }
 }
@@ -133,68 +138,20 @@ int p_close(fd)
     }
 }
 
-int p_read(fd,buf,len)
+int p_read(fd, buf, len)
      int fd;
      char *buf;
      int len;
 {
-    int readlen;
-    PQArgBlock argv[2];
-    char *pqret;
-
-    argv[0].isint = 1;
-    argv[0].len = 4;
-    argv[0].u.integer = fd;
-    
-    argv[1].isint = 1;
-    argv[1].len = 4;
-    argv[1].u.integer = len;
-
-    /*
-     *  'len+4' is because LOread returns a varlena, so user MUST have
-     *  allocated one.  this is an interface botch.
-     */
-    pqret = PQfn(F_LOREAD,(int *)buf,len+4,&readlen,2,argv,2);
-
-    if (pqret == NULL)
-      return -1;
-    else if (*pqret == 'V')
-      return -1;
-    else {
-	/* LOread returns a varlena, user expects byte count */
-	readlen -= sizeof(int32);
-	p_errno = readlen>=0 ? 0 : -readlen;
-	return readlen;
-    }
+    return (PQfsread(fd, buf, len));
 }
 
-int p_write(fd,buf,len)
+int p_write(fd, buf, len)
      int fd;
      char *buf;
      int len;
 {
-    int written;
-    PQArgBlock argv[2];
-    char *pqret;
-	
-    argv[0].isint = 1;
-    argv[0].len = 4;
-    argv[0].u.integer = fd;
-    
-    argv[1].isint = 0;
-    argv[1].len = len;
-    argv[1].u.ptr = (int *)buf;
-
-    pqret = PQfn(F_LOWRITE,&written,sizeof(int32),NULL,1,argv,2);
-
-    if (pqret == NULL)
-      return -1;
-    else if (*pqret == 'V')
-      return -1;
-    else {
-	p_errno = written>=0 ? 0 : -written;
-	return written;
-    }
+    return (PQfswrite(fd, buf, len));
 }
 
 int p_lseek(fd,offset,whence)
@@ -398,13 +355,19 @@ int p_stat(path,statbuf)
 {
     int stlen;
     PQArgBlock argv[2];
+    struct varlena *statres;
+    int vstatlen;
     char *pqret;
 
     argv[0].isint = 0;
     argv[0].len = VAR_LENGTH_ARG;
     argv[0].u.ptr = (int *)resolve_path(path);
 
-    pqret = PQfn(F_LOSTAT,(int *)statbuf,sizeof(struct pgstat),&stlen,2,argv,1);
+    vstatlen = sizeof(struct pgstat) + sizeof(int);
+    statres = (struct varlena *) palloc(vstatlen);
+    pqret = PQfn(F_LOSTAT,(int *)statres,vstatlen,&stlen,2,argv,1);
+    bcopy((char *) VARDATA(statres), (char *) statbuf, sizeof(struct pgstat));
+    pfree(statres);
 
     if (stlen == 5) {
 	p_errno = PENOENT;
@@ -449,7 +412,6 @@ PDIR *p_opendir(path)
 	char query[512];
 	char *res;
 
-	res = PQexec("begin");
 	if ((res == NULL) || (*res != 'C')) { /* CBEGIN */
 	    return NULL;
 	}
@@ -475,7 +437,6 @@ PDIR *p_opendir(path)
 		t += n;
 	    }
 	}
-	PQexec("end");
 	pdir->current_entry = (Direntry *)SLGetHead(&pdir->dirlist);
 	return pdir;
     }

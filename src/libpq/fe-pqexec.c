@@ -34,6 +34,7 @@
 #include "tmp/simplelists.h"
 #include "tmp/libpq-fe.h"
 #include "tmp/fastpath.h"
+#include "utils/fmgr.h"
 #include "utils/exception.h"
 
 RcsId ("$Header$");
@@ -521,6 +522,204 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
     }
 }
 
+/*
+ *  PQfsread, PQfswrite -- special-purpose versions of PQfn for file
+ *			   system (POSTGRES large object) read and
+ *			   write routines.
+ *
+ *	We need these special versions because the user expects a standard
+ *	unix file system interface, and postgres wants to use varlenas
+ *	all over the place.
+ */
+
+int
+PQfsread(fd, buf, nbytes)
+    int fd;
+    char *buf;
+    int nbytes;
+{
+    int fnid;
+    char id[2];
+    char errormsg[error_msg_length];
+    char command[command_length];
+    char PQcommand[command_length+1];
+    void EstablishComm();
+    int  actual_len;
+    short i;
+
+    if (!PQportset)
+	EstablishComm();
+    
+    pq_putnchar("F", 1);	/* function */
+    pq_putint(PQxactid, 4);	/* transaction id? */
+    pq_putint(F_LOREAD, 4);	/* function id */
+
+    /* size of return value -- += sizeof(int) because we expect a varlena */
+    pq_putint(nbytes + sizeof(int), 4);
+
+    pq_putint(2, 4);		/* nargs */
+
+    /* now put arguments */
+    pq_putint(4, 4);		/* length of fd */
+    pq_putint(fd, 4);
+
+    pq_putint(4, 4);		/* length of nbytes */
+    pq_putint(nbytes, 4);
+
+    pq_flush();
+
+    /* process return value from the backend	*/
+
+    id[0] = '?';
+
+    pq_getnchar(id, 0, 1);
+    if (id[0] == 'E') {
+        char buf[1024];
+        pq_getstr(buf,sizeof(buf));
+        printf ("Error: %s\n",buf);
+    }
+
+    read_remark(id);
+    fnid = pq_getint(4);
+    pqdebug("The Identifier is: %c", (char *)id[0]);
+    
+    /* Read in the transaction id. */
+    pqdebug("The Transaction Id is: %d", (char *)PQxactid);
+
+    if (id[0] == 'V')
+	pq_getnchar(id, 0, 1);
+    for (;;) {
+	switch (id[0]) {
+	  case 'G':
+
+	    /*
+	     *  We know exactly what the return stream looks like, here:
+	     *  it's a length, followed by a varlena (which includes the
+	     *  length again...).
+	     */
+
+	    actual_len = pq_getint(4);
+	    nbytes = pq_getint(4);
+	    nbytes -= sizeof(long);	/* compensate for varlena vl->len */
+	    if (nbytes > 0)
+		pq_getnchar((char *)buf, 0, nbytes);
+	    pq_getnchar(id, 0, 1);
+	    return(nbytes);
+	    
+	  case 'E':		/* print error and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s error encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
+
+	  case 'N':		/* print notice and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s notice encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
+
+	  default:
+	    /* The backend violates the protocol. */
+	    pqdebug("RESET CALLED FROM CASE G", (char *)0);
+	    pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
+	    PQreset();
+	    libpq_raise(&ProtocolError, form((int)"Unexpected identifier: %s", id));
+	    return(-1);
+	}
+    }
+}
+
+int
+PQfswrite(fd, buf, nbytes)
+    int fd;
+    char *buf;
+    int nbytes;
+{
+    int fnid;
+    char id[2];
+    char errormsg[error_msg_length];
+    char command[command_length];
+    char PQcommand[command_length+1];
+    void EstablishComm();
+    int  actual_len;
+    short i;
+
+    if (!PQportset)
+	EstablishComm();
+    
+    pq_putnchar("F", 1);	/*	function		*/
+    pq_putint(PQxactid, 4);	/*	transaction id ?	*/
+    pq_putint(F_LOWRITE, 4);	/*	function id		*/
+    pq_putint(4, 4);		/*	length of return value  */
+    pq_putint(2, 4);		/*	# of args		*/
+    
+    /* now put arguments */
+    pq_putint(4, 4);		/* size of fd */
+    pq_putint(fd, 4);
+    pq_putint(nbytes + 4, 4);	/* size of varlena */
+    pq_putint(nbytes + 4, 4);	/* vl_len */
+    pq_putnchar(buf, nbytes);	/* vl_dat */
+
+    pq_flush();
+
+    /* process return value from the backend	*/
+    id[0] = '?';
+
+    pq_getnchar(id, 0, 1);
+    if (id[0] == 'E') {
+        char buf[1024];
+        pq_getstr(buf,sizeof(buf));
+        printf ("Error: %s\n",buf);
+    }
+
+    read_remark(id);
+    fnid = pq_getint(4);
+    pqdebug("The Identifier is: %c", (char *)id[0]);
+    
+    /* Read in the transaction id. */
+    pqdebug("The Transaction Id is: %d", (char *)PQxactid);
+
+    if (id[0] == 'V')
+	pq_getnchar(id, 0, 1);
+
+    for (;;) {
+	switch (id[0]) {
+	  case 'G':		/* PQFN: simple return value	*/
+	    actual_len = pq_getint(4);
+	    if (actual_len != 4)
+		libpq_raise(&ProtocolError,
+			    form((int) "wanted 4 bytes in PQfswrite, got %d\n",
+			    actual_len));
+	    nbytes = pq_getint(4);
+	    pq_getnchar(id, 0, 1);
+	    return (nbytes);
+	    
+	  case 'E': /* print error and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s error encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
+
+	  case 'N': /* print notice and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s notice encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
+
+	    default:
+	    /* The backend violates the protocol. */
+	    pqdebug("RESET CALLED FROM CASE G", (char *)0);
+	    pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
+	    PQreset();
+	    libpq_raise(&ProtocolError, form((int)"Unexpected identifier: %s", id));
+	    return(NULL);
+	}
+    }
+}
 
 /* ----------------
  *	PQexec -  Send a query to the POSTGRES backend
@@ -622,15 +821,13 @@ PQexec(query)
 	    return
 		PQcommand;
 
-		case 'B':
-		/* Copy command began successfully - it is sending stuff back...  */
-		return
-		"BCOPY";
+	case 'B':
+	    /* Copy command began successfully - it is sending stuff back...  */
+	    return "BCOPY";
 
-		case 'D':
-		/* Copy command began successfully - it is waiting to receive... */
-		return
-		"DCOPY";
+	case 'D':
+	    /* Copy command began successfully - it is waiting to receive... */
+	    return "DCOPY";
 
     	default:
 	    /* The backend violates the protocol. */
