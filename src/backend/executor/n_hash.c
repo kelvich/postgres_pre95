@@ -353,7 +353,7 @@ ExecHashTableCreate(node)
      * the entire relation
      */
     totalbuckets = ceil((double)ntuples/NTUP_PER_BUCKET);
-    bucketsize = NTUP_PER_BUCKET * tupsize + sizeof(*bucket);
+    bucketsize = LONGALIGN (NTUP_PER_BUCKET * tupsize + sizeof(*bucket));
     
     /*
      * nbuckets is the number of hash buckets for the first pass
@@ -498,7 +498,7 @@ ExecHashTableCreate(node)
 #ifdef sequent
 	S_INIT_LOCK(&(bucket->bucketlock));
 #endif
-	bucket = (HashBucket)((char*)bucket + bucketsize);
+	bucket = (HashBucket)LONGALIGN(((char*)bucket + bucketsize));
     }
     return(hashtable);
 }
