@@ -57,6 +57,8 @@ extern void set_es_param_list_info ARGS((EState node, ParamListInfo value));
 extern ParamListInfo get_es_param_list_info ARGS((EState node));
 extern void set_es_prs2_info ARGS((EState node, Prs2EStateInfo value));
 extern Prs2EStateInfo get_es_prs2_info ARGS((EState node));
+extern void set_es_explain_relation ARGS((EState node, Relation value));
+extern Relation get_es_explain_relation ARGS((EState node));
 extern void set_es_BaseId ARGS((EState node, int value));
 extern int get_es_BaseId ARGS((EState node));
 extern void set_ecxt_scantuple ARGS((ExprContext node, List value));
@@ -200,7 +202,8 @@ extern bool EqualRelationInfo ARGS((RelationInfo a, RelationInfo b));
 extern TupleCount MakeTupleCount ARGS((int tc_retrieved, int tc_appended, int tc_deleted, int tc_replaced, int tc_inserted, int tc_processed));
 extern void PrintTupleCount ARGS((FILE *fp, TupleCount node));
 extern bool EqualTupleCount ARGS((TupleCount a, TupleCount b));
-extern EState MakeEState ARGS((ScanDirection es_direction, abstime es_time, ObjectId es_owner, List es_locks, List es_subplan_info, Name es_error_message, List es_range_table, HeapTuple es_qualification_tuple, ItemPointer es_qualification_tuple_id, Relation es_relation_relation_descriptor, Relation es_into_relation_descriptor, RelationInfo es_result_relation_info, TupleCount es_tuplecount, ParamListInfo es_param_list_info, Prs2EStateInfo es_prs2_info, int es_BaseId));
+extern EState MakeEState ARGS((ScanDirection es_direction, abstime es_time, ObjectId es_owner, List es_locks, List es_subplan_info, Name es_error_message, List es_range_table, HeapTuple es_qualification_tuple, ItemPointer es_qualification_tuple_id, Relation es_relation_relation_descriptor, Relation es_into_relation_descriptor, RelationInfo es_result_relation_info, TupleCount es_tuplecount, ParamListInfo es_param_list_info, Prs2EStateInfo es_prs2_info, Relation
+es_explain_relation, int es_BaseId));
 extern void PrintEState ARGS((FILE *fp, EState node));
 extern bool EqualEState ARGS((EState a, EState b));
 extern ExprContext MakeExprContext ARGS((List ecxt_scantuple, AttributePtr ecxt_scantype, Buffer ecxt_scan_buffer, List ecxt_innertuple, AttributePtr ecxt_innertype, Buffer ecxt_inner_buffer, List ecxt_outertuple, AttributePtr ecxt_outertype, Buffer ecxt_outer_buffer, Relation ecxt_relation, Index ecxt_relid, ParamListInfo ecxt_param_list_info));
