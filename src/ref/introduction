@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "INTRODUCTION" "POSTGRES" "01/23/93"
+.TH "INTRODUCTION" "POSTGRES" "08/17/93"
 .\" XXX this .XA must come after .TH initializes the macro package (like
 .\"	the page number...)
 .XA 0 "Section 1 \(em Introduction"
@@ -124,6 +124,7 @@ Spyros Potamianos,
 Sunita Sarawagi,
 David Muir Sharnoff,
 Cimarron Taylor,
+Marc Teitelbaum,
 Yongdong Wang,
 Kristin Wright
 and
