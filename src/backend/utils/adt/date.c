@@ -314,7 +314,6 @@ char	*
 reltimeout(timevalue)
 	int32 /* RelativeTime */	timevalue;
 {	extern char	*sprintf();
-	extern int	strlen();
 	char		*timestring;
 	long		quantity;
 	register int	i;
@@ -822,7 +821,6 @@ isabstime(datestring, brokentime)
 	struct tm	*brokentime;
 {
 	extern int	strncmp();
-	extern int	strlen();
 
 	register char	*p;
 	register char	c;
