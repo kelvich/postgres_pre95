@@ -37,7 +37,7 @@
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "planner/setrefs.h"
-#include "planner/nodeFuncs.h"
+#include "nodeFuncs.h"
 #include "planner/keys.h"
 #include "parse.h"
 
