@@ -1735,6 +1735,12 @@ a_expr:
 	| relation_name
 		{ $$ = lispCons ( KW(relation), $1 );
 		  Typecast_ok = false; }
+	| name '(' ')'
+		{
+			extern List ParseFunc();
+			$$ = ParseFunc ( CString ( $1 ), LispNil );
+			Typecast_ok = false;
+		}
 	| name '(' expr_list ')'
 		{
 			extern List ParseFunc();
