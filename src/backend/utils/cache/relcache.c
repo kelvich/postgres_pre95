@@ -46,6 +46,7 @@ RcsId("$Header$");
 #include "cat.h"
 #include "catname.h"
 #include "context.h"
+#include "mcxt.h"
 #include "fd.h"
 #include "genam.h"
 #include "hashlib.h"
