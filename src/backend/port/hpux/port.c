@@ -7,8 +7,6 @@
  *
  *   INTERFACE ROUTINES
  *	init_address_fixup
- *	rint
- *	cbrt
  *	random
  *	srandom
  *	getrusage
@@ -33,24 +31,6 @@ init_address_fixup()
      * On PA-RISC, unaligned access fixup is handled by the compiler,
      * not by the kernel.
      */
-}
-
-#ifdef NEED_RINT
-double 
-rint(x)
-	double x;
-{
-	if (x < 0.0) 
-		return((double)((long)(x-0.5)));
-	return((double)((long)(x+0.5)));
-}
-#endif /* NEED_RINT */
-
-double
-cbrt(x)
-	double x;
-{
-	return(pow(x, 1.0/3.0));
 }
 
 long

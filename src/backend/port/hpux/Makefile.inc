@@ -22,11 +22,15 @@ LDFLAGS+= -W l,-E
 LDADD+= -ll -ldld
 
 .if (${HPUX_MAJOR} == "08")
-CFLAGS+= -DNEED_RINT
+CFLAGS+= -DNEED_RINT -DNEED_CBRT
 .  if !defined(ENFORCE_ALIGNMENT)
 CFLAGS+= -DHP_S500_ALIGN
 .  endif
 .elif (${HPUX_MAJOR} == "09")
+#
+# rint(3m) is broken in the 9.01 math library.
+#
+CFLAGS+= -DNEED_RINT
 #
 # The #pragma trick required on 8.07 no longer works -- the #pragma
 # is thoroughly broken.  However, the +u flag has been extended to
