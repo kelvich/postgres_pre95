@@ -17,6 +17,8 @@
 #include "tmp/datum.h"
 #include "catalog/syscache.h"
 #include "utils/log.h"
+#include "nodes/plannodes.h"		/* for EState */
+#include "nodes/plannodes.a.h"		/* for EState */
 #include "nodes/execnodes.h"		/* for EState */
 #include "nodes/execnodes.a.h"		/* for EState */
 #include "executor/execdefs.h"
