@@ -195,15 +195,15 @@ unpinsdesc(sdesc)
     HeapScanDesc	sdesc;
 {
     if (BufferIsValid(sdesc->rs_pbuf)) {
-        BufferPut(sdesc->rs_pbuf, L_UNPIN);
+	ReleaseBuffer(sdesc->rs_pbuf);
     }
 
     if (BufferIsValid(sdesc->rs_cbuf)) {
-	BufferPut(sdesc->rs_cbuf, L_UNPIN);
+	ReleaseBuffer(sdesc->rs_cbuf);
     }
 
     if (BufferIsValid(sdesc->rs_nbuf)) {
-       BufferPut(sdesc->rs_nbuf, L_UNPIN);
+       ReleaseBuffer(sdesc->rs_nbuf);
     }
 }
 
@@ -331,7 +331,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
-	    elog(WARN, "heapgettup: failed RelationGetBuffer");
+	    elog(WARN, "heapgettup: failed ReadBuffer");
 	}
 #endif
 	
@@ -342,8 +342,6 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	Assert(!ItemIdIsLock(lpp));
 
 	rtup = (HeapTuple)PageGetItem((Page) dp, lpp);
-	if (BufferPut(*b, L_PIN) < 0)
-	    elog(WARN, "heapgettup: failed BufferPut");
 	return (rtup);
 	
     } else if (dir < 0) {
@@ -365,7 +363,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	*b = RelationGetBufferWithBuffer(relation, page, *b);
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
-	    elog(WARN, "heapgettup: failed RelationGetBuffer");
+	    elog(WARN, "heapgettup: failed ReadBuffer");
 	}
 #endif
 	
@@ -398,7 +396,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
-	    elog(WARN, "heapgettup: failed RelationGetBuffer");
+	    elog(WARN, "heapgettup: failed ReadBuffer");
 	}
 #endif
 	
@@ -430,8 +428,6 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	     */
 	    if ((rtup = heap_tuple_satisfies(lpp, relation, (PageHeader) dp,
 					     timeQual, nkeys, key)) != NULL) {
-		if (BufferPut(*b, L_PIN) < 0)
-		    elog(WARN, "heap_fetch: failed BufferPut");
 
 		return (rtup);
 	    }
@@ -449,9 +445,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	 *  this page and it's time to move to the next..
 	 * ----------------
 	 */
-	if (BufferPut(*b, L_UN | L_SH) < 0) {
-	    elog(WARN, "heapgettup: failed BufferPut");
-	}
+	ReleaseBuffer(*b);
 
 	page = nextpage(page, dir, parallel_ok);
 
@@ -470,7 +464,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
-	    elog(WARN, "heapgettup: failed RelationGetBuffer");
+	    elog(WARN, "heapgettup: failed ReadBuffer");
 	}
 #endif
 	dp = (Page) BufferSimpleGetPage(*b);
@@ -599,23 +593,21 @@ doinsert_old(relation, tup)
 	 *	??? -cim
 	 * ----------------
 	 */
-	b = RelationGetBuffer(relation, pages - 1, L_UP);
+	b = ReadBuffer(relation, pages - 1);
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(b)) {
 	    /* XXX L_SH better ??? */
-	    elog(WARN, "aminsert: failed RelationGetBuffer");
+	    elog(WARN, "aminsert: failed ReadBuffer");
 	}
 #endif
 	
 	dp = (PageHeader)BufferSimpleGetPage(b);
 	if ((int)tup->t_len > PageGetFreeSpace((Page) dp)) {
-	    if (BufferPut(b, L_UN | L_UP) < 0)
-		elog(WARN, "aminsert: failed BufferPut");
+	    ReleaseBuffer(b);
 	    /* XXX there is a window in which the status can change */
 	    RelationPutLongHeapTuple(relation, tup);
 	} else {
-	    if (BufferPut(b, L_UN | L_UP) < 0)
-		elog(WARN, "aminsert: failed BufferPut");
+	    ReleaseBuffer(b);
 	    /* XXX there is a window in which the status can change */
 	    RelationPutHeapTuple(relation, pages - 1, tup);
 	}
@@ -945,13 +937,10 @@ heap_getnext(scandesc, backw, b)
 	if (sdesc->rs_ptup == sdesc->rs_ctup &&
 	    BufferIsInvalid(sdesc->rs_pbuf))
 	    {
+		if (BufferIsValid(sdesc->rs_nbuf))
+		    ReleaseBuffer(sdesc->rs_nbuf);
 		return (NULL);
 	    }
-
-	/*
-	if (BufferIsValid(sdesc->rs_nbuf))
-	    BufferPut(sdesc->rs_nbuf, L_UNPIN);
-	*/
 
 	/*
 	 * Copy the "current" tuple/buffer
@@ -982,6 +971,8 @@ heap_getnext(scandesc, backw, b)
 	    iptr = (sdesc->rs_ctup != NULL) ?
 		&(sdesc->rs_ctup->t_ctid) : (ItemPointer) NULL;
 	    
+	    if (BufferIsValid(sdesc->rs_cbuf))
+		ReleaseBuffer(sdesc->rs_cbuf);
 	    sdesc->rs_ctup = (HeapTuple)
 		heapgettup(sdesc->rs_rd,
 			   iptr,
@@ -999,6 +990,10 @@ heap_getnext(scandesc, backw, b)
 		    ReleaseBuffer(sdesc->rs_pbuf);
 		sdesc->rs_ptup = NULL;
 		sdesc->rs_pbuf = InvalidBuffer;
+		if (BufferIsValid(sdesc->rs_nbuf))
+		    ReleaseBuffer(sdesc->rs_nbuf);
+		sdesc->rs_ntup = NULL;
+		sdesc->rs_nbuf = InvalidBuffer;
 		return (NULL);
 	    }
 
@@ -1014,17 +1009,11 @@ heap_getnext(scandesc, backw, b)
 	 */
 	if (sdesc->rs_ctup == sdesc->rs_ntup &&
 	    BufferIsInvalid(sdesc->rs_nbuf)) {
+	    if (BufferIsValid(sdesc->rs_pbuf))
+		ReleaseBuffer(sdesc->rs_pbuf);
 	    HEAPDEBUG_3; /* heap_getnext returns NULL at end */
 	    return (NULL);
 	}
-
-	/*
-	if (BufferIsValid(sdesc->rs_pbuf)) {
-	    HEAPDEBUG_4;
-	    BufferPut(sdesc->rs_pbuf, L_UNPIN);
-	}
-	*/
-
 
 	/*
 	 * Copy the "current" tuple/buffer
@@ -1056,6 +1045,9 @@ heap_getnext(scandesc, backw, b)
 	    iptr = (sdesc->rs_ctup != NULL) ?
 		&sdesc->rs_ctup->t_ctid : (ItemPointer) NULL;
 	    
+	    if (BufferIsValid(sdesc->rs_cbuf))
+		ReleaseBuffer(sdesc->rs_cbuf);
+
 	    sdesc->rs_ctup = (HeapTuple)
 		heapgettup(sdesc->rs_rd,
 			   iptr,
@@ -1072,6 +1064,10 @@ heap_getnext(scandesc, backw, b)
 		ReleaseBuffer(sdesc->rs_nbuf);
 	    sdesc->rs_ntup = NULL;
 	    sdesc->rs_nbuf = InvalidBuffer;
+	    if (BufferIsValid(sdesc->rs_pbuf))
+		ReleaseBuffer(sdesc->rs_pbuf);
+	    sdesc->rs_ptup = NULL;
+	    sdesc->rs_pbuf = InvalidBuffer;
 	    HEAPDEBUG_6; /* heap_getnext returning EOS */
 	    return (NULL);
 	}
@@ -1144,13 +1140,11 @@ heap_fetch(relation, timeQual, tid, b)
      * ----------------
      */
 
-    buffer = RelationGetBuffer(relation,
-			       ItemPointerGetBlockNumber(tid),
-			       L_SH);
+    buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
     
 #ifndef NO_BUFFERISVALID
     if (!BufferIsValid(buffer)) {
-	elog(WARN, "heap_fetch: %s relation: RelationGetBuffer(%lx) failed",
+	elog(WARN, "heap_fetch: %s relation: ReadBuffer(%lx) failed",
 	     &relation->rd_rel->relname, (long)tid);
     }
 #endif
@@ -1181,8 +1175,7 @@ heap_fetch(relation, timeQual, tid, b)
 
     if (tuple == NULL)
     {
-	if (BufferPut(buffer, L_UNPIN) < 0)
-	    elog(WARN, "heap_fetch: BufferPut failed");
+	ReleaseBuffer(buffer);
 	return (NULL);
     }
 
@@ -1197,9 +1190,7 @@ heap_fetch(relation, timeQual, tid, b)
 	*b = buffer;
     } else {
 	tuple = heap_copytuple(tuple, buffer, relation);
-	if (BufferPut(buffer, L_UNPIN) < 0) {
-	    elog(WARN, "heap_fetch: BufferPut failed");
-	}
+	ReleaseBuffer(buffer);
     }
     return (tuple);
 
@@ -1313,11 +1304,11 @@ heap_delete(relation, tid)
      */
     RelationSetLockForWrite(relation);
 
-    b = RelationGetBuffer(relation, ItemPointerGetBlockNumber(tid), L_UP);
+    b = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
     
 #ifndef NO_BUFFERISVALID
     if (!BufferIsValid(b)) { /* XXX L_SH better ??? */
-	elog(WARN, "heap_delete: failed RelationGetBuffer");
+	elog(WARN, "heap_delete: failed ReadBuffer");
     }
 #endif NO_BUFFERISVALID
 
@@ -1332,8 +1323,7 @@ heap_delete(relation, tid)
 				    NowTimeQual, 0, (ScanKey) NULL))) {
 	
 	/* XXX call something else */
-	if (BufferPut(b, L_UN | L_UP) < 0)
-	    elog(WARN, "heap_delete: failed BufferPut");
+	ReleaseBuffer(b);
 	
 	elog(WARN, "heap_delete: (am)invalid tid");
     }
@@ -1343,10 +1333,6 @@ heap_delete(relation, tid)
      *  exclusive access to the page
      * ----------------
      */
-
-    /* XXX order problems if not atomic assignment ??? */
-    if (BufferPut(b, L_EX) < 0)
-	elog(WARN, "heap_delete: failed BufferPut(L_EX)");
 
     /* ----------------
      *	store transaction information of xact deleting the tuple
@@ -1364,9 +1350,7 @@ heap_delete(relation, tid)
     RelationInvalidateHeapTuple(relation, tp);
     SetRefreshWhenInvalidate((bool)!ImmediateInvalidation);
 
-    if (BufferPut(b, L_UN | L_EX | L_WRITE) < 0) {
-	elog(WARN, "heap_delete: failed BufferPut(L_UN | L_WRITE)");
-    }
+    WriteBuffer(b);
     if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 }
@@ -1414,13 +1398,11 @@ heap_replace(relation, otid, tup)
      */
     RelationSetLockForWrite(relation);
 
-    buffer = RelationGetBuffer(relation,
-			       ItemPointerGetBlockNumber(otid),
-			       L_UP);
+    buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(otid));
 #ifndef NO_BUFFERISVALID
     if (!BufferIsValid(buffer)) {
 	/* XXX L_SH better ??? */
-	elog(WARN, "amreplace: failed RelationGetBuffer");
+	elog(WARN, "amreplace: failed ReadBuffer");
     }	
 #endif NO_BUFFERISVALID
     
@@ -1434,9 +1416,7 @@ heap_replace(relation, otid, tup)
     if (!(tp = heap_tuple_satisfies(lp, relation, (PageHeader) dp, NowTimeQual,
 									(ScanKeySize) 0, (ScanKey) NULL))) {
 
-	/* XXX call something else */
-	if (BufferPut(buffer, L_UN | L_UP) < 0)
-	    elog(WARN, "heap_replace: failed BufferPut");
+	ReleaseBuffer(buffer);
 	
 	elog(WARN, "heap_replace: (am)invalid otid");
     }
@@ -1531,9 +1511,6 @@ heap_replace(relation, otid, tup)
      *	new item in place, now record transaction information
      * ----------------
      */
-    if (BufferPut(buffer, L_EX) < 0) {
-	elog(WARN, "amreplace: failed BufferPut(L_EX)");
-    }
     TransactionIdStore(GetCurrentTransactionId(), (Pointer)tp->t_xmax);
     tp->t_cmax = GetCurrentCommandId();
     tp->t_chain = tup->t_ctid;
@@ -1546,9 +1523,7 @@ heap_replace(relation, otid, tup)
     RelationInvalidateHeapTuple(relation, tp);
     SetRefreshWhenInvalidate((bool)!ImmediateInvalidation);
 
-    if (BufferPut(buffer, L_UN | L_EX | L_WRITE) < 0) {
-	elog(WARN, "heap_replace: failed BufferPut(L_UN | L_WRITE)");
-    }
+    WriteBuffer(buffer);
 
     if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
@@ -1666,13 +1641,13 @@ heap_restrpos(sdesc)
     /* Note: no locking manipulations needed */
 
     if (BufferIsValid(sdesc->rs_pbuf)) {
-	BufferPut(sdesc->rs_pbuf, L_UNPIN);
+	ReleaseBuffer(sdesc->rs_pbuf);
     }
     if (BufferIsValid(sdesc->rs_cbuf)) {
-	BufferPut(sdesc->rs_cbuf, L_UNPIN);
+	ReleaseBuffer(sdesc->rs_cbuf);
     }
     if (BufferIsValid(sdesc->rs_nbuf)) {
-	BufferPut(sdesc->rs_nbuf, L_UNPIN);
+	ReleaseBuffer(sdesc->rs_nbuf);
     }
 
     if (!ItemPointerIsValid(&sdesc->rs_mptid)) {

@@ -62,7 +62,7 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	numberOfBlocks = RelationGetNumberOfBlocks(relation);
 	Assert(IndexIsInBounds(blockIndex, numberOfBlocks));
 
-	buffer = RelationGetBuffer(relation, blockIndex, L_UP);
+	buffer = ReadBuffer(relation, blockIndex);
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(buffer)) {
 		elog(WARN, "RelationPutHeapTuple: no buffer for %ld in %s",
@@ -73,10 +73,6 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
 	len = (unsigned)LONGALIGN(tuple->t_len);
 	Assert((int)len <= PageGetFreeSpace(pageHeader));
-
-	if (BufferPut(buffer, L_EX) < 0) {
-		elog(WARN, "amputunique: failed BufferPut(L_EX)");
-	}
 
 	offsetIndex = -1 + PageAddItem((Page)pageHeader, (Item)tuple,
 		tuple->t_len, InvalidOffsetNumber, LP_USED);
@@ -89,10 +85,7 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 
 	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer);
 
-	if (BufferPut(buffer, L_UN | L_EX | L_WRITE) < 0) {
-		elog(WARN, "amputunique: failed BufferPut(L_UN | L_WRITE)");
-	}
-
+	WriteBuffer(buffer);
 	/* return an accurate tuple */
 	ItemPointerSimpleSet(&tuple->t_ctid, blockIndex, 1 + offsetIndex);
 }
@@ -135,7 +128,7 @@ RelationPutLongHeapTuple(relation, tuple)
 	Assert(HeapTupleIsValid(tuple));
 
 /* correct validity checking here and elsewhere */
-	headb = RelationGetBuffer(relation, P_NEW, L_NEW);
+	headb = ReadBuffer(relation, P_NEW);
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(headb)) {
 		elog(WARN,
@@ -203,7 +196,7 @@ RelationPutLongHeapTuple(relation, tuple)
 		(*lpp).lp_flags = LP_USED;
 	else {
 		(*lpp).lp_flags = LP_USED | LP_DOCNT;
-		b = RelationGetBuffer(relation, P_NEW, L_NEW);
+		b = ReadBuffer(relation, P_NEW);
 		if (BufferIsInvalid(b)) {
 			elog(WARN, "RelationPutLongHeapTuple: no new block #$");
 		}
@@ -228,10 +221,9 @@ RelationPutLongHeapTuple(relation, tuple)
 			elog(WARN,
 				"RelationPutLongHeapTuple: no WriteInOrder #$");
 		}
-		if (BufferPut(b, L_UN | L_EX | L_WRITE) < 0)
-			elog(WARN, "RelationPutLongHeapTuple: no BufferPut #$");
+		WriteBuffer(b);
 		while (blocks--) {
-			b = RelationGetBuffer(relation, P_NEW, L_NEW);
+			b = ReadBuffer(relation, P_NEW);
 #ifndef NO_BUFFERISVALID
 			if (!BufferIsValid(b)) {
 				elog(WARN,
@@ -267,9 +259,7 @@ RelationPutLongHeapTuple(relation, tuple)
 				elog(WARN,
 					"RelationPutLongHeapTuple: no WriteIn");
 			}
-			if (BufferPut(b, L_UN | L_EX | L_WRITE) < 0) {
-				elog(WARN, "RelationPutLongHeapTuple: no Put");
-			}
+			WriteBuffer(b);
 		}
 		ItemPointerSet(&headtcp->itemPointerData, SinglePagePartition,
 			blockNumber, (PageNumber)0, (OffsetNumber)1);
@@ -281,9 +271,7 @@ RelationPutLongHeapTuple(relation, tuple)
 
 	HeapTupleStoreRuleLock((HeapTuple)tp, headb);
 
-	if (BufferPut(headb, L_UN | L_EX | L_WRITE) < 0) {
-		elog(WARN, "RelationPutLongHeapTuple: failed BufferPut #1");
-	}
+	WriteBuffer(headb);
 
 	/* return(TIDFOR(blockNumber, 0)); */
 }
@@ -394,5 +382,5 @@ HeapTuple tuple;
 	/* return an accurate tuple */
 	ItemPointerSimpleSet(&tuple->t_ctid, lastblock, 1 + offsetIndex);
 
-	BufferPut(buffer, L_UN | L_EX | L_WRITE);
+	WriteBuffer(buffer);
 }

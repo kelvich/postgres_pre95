@@ -88,7 +88,7 @@ VariableRelationGetNextXid(xid)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationGetNextXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
@@ -124,7 +124,7 @@ VariableRelationGetLastXid(xid)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationGetNextXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
@@ -161,7 +161,7 @@ VariableRelationPutNextXid(xid)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationPutNextXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationPutNextXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
@@ -198,7 +198,7 @@ VariableRelationPutLastXid(xid)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationPutLastXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationPutLastXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
@@ -239,7 +239,7 @@ VariableRelationGetNextOid(oid_return)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationGetNextXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
@@ -300,7 +300,7 @@ VariableRelationPutNextOid(oidP)
     buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
-	elog(WARN, "VariableRelationPutNextXid: RelationGetBuffer failed");
+	elog(WARN, "VariableRelationPutNextXid: ReadBuffer failed");
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 

@@ -175,9 +175,9 @@ RelationContainsUsableBlock(relation, blockIndex, size, numberOfFailures)
 		fillLimit *= BLCKSZ / FillLimitBase;
 	}
 
-	buffer = RelationGetBuffer(relation, blockIndex, L_PIN);
+	buffer = ReadBuffer(relation, blockIndex);
 	pageFreeSpace = PageGetFreeSpace(BufferSimpleGetPage(buffer));
-	BufferPut(buffer, L_UNPIN);
+	ReleaseBuffer(buffer);
 
 	return ((bool)((int32)pageFreeSpace - (int32)LONGALIGN(size) >
 		(int32)fillLimit));

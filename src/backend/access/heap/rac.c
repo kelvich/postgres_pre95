@@ -126,9 +126,7 @@ HeapTupleGetRuleLock(tuple, buffer)
 	 */
 	blockNumber = ItemPointerGetBlockNumber(&tuple->t_lock.l_ltid);
 	
-	buffer = RelationGetBuffer(BufferGetRelation(buffer),
-				   blockNumber,
-				   L_PIN);
+	buffer = ReadBuffer(BufferGetRelation(buffer), blockNumber);
 	
 	page = BufferSimpleGetPage(buffer);
 	itemId = PageGetItemId(page,
@@ -138,7 +136,7 @@ HeapTupleGetRuleLock(tuple, buffer)
 	returnItem = (Item) palloc(itemId->lp_len);	/* XXX */
 	bcopy(item, returnItem, (int)itemId->lp_len);	/* XXX Clib-copy */
 	
-	BufferPut(buffer, L_UNPIN);
+	ReleaseBuffer(buffer);
 	
 	/*
 	 * `l' is a pointer to data in a buffer page.
@@ -323,7 +321,7 @@ HeapTupleStoreRuleLock(tuple, buffer)
 	} else {
 		Assert(lockSize < BLCKSZ); /* XXX cannot handle this yet */
 
-		buffer = RelationGetBuffer(relation, P_NEW, L_NEW);
+		buffer = ReadBuffer(relation, P_NEW);
 		
 #ifndef NO_BUFFERISVALID
 		if (!BufferIsValid(buffer)) {
@@ -337,7 +335,7 @@ HeapTupleStoreRuleLock(tuple, buffer)
 		offsetNumber = PageAddItem(BufferSimpleGetPage(buffer),
 			(Item) lock, lockSize, InvalidOffsetNumber,
 			LP_USED | LP_LOCK);
-		BufferPut(buffer, L_UN | L_EX | L_WRITE);
+		WriteBuffer(buffer);
 	}
 	tuple->t_locktype = DISK_RULE_LOCK;
 	ItemPointerSimpleSet(&tuple->t_lock.l_ltid, blockNumber, offsetNumber);
