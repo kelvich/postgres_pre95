@@ -17,9 +17,9 @@
 
 if (test -z "$POSTGRESHOME")
 then
-	PG=$POSTGRESHOME
-else
 	PG=/usr/postgres
+else
+	PG=$POSTGRESHOME
 fi
 
 #
