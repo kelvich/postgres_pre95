@@ -429,6 +429,7 @@ heap_getsysattr(tup, b, attnum)
     default:
 	elog(WARN, "heap_getsysattr: undefined attnum %d", attnum);
     }
+    return(NULL);
 }
 
 /* ----------------
