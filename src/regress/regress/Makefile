@@ -34,7 +34,7 @@ DLOBJS= regress.o ufp1.o ufp2.o ufp3.o
 CREATEFILES= ${DLOBJS} \
 	create.pq queries.pq errors.pq destroy.pq \
 	fstest.sh
-.ifdef SLSUFF
+.if (${SLSUFF} != ".o")
 SLOBJS= ${DLOBJS:S/.o/${SLSUFF}/g}
 CREATEFILES+= ${SLOBJS}
 .endif

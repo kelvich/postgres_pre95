@@ -42,6 +42,7 @@ SLSUFF?=.o
 	fi; \
 	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
 	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
+	    -e "s:_SLSUFF_:${SLSUFF}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq
 
 .source.sh:
@@ -53,6 +54,7 @@ SLSUFF?=.o
 	fi; \
 	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
 	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
+	    -e "s:_SLSUFF_:${SLSUFF}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.sh
 
 #if (${PORTNAME} == "hpux")
