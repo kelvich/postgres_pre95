@@ -730,7 +730,9 @@ _readResdom()
 
 	local_node->reskeyop = (OperatorTupleForm) atoi(token);
 
-	local_node->resjunk = 0;
+	token = lsptok(NULL, &length);    		/* eat :resjunk */
+	token = lsptok(NULL, &length);    		/* get resjunk */
+	local_node->resjunk = atoi(token);
 
 	return(local_node);
 }
