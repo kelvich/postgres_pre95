@@ -887,7 +887,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     LastOidProcessed = ntup->t_oid = newoid();
     TransactionIdStore(GetCurrentTransactionId(), &(ntup->t_xmin));
     ntup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId(&(ntup->t_xmax));
+    PointerStoreInvalidTransactionId((Pointer)&(ntup->t_xmax));
     ntup->t_cmax = 0;
     ntup->t_tmin = ntup->t_tmax = InvalidTime;
     ntup->t_natts = 2;

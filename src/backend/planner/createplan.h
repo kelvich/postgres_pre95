@@ -1,7 +1,7 @@
 /* $Header$ */
 extern Plan create_plan ARGS((Path best_path));
 extern Scan create_scan_node ARGS((Path best_path, List tlist));
-extern Join create_join_node ARGS((JoinPath best_path, List origtlist, List tlist));
+extern Join create_join_node ARGS((JoinPath best_path, List tlist));
 extern SeqScan create_seqscan_node ARGS((Path best_path, LispValue tlist, LispValue scan_clauses));
 extern IndexScan create_indexscan_node ARGS((IndexPath best_path, List tlist, List scan_clauses));
 extern LispValue fix_indxqual_references ARGS((LispValue clause, Path index_path));

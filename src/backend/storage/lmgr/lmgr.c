@@ -252,7 +252,7 @@ RelationInitLockInfo(relation)
 	TransactionIdStore(GetCurrentTransactionId(),
 			   &info->transactionIdData);
     else
-	PointerStoreInvalidTransactionId(&(info->transactionIdData));
+	PointerStoreInvalidTransactionId((Pointer)&(info->transactionIdData));
 	
     /* ----------------
      *	initialize rest of lockinfo

@@ -239,7 +239,7 @@ HandleFunctionRequest()
 
     for (i = 0; i < nargs; i++) {
 	if (palloced & (1 << i))
-	    pfree(arg[i]);
+	    pfree((Pointer)arg[i]);
     }
 
     if (rettype != PORTAL_RESULT)

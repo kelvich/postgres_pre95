@@ -748,7 +748,7 @@ formrdesc(relationName, natts, att)
     if (issystem(relationName)) {
 	relation->rd_rel->relowner = 6;			/* XXX use sym const */
 	relation->rd_rel->relisshared =
-		NameIsSharedSystemRelationName(relationName);
+		NameIsSharedSystemRelationName((Name)relationName);
     } else {
 	relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect*/
 	relation->rd_rel->relisshared = false;

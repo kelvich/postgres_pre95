@@ -118,7 +118,7 @@ _equalFjoin(a, b)
 		return (false);
 	if (a->fj_nNodes != b->fj_nNodes)
 		return (false);
-	if (!equal(a->fj_innerNode, b->fj_innerNode))
+	if (!equal((Node)a->fj_innerNode, (Node)b->fj_innerNode))
 		return (false);
 	
 	nNodes = a->fj_nNodes;
@@ -275,7 +275,7 @@ _equalParam(a, b)
 		return (false);
 	if (a->paramtype != b->paramtype)
 		return (false);
-	if (!equal(a->param_tlist, b->param_tlist))
+	if (!equal((Node)a->param_tlist, (Node)b->param_tlist))
   	        return (false);
 
 	switch (a->paramkind) {
@@ -324,9 +324,9 @@ _equalFunc(a, b)
 		return (false);
 	if (a->funcsize != b->funcsize)
 		return (false);
-	if (!equal(a->func_tlist, b->func_tlist))
+	if (!equal((Node)a->func_tlist, (Node)b->func_tlist))
 		return (false);
-	if (!equal(a->func_planlist, b->func_planlist))
+	if (!equal((Node)a->func_planlist, (Node)b->func_planlist))
 		return (false);
 
 	return (true);

@@ -627,7 +627,7 @@ extern TransactionId	AmiTransactionId;
 extern TransactionId	FirstTransactionId;
 
 extern bool TransactionIdIsValid ARGS((TransactionId transactionId));
-extern void GetNewTransactionId ARGS((TransactionId xid));
+extern void GetNewTransactionId ARGS((TransactionId *xid));
 extern TransactionId StringFormTransactionId ARGS((String representation));
 extern String TransactionIdFormString ARGS((TransactionId transactionId));
 extern void TransactionIdStore
