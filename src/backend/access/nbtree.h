@@ -52,31 +52,17 @@ typedef BTScanOpaqueData	*BTScanOpaque;
  *  BTItems are what we store in the btree.  Each item has an index tuple,
  *  including key and pointer values.  In addition, we must guarantee that
  *  all tuples in the index are unique, in order to satisfy some assumptions
- *  in Lehman and Yao.  The way that we do this is by storing the XID of the
- *  inserting transaction, and a sequence number, which tells us which index
- *  tuple insertion in that transaction this is.  With alignment, this is
- *  twelve bytes of space overhead in order to provide high concurrency and
- *  short-duration locks.
+ *  in Lehman and Yao.  The way that we do this is by generating a new OID
+ *  for every insertion that we do in the tree.  This adds four bytes to the
+ *  size of btree index tuples.
  */
 
 typedef struct BTItemData {
-	TransactionIdData	bti_xid;
-	uint32			bti_seqno;
+	OID			bti_oid;
 	IndexTupleData		bti_itup;
 } BTItemData;
 
 typedef BTItemData	*BTItem;
-
-/*
- *  The following macros manage btitem sequence numbers for insertions.
- *  The global variable is in private space, so we won't have contention
- *  problems since we further disambiguate with XID.  However, this does
- *  mean that this algorithm is not easy to parallelize.
- */
-
-extern uint32 BTCurrSeqNo;
-#define	BTSEQ_INIT()	BTCurrSeqNo = 0
-#define BTSEQ_GET()	BTCurrSeqNo++
 
 /*
  *  BTStackData -- As we descend a tree, we push the (key, pointer) pairs
