@@ -389,7 +389,7 @@ index_getprocid(irel, attnum, procnum)
 
     Assert(loc != NULL);
 
-    return (loc[(natts * (attnum - 1)) + (procnum - 1)]);
+    return (loc[(natts * (procnum - 1)) + (attnum - 1)]);
 }
 
 /* ----------------
