@@ -295,6 +295,32 @@ start_palloc_list()
 }
 
 void
+print_palloc_list()
+{
+    PallocDebugData *d;
+    int 	    i;
+    Size 	    total;
+
+    if (! PallocRecord)
+	return;
+    
+    d = (PallocDebugData *) SLGetHead(&PallocDebugList);
+    i = 0;
+    total = 0;
+    
+    while (d != NULL) {
+	printf("!! f: %s l: %d p: 0x%x s: %d %s\n",
+	       d->file, d->line, d->pointer, d->size, d->context);
+	i++;
+	total += d->size;
+	
+	d = (PallocDebugData *) SLGetSucc(&(d->Link));
+    }
+    
+    printf("\n!! print_palloc_list: items: %d totalsize: %d\n", i, total);
+}
+
+void
 start_palloc_diff_list()
 {
     if (PallocList)
@@ -321,7 +347,7 @@ end_palloc_diff_list()
 }
 
 void
-dump_palloc_diff_list()
+print_palloc_diff_list()
 {
     PallocDebugData *d, *d1, *tempd;
     int i, total;
