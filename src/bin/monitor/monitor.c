@@ -224,7 +224,6 @@ main(argc,argv)
       fprintf(stderr, "\t-N\t\t\toutput without attribute names\n");
       fprintf(stderr, "\t-Q\t\t\tREALLY quiet output\n");
       fprintf(stderr, "\t-T\t\t\tterse output\n");
-      fflush(stderr);
       exit(2);
     }
 
@@ -402,8 +401,6 @@ check_conn_and_db()
     char *string= PQexec(" ");
     switch(*string) {
     case 'E':
-	elog(FATAL,&string[1]);
-	break;
     case 'R':
 	handle_exit(1);
 	break;
@@ -579,14 +576,14 @@ handle_send()
     pos = lseek(tmon_temp,(off_t)0,L_SET);
 
     if (pos != 0)
-    fprintf(stderr, "Bogus file position\n");
+	fprintf(stderr, "Bogus file position\n");
 
     if (Verbose)
 	printf("\n");
 
     /* discard leading white space */
     while ( ( cc = read(tmon_temp,&c,1) ) != 0 && isspace((int)c))
-    continue;
+	continue;
 
     if ( cc != 0 ) {
 	pos = lseek(tmon_temp,(off_t)-1,L_INCR);
@@ -636,7 +633,9 @@ handle_send()
 		    if ( temp_c == '/')
 		      InAComment = false;
 		} else {
-		    elog(WARN,"ended tmon whilst in comment mode");
+		    fprintf(stderr, 
+			    "\nWARN: input ended while inside a comment!\n");
+		    handle_exit(1);
 		}
 	    }
 	}
@@ -671,28 +670,25 @@ handle_send()
 
 int
 handle_execution(query)
-
-char *query;
-
+    char *query;
 {
-	bool done = false;
+    bool done = false;
     bool entering = true;
     char *pstring1;
     char pstring[256];
     int nqueries = 0;
-	int retval = 0;
-
+    int retval = 0;
+    
     while (!done) {
-
         if (entering) {
-        pstring1 = PQexec(query); 
-	fflush(stdout);
-	fflush(stderr);
-        entering = false;
-    } 
-
-    strcpy(pstring, pstring1);
-
+	    pstring1 = PQexec(query); 
+	    fflush(stdout);
+	    fflush(stderr);
+	    entering = false;
+	} 
+	
+	strcpy(pstring, pstring1);
+	
         switch(pstring[0]) {
         case 'A':
         case 'P':
@@ -701,12 +697,7 @@ char *query;
             pstring1 = PQexec(" ");
             nqueries++;
             break;
-            
-        case 'E':
-            elog (FATAL,&(pstring[1]));
-			retval = 1;
-            break;
-            
+
         case 'C':
 	    if (!Silent)
 		fprintf(stdout,"%s",&(pstring[1]));
@@ -721,25 +712,26 @@ char *query;
             done = true;
             break;
             
+        case 'E':
         case 'R':
             done = true;
-			retval = 1;
+	    retval = 1;
             break;
-
+	    
         case 'B':
             {
                 char s[100];
-
+		
                 s[0] = ' ';
-
+		
 		if (!Silent)
 		    fprintf(stdout, "Copy command returns...\n");
-
+		
                 while (s[0] != '.')
-                {
-                    PQgetline(s, 100);
-		    if (s[0] != '.') fprintf(stdout, "%s\n", s);
-		}
+		    {
+			PQgetline(s, 100);
+			if (s[0] != '.') fprintf(stdout, "%s\n", s);
+		    }
             }
 	    PQendcopy();
 	    done = 1;
@@ -748,10 +740,10 @@ char *query;
 	    {
                 char s[8192];
 		char c;
-
+		
                 s[0] = ' ';
-
-
+		
+		
 		if (!Silent) {
 		    fprintf(stdout, "Enter info followed by a newline\n");
 		    fprintf(stdout, "End with a dot on a line by itself.\n");
@@ -762,22 +754,19 @@ char *query;
 		 * XXX the 'inevitable newline' is not always present
 		 *     for example `cat file | monitor -c "copy from stdin"
 		 */
-
-		if ((c = getchar()) != '\n')
-		{
+		
+		if ((c = getchar()) != '\n') {
 		    s[0] = c;
 		    gets(&s[1]);
 		    PQputline(s);
 		    PQputline("\n");
 		}
-
+		
 		fflush(stdin);
-                while (s[0] != '.')
-                {
+                while (s[0] != '.') {
 		    if (!Silent)
 			fprintf(stdout, ">> ");
-		    if (gets(s) == (char *)NULL)
-		    {
+		    if (gets(s) == (char *)NULL) {
 			PQputline(".\n");
 			break;
 		    }
@@ -790,7 +779,7 @@ char *query;
 	    break;
         default:
             fprintf(stderr,"unknown type\n");
-          }
+	}
 	fflush(stderr);
 	fflush(stdout);
     }
@@ -804,11 +793,9 @@ char *query;
  */
 
 handle_one_command(command)
-
-char *command;
-
+    char *command;
 {
-	return(handle_execution(command));
+    return(handle_execution(command));
 }
 
 /*
@@ -846,17 +833,17 @@ handle_print()
     char c;
     off_t pos;
     int cc;
-
+    
     pos = lseek(tmon_temp,(off_t)0,L_SET);
-
+    
     if (pos != 0 )
-    fprintf(stderr, "Bogus file position\n");
-
+	fprintf(stderr, "Bogus file position\n");
+    
     printf("\n");
-
+    
     while ( ( cc = read(tmon_temp,&c,1) ) != 0) 
-    putchar(c);
-
+	putchar(c);
+    
     printf("\n");
 }
 
@@ -868,17 +855,14 @@ handle_print()
  */
 
 handle_exit(exit_status)
-
-int exit_status;
-
+    int exit_status;
 {
     int unlink_status;
-
-    if (!RunOneCommand) 
-	{
-		close(tmon_temp);
-		unlink(tmon_temp_filename);
-	}
+    
+    if (!RunOneCommand) {
+	close(tmon_temp);
+	unlink(tmon_temp_filename);
+    }
     PQfinish();   
     exit(exit_status);
 }
