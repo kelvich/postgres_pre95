@@ -18,7 +18,6 @@ RcsId("$Header$");
 
 #include "log.h"
 #include "mcxt.h"
-#include "mmgr.h"
 
 #include "hasht.h"
 

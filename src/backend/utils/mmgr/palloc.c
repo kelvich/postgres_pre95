@@ -8,7 +8,6 @@
 RcsId("$Header$");
 
 #include "mcxt.h"
-#include "mmgr.h"
 #include "mnodes.h"
 
 #include "palloc.h"
