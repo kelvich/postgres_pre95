@@ -1,3 +1,4 @@
+
 /*    
  *    	nodeFuncs
  *    
@@ -58,8 +59,7 @@ single_node (node)
  *    
  */
 
-/*  .. ExecEvalVar, switch_outer, var_is_rel
- */
+/*  .. ExecEvalVar, switch_outer, var_is_rel   */
 
 bool
 var_is_outer (var)
@@ -68,8 +68,8 @@ var_is_outer (var)
     return((bool)(get_varno (var) == OUTER));
 }
 
-/*  .. ExecEvalVar, var_is_rel
- */
+/*  .. ExecEvalVar, var_is_rel   */
+
 bool
 var_is_inner (var)
      Var var ;
@@ -77,18 +77,21 @@ var_is_inner (var)
     return ( (bool) (get_varno (var) == INNER));
 }
 
-/*  .. get_relattval, get_relsatts
- */
+/*  .. get_relattval, get_relsatts  */
+ 
+/* XXX - completely bogus, Var needs an extra flags that is 
+   "materialized ?" */
 
 bool
 var_is_mat (var)
      Var var ;
 {
-    return((bool)listp (get_varno (var)));
+    return (false);
+    /* return((bool)listp (get_varno(var))); */
 }
 
-/*  .. ExecEvalVar
- */
+/*  .. ExecEvalVar  */
+
 bool
 var_is_rel (var)
      Var var ;
@@ -227,16 +230,16 @@ constant_p (node)
  */
 
 bool
-non_null(c)
+non_null (c)
      Expr c;
 {
-   if (! IsA(c,Const))
-      return false;
-   
-   if (!get_constisnull(c))
-      return true;
 
-   return false;
+    if ( IsA(c,Const) && !get_constisnull (c) )
+      return(true);
+    else
+      return(false);
+
+
 }
 
 /*    
