@@ -28,7 +28,6 @@ makeStringInfo()
 {
     StringInfo res;
     long size;
-    char *palloc();
 
     res = (StringInfo) palloc(sizeof(StringInfoData));
     if (res == NULL) {
@@ -101,6 +100,7 @@ char *buffer;
 	}
 	bcopy(str->data, s, str->len+1);
 	pfree(str->data);
+	str->maxlen = newlen;
 	str->data = s;
     }
 
