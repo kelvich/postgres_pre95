@@ -81,7 +81,7 @@ HandleFunctionRequest()
     xactid = getpint(4);
     fid = getpint(4);
 
-    StartTransactionCommand();
+    /* StartTransactionCommand(); */
 
     if ( fid == FUNCTION_BY_NAME ) { 
 	HeapTuple	tuple;
@@ -127,12 +127,17 @@ HandleFunctionRequest()
 	putint(0,4);
     }
 
+    printf("\n arguments are %d %d %d \n",fid,arg[0],arg[1]);
+    printf("rettype = %d\n",rettype);
+
     retval = fmgr (fid, arg[0],arg[1],arg[2],arg[3],
 		   arg[4],arg[5],arg[6],arg[7] );
 
-    SendFunctionResult ( fid, retval, rettype );
+    if (rettype != PORTAL_RESULT ) {
+      SendFunctionResult ( fid, retval, rettype );
+    }
 
-    CommitTransactionCommand();
+    /* CommitTransactionCommand(); */
 }
 
 static void
@@ -149,7 +154,7 @@ SendFunctionResult ( fid, retval, rettype )
     switch (rettype) {
 
       case 0: 			/* void retval */
-
+        break;
       case PORTAL_RESULT:
 	break;
 
