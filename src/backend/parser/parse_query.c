@@ -57,15 +57,17 @@ lispMakeVar(vnum,attid,vartype,vardotfields,vararrayindex)
 	
 	if (vararrayindex != 0 )
 	  m = lispCons ( lispInteger (vararrayindex) , m ) ;
-	else
-	  m = lispCons ( LispNil , m);
+	/* else
+	  m = lispCons ( LispNil , m); */
 	if (vardotfields != 0 )
-	  m = lispCons ( lispInteger (vardotfields) , m ) ;
-	else
-	  m = lispCons ( LispNil , m);
-	m = lispCons ( lispInteger (vartype) , m );
-	m = lispCons ( lispInteger (attid) , m );
-	m = lispCons ( lispInteger (vnum) , m );
+	  m = lispCons ( lispInteger (vardotfields) , m ) ; /* bogus, since
+							       no multi-level
+							       in Ver 1 */
+	/* else
+	  m = lispCons ( LispNil , m); */
+	/* m = lispCons ( lispInteger (vartype) , m );    /* vartype */
+	m = lispCons ( lispInteger (attid) , m );      /* varattno */
+	m = lispCons ( lispInteger (vnum) , m );       /* varno */
 	m = lispCons ( lispAtom ("list") , m );
 
 	l = lispCons ( m , LispNil );
