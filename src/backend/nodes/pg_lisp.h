@@ -120,5 +120,6 @@ extern LispValue LispDelete();
 extern LispValue push();
 extern bool null();
 extern LispValue collect();
+extern LispValue last_element();
 
 #endif /* !LispDepIncluded */
