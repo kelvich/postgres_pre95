@@ -50,37 +50,31 @@ int	keysize;
 	    case 6*sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		/* fall through */
 
 	    case 5*sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		/* fall through */
 
 	    case 4*sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		/* fall through */
 
 	    case 3*sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		/* fall through */
 
 	    case 2*sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		/* fall through */
 
 	    case sizeof(int):
 		h = h * PRIME1 ^ (*key);
 		key++;
-		keysize -= sizeof(int);
 		break;
 
 	    default:
