@@ -104,22 +104,24 @@ bool IsEmptyQuery = false;
 extern int	testFlag;
 extern int	lockingOff;
 static int	confirmExecute = 0;
-int		ProcessAffinityOn = 0;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
 extern int	NBuffers;
 time_t		tim;
-bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
 char pg_pathname[256];
-int		MasterPid;
 static int	ShowParserStats;
 static int	ShowPlannerStats;
 int	ShowExecutorStats;
 extern FILE	*StatFp;
 
+/* these are hong flags that should go away --mao 10/10/92 */
+int		ProcessAffinityOn = 0;
+int		MasterPid;
+bool            override = false;
+ParallelismModes ParallelismMode = INTER_W_ADJ;
 
 /* ----------------
  *	for memory leak debugging
@@ -153,7 +155,6 @@ extern int Quiet;
  * ----------------
  */
 int BushyPlanFlag = 0; /* default to false -- consider only left-deep trees */
-ParallelismModes ParallelismMode = INTER_W_ADJ;
 
 /*
 ** Flags for expensive function optimization -- JMH 3/9/92
@@ -561,15 +562,6 @@ pg_plan(query_string, typev, nargs, parsetreeP, dest)
 	lispDisplay(parsetree_list); /* takes one arg, not two */
     }
 
-    /* ----------------
-     *	(3) for each parse tree, plan the query or process
-     *      the utility request.
-     *      we now plan all the queries in parsetree_list
-     *      and get plan_list.  this gives you the possibility
-     *      of inter-query parallelism.
-     * ----------------
-     */
-	    
     foreach(i, parsetree_list) {
 	int 	  which_util;
 	LispValue parsetree = CAR(i);
@@ -651,35 +643,6 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 
     /* plan the queries */
     plan_list = pg_plan(query_string, typev, nargs, &parsetree_list, dest);
-
-    if (ParallelExecutorEnabled()) {
-
-	/*
-	 *  XXX:  ParallelProcessQueries needs to be rewritten to handle
-	 *  utility invocations.  Until then, THIS IS BROKEN!!!
-	 */
-
-	elog(WARN, "hey wei, you need to talk to mao.");
-
-	/* -----------------
-	 *  execute the plans in plan_list in parallel
-	 * -----------------
-	 */
-	if (ShowExecutorStats)
-	    ResetUsage();
-	ParallelProcessQueries(parsetree_list, plan_list, dest);
-	if (ShowExecutorStats) {
-	    fprintf(stderr, "! Executor Stats:\n");
-	    ShowUsage();
-	}
-	return;
-    }
-
-    /* ------------------
-     *  parallel executor is not enabled, execute the plans in plan_list
-     *  one after another
-     * ------------------
-     */
 
     while (parsetree_list != LispNil) {
 	parsetree = CAR(parsetree_list);
@@ -856,12 +819,10 @@ PostgresMain(argc, argv)
     register 	int	i;
     int			flagC;
     int			flagQ;
-    int			flagM;
     int			flagS;
     int			flagE;
     int			flag;
 
-    int			numslaves;
     int			errs = 0;
     char		*DatabaseName;
 
@@ -924,12 +885,11 @@ PostgresMain(argc, argv)
      *	parse command line arguments
      * ----------------
      */
-    numslaves = 0;
-    flagC = flagQ = flagM = flagS = flagE = ShowStats = 0;
+    flagC = flagQ = flagS = flagE = ShowStats = 0;
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:F:x:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:bCd:Ef:GiLNP:pQSst:Tx:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -972,7 +932,7 @@ PostgresMain(argc, argv)
 	  
       case 'C':
 	  /* ----------------
-	   *	I don't know what this does -cim 5/12/90
+	   *	don't print version string (don't know why this is 'C' --mao)
 	   * ----------------
 	   */
 	  flagC = 1;
@@ -999,6 +959,32 @@ PostgresMain(argc, argv)
 	  flagE = 1;
 	  break;
 	  	  
+      case 'f':
+          /* -----------------
+           *    f - forbid generation of certain plans
+           * -----------------
+           */
+          switch (optarg[0]) {
+          case 's': /* seqscan */
+                _enable_seqscan_ = false;
+                break;
+          case 'i': /* indexscan */
+                _enable_indexscan_ = false;
+                break;
+          case 'n': /* nestloop */
+                _enable_nestloop_ = false;
+                break;
+          case 'm': /* mergejoin */
+                _enable_mergesort_ = false;
+                break;
+          case 'h': /* hashjoin */
+                _enable_hashjoin_ = false;
+                break;
+          default:
+                errs++;
+          }
+	  break;
+
       case 'G':
 	  /* ----------------
 	   *	G - use cacheoffgetattr instead of fastgetattr
@@ -1006,30 +992,17 @@ PostgresMain(argc, argv)
 	   */
 	  set_use_cacheoffgetattr(1);
 	  break;
-	  	  
-      case 'M':
-	  /* ----------------
-	   *	M # - process queries in parallel.  The system
-	   *	      will initially fork several slave backends
-	   *	      and the initial backend will plan parallel
-	   *	      queries and pass them to the slaves. -cim 5/12/90
-	   * ----------------
-	   */
-	  numslaves = atoi(optarg);
-	  if (numslaves > 0) {
-	      SetParallelExecutorEnabled(true);
-	      SetNumberSlaveBackends(numslaves);
-	  } else
-	      errs += 1;
-	  flagM = 1;
-	  _enable_mergesort_ = 0;  /* don't support parallel mergesort yet */
+
+      case 'i':
+	  confirmExecute = 1;
 	  break;
-	  
-      case 'n':
-	  /* ----------------
-	   *	does nothing - obsolete this! -cim 2/10/91
-	   * ----------------
+
+       case 'L':
+	  /* --------------------
+	   *  turn off locking
+	   * --------------------
 	   */
+	  lockingOff = 1;
 	  break;
 
       case 'N':
@@ -1038,18 +1011,6 @@ PostgresMain(argc, argv)
 	   * ----------------
 	   */
 	  UseNewLine = 0;
-	  break;
-	  
-      case 'O':
-	  /* ----------------
-	   *	O - override transaction system.  This used
-	   *	    to be used to set the AMI_OVERRIDE flag for
-	   *	    creation of initial system relations at
-	   *	    bootstrap time.  I think MikeH changed its
-	   *	    meaning and am not sure it works now.. -cim 5/12/90
-	   * ----------------
-	   */
-	  override = true;
 	  break;
 	  
       case 'p':	/* started by postmaster */
@@ -1070,7 +1031,7 @@ PostgresMain(argc, argv)
 	   */
           Portfd = atoi(optarg);
 	  break;
-	  
+
       case 'Q':
 	  /* ----------------
 	   *	Q - set Quiet mode (reduce debugging output)
@@ -1088,7 +1049,7 @@ PostgresMain(argc, argv)
 	  flagS = 1;
 	  SetTransactionFlushEnabled(false);
 	  break;
-	  
+
       case 's':
           /* ----------------
            *    s - report usage statistics (timings) after each query
@@ -1122,7 +1083,7 @@ PostgresMain(argc, argv)
 	  default:   errs++; break;
 	  } 
 	  break;
-	  
+
       case 'T':
           /* ----------------
            *    T - Testing mode: execute all the possible plans instead
@@ -1135,82 +1096,21 @@ PostgresMain(argc, argv)
            */
           testFlag = 1;
           break;
-	  
-      case 'f':
-          /* -----------------
-           *    f - forbid generation of certain plans
-           * -----------------
-           */
-          switch (optarg[0]) {
-          case 's': /* seqscan */
-                _enable_seqscan_ = false;
-                break;
-          case 'i': /* indexscan */
-                _enable_indexscan_ = false;
-                break;
-          case 'n': /* nestloop */
-                _enable_nestloop_ = false;
-                break;
-          case 'm': /* mergejoin */
-                _enable_mergesort_ = false;
-                break;
-          case 'h': /* hashjoin */
-                _enable_hashjoin_ = false;
-                break;
-          default:
-                errs++;
-          }
-	  break;
 
-       case 'L':
-	  /* --------------------
-	   *  turn off locking
-	   * --------------------
-	   */
-	  lockingOff = 1;
-	  break;
-
-      case 'i':
-	  confirmExecute = 1;
-	  break;
-      case 'a':
-	  /* ----------------
-	   *	turn on process affinity: bind processes to processors
-	   *	this is a sequent-specific option
-	   * ----------------
-	   */
-#ifdef sequent
-          ProcessAffinityOn = 1;
-#else
-          fprintf(stderr, "-a is a sequent-specific flag.\n");
-          errs++;
-#endif
-          break;
-      case 'F':
-	  if (strcmp(optarg, "intra_only") == 0)
-	      ParallelismMode = INTRA_ONLY;
-	  else if (strcmp(optarg, "inter_w_adj") == 0)
-	      ParallelismMode = INTER_W_ADJ;
-	  else if (strcmp(optarg, "inter_wo_adj") == 0)
-	      ParallelismMode = INTER_WO_ADJ;
-	  else {
-	      fprintf(stderr, "use -F {intra_only,inter_w_adj,inter_wo_adj}\n");
-	      errs++;
-	    }
-	  break;
       case 'x':
+	  /* control joey hellerstein's expensive function optimization */
 	  if (strcmp(optarg, "off") == 0)
 	    XfuncMode = XFUNC_OFF;
 	  else if (strcmp(optarg, "nor") == 0)
 	    XfuncMode = XFUNC_NOR;
 	  else if (strcmp(optarg, "nopull") == 0)
 	    XfuncMode = XFUNC_NOPULL;
-	  else
-	   {
+	  else {
 	       fprintf(stderr, "use -x {off,nor,nopull}\n");
 	       errs++;
-	   }
+	  }
 	  break;
+
       default:
 	  /* ----------------
 	   *	default: bad command line option
@@ -1219,38 +1119,49 @@ PostgresMain(argc, argv)
 	  errs++;
       }
 
-      if (ShowStats && 
-	  (ShowParserStats || ShowPlannerStats || ShowExecutorStats)) {
-	  fprintf(stderr, "-s can not be used together with -t.\n");
-	  exitpg(1);
-	}
+    if (errs || argc - optind > 1) {
+	fprintf(stderr, "Usage: %s [-A alloctype] [-B nbufs] [-d lvl] ] [-f plantype]\n", argv[0]);
+	fprintf(stderr,"\t[-P portno] [-t tracetype] [-x opttype] [-bCEGiLNpQSsT] [dbname]\n");
+	fprintf(stderr, "    A: trace memory allocations\n");
+	fprintf(stderr, "    b: consider bushy plan trees during optimization\n");
+	fprintf(stderr, "    B: set number of buffers in buffer pool\n");
+	fprintf(stderr, "    C: supress version info\n");
+	fprintf(stderr, "    d: set debug level\n");
+	fprintf(stderr, "    E: echo query before execution\n");
+	fprintf(stderr, "    f: forbid plantype generation\n");
+	fprintf(stderr, "    G: use cacheoffgetattr instead of fastgetattr\n");
+	fprintf(stderr, "    i: prompt for confirmation before execution\n");
+	fprintf(stderr, "    L: turn off locking\n");
+	fprintf(stderr, "    N: don't use newline as query delimiter\n");
+	fprintf(stderr, "    p: backend started by postmaster\n");
+	fprintf(stderr, "    P: set port file descriptor\n");
+	fprintf(stderr, "    Q: suppress informational messages\n");
+	fprintf(stderr, "    S: assume stable main memory\n");
+	fprintf(stderr, "    s: show stats after each query\n");
+	fprintf(stderr, "    t: trace component execution times\n");
+	fprintf(stderr, "    T: execute all possible plans for each query\n");
+	fprintf(stderr, "    x: control expensive function optimization\n");
+	exitpg(1);
+    } else if (argc - optind == 1) {
+	DBName = DatabaseName = argv[optind];
+    } else if ((DBName = DatabaseName = PG_username) == NULL) {
+	fprintf(stderr, "%s: USER undefined and no database specified\n",
+	      argv[0]);
+	exitpg(1);
+    }
+
+    if (ShowStats && 
+	(ShowParserStats || ShowPlannerStats || ShowExecutorStats)) {
+	fprintf(stderr, "-s can not be used together with -t.\n");
+	exitpg(1);
+    }
+
     /* ----------------
      *	get user name and pathname and check command line validity
      * ----------------
      */
     GetUserName();
     get_pathname(argv);
-
-    if (errs || argc - optind > 1) {
-	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n",stderr);
-	fputs("	-C   =  ??? \n", stderr);
-	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
-	fputs("          (# is number of slave backends)\n", stderr);
-	fputs(" -B # =  Set Buffer Pool Size\n", stderr);
-	fputs("          (# is number of buffer pages)\n", stderr);
-	fputs(" -O   =  Override Transaction System\n", stderr);
-	fputs(" -S   =  assume Stable Main Memory\n", stderr);
-	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
-	fputs(" -N   =  use ^D as query delimiter\n", stderr);
-	fputs(" -E   =  echo the query entered\n", stderr);
-	exitpg(1);
-    } else if (argc - optind == 1) {
-	DBName = DatabaseName = argv[optind];
-    } else if ((DBName = DatabaseName = PG_username) == NULL) {
-	fputs("amiint: failed getenv(\"USER\") and no database specified\n",
-	      stderr);
-	exitpg(1);
-    }
 
     Noversion = flagC;
     Quiet = flagQ;
@@ -1264,21 +1175,14 @@ PostgresMain(argc, argv)
 	puts("\t---debug info---");
 	printf("\tQuiet =        %c\n", Quiet 	  ? 't' : 'f');
 	printf("\tNoversion =    %c\n", Noversion ? 't' : 'f');
-	printf("\toverride  =    %c\n", override  ? 't' : 'f');
 	printf("\tstable    =    %c\n", flagS     ? 't' : 'f');
-	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
 	printf("\ttimings   =    %c\n", ShowStats ? 't' : 'f');
 	printf("\tbufsize   =    %d\n", NBuffers);
-	if (flagM)
-	    printf("\t# slaves  =    %d\n", numslaves);
 	
 	printf("\tquery echo =   %c\n", EchoQuery ? 't' : 'f');
 	printf("\tDatabaseName = [%s]\n", DatabaseName);
 	puts("\t----------------\n");
     }
-    
-    if (! Quiet && ! override)
-	puts("\t**** Transaction System Active ****");
     
     /* ----------------
      *	initialize portal file descriptors
@@ -1294,54 +1198,17 @@ PostgresMain(argc, argv)
     }
     
     if (IsUnderPostmaster)
-    {
 	whereToSendOutput = Remote;
-    }
     else 
-    {
 	whereToSendOutput = Debug;
-    }
 
-    /* ----------------
-     *	set processing mode appropriately depending on weather or
-     *  not we want the transaction system running.  When the
-     *  transaction system is not running, all transactions are
-     *  assumed to have successfully committed and we never go to
-     *  the transaction log.
-     * ----------------
-     */
-    /* XXX the -C version flag should be removed and combined with -O */
-    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
+    SetProcessingMode(InitProcessing);
     
-    /* ----------------
-     *	InitPostgres()
-     * ----------------
-     */
+    /* initialize */
     if (! Quiet)
 	puts("\tInitPostgres()..");
     InitPostgres(DatabaseName);
 
-    /* ----------------
-     *  Initialize the Master/Slave shared memory allocator,
-     *	fork and initialize the parallel slave backends, and
-     *  register the Master semaphore/shared memory cleanup
-     *  procedures.
-     * ----------------
-     */
-    if (ParallelExecutorEnabled()) {
-	extern void IPCPrivateSemaphoreKill();
-	extern void IPCPrivateMemoryKill();
-	
-	if (! Quiet)
-	    puts("\tInitializing Slave Backends...");
-	SlaveBackendsInit();
-
-	if (! Quiet)
-	    puts("\tRegistering Master IPC Cleanup Procedures...");
-	ExecSemaphoreOnExit(IPCPrivateSemaphoreKill);
-	ExecSharedMemoryOnExit(IPCPrivateMemoryKill);
-    }
-    
     /* ----------------
      *	if an exception is encountered, processing resumes here
      *  so we abort the current transaction and start a new one.
@@ -1359,20 +1226,13 @@ PostgresMain(argc, argv)
 	Warnings++;
 	time(&tim);
 	
-	if (ParallelExecutorEnabled()) {
-	    if (! Quiet)
-		printf("\tSlaveBackendsAbort() at %s\n", ctime(&tim));
+	if (! Quiet)
+	    printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
 
-	    SlaveBackendsAbort();
-	} else {
-	    if (! Quiet)
-		printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
+	for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++ ) 
+	  parser_input[i] = 0;
 
-	    for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++ ) 
-	      parser_input[i] = 0;
-
-	    AbortCurrentTransaction();
-	}
+	AbortCurrentTransaction();
     }
     
     /* ----------------
@@ -1519,9 +1379,6 @@ ResetUsage()
         gettimeofday(&Save_t, &tz);
 	ResetBufferUsage();
 	ResetTupleCount();
-#ifdef PARALLELDEBUG
-        ResetParallelDebugInfo();
-#endif
 }
 
 ShowUsage()
@@ -1549,7 +1406,7 @@ ShowUsage()
 	}
 
 	/*
-	 *  the only stat we don't show here are for memory usage -- i can't
+	 *  the only stats we don't show here are for memory usage -- i can't
 	 *  figure out how to interpret the relevant fields in the rusage
 	 *  struct, and they change names across o/s platforms, anyway.
 	 *  if you can figure out what the entries mean, you can somehow
@@ -1597,8 +1454,5 @@ ShowUsage()
 	fprintf(StatFp, "! postgres usage stats:\n");
 	PrintBufferUsage(StatFp);
 	DisplayTupleCount(StatFp);
-#ifdef PARALLELDEBUG
-        PrintParallelDebugInfo(StatFp);
-#endif
 	ShowPrs2Stats(StatFp);
 }
