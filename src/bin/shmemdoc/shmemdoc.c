@@ -19,6 +19,7 @@
 #include "tmp/c.h"
 #include "support/shmemipc.h"
 #include "support/shmemipci.h"
+#include "utils/memutils.h"
 
 RcsId("$Header$");
 
@@ -51,17 +52,21 @@ extern int	shmemstat();
 extern int	bufdesc();
 extern int	bufdescs();
 extern int	buffer();
+extern int	linp();
+extern int	tuple();
 
 Cmd	CmdList[] = {
     "bufdesc",		1,	bufdesc,
     "bufdescs",		0,	bufdescs,
     "buffer",		3,	buffer,
     "help",		0,	help,
+    "linp",		2,	linp,
     "quit",		0,	quit,
     "semset",		2,	semset,
     "semstat",		0,	semstat,
     "setbase",		1,	setbase,
     "shmemstat",	0,	shmemstat,
+    "tuple",		3,	tuple,
     "whatis",		1,	whatis,
     (char *) NULL,	0,	NULL
 };
@@ -497,6 +502,9 @@ help()
     printf("bufdescs\t\tprint all buffer descriptors\n");
     printf("buffer n type level\tshow contents of buffer n, which is a page from a\n");
     printf("\t\t\ttype (h,b,r) relation, with level (0,1,2) detail\n");
+    printf("linp n which\t\tprint line pointer which of buffer n\n");
+    printf("tuple n type which\tprint tuple which of buffer n, which is a page from\n");
+    printf("\t\t\ta type (h,b,r) relation\n");
     printf("\n");
     printf("setbase val\t\tuse val as the logical shmem base address\n");
     printf("shmemstat\t\tprint shared memory layout and stats\n");
@@ -762,7 +770,7 @@ heappage(pgno, buf, level)
     int level;
 {
     PageHeaderData *phdr;
-    ItemIdData *linp;
+    ItemIdData *lp;
     int nlinps;
     int i;
     HeapTupleData *htup;
@@ -787,11 +795,11 @@ heappage(pgno, buf, level)
     if (level == 0)
 	return;
 
-    for (i = 0, linp = &(phdr->pd_linp[0]); i < nlinps; linp++, i++) {
-	showlinp(i, linp);
+    for (i = 0, lp = &(phdr->pd_linp[0]); i < nlinps; lp++, i++) {
+	showlinp(i, lp);
 	/* level > 1 means show everything */
 	if (level > 1) {
-	    htup = (HeapTupleData *) &(buf[linp->lp_off]);
+	    htup = (HeapTupleData *) &(buf[lp->lp_off]);
 	    showheaptup(htup);
 	}
     }
@@ -803,7 +811,7 @@ btreepage(pgno, buf, level)
     int level;
 {
     PageHeaderData *phdr;
-    ItemIdData *linp;
+    ItemIdData *lp;
     int nlinps;
     int i;
     BTItemData *bti;
@@ -857,11 +865,11 @@ btreepage(pgno, buf, level)
     if (level == 0)
 	return;
 
-    for (i = 0, linp = &(phdr->pd_linp[0]); i < nlinps; linp++, i++) {
-	showlinp(i, linp);
+    for (i = 0, lp = &(phdr->pd_linp[0]); i < nlinps; lp++, i++) {
+	showlinp(i, lp);
 	/* level > 1 means show everything */
 	if (level > 1) {
-	    bti = (BTItemData *) &(buf[linp->lp_off]);
+	    bti = (BTItemData *) &(buf[lp->lp_off]);
 	    printf("\t\toid %ld ", bti->bti_oid);
 	    showindextup(&bti->bti_itup);
 	}
@@ -875,7 +883,7 @@ rtreepage(pgno, buf, level)
     int level;
 {
     PageHeaderData *phdr;
-    ItemIdData *linp;
+    ItemIdData *lp;
     int nlinps;
     int i;
     RTreePageOpaqueData *rtpo;
@@ -903,45 +911,45 @@ rtreepage(pgno, buf, level)
     if (level == 0)
 	return;
 
-    for (i = 0, linp = &(phdr->pd_linp[0]); i < nlinps; linp++, i++) {
-	showlinp(i, linp);
+    for (i = 0, lp = &(phdr->pd_linp[0]); i < nlinps; lp++, i++) {
+	showlinp(i, lp);
 	/* level > 1 means show everything */
 	if (level > 1) {
-	    itup = (IndexTupleData *) &(buf[linp->lp_off]);
+	    itup = (IndexTupleData *) &(buf[lp->lp_off]);
 	    showindextup(itup);
 	}
     }
 }
 
 void
-showlinp(itemno, linp)
+showlinp(itemno, lp)
     int itemno;
-    ItemIdData *linp;
+    ItemIdData *lp;
 {
     int off;
 
     printf("  {%03d} off %d length %d flags [",
-	   itemno + 1, linp->lp_off, linp->lp_len);
-    if (linp->lp_flags & LP_USED)
+	   itemno + 1, lp->lp_off, lp->lp_len);
+    if (lp->lp_flags & LP_USED)
 	printf(" LP_USED");
-    if (linp->lp_flags & LP_IVALID)
+    if (lp->lp_flags & LP_IVALID)
 	printf(" LP_IVALID");
-    if (linp->lp_flags & LP_DOCNT)
+    if (lp->lp_flags & LP_DOCNT)
 	printf(" LP_DOCNT");
-    if (linp->lp_flags & LP_CTUP)
+    if (lp->lp_flags & LP_CTUP)
 	printf(" LP_CTUP");
-    if (linp->lp_flags & LP_LOCK)
+    if (lp->lp_flags & LP_LOCK)
 	printf(" LP_LOCK");
-    if (linp->lp_flags & LP_ISINDEX)
+    if (lp->lp_flags & LP_ISINDEX)
 	printf(" LP_ISINDEX");
     printf(" ]\n");
-    if ((off = linp->lp_off) > 8192)
+    if ((off = lp->lp_off) > 8192)
 	printf("    **** off too high!\n");
     if (off & 0x3)
 	printf("    **** off is bogus -- unaligned tuple pointer!");
-    if (linp->lp_len > 8192)
+    if (lp->lp_len > 8192)
 	printf("    **** len too high!\n");
-    if (!(linp->lp_flags & LP_USED))
+    if (!(lp->lp_flags & LP_USED))
 	printf("    **** item not used!\n");
 }
 
@@ -995,4 +1003,88 @@ ItemPointerGetBlockNumber(iptr)
     b = (unsigned long) ((iptr->block[0] << 16) + iptr->block[1]);
 
     return (b);
+}
+
+int
+linp(pgno, which)
+    char *pgno;
+    char *which;
+{
+    int p, n;
+    int off;
+    PageHeaderData *phdr;
+
+    p = atoi(pgno);
+    if (p < 0 || p >= NBuffers) {
+	fprintf(stderr, "buffer number %d out of range (0 - %d)\n",
+		p, NBuffers);
+	return (1);
+    }
+
+    n = atoi(which);
+    if (n < 0) {
+	fprintf(stderr, "linp %d out of range -- must be non-negative\n", n);
+	return (1);
+    }
+
+    off = p * 8192;
+    phdr = (PageHeaderData *) &(BufferBlocks[off]);
+
+    showlinp(n, &(phdr->pd_linp[n]));
+
+    return (0);
+}
+
+int
+tuple(pgno, type, which)
+    char *pgno;
+    char *type;
+    char *which;
+{
+    int p, n;
+    int off;
+    PageHeaderData *phdr;
+    ItemIdData *lp;
+    BTItemData *bti;
+    char *buf;
+
+    p = atoi(pgno);
+    if (p < 0 || p >= NBuffers) {
+	fprintf(stderr, "buffer number %d out of range (0 - %d)\n",
+		p, NBuffers);
+	return (1);
+    }
+
+    n = atoi(which);
+    if (n < 0) {
+	fprintf(stderr, "linp %d out of range -- must be non-negative\n", n);
+	return (1);
+    }
+
+    off = p * 8192;
+    phdr = (PageHeaderData *) &(BufferBlocks[off]);
+    buf = (char *) phdr;
+    lp = &(phdr->pd_linp[n]);
+
+    switch (*type) {
+	case 'r':
+	    showindextup((IndexTupleData *) &(buf[lp->lp_off]));
+	    break;
+
+	case 'b':
+	    bti = (BTItemData *) &(buf[lp->lp_off]);
+	    showindextup(&bti->bti_itup);
+	    break;
+
+	case 'h':
+	    showheaptup((HeapTupleData *) &(buf[lp->lp_off]));
+	    break;
+
+	default:
+	    fprintf(stderr, "type %s unknown -- try h, r, or b\n", type);
+	    fflush(stderr);
+	    return (1);
+    }
+
+    return (0);
 }
