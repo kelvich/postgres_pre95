@@ -164,119 +164,6 @@ class (TupleTableSlot) public (LispValue) {
 };
 
 /* ----------------
- *    EState information
- *
- *      direction                       direction of the scan
- *      time                            ?
- *      owner                           ?
- *      locks                           ?
- *      subplan_info                    ?
- *      error_message                   ?
- *
- *      range_table                     array of scan relation information
- *
- *      qualification_tuple             tuple satisifying qualification
- *
- *      qualification_tuple_id          tid of qualification_tuple
- *
- *      qualification_tuple_buffer      buffer of qualification_tuple
- *
- *      raw_qualification_tuple         tuple satsifying qualification
- *                                      but with no rules activated.
- *
- *      relation_relation_descriptor    as it says
- *
- *      into_relation_descriptor        relation being retrieved "into"
- *
- *      result_relation_information     for update queries
- *
- *      tuplecount                      summary of tuples processed
- *
- *      param_list_info                 information needed to transform
- *                                      Param nodes into Const nodes
- *
- *      prs2_info                       Information used by the rule
- *                                      manager (for loop detection
- *                                      etc.). Must be initialized to NULL
- *
- *      explain_relation                The relation descriptor of the
- *                                      result relation of an 'explain'
- *                                      command. NULL if this is not
- *                                      an explain command.
- * 
- *      BaseId                          during InitPlan, each node is
- *                                      given a number.  this is the next
- *                                      number to be assigned.
- *
- *      tupleTable                      this is a pointer to an array
- *                                      of pointers to tuples used by
- *                                      the executor at any given moment.
- * ----------------
- */
-
-class (EState) public (Node) {
-      inherits(Node);
-      ScanDirection     es_direction;
-      abstime           es_time;
-      ObjectId          es_owner;
-      List              es_locks;
-      List              es_subplan_info;
-      Name              es_error_message;
-      List              es_range_table;
-      HeapTuple         es_qualification_tuple;
-      ItemPointer       es_qualification_tuple_id;
-      Buffer		es_qualification_tuple_buffer;
-      HeapTuple         es_raw_qualification_tuple;
-      Relation          es_relation_relation_descriptor;
-      Relation          es_into_relation_descriptor;
-      RelationInfo      es_result_relation_info;
-      TupleCount        es_tuplecount;
-      ParamListInfo     es_param_list_info;
-      Prs2EStateInfo    es_prs2_info;
-      Relation          es_explain_relation;
-      int               es_BaseId;
-      TupleTable        es_tupleTable;
-};
-
-/* ----------------
- *	ReturnState
- *
- *	XXX comment me
- * ----------------
- */
-class (ReturnState) public (Node) {
-      inherits(Node);
-      Relation resultTmpRelDesc;
-};
-
-/* ----------------
- *      Executor Type information needed by plannodes.h
- *
- *|     Note: the bogus classes CommonState and CommonScanState exist only
- *|           because our inheritance system only allows single inheritance
- *|           and we have to have unique slot names.  Hence two or more
- *|           classes which want to have a common slot must ALL inherit
- *|           the slot from some other class.  (This is a big hack to
- *|           allow our classes to share slot names..)
- *|
- *|     Example:
- *|           the class Result and the class NestLoop nodes both want
- *|           a slot called "OuterTuple" so they both have to inherit
- *|           it from some other class.  In this case they inherit
- *|           it from CommonState.  "CommonState" and "CommonScanState" are
- *|           the best names I could come up with for this sort of
- *|           stuff.
- *|
- *|           As a result, many classes have extra slots which they
- *|           don't use.  These slots are denoted (unused) in the
- *|           comment preceeding the class definition.  If you
- *|           comes up with a better idea of a way of doing things
- *|           along these lines, then feel free to make your idea
- *|           known to me.. -cim 10/15/89
- * ----------------
- */
-
-/* ----------------
  *    ExprContext
  *
  *      this class holds the "current context" information
@@ -317,6 +204,162 @@ class (ExprContext) public (Node) {
  /* public: */
 };
 
+/* ----------------
+ *    JunkFilter
+ *
+ *	targetlist		used with ExecTargetList to disgard junk
+ *	len			length of the target list
+ *	tupType			tuple descriptor for use with ExecTargetList
+ *	tupValues		array of value pointers for use with ...
+ *	tupleSlot		slot used to store clean copy of tuple
+ *
+ *    this class is used to store information regarding junk attributes.
+ *    A junk attribute is an attribute in a tuple that is needed only for
+ *    storing intermediate information in the executor, and does not belong
+ *    in the tuple proper.  For example, when we do a delete or replace
+ *    query, the planner adds an entry to the targetlist so that the tuples
+ *    returned to ExecutePlan() contain an extra attribute: the t_ctid of
+ *    the tuple to be deleted/replaced.  This is needed for amdelete() and
+ *    amreplace().  In doing a delete this does not make much of a
+ *    difference, but in doing a replace we have to make sure we disgard
+ *    all the junk in a tuple before calling amreplace().  Otherwise the
+ *    inserted tuple will not have the correct schema.  This solves a
+ *    problem with hash-join and merge-sort replace plans.  -cim 10/10/90
+ * ----------------
+ */
+class (JunkFilter) public (JunkFilter) {
+      inherits(Node);
+  /* private: */
+      List		jf_targetlist;
+      int		jf_len;
+      AttributePtr	jf_tupType;
+      Pointer		jf_tupValues;
+      TupleTableSlot	jf_tupleSlot;
+      ExprContext	jf_econtext;
+  /* public: */
+};
+
+/* ----------------
+ *    EState information
+ *
+ *      direction                       direction of the scan
+ *      time                            ?
+ *      owner                           ?
+ *      locks                           ?
+ *      subplan_info                    ?
+ *      error_message                   ?
+ *
+ *      range_table                     array of scan relation information
+ *
+ *      qualification_tuple             tuple satisifying qualification
+ *					(going away soon)
+ *
+ *      qualification_tuple_id          tid of qualification_tuple
+ *					(going away soon)
+ *
+ *      qualification_tuple_buffer      buffer of qualification_tuple
+ *					(going away soon)
+ *
+ *      raw_qualification_tuple         tuple satsifying qualification
+ *                                      but with no rules activated.
+ *					(going away soon)
+ *
+ *      relation_relation_descriptor    as it says
+ *
+ *      into_relation_descriptor        relation being retrieved "into"
+ *
+ *      result_relation_information     for update queries
+ *
+ *      tuplecount                      summary of tuples processed
+ *
+ *      param_list_info                 information needed to transform
+ *                                      Param nodes into Const nodes
+ *
+ *      prs2_info                       Information used by the rule
+ *                                      manager (for loop detection
+ *                                      etc.). Must be initialized to NULL
+ *
+ *      explain_relation                The relation descriptor of the
+ *                                      result relation of an 'explain'
+ *                                      command. NULL if this is not
+ *                                      an explain command.
+ * 
+ *      BaseId                          during InitPlan(), each node is
+ *                                      given a number.  this is the next
+ *                                      number to be assigned.
+ *
+ *      tupleTable                      this is a pointer to an array
+ *                                      of pointers to tuples used by
+ *                                      the executor at any given moment.
+ *
+ *	junkFilter			contains information used to
+ *					extract junk attributes from a tuple.
+ *					(see JunkFilter above)
+ * ----------------
+ */
+
+class (EState) public (Node) {
+      inherits(Node);
+      ScanDirection     es_direction;
+      abstime           es_time;
+      ObjectId          es_owner;
+      List              es_locks;
+      List              es_subplan_info;
+      Name              es_error_message;
+      List              es_range_table;
+      HeapTuple         es_qualification_tuple;
+      ItemPointer       es_qualification_tuple_id;
+      Buffer		es_qualification_tuple_buffer;
+      HeapTuple         es_raw_qualification_tuple;
+      Relation          es_relation_relation_descriptor;
+      Relation          es_into_relation_descriptor;
+      RelationInfo      es_result_relation_info;
+      TupleCount        es_tuplecount;
+      ParamListInfo     es_param_list_info;
+      Prs2EStateInfo    es_prs2_info;
+      Relation          es_explain_relation;
+      int               es_BaseId;
+      TupleTable        es_tupleTable;
+      JunkFilter	es_junkFilter;
+};
+
+/* ----------------
+ *	ReturnState
+ *
+ *	XXX comment me
+ * ----------------
+ */
+class (ReturnState) public (Node) {
+      inherits(Node);
+      Relation resultTmpRelDesc;
+};
+
+/* ----------------
+ *      Executor Type information needed by plannodes.h
+ *
+ *|     Note: the bogus classes CommonState and CommonScanState exist only
+ *|           because our inheritance system only allows single inheritance
+ *|           and we have to have unique slot names.  Hence two or more
+ *|           classes which want to have a common slot must ALL inherit
+ *|           the slot from some other class.  (This is a big hack to
+ *|           allow our classes to share slot names..)
+ *|
+ *|     Example:
+ *|           the class Result and the class NestLoop nodes both want
+ *|           a slot called "OuterTuple" so they both have to inherit
+ *|           it from some other class.  In this case they inherit
+ *|           it from CommonState.  "CommonState" and "CommonScanState" are
+ *|           the best names I could come up with for this sort of
+ *|           stuff.
+ *|
+ *|           As a result, many classes have extra slots which they
+ *|           don't use.  These slots are denoted (unused) in the
+ *|           comment preceeding the class definition.  If you
+ *|           comes up with a better idea of a way of doing things
+ *|           along these lines, then feel free to make your idea
+ *|           known to me.. -cim 10/15/89
+ * ----------------
+ */
 
 /* ----------------
  *   HookNode information
