@@ -16,11 +16,11 @@
 # 	$Header$
 # ----------------------------------------------------------------
 SRC=$1
-SLOTFILE=$TREE/$OD/lib/H/slots
+SLOTFILE=slots
 
-EGREP=/usr/bin/egrep
-RM=/bin/rm
-SED=/bin/sed
+EGREP=egrep
+RM=rm
+SED=sed
 
 echo "/* ---------------------------------------------------------------- "
 echo " * 	node file generated from $SRC"
