@@ -191,4 +191,15 @@ FreeFiles ARGS((
 	uint16	numberOfFiles
 ));
 
+/*
+ * FileFindName
+ *
+ * return the name of a file (used for debugging...)
+ */
+extern
+char *
+FileFindName ARGS((
+	File	file
+));
+
 #endif	/* !defined(FDIncluded) */

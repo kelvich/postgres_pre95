@@ -504,6 +504,9 @@ tryAgain:
 	
 	(void)LruInsert(file);
 
+	if (fileName==NULL) {
+	    elog(WARN, "fileNameOpenFile: NULL fname");
+	}
 	vfdP->fileName = malloc(strlen(fileName)+1);
 	strcpy(vfdP->fileName,fileName);
 
@@ -618,6 +621,7 @@ fileWrite (file, buffer, amount)
 
 	return returnCode;
 }
+
 
 long
 fileSeek (file, offset, whence)
@@ -846,6 +850,36 @@ Amount amount;
     return(ret);
 }
 
+char *
+FileFindName(file)
+File file;
+{
+    Sfd *sfdP;
+    char *ret;
+    char *fileFindName();
+    char *s; int i;
+
+    ret = VfdCache[file].fileName;
+
+    if (ret==NULL) {
+	return("<null>");
+    }
+    /*
+     * strip the path name
+     */
+    i = 0;
+    while (ret[i] != '\0') {
+	if (ret[i] == '/') {
+	    s = &(ret[i+1]);
+	}
+	i++;
+    }
+
+    /* return(ret); */
+    return(s);
+
+}
+
 long
 FileSeek(file, offset, whence)
 File file;
@@ -986,3 +1020,43 @@ File file;
     for (i=0; i<NStriping; i++)
        fileUnlink(sfdP->vfd[i]);
 }
+
+/*--------------------------------------------------------
+ *
+ * FileFindName
+ *
+ * Return the name of the given file (used for debugging).
+ *
+ *--------------------------------------------------------
+ */
+
+char *
+FileFindName(file)
+File file;
+{
+    Sfd *sfdP;
+    char *ret;
+    char *fileFindName();
+    char *s; int i;
+
+    ret = VfdCache[file].fileName;
+
+    if (ret==NULL) {
+	return("<null>");
+    }
+    /*
+     * strip the path name
+     */
+    i = 0;
+    while (ret[i] != '\0') {
+	if (ret[i] == '/') {
+	    s = &(ret[i+1]);
+	}
+	i++;
+    }
+
+    /* return(ret); */
+    return(s);
+
+}
+
