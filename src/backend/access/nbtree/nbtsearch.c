@@ -781,7 +781,7 @@ _bt_step(scan, bufP, dir)
 	    if ((blkno = opaque->btpo_next) == P_NONE) {
 		_bt_relbuf(rel, *bufP, BT_READ);
 		ItemPointerSetInvalid(current);
-		so->btso_curbuf = InvalidBuffer;
+		*bufP = so->btso_curbuf = InvalidBuffer;
 		return (false);
 	    } else {
 
@@ -803,7 +803,7 @@ _bt_step(scan, bufP, dir)
 			blkno = opaque->btpo_next;
 			_bt_relbuf(rel, *bufP, BT_READ);
 			if (blkno == P_NONE) {
-			    so->btso_curbuf = InvalidBuffer;
+			    *bufP = so->btso_curbuf = InvalidBuffer;
 			    ItemPointerSetInvalid(current);
 			    return (false);
 			}
@@ -827,7 +827,7 @@ _bt_step(scan, bufP, dir)
 	    /* if we're at end of scan, release the buffer and return */
 	    if ((blkno = opaque->btpo_prev) == P_NONE) {
 		_bt_relbuf(rel, *bufP, BT_READ);
-		so->btso_curbuf = InvalidBuffer;
+		*bufP = so->btso_curbuf = InvalidBuffer;
 		ItemPointerSetInvalid(current);
 		return (false);
 	    } else {
@@ -872,7 +872,7 @@ _bt_step(scan, bufP, dir)
 			obknum = BufferGetBlockNumber(*bufP);
 			_bt_relbuf(rel, *bufP, BT_READ);
 			if (blkno == P_NONE) {
-			    so->btso_curbuf = InvalidBuffer;
+			    *bufP = so->btso_curbuf = InvalidBuffer;
 			    ItemPointerSetInvalid(current);
 			    return (false);
 			}
@@ -883,6 +883,7 @@ _bt_step(scan, bufP, dir)
 	}
     }
     blkno = BufferGetBlockNumber(*bufP);
+    so->btso_curbuf = *bufP;
     ItemPointerSet(current, 0, blkno, 0, offind + 1);
 
     return (true);

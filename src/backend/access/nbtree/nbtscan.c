@@ -103,29 +103,25 @@ _bt_adjscans(rel, tid)
 }
 
 void
-_bt_scandel(scan, blkno, offind)
+_bt_scandel(scan, blkno, offno)
     IndexScanDesc scan;
     BlockNumber blkno;
-    OffsetIndex offind;
+    OffsetNumber offno;
 {
     ItemPointer current;
     Buffer buf;
-    Page page;
-    OffsetIndex maxoff;
     BTScanOpaque so;
 
-    if (!_bt_scantouched(scan, blkno, offind))
+    if (!_bt_scantouched(scan, blkno, offno))
 	return;
 
     so = (BTScanOpaque) scan->opaque;
     buf = so->btso_curbuf;
-    page = BufferGetPage(buf, 0);
-    maxoff = PageGetMaxOffsetIndex(page);
 
     current = &(scan->currentItemData);
     if (ItemPointerIsValid(current)
 	&& ItemPointerGetBlockNumber(current) == blkno
-	&& ItemPointerGetOffsetNumber(current, 0) >= offind + 1) {
+	&& ItemPointerGetOffsetNumber(current, 0) >= offno) {
 	_bt_step(scan, &buf, BackwardScanDirection);
 	so->btso_curbuf = buf;
     }
@@ -133,7 +129,7 @@ _bt_scandel(scan, blkno, offind)
     current = &(scan->currentMarkData);
     if (ItemPointerIsValid(current)
 	&& ItemPointerGetBlockNumber(current) == blkno
-	&& ItemPointerGetOffsetNumber(current, 0) >= offind + 1) {
+	&& ItemPointerGetOffsetNumber(current, 0) >= offno) {
 	ItemPointerData tmp;
 	tmp = *current;
 	*current = scan->currentItemData;
@@ -147,23 +143,23 @@ _bt_scandel(scan, blkno, offind)
 }
 
 bool
-_bt_scantouched(scan, blkno, offind)
+_bt_scantouched(scan, blkno, offno)
     IndexScanDesc scan;
     BlockNumber blkno;
-    OffsetIndex offind;
+    OffsetNumber offno;
 {
     ItemPointer current;
 
     current = &(scan->currentItemData);
     if (ItemPointerIsValid(current)
 	&& ItemPointerGetBlockNumber(current) == blkno
-	&& ItemPointerGetOffsetNumber(current, 0) >= offind + 1)
+	&& ItemPointerGetOffsetNumber(current, 0) >= offno)
 	return (true);
 
     current = &(scan->currentMarkData);
     if (ItemPointerIsValid(current)
 	&& ItemPointerGetBlockNumber(current) == blkno
-	&& ItemPointerGetOffsetNumber(current, 0) >= offind + 1)
+	&& ItemPointerGetOffsetNumber(current, 0) >= offno)
 	return (true);
 
     return (false);

@@ -491,15 +491,16 @@ _bt_pagedel(rel, tid)
     Buffer buf;
     Page page;
     BlockNumber blkno;
-    OffsetIndex offind;
+    OffsetIndex offno;
 
     blkno = ItemPointerGetBlockNumber(tid);
-    offind = ItemPointerGetOffsetNumber(tid, 0) - 1;
+    offno = ItemPointerGetOffsetNumber(tid, 0);
 
     buf = _bt_getbuf(rel, blkno, BT_WRITE);
     page = BufferGetPage(buf, 0);
 
-    PageIndexTupleDelete(page, offind);
+    PageIndexTupleDelete(page, offno);
 
-    _bt_relbuf(rel, buf, BT_WRITE);
+    /* write the buffer and release the lock */
+    _bt_wrtbuf(rel, buf);
 }
