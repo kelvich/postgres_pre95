@@ -180,7 +180,7 @@ responsible for overall coordination of the project and for individually
 implementing the "everything else" portion of the system.
 .lp
 The above implementation team contributed significantly to
-this manual, as did Claire Mosher and Chandra Gosh.
+this manual, as did Claire Mosher and Chandra Ghosh.
 .lp
 .sh 1 "ABSTRACT"
 .lp
@@ -419,10 +419,11 @@ along with all attribute names and their types, for example:
 .(l
 .ft C
 
-* create EMP (name=text, salary=int4,
-              age=int4, dept=char16) \\g
-    
-* create DEPT (dname=char16, floor=int4) \\g
+* create EMP (name=text, salary=int4, 
+     age=int4, dept=char16) \g
+
+* create DEPT (dname=char16, floor=int4, 
+     manager=text) \\g
 .ft
 .)l
 So far, the create command looks exactly like the create
@@ -438,15 +439,15 @@ command as follows:
 .ft C
 
 * append EMP (name="Joe",salary=1400,
-                  age=40,dept="shoe")
+     age=40,dept="shoe")
   \\g
 
 * append EMP (name="Sam",salary=1200,
-                  age=29,dept="toy")
+     age=29,dept="toy")
   \\g
 
 * append EMP (name="Bill",salary=1600,
-              age=36,dept="candy") \\g
+     age=36,dept="candy") \\g
 .ft
 .)l
 This will add 3 instances to EMP, one for each command.
@@ -504,7 +505,8 @@ could write:
 
 * retrieve (E1.name, E2.name)
   from E1 in EMP, E2 in EMP
-  where E1.age=E2.age and E1.name != E2.name
+  where E1.age=E2.age 
+  and E1.name != E2.name
 
 \\g
 .ft
@@ -561,7 +563,7 @@ illustrate their use.  First, we create a class with an array type.
 .ft C
 
 * create SAL_EMP (name = char[],
-                  pay_by_quarter = int4[4])
+     pay_by_quarter = int4[4])
 \\g
 .ft
 .)l
@@ -577,15 +579,18 @@ within {curly brackets} and separate them by commas.
 .ft C
 
 * append SAL_EMP (name = "bill",
-       pay_by_quarter = "{10000, 10000, 10000, 10000}")
+     pay_by_quarter = "{10000, 10000, 10000, 
+     10000}")
 \\g
 
 * append SAL_EMP (name = "jack",
-       pay_by_quarter = "{10000, 15000, 15000, 15000}")
+     pay_by_quarter = "{10000, 15000, 15000, 
+     15000}")
 \\g
 
 * append SAL_EMP (name = "joe",
-       pay_by_quarter = "{20000, 25000, 25000, 25000}")
+     pay_by_quarter = "{20000, 25000, 25000, 
+     25000}")
 \\g
 .ft
 .)l
@@ -616,7 +621,8 @@ This query retrieves the third quarter pay of all employees.
 .(l
 .ft C
 
-* delete SAL_EMP where SAL_EMP.name[1] = 'j'
+* delete SAL_EMP 
+  where SAL_EMP.name[1] = 'j'
 
 \\g
 .ft
@@ -629,16 +635,18 @@ arrays", as in the following example:
 .(l
 .ft C
 
-* create manager (name = char16, employees = text[]) \\g
+* create manager (name = char16, 
+     employees = text[]) \\g
 
 * append manager (name = "mike",
-      employees = "{"wei", "greg", "jeff"}") \\g
+     employees = "{"wei", "greg", 
+     "jeff"}") \\g
 
 * append manager (name = "alice",
-      employees = "{"bill", "joe"}") \\g
+     employees = "{"bill", "joe"}") \\g
 
 * append manager (name = "marge",
-      employees = "{"mike", "alice"}") \\g
+     employees = "{"mike", "alice"}") \\g
 .ft
 .)l
 This creates a class "manager", and provides a list of employees.  Note that
@@ -686,7 +694,8 @@ Now create a second class STUD_EMP, and populate it as follows:
 .(l
 .ft C
 
-* create STUD_EMP (location=point) inherits (EMP)
+* create STUD_EMP (location=point) 
+     inherits (EMP)
 
 \\g
 
@@ -712,7 +721,8 @@ employees over 39:
 .(l
 .ft C
 
-* retrieve (E.name) from E in EMP where E.age > 39
+* retrieve (E.name) from E in EMP 
+  where E.age > 39
 
 \\g
 .ft
@@ -722,7 +732,8 @@ employees and employees over 40, the query is:
 .(l
 .ft C
 
-* retrieve (E.name) from E in EMP* where E.age > 39
+* retrieve (E.name) from E in EMP* 
+  where E.age > 39
 
 \\g
 .ft
@@ -760,7 +771,8 @@ ever earned one would query:
 .ft C
 
 * retrieve (E.salary)
-  from E in EMP["Jan 1 00:00:00 1970 GMT","now"]
+  from E in EMP["Jan 1 00:00:00 1970 GMT",
+     "now"]
   where E.name = "Sam"
 
 \\g
@@ -801,7 +813,7 @@ employees:
 .ft C
 
 * define function high_pay
-       (language = "postquel", returntype = EMP)
+     (language = "postquel", returntype = EMP)
   as retrieve (EMP.all) where EMP.salary>50000
 
 \\g
@@ -813,7 +825,7 @@ employees:
 .ft C
 
 * define function large_pay
-       (language = "postquel", returntype = EMP)
+     (language = "postquel", returntype = EMP)
   arg is (int4)
   as retrieve (EMP.all) where EMP.salary>$1
 
@@ -853,7 +865,8 @@ will define the function mgr_lookup:
      (language = "postquel", returntype = EMP)
   arg is (char16) as
   retrieve (EMP.all)
-  where EMP.name=DEPT.manager and DEPT.name=$1
+  where EMP.name=DEPT.manager 
+     and DEPT.name=$1
 
 \\g
 .ft
@@ -884,10 +897,11 @@ define a second \*(PQ function, lookup_mgr, as follows:
 .ft C
 
 * define function lookup_mgr
-      (language="postquel", returntype = EMP)
+     (language="postquel", returntype = EMP)
   arg is (EMP) as
   retrieve (E.all) from E in EMP
-  where E.name=DEPT.manager and DEPT.name=EMP.dept
+  where E.name=DEPT.manager and 
+     DEPT.name=EMP.dept
 
 \\g
 .ft
@@ -983,6 +997,7 @@ circle is:
 .ft C
 
 (center_x, center_y, radius)
+
 .ft
 .)l
 in whatever Cartesian units we desire.  Now we essentially have
@@ -1075,7 +1090,7 @@ char *circle_out();
 .ft
 .)l
 .lp
-.b equal_area_circle,
+.b eq_area_circle,
 which is the equality function for
 circles.  For the purposes of this discussion, circles are equal
 if their areas are equal.
@@ -1088,14 +1103,14 @@ output functions:
 .ft C
 
 * define function circle_in
-       (language = "c", returntype=circle)
+     (language = "c", returntype=circle)
   arg is (char16)
   as "/usr/postgres/tutorial/circle.o"
 
 \\g
 
 *  define function circle_out
-       (language = "c", returntype=char16)
+     (language = "c", returntype=char16)
    arg is (circle)
    as "/usr/postgres/tutorial/circle.o"
 
@@ -1112,8 +1127,8 @@ everything is OK.  The query to define the "circle" type is:
 .ft C
 
 * define type circle
-       (internallength=24, input=circle_in,
-        output=circle_out) 
+     (internallength=24, input=circle_in,
+     output=circle_out) 
 
 \\g
 .ft
@@ -1126,7 +1141,7 @@ in bytes.  For circles, the arguments are three doubles, thus
 .ft C
 
 sizeof(circle) =
-    3 * sizeof(double) = 3 * 8 = 24
+     3 * sizeof(double) = 3 * 8 = 24
 .ft
 .)l
 When defining your own types, you should write a test program
@@ -1135,6 +1150,7 @@ that does a
 .ft C
 
 printf("size is %d\n", sizeof (mystruct));
+
 .ft
 .)l
 on your type.  If 
@@ -1170,8 +1186,8 @@ query:
 .(l
 .ft C
 
-* define function equal_area_circle
-       (language = "c", returntype=bool)
+* define function eq_area_circle
+     (language = "c", returntype=bool)
   arg is (circle,circle)
   as "/usr/postgres/tutorial/circle.o"
 
@@ -1184,8 +1200,8 @@ equality symbol with the following query:
 .ft C
 
 * define operator =
-      (arg1=circle, arg2=circle,
-       procedure=equal_area_circle)
+     (arg1=circle, arg2=circle,
+     procedure=eq_area_circle)
 
 \\g
 .ft
@@ -1200,25 +1216,29 @@ Now we are ready to create a class and run some queries on our new type:
 * create tutorial(a=circle)
 \\g
 
-* append tutorial(a="(1.0,1.0,10.0)"::circle)
+* append tutorial
+     (a="(1.0,1.0,10.0)" ::circle)
 \\g
-* append tutorial(a="(2.0,2.0,5.0)"::circle)
+* append tutorial
+     (a="(2.0,2.0,5.0)" ::circle)
 \\g
-* append tutorial(a="(0.0,1.8,10.0)"::circle)
+* append tutorial
+     (a="(0.0,1.8,10.0)" ::circle)
 \\g
 
 
 * retrieve (tutorial.all)
-  where tutorial.a = "(0.0,0.0,10.0)"::circle
+  where tutorial.a = 
+     "(0.0,0.0,10.0)"::circle
 .ft
 .)l
 And the monitor will display the result of the retrieve command...
 .(l
 .ft C
-
 .TS
-|c|
-|l|.
+tab (+) allbox;
+l
+l.
 a
 (1.0,1.0,10.0)
 (0.0,1.8,10.0)
@@ -1397,7 +1417,8 @@ In the query above, a reasonable "overpaid" function would be:
 .ft C
 
 bool
-overpaid() /* note that there are no arguments */
+overpaid() /* note that there are no 
+     arguments */
 
 {
 
@@ -1405,10 +1426,13 @@ overpaid() /* note that there are no arguments */
     short age, salary, performance;
 
     salary=(short) GetAttribute("salary");
-    seniority=(short) GetAttribute("seniority");
-    performance=(short) GetAttribute("performance");
+    seniority=(short) 
+     GetAttribute("seniority");
+    performance=(short) 
+     GetAttribute("performance");
 
-    return (salary > (seniority * performance));
+    return (salary > 
+     (seniority * performance));
 
 }
 .ft
@@ -1443,7 +1467,7 @@ just do the following:
 .ft C
 
 * define function overpaid
-       (language = "c", returntype=bool)
+     (language = "c", returntype=bool)
   arg is (SET)
   as "/usr/postgres/tutorial/overpaid.o" 
 
@@ -1505,15 +1529,18 @@ and do some appends
 .ft C
 
 * append circles
-    (list = "{"(1.0, 1.0, 5.0)", "(2.0, 2.0, 10.0)"}")
+     (list = "{"(1.0, 1.0, 5.0)", 
+     "(2.0, 2.0, 10.0)"}")
 
 \\g
 
 * append circles
-    (list = "{"(2.0, 3.0, 15.0)", "(2.0, 2.0, 10.0)"}")
+     (list = "{"(2.0, 3.0, 15.0)", 
+     "(2.0, 2.0, 10.0)"}")
 \\g
 
-* append circles (list = "{"(2.0, 3.0, 4.0)"}")
+* append circles 
+     (list = "{"(2.0, 3.0, 4.0)"}")
 
 \\g
 
@@ -1550,8 +1577,9 @@ we define an array of integers:
 .ft C
 
 * define type int_array
-    (input = array_in, output = array_out,
-     internallength = variable, element = int4)
+     (input = array_in, output = array_out,
+     internallength = variable, 
+     element = int4)
 
 \\g
 .ft
@@ -1576,10 +1604,10 @@ Now we can use our type defined above to create an array of integer arrays:
 .ft C
 
 * define type int_arrays
-       (input = array_in,
-        output = array_out,
-        internallength = variable,
-        element = int_array) \\g
+     (input = array_in,
+     output = array_out,
+     internallength = variable,
+     element = int_array) \\g
 .ft
 .)l
 Now we use our new type:
@@ -1589,11 +1617,13 @@ Now we use our new type:
 * create stuff (a = int_arrays) \\g
 
 * append stuff
-    (a = "{{1, 2, 3} , {4, 5}, {6, 7, 8}}") \\g
+     (a = "{{1, 2, 3} , {4, 5}, 
+     {6, 7, 8}}") \\g
 
 * append stuff (a = "{{88, 99, 3}}") \\g
 
-* append stuff (a = "{{5, 4, 3} , {2, 2}}") \\g
+* append stuff (a = "{{5, 4, 3} , 
+     {2, 2}}") \\g
 
 * retrieve (stuff.a[1])
   where stuff.a[1][1] < stuff.a[1][2] \\g
@@ -1665,7 +1695,8 @@ char s;
   VAR_LEN_ATTR *stats;
   long array_size, *arrayp;
 
-  ... figure out how long the stats array should be 
+  ... figure out how long the stats 
+     array should be 
 
   /*
    * We need the extra sizeof(long)
@@ -1674,10 +1705,10 @@ char s;
 
   stats = (VAR_LEN_ATTR *)
     palloc(array_size * sizeof(long) +
-           sizeof(long));
+     sizeof(long));
 
   /* length is length of the entire structure
-   * in bytes, INCLUDING ITSELF
+   * in bytes, INCLUDING ItSELF
    */
 
   stats->length =
@@ -1688,7 +1719,8 @@ char s;
 
   for (i = 0; i < length; i++, arrayp++)
   {
-     populate the stats array with numbers from s
+     populate the stats array with 
+     numbers from s
   }
 
   return(stats);
@@ -1721,14 +1753,14 @@ First we define the in/out functions:
 .ft C
 
 * define function quarterly_in
-       (language="c", returntype=quarterly)
+     (language="c", returntype=quarterly)
   arg is (char16)
   as "/usr/postgres/tutorial/quarterly.o"
 
 \\g
 
 * define function quarterly_out
-       (language = "c", returntype = char16)
+     (language = "c", returntype = char16)
   arg is (quarterly)
   as "/usr/postgres/tutorial/quarterly.o"
 
@@ -1742,8 +1774,10 @@ And now we can define the type:
 .ft C
 
 * define type quarterly
-       (internallength = 16, input = quarterly_in,
-        output = quarterly_out, element = int4)
+     (internallength = 16, 
+     input = quarterly_in,
+     output = quarterly_out, 
+     element = int4)
        
 \\g
 .ft
@@ -1755,14 +1789,14 @@ Now we define the stats array.  First we define its in/out functions:
 .ft C
 
 * define function stats_in
-       (language = "c", returntype = stats)
+     (language = "c", returntype = stats)
   arg is (char16)
   as "/usr/postgres/tutorial/stats.o"
 
 \\g
 
 * define function stats_out
-       (language = "c", returntype = char16)
+     (language = "c", returntype = char16)
   arg is (stats)
   as "/usr/postgres/tutorial/stats.o"
 
@@ -1791,23 +1825,30 @@ Now we can run some queries:
 .(l
 .ft C
 
-* create test (a = quarterly, b = stats) \\g
+* create test (a = quarterly, b = stats) \eg
 
 * append test
     (a = "1 2 3 4"::quarterly,
-     b = "5 6 7"::stats) \\g
+     b = "5 6 7"::stats) \eg
+
 * append test
     (a = "1 3 2 4"::quarterly,
-     b = "6 4"::stats) \\g
+     b = "6 4"::stats) \eg
+
+* append test
+    (a = "7 11 6 9"::quarterly,
+     b = "1 2"::stats) \eg
 
 * retrieve (test.all)
-  where test.a[4] = test.b[2] \\g
-
-------------------
-|     a    |  b  |
-------------------
-| 1 3 2 4  | 6 4 |
-------------------
+  where test.a[4] = test.b[2] \eg
+.ft C
+.TS
+tab (+) allbox;
+l l
+l l.
+a+b
+1324+64
+.TE
 .ft
 .)l
 .b NOTE
@@ -1852,22 +1893,22 @@ Now, we define a large object which could be used for storing map data:
 .ft C
 
 * define function large_in
-       (language = "c", returntype = map)
+     (language = "c", returntype = map)
   arg is (char16)
   as "/usr/postgres/tutorial/large.o"
 
 \\g
 
 * define function large_out
-       (language = "c", returntype = char16)
+     (language = "c", returntype = char16)
   arg is (map)
   as "/usr/postgres/tutorial/large.o"
 
 \\g
 
 * define type map
-       (input = large_in, output = large_out,
-        internallength = variable)
+     (input = large_in, output = large_out,
+     internallength = variable)
 
 \\g
 .ft
@@ -1883,13 +1924,13 @@ Now we can use our large object:
 * create maps (name = text, a = map) \\g
 
 * append maps
-    (name = "earth",
+     (name = "earth",
      a = "/usr/postgres/maps/earth")
 
 \\g
 
 * append maps
-    (name = "moon",
+     (name = "moon",
      a = "/usr/postgres/maps/moon")
 
 \\g
@@ -1991,11 +2032,13 @@ the access method instance you want to extend.
         
 \eg
 
----------------
-| oid         |
----------------
-| 403         |
----------------
+.TS
+tab (+) allbox;
+l
+l.
+oid
+403
+.TE
 .ft
 .)l
 .lp
@@ -2023,13 +2066,16 @@ number is 5.  These strategies correspond to
 .lp
 .(l
 .ft C
-.ta 0.5i 2.2i
-
-    less than	1
-    less than or equal	2
-    equal	3
-    greater than or equal	4
-    greater than	5
+.TS
+tab (+);
+l l
+l l.
+less than+1
+less than or equal+2
+equal+3
+greater than or equal+4
+greater than+5
+.TE
 .ft
 .)l
 .lp
@@ -2098,11 +2144,13 @@ The oid of this instance is a foreign key in other classes.
   where cl.opcname = "int4_abs_ops"
 \eg
 
------------------------------
-| oid         | opcname     |
------------------------------
-| 17314       | int4_abs_ops|
------------------------------
+.TS
+tab (+) allbox;
+l l
+l l.
+oid+opcname
+17314+int4_abs_ops
+.TE
 .ft
 .)l
 .lp
@@ -2123,6 +2171,7 @@ the operators we require are:
     absolute value equal
     absolute value greater-than-or-equal
     absolute value greater-than
+
 .ft
 .)l
 Suppose the code that implements the functions defined is stored in the file
@@ -2147,19 +2196,19 @@ The code is
 #define ABS(a) a = ((a < 0) ? -a : a)
 
 bool int4_abs_lt(a, b) int32 a, b;
-    { ABS(a); ABS(b); return (a < b); }
+     { ABS(a); ABS(b); return (a < b); }
 
 bool int4_abs_le(a, b) int32 a, b;
-    { ABS(a); ABS(b); return (a <= b); }
+     { ABS(a); ABS(b); return (a <= b); }
 
 bool int4_abs_eq(a, b) int32 a, b;
-    { ABS(a); ABS(b); return (a == b); }
+     { ABS(a); ABS(b); return (a == b); }
 
 bool int4_abs_ge(a, b) int32 a, b;
-    { ABS(a); ABS(b); return (a >= b); }
+     { ABS(a); ABS(b); return (a >= b); }
 
 bool int4_abs_gt(a, b) int32 a, b;
-    { ABS(a); ABS(b); return (a > b); }
+     { ABS(a); ABS(b); return (a > b); }
 .ft
 .)l
 .lp
@@ -2193,27 +2242,27 @@ the access methods rely on this fact.
 .ft C
 
 * define function int4_abs_lt
-        (language = "c", returntype = bool)
+     (language = "c", returntype = bool)
   arg is (int4, int4)
   as "/usr/postgres/tutorial/int4_abs.o" \eg
 
 * define function int4_abs_le
-        (language = "c", returntype = bool)
+     (language = "c", returntype = bool)
   arg is (int4, int4)
   as "/usr/postgres/tutorial/int4_abs.o" \eg
 
 * define function int4_abs_eq
-        (language = "c", returntype = bool)
+     (language = "c", returntype = bool)
   arg is (int4, int4)
   as "/usr/postgres/tutorial/int4_abs.o" \eg
 
 * define function int4_abs_ge
-        (language = "c", returntype = bool)
+     (language = "c", returntype = bool)
   arg is (int4, int4)
   as "/usr/postgres/tutorial/int4_abs.o" \eg
 
 * define function int4_abs_gt
-        (language = "c", returntype = bool)
+     (language = "c", returntype = bool)
   arg is (int4, int4)
   as "/usr/postgres/tutorial/int4_abs.o" \eg
 .ft
@@ -2248,42 +2297,42 @@ but use the procedure names you defined in the last step.
 .ft C
 
 * define operator <<&
-       (arg1 = int4, arg2 = int4,
-        procedure=int4_abs_lt,
-        associativity = left, restrict = intltsel,
-        join = intltjoinsel)
+     (arg1 = int4, arg2 = int4,
+     procedure=int4_abs_lt,
+     associativity = left, restrict = intltsel,
+     join = intltjoinsel)
 
 \\g
 
 * define operator <=&
-       (arg1 = int4, arg2 = int4,
-        procedure=int4_abs_le,
-        associativity = left, restrict = intltsel,
-        join = intltjoinsel)
+     (arg1 = int4, arg2 = int4,
+     procedure=int4_abs_le,
+     associativity = left, restrict = intltsel,
+     join = intltjoinsel)
 
 \\g
 
 * define operator ==&
-       (arg1 = int4, arg2 = int4,
-        procedure=int4_abs_eq,
-        associativity = left, restrict = eqsel,
-        join = eqjoinsel)
+     (arg1 = int4, arg2 = int4,
+     procedure=int4_abs_eq,
+     associativity = left, restrict = eqsel,
+     join = eqjoinsel)
 
 \\g
 
 * define operator >=&
-       (arg1 = int4, arg2 = int4,
-        procedure=int4_abs_ge,
-        associativity = left, restrict = intgtsel,
-        join = intgtjoinsel)
+     (arg1 = int4, arg2 = int4,
+     procedure=int4_abs_ge,
+     associativity = left, restrict = intgtsel,
+     join = intgtjoinsel)
 
 \\g
 
 * define operator >>&
-       (arg1 = int4, arg2 = int4,
-        procedure=int4_abs_gt,
-        associativity = left, restrict = intgtsel,
-        join = intgtjoinsel)
+     (arg1 = int4, arg2 = int4,
+     procedure=int4_abs_gt,
+     associativity = left, restrict = intgtsel,
+     join = intgtjoinsel)
 
 \\g
 .ft
@@ -2337,45 +2386,33 @@ that your numbers may be different.)
        and t.typname = "int4"
 
 \\g
-
------------------------------
-| oid         | oprname     |
------------------------------
-| 96          | =           |
------------------------------
-| 97          | <           |
------------------------------
-| 514         | *           |
------------------------------
-| 518         | !=          |
------------------------------
-| 521         | >           |
------------------------------
-| 523         | <=          |
------------------------------
-| 525         | >=          |
------------------------------
-| 528         | /           |
------------------------------
-| 530         | %           |
------------------------------
-| 551         | +           |
------------------------------
-| 555         | -           |
------------------------------_
-| 17321       | <<&         | \e
------------------------------  \e   these are the ones
-| 17322       | <=&         |   \e  we want-- the values
------------------------------    \e you get for oids will
-| 17323       | ==&         |     |probably be different,
------------------------------    / and you should substitute
-| 17324       | >=&         |   /  them for the values i use
------------------------------  /   below.
-| 17325       | >>&         | /
-------------------------------
-
+.TS
+tab (#) allbox;
+l l
+l l.
+oid+oprname
+96#\\=
+97#<
+514#*
+518#!=
+521#>
+523#<=
+525#>=
+528#/
+530#%
+551#+
+555#-
+17321#<<&
+17322#<=&
+17323#==*
+17324#>=&
+17325#>>&
+.TE
 .ft
 .)l
+The operators we are interested in are those with oids 17321 through 17325.
+The values you get will probably be different, and you should substitute
+them for the values I use below.
 We can look at the operator names and pick out the ones we just added.
 (Of course, there are lots of other queries we could used to get the oids
 we wanted.)
@@ -2390,8 +2427,9 @@ add the instances we need:
 .ft C
 
 * append pg_amop
-    (amopid = "400"::oid,      /* btree oid */
-     amopclaid = "17314"::oid, /* pg_opclass tup */
+     (amopid = "400"::oid,      /* btree oid */
+     amopclaid = "17314"::oid, /* 
+	pg_opclass tup */
      amopopr = "17321"::oid,   /* <<& tup oid */
      amopstrategy = "1"::int2, /* 1 is <<& */
      amopselect = "btreesel"::regproc,
@@ -2468,27 +2506,25 @@ populate a class:
 * append pairs (name = "mao", number = 7000)
 \\g
 
-* append pairs (name = "cimarron", number = -3000)
+* append pairs (name = "cimarron", 
+     number = -3000)
 \\g
 
 * retrieve (pairs.all)
 \\g
 
------------------------------
-| name        | number      |
------------------------------
-| mike        | -10000      |
------------------------------
-| greg        | 3000        |
------------------------------
-| lay peng    | 5000        |
------------------------------
-| jeff        | -2000       |
------------------------------
-| mao         | 7000        |
------------------------------
-| cimarron    | -3000       |
------------------------------
+.TS
+tab (+) allbox;
+l l
+l l.
+name+number
+mike+-10000
+greg+3000
+lay peng+5000
+jeff+-2000
+mao+7000
+cimarron+-3000
+.TE
 .ft
 .)l
 .lp
@@ -2512,24 +2548,21 @@ isn't one that appears in the list of strategies for our index.
 .(l
 .ft C
 
-* retrieve (pairs.all) where pairs.number < 9000
+* retrieve (pairs.all) 
+  where pairs.number < 9000
 \\g
-
------------------------------
-| name        | number      |
------------------------------
-| mike        | -10000      |
------------------------------
-| greg        | 3000        |
------------------------------
-| lay peng    | 5000        |
------------------------------
-| jeff        | -2000       |
------------------------------
-| mao         | 7000        |
------------------------------
-| cimarron    | -3000       |
------------------------------
+.TS
+tab (+) allbox;
+l l
+l l.
+name+number
+mike+-10000
+greg+3000
+lay peng+5000
+jeff+-2000
+mao+7000
+cimarron+-3000
+.TE
 .ft
 .)l
 .lp
@@ -2543,20 +2576,17 @@ use the index:
 
 * retrieve (pairs.all) where pairs.number <<& 9000
 \\g
-
------------------------------
-| name        | number      |
------------------------------
-| jeff        | -2000       |
------------------------------
-| cimarron    | -3000       |
------------------------------
-| greg        | 3000        |
------------------------------
-| lay peng    | 5000        |
------------------------------
-| mao         | 7000        |
------------------------------
+.TS
+tab (+) allbox;
+l l
+l l.
+name+number
+jeff+-2000
+cimarron+-3000
+greg+3000
+lay peng+5000
+mao+7000
+.TE
 .ft
 .)l
 .lp
