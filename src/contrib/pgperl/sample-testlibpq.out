@@ -1,0 +1,110 @@
+Recreating database pgperltest
+Accessing database pgperltest
+
+Creating relation person:
+query = create person (name = char16, age = int4, location = point)
+
+Relation person before appends:
+New tuple group:
+name           age            location       
+
+Appending to relation person:
+query = append person (name = "fred", age = 50, location = "(50,10)"::point)
+query = append person (name = "fred", age = 60, location = "(60,10)"::point)
+query = append person (name = "fred", age = 70, location = "(70,10)"::point)
+query = append person (name = "fred", age = 80, location = "(80,10)"::point)
+query = append person (name = "fred", age = 90, location = "(90,10)"::point)
+query = append person (name = "fred", age = 100, location = "(100,10)"::point)
+query = append person (name = "fred", age = 110, location = "(110,10)"::point)
+query = append person (name = "fred", age = 120, location = "(120,10)"::point)
+query = append person (name = "fred", age = 130, location = "(130,10)"::point)
+query = append person (name = "fred", age = 140, location = "(140,10)"::point)
+query = append person (name = "fred", age = 150, location = "(150,10)"::point)
+
+Relation person after appends:
+New tuple group:
+name           age            location       
+fred           50             (50,10)        
+fred           60             (60,10)        
+fred           70             (70,10)        
+fred           80             (80,10)        
+fred           90             (90,10)        
+fred           100            (100,10)       
+fred           110            (110,10)       
+fred           120            (120,10)       
+fred           130            (130,10)       
+fred           140            (140,10)       
+fred           150            (150,10)       
+
+Testing copy:
+
+Relation person after copy:
+New tuple group:
+name           age            location       
+fred           50             (50,10)        
+fred           60             (60,10)        
+fred           70             (70,10)        
+fred           80             (80,10)        
+fred           90             (90,10)        
+fred           100            (100,10)       
+fred           110            (110,10)       
+fred           120            (120,10)       
+fred           130            (130,10)       
+fred           140            (140,10)       
+fred           150            (150,10)       
+bill           21             (1,2)          
+bob            61             (3,4)          
+sally          39             (5,6)          
+
+Testing other things:
+Opening 2 portals:
+Number of portals open: 2
+Portal names: eportal, fportal.
+Portal eportal is not asynchronous.
+Portal eportal has 14 tuples.
+Portal eportal has 14 instances.
+Portal eportal has 1 groups.
+Portal eportal group 0 has 14 instances.
+Portal eportal tuple 0 has 3 fields.
+Portal eportal tuple 0 field 2 is 7 bytes long.
+Portal eportal tuple 0 field 2 is type 600.
+Portal eportal tuple 0 is in group 0.
+Portal eportal tuple 0 field "location" is index 2.
+Portal eportal tuple 0 field 1 is name "age".
+Portal eportal tuples 0 and 1 are the same type.
+Portal eportal group 0 field "location" is index 2.
+Closing 2 portals:
+Number of portals open: 0
+Portal names: .
+
+Removing from relation person:
+query = delete person where person.age = 50 
+query = delete person where person.age = 60 
+query = delete person where person.age = 70 
+query = delete person where person.age = 80 
+query = delete person where person.age = 90 
+query = delete person where person.age = 100 
+query = delete person where person.age = 110 
+query = delete person where person.age = 120 
+query = delete person where person.age = 130 
+query = delete person where person.age = 140 
+query = delete person where person.age = 150 
+
+Relation person after removes:
+New tuple group:
+name           age            location       
+bill           21             (1,2)          
+bob            61             (3,4)          
+sally          39             (5,6)          
+
+Printing values of global variables:
+PQhost = localhost
+PQport = 4321
+PQtty = /dev/null
+PQoption = 
+PQdatabase = pgperltest
+PQportset = 0
+PQxactid = 0
+PQtracep = 0
+
+Tests complete!
