@@ -94,9 +94,8 @@ extern HeapAccessStatistics heap_access_stats;
  *	function prototypes for heap access method
  * ----------------
  */
-extern ObjectId 	heap_create();
-extern Relation 	heap_creatr();
-extern void		heap_destroy();
+/* heap_create, heap_creatr, and heap_destroy are declared in catalog/heap.h */
+#include "lib/heap.h"
 extern Relation 	heap_open();
 extern Relation 	heap_openr();
 extern void		heap_close();
