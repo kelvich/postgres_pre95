@@ -504,6 +504,9 @@ main(argc, argv)
  *     with the UFP (and we can stop sending file/function names and
  *     "byvalue" flags on each call!).  Subsequent function references can
  *     just send the function ObjectId and the arguments.
+ *
+ * XXX 08/08/93: The new dynamic loader can reload stuff.  Great.
+ *     Well, in that case we DEFINITELY need a consistency scheme.
  * ----------------------------------------------------------------
  */
 #ifndef UFP
@@ -581,8 +584,6 @@ static
 void
 ufp_kill()
 {
-	int kstat, rstat = 0;
-
 	ufp_clear_info();
 	
 	/* the child process has a different euid, which means we can't
@@ -594,7 +595,8 @@ ufp_kill()
 	 *     setuid().
 	 */
 	if (UFPid > -1) {
-		kstat = kill(UFPid, SIGCONT);
+		int kstat = kill(UFPid, SIGCONT);
+
 		if (kstat < 0 && errno != ESRCH)
 			elog(NOTICE, ufp_perror("ufp_kill: kill() failed"));
 	}
@@ -688,7 +690,8 @@ ufp_build_info(func_id, func_htp)
 	struct ufp_info *uip;
 	int i;
 
-	uip = (struct ufp_info *) palloc(sizeof(struct ufp_info));
+	/* XXX these things live on beyond transactions */
+	uip = (struct ufp_info *) malloc(sizeof(struct ufp_info));
 	uip->next = (struct ufp_info *) NULL;
 	
 	uip->funcid = func_id;
@@ -814,29 +817,34 @@ ufp_execute(uip, values)
 
 char *
 fmgr_ufp(func_id, values)
-	ObjectId func_id;
-	Datum *values;
+    ObjectId func_id;
+    Datum *values;
 {
-	struct ufp_info *uip;
-	HeapTuple func_htp;
-
+    struct ufp_info *uip;
+    HeapTuple func_htp;
+    
 #ifdef UFPDEBUG
-	elog(DEBUG, "fmgr_ufp: calling %d", func_id);
+    elog(DEBUG, "fmgr_ufp: calling %d", func_id);
 #endif
+    uip = ufp_find_info(func_id);
+    if (uip == (struct ufp_info *) NULL) {
 	func_htp = SearchSysCacheTuple(PROOID, func_id, NULL, NULL, NULL);
 	if (!HeapTupleIsValid(func_htp)) {
-		ufp_kill();
-		elog(WARN, "fmgr_ufp: cache lookup for function %d failed",
-		     func_id);
+	    ufp_kill();
+	    elog(WARN, "fmgr_ufp: cache lookup for function %d failed",
+		 func_id);
 	}
-
-	uip = ufp_find_info(func_id);
-	if (uip == (struct ufp_info *) NULL)
-		uip = ufp_build_info(func_id, func_htp);
-	
-	if (UFPid == -1 && ufp_start() < 0)
-		elog(WARN, "fmgr_ufp: unable to (re)start UFP");
-	
-	return((char *) ufp_execute(uip, values));
+	uip = ufp_build_info(func_id, func_htp);
+	/*
+	 * XXX need a cache consistency mechanism
+	 *     (or a mechanism to flush at the end of xact)
+	 */
+	ufp_add_info(uip);
+    }
+    
+    if (UFPid == -1 && ufp_start() < 0)
+	elog(WARN, "fmgr_ufp: unable to (re)start UFP");
+    
+    return((char *) ufp_execute(uip, values));
 }
 #endif /* !UFP */
