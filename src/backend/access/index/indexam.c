@@ -421,7 +421,7 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
     TupleDescriptor	heapDescriptor;
     TupleDescriptor	indexDescriptor;
     Datum		*datum;
-    Boolean		*null;
+    Boolean		*nullv;
 
     char		*dom[2];
     extern		HasCached;
@@ -433,7 +433,7 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
     Assert(ObjectIdIsValid(indexRelation->rd_rel->relam));	/* XXX */
 
     datum = (Datum *)   palloc(numberOfAttributes * sizeof *datum);
-    null =  (Boolean *) palloc(numberOfAttributes * sizeof *null);
+    nullv =  (Boolean *) palloc(numberOfAttributes * sizeof *nullv);
     
     heapDescriptor =  RelationGetTupleDescriptor(heapRelation);
     indexDescriptor = RelationGetTupleDescriptor(indexRelation);
@@ -452,21 +452,21 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
 					  attributeNumber[attributeOffset],
 					  heapDescriptor, &attributeIsNull) );
 	
-	  null[attributeOffset] = (attributeIsNull) ? 'n' : ' ';
+	  nullv[attributeOffset] = (attributeIsNull) ? 'n' : ' ';
     }
 
     indexTuple = (IndexTuple)
 	index_formtuple(numberOfAttributes,
 			indexDescriptor,
 			datum,
-			null);
+			nullv);
 
     indexTuple->t_tid = heapTuple->t_ctid;
 
     insertResult = index_insert(indexRelation, indexTuple, (double *) 0);
 	
     pfree(indexTuple);
-    pfree(null);
+    pfree(nullv);
     pfree(datum);
 }
 
