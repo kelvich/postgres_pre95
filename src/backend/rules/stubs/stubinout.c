@@ -28,17 +28,14 @@
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 
-char *palloc();
-Const RMakeConst();
-Param RMakeParam();
+extern char *palloc();
+extern Const RMakeConst();
+extern Param RMakeParam();
+extern LispValue StringToPlan();
 
 /*-------------------
  * these routines are local to this file.
  */
-static char *prs2StubQualToString();
-static Prs2StubQual prs2StringToStubQual();
-static char *prs2OperandToString();
-static Node prs2StringToOperand();
 static char *appendString();
 static void skipToken();
 static long readLongInt();
@@ -151,10 +148,15 @@ Prs2Stub relstub;
 	pfree(s2);
 	/*
 	 * Now print the qualification...
+	 * NOTE: in order to be able to easily read this
+	 * qual back (by prs2StringToStub) we
+	 * enclose it in quotes.
 	 */
 	res = appendString(res, "qual: ", &maxLength);
-	s2 = prs2StubQualToString(oneStub->qualification);
+	s2 = lispOut(oneStub->qualification);
+	res = appendString(res, "`", &maxLength);
 	res = appendString(res, s2, &maxLength);
+	res = appendString(res, "'", &maxLength);
 	pfree(s2);
 	res = appendString(res, ")", &maxLength); /* end of one stub */
     }
@@ -224,6 +226,7 @@ char *s;
 	oneStub->counter = (int) l;
 	/*
 	 * now read the lock
+	 * (remember: it was enclosed in quotes).
 	 */
 	skipToken("lock:", s, &indx);
 	skipToken("`", s, &indx);
@@ -231,9 +234,12 @@ char *s;
 	while (s[indx++] != '\'');
 	/*
 	 * now read the qualification
+	 * (remember: it was enclosed in quotes).
 	 */
 	skipToken("qual:", s, &indx);
-	oneStub->qualification = prs2StringToStubQual(s, &indx);
+	skipToken("`", s, &indx);
+	oneStub->qualification = StringToPlan(&s[indx]);
+	while (s[indx++] != '\'');
 
 	skipToken(")", s, &indx);	/* end of one stub */
 
@@ -246,394 +252,7 @@ char *s;
 }
 
 /*====================================================================
- * UTILITY ROUTINES LOCAL TO THIS FILE
- *====================================================================
- */
-
-/*----------------------------------------------------------------------
- *
- * prs2StubQualToString
- *
- * Given a 'Prs2StubQual', generate a string out of it...
- *
- *----------------------------------------------------------------------
- */
-static
-char *
-prs2StubQualToString(qual)
-Prs2StubQual qual;
-{
-    char *res;
-    char s1[100];
-    char *s2;
-    int maxLength;
-    Size size;
-    int l;
-    char *p;
-    Prs2SimpleStubQualData *simple;
-    Prs2ComplexStubQualData *complex;
-
-    /*
-     * initialize 'res' to a null string.
-     */
-    res = NULL;
-    maxLength = 0;
-
-    if (qual->qualType == PRS2_NULL_STUBQUAL) {
-	res = appendString(res, "NIL", &maxLength);
-    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
-	simple = &(qual->qual.simple);
-	sprintf(s1, "[oper: %ld ", simple->operator);
-	res = appendString(res, s1, &maxLength);
-	/*
-	 * Now print the two operands.
-	 */
-	s2 = prs2OperandToString(simple->left);
-	res = appendString(res, s2, &maxLength);
-	pfree(s2);
-	s2 = prs2OperandToString(simple->right);
-	res = appendString(res, s2, &maxLength);
-	pfree(s2);
-	res = appendString(res, "]", &maxLength);	/* end simple qual */
-    } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
-	complex = &(qual->qual.complex);
-	switch (complex->boolOper) {
-	    case AND:
-		sprintf(s1, "(AND %d ", complex->nOperands);
-		break;
-	    case OR:
-		sprintf(s1, "(OR %d ", complex->nOperands);
-		break;
-	    case NOT:
-		sprintf(s1, "(NOT %d ", complex->nOperands);
-		break;
-	    default:
-		elog(WARN, "prs2StubQualToString: Illegal boolOper");
-	}
-	res = appendString(res, s1, &maxLength);
-	/*
-	 * Now print the children
-	 */
-	for (l=0; l<complex->nOperands; l++) {
-	    s2 = prs2StubQualToString(complex->operands[l]);
-	    res = appendString(res, s2, &maxLength);
-	    pfree(s2);
-	}
-	/*
-	 * print the closing parenthesis for the complex qual
-	 */
-	res = appendString(res, ")", &maxLength);
-    } else {
-	elog(WARN, "prs2StubQualToString: bad qualType!\n");
-    }
-
-    /*
-     * we are done!
-     */
-    return(res);
-}
-
-/*----------------------------------------------------------------------
- *
- * prs2StringToStubQual
- *
- * Given the string representation of a 'Prs2StubQual', recreate the
- * struct.
- *
- * The string represantation starts at 's[*indx]'.
- * When this routine returns, '*indx' points to the next character
- * to be read...
- *
- *----------------------------------------------------------------------
- */
-static
-Prs2StubQual
-prs2StringToStubQual(s, indx)
-char *s;
-int *indx;
-{
-    Prs2StubQual qual;
-    Size size;
-    char *data;
-    Datum constDatum;
-    char c;
-    int boolOper;
-    int j,k;
-    long l;
-
-    /*
-     * create the "Prs2StubQualData" struct.
-     */
-    qual = prs2MakeStubQual();
-
-    /*
-     * Initialize index and read the first character
-     */
-    c = readChar(s, indx);
-    if (c == 'N') {
-	/*
-	 * then this ust be the word "NIL", i.e. a null qual
-	 */
-	skipToken("IL", s, indx);
-	qual->qualType = PRS2_NULL_STUBQUAL;
-    } else if (c == '[') {
-	/*
-	 * then this must be a "simple" qual
-	 * Read the 'oper:' and the two operands.
-	 * and 'len'.
-	 */
-	qual->qualType = PRS2_SIMPLE_STUBQUAL;
-	skipToken("oper:", s, indx);
-	l = readLongInt(s, indx);
-	qual->qual.simple.operator = (ObjectId) l;
-	qual->qual.simple.left = prs2StringToOperand(s, indx);
-	qual->qual.simple.right = prs2StringToOperand(s, indx);
-	skipToken("]", s, indx);	/* end of simple qual */
-    } else if (c == '(') {
-	/*
-	 * it is a complex qual.
-	 * Read the boolean operator.
-	 */
-	qual ->qualType = PRS2_COMPLEX_STUBQUAL;
-	c = readChar(s, indx);
-	if (c=='N') {
-	    qual->qual.complex.boolOper = NOT;
-	    skipToken("OT", s, indx);
-	} else if (c=='O') {
-	    qual->qual.complex.boolOper = OR;
-	    skipToken("R", s, indx);
-	} else if (c=='A') {
-	    qual->qual.complex.boolOper = AND;
-	    skipToken("ND", s, indx);
-	} else {
-	    elog(WARN,
-		"prs2StringToStubQual: bad char '%c' in complex qual", c);
-	}
-	/*
-	 * read the number of operands, and allocate enough
-	 * space for the array of pointers to them.
-	 */
-	l = readLongInt(s, indx);
-	qual->qual.complex.nOperands = l;
-	size = qual->qual.complex.nOperands * sizeof(Prs2StubQual);
-	qual->qual.complex.operands = (Prs2StubQual *)palloc(size);
-	if (qual->qual.complex.operands == NULL) {
-	    elog(WARN, "prs2StringToStubQual: Out of memory");
-	}
-	/*
-	 * Now read one by one the operands.
-	 */
-	for (j=0; j<qual->qual.complex.nOperands; j++) {
-	    qual->qual.complex.operands[j] = prs2StringToStubQual(s, indx);
-	}
-	/*
-	 * skip the end of complex qual
-	 */
-	skipToken(")", s, indx);
-    } else {
-	/*
-	 * Oooops!
-	 */
-	elog(WARN,"Syntax error while reading RuleStub qual (char='%c')", c);
-    }
-
-    /*
-     * Done!
-     */
-    return(qual);
-}
-
-/*-------------------------------------------------------------------
- * prs2OperandToString
- *
- * Given an operand which must be a Param or Const node,
- * create a string readable by human beings with its representation.
- *-------------------------------------------------------------------
- */
-static
-char *
-prs2OperandToString(operand)
-Node operand;
-{
-    char *s;
-    char s1[1000];
-    int maxLength;
-    char *res;
-    int l;
-    char *p;
-    Size size;
-    Param param;
-    Const constant;
-
-    maxLength = 0;
-    res = NULL;
-
-    res = appendString(res, "(", &maxLength);
-
-    if (IsA(operand,Param)) {
-	sprintf(s1, "param");
-	param = (Param) operand;
-	res = appendString(res, s1, &maxLength);
-	if (param->paramkind != PARAM_NEW && param->paramkind != PARAM_OLD) {
-	    elog(WARN,"prs2OperandToString: Param is not NEW or OLD");
-	}
-	sprintf(s1, " paramkind: %d", param->paramkind);
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " paramid: %d", param->paramid);
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " paramname: \"%s\"", param->paramname);
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " paramtype: %ld", param->paramtype);
-	res = appendString(res, s1, &maxLength);
-    } else if (IsA(operand,Const)) {
-	constant = (Const) operand;
-	sprintf(s1, "const");
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " consttype: %ld", constant->consttype);
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " constlen: %hd", constant->constlen);
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " constbyval: %d", (constant->constbyval ? 1 : 0 ));
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " constisnull: %d", (constant->constisnull ? 1 : 0 ));
-	res = appendString(res, s1, &maxLength);
-	sprintf(s1, " constvalue: ");
-	res = appendString(res, s1, &maxLength);
-	if (constant->constisnull) {
-	    sprintf(s1, "NIL ");
-	    res = appendString(res, s1, &maxLength);
-	} else {
-	    /*
-	     * Now print the datum
-	     * First find its 'real' size.
-	     */
-	    size = datumGetSize (constant->constvalue,
-				    constant->consttype,
-				    constant->constbyval,
-				    constant->constlen);
-	    if (constant->constbyval) {
-		p = (char *) &(constant->constvalue);
-	    } else {
-		/*
-		 * `constant->constData' is a pointer to a structure.
-		 */
-		p = (char *) DatumGetPointer(constant->constvalue);
-	    }
-	    sprintf(s1, " %d {", size);
-	    res = appendString(res, s1, &maxLength);
-	    for(l=0; l<size; l++) {
-		sprintf(s1, " %d", (int) (p[l]));
-		res = appendString(res, s1, &maxLength);
-	    }
-	    res = appendString(res, "}", &maxLength);
-	}
-    } else {
-	elog(WARN, "prs2OperandToString: operand is not Const or Param");
-    }
-
-    res = appendString(res, ")", &maxLength);
-}
-
-
-/*-------------------------------------------------------------------------
- * prs2StringToOperand
- *
- * Given a string containig a "human readable" representation of
- * an operand used in a stub qual, recreate the operand.
- * 
- *-------------------------------------------------------------------------
- */
-static
-Node
-prs2StringToOperand(s, indx)
-char *s;
-int *indx;
-{
-    char c;
-    long l;
-    int size;
-    int k;
-    Param param;
-    Const constant;
-    char *data;
-
-    skipToken("(", s, indx);
-
-    c = readChar(s, indx);
-
-    if (c=='p') {
-	/*
-	 * It's a param node
-	 */
-	skipToken("aram", s, indx);
-	param = RMakeParam();
-	skipToken("paramkind:", s, indx);
-	l = readLongInt(s, indx);
-	param->paramkind = (int)l;
-	if (param->paramkind != PARAM_NEW && param->paramkind != PARAM_OLD) {
-	    elog(WARN,"prs2StringToOperand: Param is not NEW or OLD");
-	}
-	skipToken("paramid:", s, indx);
-	l = readLongInt(s, indx);
-	param->paramid = (AttributeNumber)l;
-	skipToken("paramname:", s, indx);
-	param->paramname = readName(s, indx);
-	skipToken("paramtype:", s, indx);
-	l = readLongInt(s, indx);
-	param->paramtype = l;
-	skipToken(")", s, indx);
-	return((Node) param);
-    } else if (c=='c') {
-	/*
-	 * It's a Const node;
-	 */
-	skipToken("onst", s, indx);
-	constant = RMakeConst();
-	skipToken("consttype:", s, indx);
-	l = readLongInt(s, indx);
-	constant->consttype = (ObjectId) l;
-
-	skipToken("constlen:", s, indx);
-	l = readLongInt(s, indx);
-	constant->constlen = (ObjectId) l;
-
-	skipToken("constbyval:", s, indx);
-	l = readLongInt(s, indx);
-	constant->constbyval =  (l ? true : false );
-
-	skipToken("constisnull:", s, indx);
-	l = readLongInt(s, indx);
-	constant->constisnull =  (l ? true : false );
-
-	skipToken("constvalue:", s, indx);
-	if (constant->constisnull) {
-	    skipToken("NIL", s, indx);
-	} else {
-	    l = readLongInt(s, indx);
-	    size = (int) l;
-	    skipToken("{", s, indx);
-	    if (constant->constbyval){
-		data = (char *) &(constant->constvalue);
-	    } else {
-		data = palloc(size);
-		Assert(data!=NULL);
-		constant->constvalue = PointerGetDatum(data);
-	    }
-	    for (k=0; k<size; k++) {
-		l = readLongInt(s, indx);
-		data[k] = (char) (l);
-	    }
-	    skipToken("}", s, indx);        /* end of data */
-	}
-	skipToken(")", s, indx);        /* end of const */
-	return((Node) constant);
-    } else {
-	elog(WARN, "prs2StringToOperand: param or const expected");
-    }
-}
-
-/*====================================================================
- * UTILITY ROUTINES LOCAL TO THIS FILE
+ * MORE UTILITY ROUTINES LOCAL TO THIS FILE
  *====================================================================
  */
 
