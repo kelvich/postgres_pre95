@@ -472,34 +472,6 @@ SearchSysCacheStruct(cacheId, returnStruct, key1, key2, key3, key4)
     return(1);
 }
  
-/*
- *	Stuff to interface to LISP (mostly in lisplib/lsyscache.l).
- *	If you're building a test program, you don't want this.
- *
- *	XXX These are really ugly.
- */
-static int32 heapTupleAttributeLength[] = {
-    0,
-    sizeof(ItemPointerData),				/* CTID */
-    Max(sizeof(ItemPointerData), sizeof(RuleLock)),	/* LOCK */
-    sizeof(ObjectId),					/* OID */
-    sizeof(XID),sizeof(CID),				/* XMIN,CMIN */
-    sizeof(XID),sizeof(CID),				/* XMAX,CMAX */
-    sizeof(ItemPointerData),sizeof(ItemPointerData),	/* CHAIN,ANCHOR */
-    sizeof(ABSTIME),sizeof(ABSTIME),			/* TMIN,TMAX */
-    sizeof(char)					/* VTYPE */
-};
-static Boolean heapTupleAttributeByValue[] = {
-    0,
-    0,							/* CTID */
-    0,							/* LOCK */
-    1, 							/* OID */
-    1, 1,	 					/* XMIN,CMIN */
-    1, 1,	 					/* XMAX,CMAX */
-    0, 0,						/* CHAIN,ANCHOR */
-    1, 1,						/* TMIN,TMAX */
-    1							/* VTYPE */
-};
  
 /*
  *	SearchSysCacheGetAttribute
@@ -542,8 +514,8 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
     
     if (attributeNumber < 0 &&
 	attributeNumber > FirstLowInvalidHeapAttributeNumber) {
-	attributeLength = heapTupleAttributeLength[-attributeNumber];
-	attributeByValue = heapTupleAttributeByValue[-attributeNumber];
+	attributeLength = heap_sysattrlen(attributeNumber);
+	attributeByValue = heap_sysattrbyval(attributeNumber);
     } else if (attributeNumber > 0 &&
 	       attributeNumber <= relation->rd_rel->relnatts) {
 	attributeLength =
@@ -564,10 +536,10 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 				  &isNull);
     
     if (isNull) {
-	/* actually this is a FATAL error -hirohama */
-	elog(DEBUG,
-	     "SearchSysCacheGetAttribute: Null attr #%d in %s(%d)",
-	     attributeNumber, cacheName, cacheId);
+	/*
+	 * Used to be an elog(DEBUG, ...) here and a claim that it should
+	 * be a FATAL error, I don't think either is warranted -mer 6/9/92
+	 */
 	return(LispNil);
     }
     
@@ -617,7 +589,6 @@ TypeDefaultRetrieve(typId)
     HeapTuple		typeTuple;
     TypeTupleForm	type;
     int32		typByVal, typLen;
-    LispValue		value;
     struct varlena	*typDefault;
     int32		dataSize;
     LispValue		returnValue;
@@ -640,14 +611,15 @@ TypeDefaultRetrieve(typId)
     typByVal = type->typbyval;
     typLen = type->typlen;
     
-    value = SearchSysCacheGetAttribute(TYPOID,
-				       TypeDefaultAttributeNumber,
-				       (char *) typId,
-				       (char *) NULL,
-				       (char *) NULL,
-				       (char *) NULL);
+    typDefault = (struct varlena *)
+	SearchSysCacheGetAttribute(TYPOID, 
+				   TypeDefaultAttributeNumber,
+				   (char *) typId,
+				   (char *) NULL,
+				   (char *) NULL,
+				   (char *) NULL);
     
-    if (value == LispNil) {
+    if (typDefault == (struct varlena *)NULL) {
 #ifdef	CACHEDEBUG
 	elog(DEBUG, "TypeDefaultRetrieve: No extractable typdefault",
 	     (*cacheinfo[TYPOID].name)->data, TYPOID);
@@ -656,7 +628,6 @@ TypeDefaultRetrieve(typId)
 	
     }
     
-    typDefault = (struct varlena *) value;
     dataSize = VARSIZE(typDefault) - sizeof(typDefault->vl_len);
     
     /*
