@@ -338,27 +338,9 @@ ProcessUtility(command, args, commandString, dest)
 			    CDR(CDR(args)));   /* rest */
 	    break;
 
-#ifdef PRE_JMH
-	case C_FUNCTION:
-	    DefineFunction(
-			   CString(CADR(args)),	 /* function name  */
-			   CDR(CDR(args)));	 /* rest */
-	    break;
-#endif
         case FUNCTION:
 	    DefineFunction(CDR(args));      /* everything */
 	    break;
-
-#ifdef PRE_JMH
-	case P_FUNCTION:
-	    DefinePFunction(CString(CADR(args)), /* function name */
-			    CString(CADDR(args)), /* relation name */
-			    CString(nth(3,args)));  /* query string */
-	    break;
-	case POSTQUEL:
-	    DefineRealPFunction(CDR(args));
-	    break;
-#endif
 
         case RULE:
 	    elog(WARN,
