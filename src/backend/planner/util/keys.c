@@ -119,18 +119,18 @@ equal_indexkey_var (index_key,var)
 /*  .. extract-path-keys, in-line-lambda%598037445, in-line-lambda%598037447
  */
 LispValue
-extract_subkey (joinkey,which_subkey)
-     JoinKey joinkey;
+extract_subkey (jk,which_subkey)
+     JoinKey jk;
      int which_subkey ;
 {
      LispValue retval;
 
      switch (which_subkey) {
 	case OUTER: 
-	 retval = (LispValue)get_outer(joinkey);
+	 retval = (LispValue)get_outer(jk);
 	 break;
        case INNER: 
-	 retval = (LispValue)get_inner(joinkey);
+	 retval = (LispValue)get_inner(jk);
 	 break;
        default: /* do nothing */
 	 elog(DEBUG,"extract_subkey with neither INNER or OUTER");
