@@ -140,6 +140,7 @@
 #define bool	char
 #define false	((char) 0)
 #define true	((char) 1)
+typedef bool	*BoolPtr;
 
 #define TRUE	1
 #define FALSE	0
