@@ -1145,10 +1145,10 @@ BufferShmemSize()
     int nbuckets;
     int nsegs;
 
-    nbuckets = 1 << (int)log2((NBuffers - 1) / DEF_FFACTOR + 1);
-    nsegs = 1 << (int)log2((nbuckets - 1) / DEF_SEGSIZE + 1);
+    nbuckets = 1 << (int)my_log2((NBuffers - 1) / DEF_FFACTOR + 1);
+    nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
     size =  /* size of shmem binding table */
-	    log2(BTABLE_SIZE) + sizeof(HHDR)
+	    my_log2(BTABLE_SIZE) + sizeof(HHDR)
 	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
 	    (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE)
  	    /* size of buffer descriptors */
@@ -1156,7 +1156,7 @@ BufferShmemSize()
 	    /* size of data pages */
             + NBuffers * BLOCK_SIZE
 	    /* size of buffer hash table */
-            + log2(NBuffers) + sizeof(HHDR)
+            + my_log2(NBuffers) + sizeof(HHDR)
 	    + nsegs * DEF_SEGSIZE * sizeof(SEGMENT) 
 	    + (int)ceil((double)NBuffers/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR * 
 	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer))
