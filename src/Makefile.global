@@ -44,9 +44,3 @@ STRIP=
 # Globally pass PORTNAME
 #
 CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
-
-# XXX - to get alpha going
-.if (${PORTNAME} == "alpha")
-# so free doesn't get defined (bletch)
-CFLAGS+= -Dlong=int -D_NLCTYPE_H_
-.endif
