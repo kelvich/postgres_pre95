@@ -75,8 +75,10 @@ pull_var_clause (clause)
 
 	if (null (clause) ) 
 	  return(LispNil);
-	else if (IsA(clause,Var) && get_varattno((Var)clause))
+	else if (IsA(clause,Var))
 	  retval = lispCons (clause,LispNil);
+	else if ( IsA(clause,Iter) )
+		  retval = pull_var_clause(get_iterexpr((Iter)clause));
 	else if (single_node (clause)) 
 	  retval = LispNil;
 	else if (or_clause (clause)) {
