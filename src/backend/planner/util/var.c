@@ -61,38 +61,34 @@ pull_agg_clause(clause)
 }
 
 /*
- *	find_varno
+ *	find_varnos
  *
- *	Descends down part of a parsetree (qual or tlist), looking for a VAR
- *	node that contains 'varno'.
+ *	Descends down part of a parsetree (qual or tlist),
  *
- *	Returns 1 if one is found, 0 if not.
- *
- *	XXX this is actually called by the executor, in InitPlan().
+ *	XXX assumes varno's are always integers, which shouldn't be true...
+ *	(though it currently is, see primnodes.h)
  */
-find_varno(me, varno)
+LispValue
+pull_varnos(me)
 	LispValue me;
 {
-	LispValue i;
-	int result = 0;
+	LispValue i, result = LispNil;
 	
 	if (lispNullp(me))
-		return(0);
+		return(LispNil);
 
 	switch (NodeType(me)) {
 	case classTag(LispList):
 		foreach (i, me) {
-			if (find_varno(CAR(i), varno)) {
-				result = 1;
-				break;
-			}
+			result = nconc(result, pull_varnos(CAR(i)));
 		}
 		break;
 	case classTag(ArrayRef):
-		result = find_varno(get_refindexpr((ArrayRef) me), varno);
+		result = pull_varnos(get_refindexpr((ArrayRef) me));
 		break;
 	case classTag(Var):
-		result = (get_varno((Var) me) == varno);
+		result = lispCons(lispInteger(get_varno((Var) me)),
+				  LispNil);
 		break;
 	}
 	return(result);
