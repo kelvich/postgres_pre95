@@ -173,6 +173,19 @@ typedef struct varlena text;
  */
 typedef struct varlena stub;
 
+/* ----------------
+ *	oidseq
+ *
+ *	this is a new system type used by the file interface.
+ * ----------------
+ */
+typedef struct OidSeqData {
+	ObjectId	os_oid;
+	uint32		os_seq;
+} OidSeqData;
+
+typedef struct OidSeqData	*OidSeq;
+
 /* ----------------------------------------------------------------
  *		Section 3:  name type + support macros
  * ----------------------------------------------------------------
