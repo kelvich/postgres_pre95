@@ -591,7 +591,14 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    elog(NOTICE,"on <update> do retrieve not supported");
 		    break;
 		case DELETE:
-		    elog(NOTICE,"on <update> do delete not supported");
+		    HandleVarNodes ( rule_tlist , user_parsetree,
+				     offset_trigger, -2 );
+		    root_result_relation(rule_root) =
+			lispInteger ( CInteger(root_result_relation(rule_root))
+				      - 2 );
+		    HandleVarNodes ( rule_qual, user_parsetree, 
+				     offset_trigger,
+				     -2 );
 		    break;
 		default:
 		    elog(NOTICE,"unsupported action");
@@ -699,9 +706,38 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 	/* no targetlist, so handled differently */
 	delete_locks = MatchDeleteLocks ( rlocks , current_varno,
 					 user_parsetree );
+	if ( delete_locks ) {
+	    List new_queries = NULL;
+	    extern List ExpandAll();
+	    List fake_tlist = NULL;
+	    int fake_resno = 1;
+	    
+	    int result_relation_index = 
+	      CInteger(root_result_relation(parse_root(user_parsetree)));
+	    Name result_relation_name = 
+	      (Name)CString(rt_relname ( nth(result_relation_index- 1 ,
+			       root_rangetable(parse_root(user_parsetree)))));
 
+	    printf ( "\nDelete triggered the following locks:\n");
+	    PrintRuleLockList ( delete_locks );
+
+	    fake_tlist = ExpandAll(result_relation_name, &fake_resno);
+	    parse_targetlist ( user_parsetree ) = fake_tlist;
+
+	    new_queries = 
+	      ModifyUpdateNodes( delete_locks,
+				user_parsetree,
+				drop_user_query,
+				current_varno);
+
+	    parse_targetlist ( user_parsetree ) = LispNil;
+
+#ifdef OLD
 	additional_queries = append ( additional_queries, 
 				     ModifyDeleteQueries( drop_user_query ) );
+#endif
+	    additional_queries = append (additional_queries, new_queries );
+	}
 	break;
       case APPEND:
 	append_locks = MatchAppendLocks ( rlocks , current_varno,
