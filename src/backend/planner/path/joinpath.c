@@ -175,15 +175,12 @@ find_all_join_paths(joinrels,previous_level_rels,nest_level)
  * (or maybe it is a bug of ours?) that causes really wierd behavior.
  */
 
-#ifdef _PROTOTYPES_
-#define UNDEF_PROTOS
-#undef _PROTOTYPES_
-#endif
 	      if(IsA(path,JoinPath))
-                 set_outerjoincost((Path)CAR(path), LispNil); /* XXX */
-
-#ifdef UNDEF_PROTOS
-#define _PROTOTYPES_
+#ifndef sparc
+                 set_outerjoincost((Path)CAR(path), (Cost) 0);
+#else
+                 /* DO NOT PROTOTYPE ME !!! */
+                 sparc_bug_set_outerjoincost((Path)CAR(path), 0);
 #endif
 
 	      /* do it iff it is a join path, which is not always
