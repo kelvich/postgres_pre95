@@ -21,7 +21,7 @@
 #include <sys/time.h>
 
 #include "tmp/postgres.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "catalog/catname.h"
 
 RcsId("$Header$");
