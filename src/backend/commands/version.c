@@ -194,11 +194,17 @@ VersionDelete(vname,bname)
 {
 
   sprintf(rule_buf,
-	  "define rewrite rule %s_delete is on delete to %s do instead \n \
-{ \n\
-delete %s_added where current.oid = %s_added.oid\n\
-append %s_del(DOID = %s.oid) where current.oid = %s.oid \n}\n",
-	  vname,vname,vname,vname,vname,bname,bname);
+	  "define rewrite rule %s_delete1 is on delete to %s do  \n \
+delete %s_added where current.oid = %s_added.oid\n",
+	  vname,vname,vname,vname);
+
+  printf("%s\n",rule_buf);
+/*  pg_eval(rule_buf);  */
+
+  sprintf(rule_buf,
+	  "define rewrite rule %s_delete2 is on delete to %s do instead \n \
+append %s_del(DOID = %s.oid) where current.oid = %s.oid \n",
+	  vname,vname,vname,bname,bname);
 
   printf("%s\n",rule_buf);
 
@@ -225,16 +231,28 @@ VersionReplace(vname, bname)
      Name vname,bname;
 {
   sprintf(rule_buf,
-	  "define rewrite rule %s_replace is on replace to %s do instead \n\
-{ \n\
-replace %s_added(%s) where current.oid = %s_added.oid \n\
-append %s_del(DOID = %s.oid) where current.oid = %s.oid\n\
-append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
-%s.oid\n }\n",
+	  "define rewrite rule %s_replace1 is on replace to %s do \n\
+replace %s_added(%s) where current.oid = %s_added.oid \n",
 	  vname,vname,
-	  vname,attr_list,vname,
-	  vname,bname,bname,
-	  vname,attr_list,vname,bname);
+	  vname,attr_list,vname);
+
+  printf("%s\n",rule_buf);
+/*  pg_eval(rule_buf);  */
+
+  sprintf(rule_buf,
+	  "define rewrite rule %s_replace2 is on replace to %s do \n\
+append %s_del(DOID = %s.oid) where current.oid = %s.oid\n",
+	  vname,vname,vname,bname,bname);
+
+  printf("%s\n",rule_buf);
+
+/*  pg_eval(rule_buf);  */
+
+  sprintf(rule_buf,
+	  "define rewrite rule %s_replace3 is on replace to %s do instead\n\
+append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
+%s.oid\n",
+	  vname,vname, vname,attr_list,vname,bname);
 
   printf("%s\n",rule_buf);
 
