@@ -342,10 +342,10 @@ BuildDescForRelation(schema, relname)
 
 	if (IsA(CADR(entry),LispList)) {
 	    typename = (Name) CString(CAR(CADR(entry)));
-	    arry = (Array) NULL;
+	    arry = (Array) CDR(CADR(entry));
 	} else {
 	    typename = (Name) CString(CADR(entry));
-	    arry = (Array) CDR(CADR(entry));
+	    arry = (Array) NULL;
 	}
 
 	/*
