@@ -209,4 +209,6 @@ char **err;
 	return(NULL);
 }
 
+/*
 remove() {}
+ */
