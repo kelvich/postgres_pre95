@@ -53,13 +53,21 @@ static char sccsid[] = "@(#)ls.c	5.69 (Berkeley) 10/17/92";
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <fts.h>
-#include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <stdio.h>
+#include <fts.h>
+
+/*
+ * for struct winsize and TIOCGWINSZ.  why do people have to name
+ * these things differently...
+ */
 #ifdef PORTNAME_hpux
 #include <sys/termio.h>
 #endif /* PORTNAME_hpux */
+#ifdef PORTNAME_sparc_solaris
+#include <sys/termios.h>
+#endif /* PORTNAME_sparc_solaris */
 
 #include "ls.h"
 #include "extern.h"
