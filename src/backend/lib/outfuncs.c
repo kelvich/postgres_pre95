@@ -342,6 +342,7 @@ _outMergeJoin(str, node)
 	MergeJoin	node;
 {
 	char buf[500];
+	LispValue x;
 
 	sprintf(buf, "mergejoin");
 	appendStringInfo(str,buf);
@@ -357,6 +358,24 @@ _outMergeJoin(str, node)
 
 	sprintf(buf, " :mergesortop %ld", node->mergesortop);
 	appendStringInfo(str,buf);
+
+	sprintf(buf, " :mergerightorder (");
+	appendStringInfo(str, buf);
+	foreach (x, node->mergerightorder) {
+	    sprintf(buf, "%ld ", CAR(x));
+	    appendStringInfo(str, buf);
+	  } 
+	sprintf(buf, ")");
+	appendStringInfo(str, buf);
+
+	sprintf(buf, " :mergeleftorder (");
+	appendStringInfo(str, buf);
+	foreach (x, node->mergeleftorder) {
+	    sprintf(buf, "%ld ", CAR(x));
+	    appendStringInfo(str, buf);
+	  } 
+	sprintf(buf, ")");
+	appendStringInfo(str, buf);
 
 }
 
