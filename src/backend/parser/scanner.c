@@ -84,8 +84,11 @@ int len;
 
 		if (entering && delimiter == '\"')
 		{
-			if (c == '{') scanarr(buf, len);
-			cp += strlen(buf);
+			if (c == '{') 
+			{
+				scanarr(buf, len);
+				cp += strlen(buf);
+			}
 			entering = 0;
 		}
 		
