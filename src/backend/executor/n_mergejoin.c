@@ -569,9 +569,13 @@ ExecMergeJoin(node)
 	    
 	    /* ----------------
 	     *	 set the marked tuple to nil
+	     *   and initialize its tuple descriptor atttributes. 
+	     *      -jeff 10 july 1991
 	     * ----------------
 	     */
 	    ExecClearTuple(get_mj_MarkedTupleSlot(mergestate));
+	    SetSlotTupleDescriptor(get_mj_MarkedTupleSlot(mergestate), 
+			SlotTupleDescriptor(innerTupleSlot));
 	    
 	    /* ----------------
 	     *  initialize merge join state to skip inner tuples.
