@@ -195,13 +195,16 @@ find_join_paths(outer_rels,levels_left,nest_level)
 
     find_all_join_paths(new_rels, outer_rels, nest_level);
 
-    /* for each expensive predicate in each path in each rel, consider 
-       doing pullup  -- JMH */
+    new_rels = prune_joinrels(new_rels);
+
+    /* 
+    ** for each expensive predicate in each path in each distinct rel, 
+    ** consider doing pullup  -- JMH 
+    */
     if (XfuncMode != XFUNC_NOPULL && XfuncMode != XFUNC_OFF)
       foreach(x, new_rels)
 	xfunc_trypullup((Rel)CAR(x));
 
-    new_rels = prune_joinrels(new_rels);
     prune_rel_paths(new_rels);
 
     if(BushyPlanFlag) {
