@@ -113,6 +113,17 @@ create_plan(best_path,origtlist)
      set_plan_tupperpage(plan_node, tuples/pages);
      set_fragment(plan_node, 0);
 
+     /* sort clauses by cost/(1-selectivity) -- JMH 2/26/92 */
+     if (XfuncMode != XFUNC_OFF)
+      {
+	  set_qpqual((Plan) plan_node, 
+		     lisp_qsort((LispValue) get_qpqual((Plan) plan_node), 
+				xfunc_clause_compare));
+	  if (XfuncMode != XFUNC_NOR)
+	    /* sort the disjuncts within each clause by cost -- JMH 3/4/92 */
+	    xfunc_disjunct_sort(plan_node->qpqual);
+      }
+
      /*    Attach a SORT node to the path if a sort path is specified. */
 
      if (get_pathsortkey(best_path) &&
@@ -202,16 +213,6 @@ create_scan_node(best_path,tlist)
 		     get_pathtype(best_path));
 	  break;
      }
-     if (XfuncMode != XFUNC_OFF)
-      {
-	  /* sort clauses by cost/(1-selectivity) -- JMH 2/26/92 */
-	  set_qpqual((Plan) node, lisp_qsort((LispValue) get_qpqual((Plan) node), 
-				                         xfunc_clause_compare));
-	  if (XfuncMode != XFUNC_NOR)
-	    /* sort the disjuncts within each clause by cost -- JMH 3/4/92 */
-	    xfunc_disjunct_sort(node->qpqual);
-      }
-
      set_parallel((Plan)node, 1);
      return node;
 
@@ -282,8 +283,8 @@ create_join_node(best_path,origtlist,tlist)
      **        -- JMH, 6/15/92
      */
      if (get_locclauseinfo(best_path) != LispNil)
-       nappend1(get_qpqual((Plan) retval), 
-		fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
+       nconc(get_qpqual((Plan) retval), 
+	     fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
 
      set_parallel((Plan)retval, 1);
      return(retval);
