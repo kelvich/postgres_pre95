@@ -83,10 +83,13 @@ ufp3.so: $*.o $*.exp UFP
 .if defined(SLSUFF)
 .  if (${SLSUFF} != ".o")
 CREATEFILES+= ${DLOBJS:S/.o/${SLSUFF}/g}
+.    if (${PORTNAME} == "alpha")
+CLEANFILES+= so_locations
+.    endif
 .  endif
 .endif
 
-OUTFILES= stud_emp.data onek.data regress.out
+OUTFILES= stud_emp.data onek.data regress.out aportal.out
 CLEANFILES+= ${CREATEFILES} ${OUTFILES}
 
 ${OUTFILES}: ${CREATEFILES} ${PROG}
