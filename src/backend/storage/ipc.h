@@ -115,6 +115,7 @@ typedef enum _LockId_ {
 
 #ifdef SONY_JUKEBOX
     SJCACHELOCKID,
+    JBSPINLOCKID,
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
@@ -154,6 +155,7 @@ typedef enum _LockId_ {
 
 #ifdef SONY_JUKEBOX
     SJCACHELOCKID,
+    JBSPINLOCKID,
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
