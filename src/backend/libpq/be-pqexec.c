@@ -355,7 +355,8 @@ pqtest_PQfn(q)
  *	and decides which of pqtest_PQexec or pqtest_PQfn to call.
  * ----------------
  */
-int
+
+int32
 pqtest(vlena)
     struct varlena	*vlena;
 {
