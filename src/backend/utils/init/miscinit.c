@@ -415,7 +415,7 @@ ValidateBackend(path)
 FindBackend(backend, argv0)
     char	*backend, *argv0;
 {
-    char	buf[MAXPATHLEN];
+    char	buf[MAXPGPATH + 2];
     char	*p;
     char	*path, *startp, *endp;
     int		pathlen;
@@ -437,7 +437,7 @@ FindBackend(backend, argv0)
      * that a relative path is made absolute before returning it).
      */
     if (argv0 && (p = strrchr(argv0, '/')) && *++p) {
-	if (*argv0 == '/' || !getwd(buf))
+	if (*argv0 == '/' || !getcwd(buf, MAXPGPATH))
 	    buf[0] = '\0';
 	else
 	    (void) strcat(buf, "/");
@@ -476,7 +476,7 @@ FindBackend(backend, argv0)
 		continue;
 	    if (endp)
 		*endp = '\0';
-	    if (*startp == '/' || !getwd(buf))
+	    if (*startp == '/' || !getcwd(buf, MAXPGPATH))
 		buf[0] = '\0';
 	    (void) strcat(buf, startp);
 	    (void) strcat(buf, "/postgres");
