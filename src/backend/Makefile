@@ -173,6 +173,10 @@ LDADD+=	-N -lm -lln
 #
 CFLAGS+= -I${.CURDIR}/tmp
 
+.if ${PORTNAME} == "ultrix4"
+CFLAGS+= -DNOFIXADE
+.endif
+
 #
 # XXX - who makes this?
 #
