@@ -12,17 +12,17 @@
 #include "pg_lisp.h"
 
 
-#define parse_root(parse)                       nth (0, parse)
-#define parse_targetlist(parse)                 nth (1, parse)
-#define parse_qualification(parse)              nth (2, parse)
-#define root_numlevels(root)                    nth (0, root)
-#define root_commandtype(root)                  nth (1, root)
-#define root_resultrelation(root)               nth (2, root)
+#define parse_root(parse)                       CAR(parse)
+#define parse_targetlist(parse)                 CADR(parse)
+#define parse_qualification(parse)              CADDR(parse)
+#define root_numlevels(root)                    CAR(root)
+#define root_commandtype(root)                  CADR(root)
+#define root_resultrelation(root)               CADDR(root)
 
 /* .. subst-rangetable */
-#define root_rangetable(root)                   nth (3, root)
-#define root_priority(root)                     nth (4, root)
-#define root_ruleinfo(root)                     nth (5, root)
+#define root_rangetable(root)                   CADDR(CDR(root))
+#define root_priority(root)                     CADDR(CDR(CDR(root)))
+#define root_ruleinfo(root)                     CADDR(CDR(CDR(CDR(root))))
 #define resultrelation_name(resultrelation)     if (lisp (resultrelation)) nth (0, resultrelation)
 
 #define resultrelation_archive(resultrelation)  if (lisp (resultrelation)) nth (1, resultrelation)
@@ -31,7 +31,7 @@
 /* .. GetIDFromRangeTbl, InitPlan, print_rtentries, print_subplan
  * .. print_var
  */
-#define rt_relname(rt_entry)          nth (0, rt_entry)
+#define rt_relname(rt_entry)          CAR(rt_entry)
 
 
 /* .. ExecutePlan, best-or-subclause-index, create_index_path
@@ -49,24 +49,23 @@
 #define rt_time(rt_entry)              CADDR(rt_entry)
 
 /*.. in-line-lambda%598040864 */
-#define rt_archive_time(rt_entry)      if (nth (3, rt_entry)) rt_time (rt_entry)
+#define rt_archive_time(rt_entry)      ( (CADDDR(rt_entry)) ? \
+					rt_time (rt_entry) : LispNil )
 
 /* .. in-line-lambda%598040866, plan-union-queries, print_rtentries */
 #define rt_flags(rt_entry)         CADDR(CDR(rt_entry))
-/* nth (3, rt_entry) */
-
 
 /* .. add-read-locks, exec-make-intermediate-locks, exec-set-lock
  *.. make-parameterized-plans, make-rule-locks, print_rtentries
  * .. write-decorate
  */
-#define rt_rulelocks(rt_entry)     nth (4, rt_entry)
+#define rt_rulelocks(rt_entry)     CADDR(CDR(CDR(rt_entry)))
 
 
 /*  .. ExecCreatR, ExecOpenR, ExecutePlan, InitPlan, add-read-locks
  * .. exec-set-lock, plan-union-queries, write-decorate
 #define rt_fetch(inhrelid,rangetable)  nth ( inhrelid -1, rangetable)
-#define rt_store(inhrelid,rangetable,rt_entry)  
+#define rt_store(inhrelid,rangetable,rt_entry)  \
 setf (nth (inhrelid -1,rangetable) ,rt_entry)
 */
 
@@ -76,7 +75,7 @@ setf (nth (inhrelid -1,rangetable) ,rt_entry)
  * .. set-join-tlist-references, sort-level-result
  * .. targetlist-resdom-numbers, tlist-member, tlist-temp-references
  */
-#define tl_resdom(tl_entry)          nth (0, tl_entry)
+#define tl_resdom(tl_entry)          CAR(tl_entry)
 
 
 /* .. MakeAttlist, copy-vars, find-tlist-read-vars, flatten-tlist
@@ -87,16 +86,16 @@ setf (nth (inhrelid -1,rangetable) ,rt_entry)
  * .. relation-sortkeys, set-join-tlist-references, tlist-temp-references
  * .. update-relations 
  */
-/* #define tl_expr(tl_entry)             nth (1, tl_entry) */
+/* #define tl_expr(tl_entry)             CADR(tl_entry)
 extern LispValue tl_expr();
 
 /* .. exec-make-intermediate-locks, exec-set-lock */
-#define ruleinfo_ruleid(ruleinfo)     nth(0, ruleinfo)
+#define ruleinfo_ruleid(ruleinfo)     CAR(ruleinfo)
 
 /* .. exec_make_intermediate_locks, exec_set_lock, make_rule_locks 
  * .. process_rules
  */
-#define ruleinfo_ruletag(ruleinfo)    nth (1, ruleinfo)
+#define ruleinfo_ruletag(ruleinfo)    CADR(ruleinfo)
 
 
 /*
