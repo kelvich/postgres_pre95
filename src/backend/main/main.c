@@ -12,6 +12,7 @@
  */
 
 char *DataDir;
+extern char *GetPGData();
 
 main(argc, argv)
 int argc;
