@@ -29,7 +29,6 @@
 #include "catalog/pg_language.h"
 #include "access/heapam.h"
 #include "executor/executor.h"
-#include "executor/functions.h"
 
 #undef new
 
