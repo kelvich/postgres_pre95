@@ -24,7 +24,6 @@
 RcsId("$Header$");
 
 /* default port for ipc connections (used to generate ipc key) */
-#define	DEF_PORT	4321
 #define	DEF_NBUFS	64
 #define LBUFSIZ		512
 #define MAXARGS		10
@@ -295,7 +294,7 @@ main(argc, argv)
     int size;
 
     errs = 0;
-    portno = DEF_PORT;
+    portno = POSTPORT;
     NBuffers = DEF_NBUFS;
     while ((c = getopt(argc, argv, "B:p:")) != EOF) {
 	switch (c) {
