@@ -131,10 +131,11 @@ PortalCleanup(portal)
  * --------------------------------
  */
 void
-PerformPortalFetch(name, forward, count, dest)
+PerformPortalFetch(name, forward, count, tag, dest)
     String	name;
     bool	forward;
     Count	count;
+    String	tag;
     CommandDest dest;
 {
     Portal		portal;
@@ -186,9 +187,11 @@ PerformPortalFetch(name, forward, count, dest)
      */
     queryDesc = PortalGetQueryDesc(portal);
     BeginCommand(name,
-		 QueryDescGetTypeInfo(queryDesc),
 		 CAtom(GetOperation(queryDesc)),
-		 false,		/* portal fetches don't end up in relations */
+		 QueryDescGetTypeInfo(queryDesc),
+		 false,	/* portal fetches don't end up in relations */
+		 false,	/* this is a portal fetch, not a "retrieve portal" */
+		 tag,
 		 dest);
 
     /* ----------------
