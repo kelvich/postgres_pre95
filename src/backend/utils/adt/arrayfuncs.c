@@ -7,8 +7,11 @@
  */
 
 #include "tmp/postgres.h"
+#include "tmp/align.h"
+
 #include "catalog/pg_type.h"
 #include "catalog/syscache.h"
+
 #include "utils/palloc.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
@@ -84,7 +87,7 @@ ObjectId element_type;
     {
         for (i = 0, nbytes = 0;
              i < nitems;
-             nbytes += * (int32 *) values[i++]);
+             nbytes += LONGALIGN(* (int32 *) values[i]), i++);
         nbytes += sizeof(int32);
     }
 
@@ -109,8 +112,8 @@ ObjectId element_type;
         {
             int len;
 
-            len = * (int32 *) values[i];
-            bcopy(values[i], p, len);
+            len = LONGALIGN(* (int32 *) values[i]);
+            bcopy(values[i], p, * (int32 *) values[i]);
             p += len;
         }
         if (!typbyval) pfree(values[i]);
@@ -180,8 +183,8 @@ ObjectId element_type;
 
         while (nbytes != 0)
         {
-            nbytes -= * (int32 *) p;
-            p += * (int32 *) p;
+            nbytes -= LONGALIGN(* (int32 *) p);
+            p += LONGALIGN(* (int32 *) p);
             nitems++;
         }
     }
@@ -216,7 +219,7 @@ ObjectId element_type;
             if (typlen > 0)
                 items += typlen;
             else
-                items += * (int32 *) items;
+                items += LONGALIGN(* (int32 *) items);
         }
         overall_length += strlen(values[i]);
     }
