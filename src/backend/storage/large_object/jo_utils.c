@@ -6,6 +6,7 @@
  */
 
 #include <sys/file.h>
+#include <string.h>
 #include <strings.h>
 #include "tmp/c.h"
 
