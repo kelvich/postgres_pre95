@@ -107,6 +107,9 @@ DATA(insert OID = 0 ( pg_user 6 1 1 t b t \054 86 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_variable 6 1 1 t b t \054 90 0 foo bar foo bar _null_));
 
 DATA(insert OID = 16 (  bool       6  1   1 t b t \054 0   0 boolin boolout boolin boolout _null_ ));
+
+#define BOOLOID		16
+
 DATA(insert OID = 17 (  bytea      6 -1  -1 f b t \054 0  18 byteain byteaout byteain byteaout _null_ ));
 DATA(insert OID = 18 (  char       6  1   1 t b t \054 0   0 charin charout charin charout _null_ ));
 DATA(insert OID = 19 (  char16     6 16  16 f b t \054 0  18 char16in char16out char16in char16out _null_ ));
