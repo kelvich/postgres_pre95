@@ -1,6 +1,6 @@
 #include <ctype.h>
 #include "tmp/postgres.h"
-#include "tmp/align.h"
+#include "utils/memutils.h"
 #include "tmp/libpq-fs.h"
 
 #include "catalog/pg_type.h"
@@ -49,7 +49,7 @@ char *chunkfile;
 		/* create new LO for chunked file */
 		chunkfile = _array_newLO( &cfd, fileFlag );
     else 
-		cfd = LOopen(chunkfile, O_RDWR); 
+		cfd = LOopen(chunkfile, O_RDONLY); 
     if (cfd < 0)
 		elog(WARN, "Enable to open chunk file");
     strcpy (cInfo.lo_name, chunkfile);
