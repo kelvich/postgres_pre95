@@ -796,7 +796,8 @@ BufferSync()
 	      }
 
 	      bufHdr->flags &= ~BM_DIRTY;
-	      RelationDecrementReferenceCount(reln);
+	      if (reln != (Relation)NULL)
+		  RelationDecrementReferenceCount(reln);
 	  }
       }
   }
