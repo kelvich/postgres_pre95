@@ -443,6 +443,8 @@ SetProcessingMode ARGS((
 
 #endif	/* !defined(PModIncluded) */
 
+extern char *GetPGHome();
+
 /* ----------------
  *	pusr.h
  * ----------------
