@@ -65,6 +65,9 @@ Print_expr ( expr )
 {
     List i = NULL;
 
+    if ( expr == NULL )
+      printf("nil\n");
+
     switch ( NodeType(expr)) {
       case classTag(LispList):
 	printf ( "( " );
@@ -97,6 +100,7 @@ Print_expr ( expr )
       case classTag(Result):
 	printf("result :");
 	Print_expr(get_resconstantqual(expr));
+	break;
       case classTag(Append):
 	printf("append :");
 	Print_expr(get_unionplans(expr));
