@@ -461,7 +461,7 @@ flatten_tlist (tlist)
          tlist_vars = nconc(tlist_vars, tlist_thing);
       }
       else {
-	 tlist_thing = pull_agg_clause(CAR(temp));
+	 tlist_thing = pull_agg_clause(get_expr(CAR(temp)));
 	 if(tlist_thing != LispNil) {
 	     tlist_aggs = nconc(tlist_aggs, tlist_thing);
 	     tlist_rest = nset_difference(temp, tlist_rest);

@@ -21,13 +21,10 @@
 #include "planner/clauses.h"
 
 LispValue
-pull_agg_clause(temp)
-	 TLE temp;
+pull_agg_clause(clause)
+	 LispValue clause;
 {
-	LispValue clause = LispNil;
 	LispValue retval = LispNil;
-	   clause = CADR(temp);
-	/* XXX breakable hack */
 	if(null(clause))
 	    retval=LispNil;
 	else if(agg_clause(clause))
