@@ -98,10 +98,26 @@ LispValue
 string_to_plan (string)
 	LispValue string;
 {
+	LispValue parsePlanString();
 #ifdef NOTYET
-	pg_in (read_from_string (string));
+	pg_in (parsePlanString (string));
 #endif NOTYET
 }
+
+/*
+ * Reads a plan out of string.
+ */
+
+LispValue read_from_string(string)
+
+char *string;
+
+{
+	extern LispValue lispReadString();
+
+	return(lispReadString(string));
+}
+
 
 /*  .. plan-save
  */
@@ -157,9 +173,9 @@ LispValue
 pg_in (tree)
 	LispValue tree ;
 {
-
+	return(tree);
     /* Greg gets to fill in the goodies here */
-
+	/* What else is needed here */
 }
 
 /*    
@@ -179,7 +195,7 @@ find_parameters (plan)
 /*  .. find-all-parameters, find-parameters
  */
 LispValue
-find_all_parameters (treetree)
+find_all_parameters (tree)
      LispValue tree ;
 {
 #ifdef NOTYET
