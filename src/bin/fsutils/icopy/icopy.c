@@ -594,6 +594,22 @@ docopy_in(srcfname, destfname, smgrno)
 	fflush(stderr);
 	return (-1);
     }
+             /* creat, then close, so if we get killed in the middle of
+		copying, the file is there to be "prm" removed. */
+    (void) p_close(destfd);  
+
+    /* commit the transaction */
+    icommit();
+
+    /* start a transaction */
+    ibegin();
+
+    if ((destfd = p_open(destfname, INV_READ)) < 0) {
+	fprintf(stderr, "%s: cannot open Inversion file %s\n",
+		ProgName, destfname);
+	fflush(stderr);
+	return (-1);
+    }
 
     done = FALSE;
     while (!done) {
