@@ -13,8 +13,6 @@
 
 /* #include "catalog_utils.h" */ 
 
-#include "./RewriteManip.h"
-
 extern Name tname();
 void makeRetrieveViewRuleName();
 
