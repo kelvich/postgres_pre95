@@ -42,6 +42,7 @@
 #include "utils/hsearch.h"
 #include "utils/log.h"
 
+
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
 int		Data_Descriptors;
 int		Free_List_Descriptor;
@@ -131,7 +132,7 @@ BlockNumber 	blockNum;
   /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
    * block is not currently in memory.
    */
-  bufHdr = BufferAlloc(reln, blockNum, BM_IO_IN_PROGRESS, &found);
+  bufHdr = BufferAlloc(reln, blockNum, &found);
   if (! bufHdr) {
     return(InvalidBuffer);
   }
@@ -151,6 +152,13 @@ BlockNumber 	blockNum;
    */
   virtFile = RelationGetFile(reln);
 
+#ifdef sequent
+  /* lock the io_in_progress_lock before the read so that
+   * other process will wait on it
+   */
+  Assert(!bufHdr->io_in_progress_lock);
+  S_LOCK(&(bufHdr->io_in_progress_lock));
+#endif
   if (extend) {
     status = BlockExtend(virtFile,bufHdr);
   } else {
@@ -182,8 +190,12 @@ BlockNumber 	blockNum;
   }
 
   /* If anyone was waiting for IO to complete, wake them up now */
+#ifdef sequent
+  S_UNLOCK(&(bufHdr->io_in_progress_lock));
+#else
   if (bufHdr->refcount > 1)
     SignalIO(bufHdr);
+#endif
   SpinRelease(BufMgrLock);
     
   return(BufferDescriptorGetBuffer(bufHdr));
@@ -196,10 +208,9 @@ BlockNumber 	blockNum;
  * Returns: descriptor for buffer
  */
 BufferDesc *
-BufferAlloc(reln, blockNum, ioToFollow, foundPtr)
+BufferAlloc(reln, blockNum, foundPtr)
 Relation	reln;
 BlockNumber	blockNum;
-int		ioToFollow;
 Boolean		*foundPtr;
 {
   BufferDesc 		*buf;	  
@@ -208,15 +219,7 @@ Boolean		*foundPtr;
   File			virtFile; /* descriptor for reln file */
   int			status;
   Boolean		newblock = FALSE;
-
-  /*
-   * If this routine is called within the buffer manager,
-   * it will allocate a buffer which is then to be read.
-   * If the routine is called from outside the buffer manager,
-   * no read will follow.  ioToFollow should be equal to this
-   * flag if we are making an internal call and NULL otherwise.
-   */
-  Assert ((ioToFollow == BM_IO_IN_PROGRESS) || (! ioToFollow));
+  BufferDesc		oldbufdesc;
 
 
     /* create a new tag so we can lookup the buffer */
@@ -235,9 +238,8 @@ Boolean		*foundPtr;
 
   SpinAcquire(BufMgrLock);
 
-
-      /* see if the block is in the buffer pool already */
-      buf = BufTableLookup(&newTag);
+  /* see if the block is in the buffer pool already */
+  buf = BufTableLookup(&newTag);
   if (buf != NULL) {
     /* Found it.  Now, (a) pin the buffer so no
      * one steals it from the buffer pool, 
@@ -274,7 +276,6 @@ Boolean		*foundPtr;
     return(buf);
   }
 
-
   *foundPtr = FALSE;
 
   /* Didn't find it in the buffer pool.  We'll have
@@ -282,57 +283,21 @@ Boolean		*foundPtr;
    * the free list.  If it's dirty, flush it to disk.
    * Remember to unlock BufMgr spinloc while doing the IOs.
    */
-  for (;;) {
-    buf = GetFreeBuffer();
-    if (! buf) {
-      /* out of free buffers.  In trouble now. */
-      SpinRelease(BufMgrLock);
-      return(NULL);
-    }
+  buf = GetFreeBuffer();
+  if (! buf) {
+    /* out of free buffers.  In trouble now. */
+     SpinRelease(BufMgrLock);
+     return(NULL);
+   }
 
-    /* There should be exactly one pin on the buffer
-     * after it is allocated.  It isnt in the buffer
-     * table yet so no one but us should have a pin.
-     */
+   /* There should be exactly one pin on the buffer
+    * after it is allocated.  It isnt in the buffer
+    * table yet so no one but us should have a pin.
+    */
 
-    Assert(buf->refcount == 0);
-    buf->refcount = 1;	       
-  
-    if (buf->flags & BM_DIRTY) {
+   Assert(buf->refcount == 0);
+   buf->refcount = 1;	       
 
-      /* must clear flag first because of wierd race 
-       * condition described below.  
-       */
-      buf->flags &= ~BM_DIRTY;
-      SpinRelease(BufMgrLock);
-
-      (void) BlockReplace(buf);
-
-      SpinAcquire(BufMgrLock);
-      /* 
-       * wierd race condition: someone else has requested 
-       * the 'victim' buf while we were flushing it to
-       * disk.  Let them have it and loop around to get
-       * another one.  Assume this is pretty rare event.
-       */
-      if (buf->refcount > 1) {
-	UnpinBuffer(buf);
-	continue;
-      }
-    } 
-    /* break out of loop unless wierd race condition above */
-    break;
-  }
-
-  Assert(! (buf->flags & BM_DIRTY) );
-
-  /*
-   *  record the database name and relation name for this buffer.
-   */
-
-  strcpy((char *)&(buf->sb_relname),
-         (char *)&(reln->rd_rel->relname),
-	 sizeof (NameData));
   /* 
    * Change the name of the buffer in the lookup table:
    *  
@@ -347,6 +312,23 @@ Boolean		*foundPtr;
   if (! BufTableDelete(buf)) {
     elog(FATAL,"buffer wasn't in the buffer table\n");
   }
+
+  /* save the old buffer descriptor */
+  oldbufdesc = *buf;
+  if (buf->flags & BM_DIRTY) {
+      /* must clear flag first because of wierd race 
+       * condition described below.  
+       */
+      buf->flags &= ~BM_DIRTY;
+    }
+  /*
+   *  record the database name and relation name for this buffer.
+   */
+
+  strcpy((char *)&(buf->sb_relname),
+         (char *)&(reln->rd_rel->relname),
+	 sizeof (NameData));
+
   INIT_BUFFERTAG(&(buf->tag),reln,blockNum);
   if (! BufTableInsert(buf)) {
     elog(FATAL,"Buffer in lookup table twice \n");
@@ -358,16 +340,12 @@ Boolean		*foundPtr;
    * has been called simply to allocate a buffer, no
    * io will be attempted, so the flag isnt set.
    */
-  if (ioToFollow) {
-    buf->flags |= BM_IO_IN_PROGRESS; 
-  }
-
-  /* In theory, POSTGRES buffer blocks have variable sizes.
-   * In practice, BLKSZ is used in the code all over the place.
-   */
-/*  buf->blockSize = BLOCK_SIZE ;  */
-
+  buf->flags |= BM_IO_IN_PROGRESS; 
   SpinRelease(BufMgrLock);
+
+  if (oldbufdesc.flags & BM_DIRTY) {
+     (void) BlockReplace(&oldbufdesc);
+    } 
   return (buf);
 }
 
@@ -601,6 +579,18 @@ BufferSync()
  *	the queue structure.  That way signal can figure
  *	out which proc to wake up.
  */
+#ifdef sequent
+WaitIO(buf, spinlock)
+BufferDesc *buf;
+SPINLOCK spinlock;
+{
+    SpinRelease(spinlock);
+    S_LOCK(&(buf->io_in_progress_lock));
+    S_UNLOCK(&(buf->io_in_progress_lock));
+    SpinAcquire(spinlock);
+}
+
+#else /* sequent */
 static IpcSemaphoreId	WaitIOSemId;
 
 WaitIO(buf,spinlock)
@@ -632,6 +622,7 @@ BufferDesc *buf;
   semncnt = IpcSemaphoreGetCount(WaitIOSemId, 1);
   IpcSemaphoreUnlock(WaitIOSemId, 1, semncnt);
 }
+#endif /* sequent */
 
 /*
  * Initialize module:
@@ -691,6 +682,9 @@ IPCKey key;
       buf->flags = (BM_DELETED | BM_FREE | BM_VALID);
       buf->refcount = 0;
       buf->id = i;
+#ifdef sequent
+      S_INIT_LOCK(&(buf->io_in_progress_lock));
+#endif
     }
 
     /* close the circular queue */
@@ -704,8 +698,10 @@ IPCKey key;
 
   SpinRelease(BufMgrLock);
 
+#ifndef sequent
   WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
 				   1, IPCProtection, 0, &status);
+#endif
 }
 
 /* 
