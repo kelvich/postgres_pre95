@@ -144,7 +144,7 @@ void ValidateRule(event_type, eobj_string, eslot_string, event_qual,
      * to 'on retrieve to class.attribute do instead
      *        retrieve (attribute = NULL)'
      * --- this is also a terrible hack that works well -- glass*/
-    if (is_instead && !*action && event_type == RETRIEVE) {
+    if (is_instead && !*action && eslot_string && event_type == RETRIEVE) {
 	char *temp_buffer = (char *) palloc(strlen(template)+80);
 	sprintf(temp_buffer, template, event_attype,
 		get_typlen(event_attype), eslot_string,
