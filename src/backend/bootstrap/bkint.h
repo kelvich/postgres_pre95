@@ -8,7 +8,6 @@ static	char ami_h[] = "$Header$";
 
 #include <sys/file.h>
 #include <stdio.h>
-#include <setjmp.h>
 #include <strings.h>
 #include <signal.h>
 #include <ctype.h>
