@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH RETRIEVE COMMANDS 06/19/93
+.TH RETRIEVE COMMANDS 03/13/94
 .XA 2 Retrieve
 .SH NAME
 retrieve \(em retrieve instances from a class
@@ -205,22 +205,27 @@ retrieve (tictactoe.board[2][2])
 .)C
 .(C
 /*
- * Retrieve all attributes of a class "newemp" which contains two attributes,
- * a name and a complex type "manager" which is of type newemp.  Since 
- * each complex attribute represents a procedure recorded in pg_proc, 
- * the system will return the ObjectIds of each procedure.  In this 
- * example, the system will return tuples of the form
- * ("carol", 34562), ("sunita", 45662), and so on.  The manager field is
- * represented as an ObjectId.
+ * Retrieve all attributes of a class "newemp" that
+ * contains two attributes, "name" and a complex type
+ * "manager" which is of type "newemp".  Since each 
+ * complex attribute represents a procedure recorded 
+ * in "pg_proc", the system will return the object IDs
+ * of each procedure.  In this example, POSTGRES will
+ * return tuples of the form ("carol", 34562),
+ * ("sunita", 45662), and so on.  The "manager" field
+ * is represented as an object ID.
+ */
 retrieve (newemp.name, newemp.manager)
 .)C
 .(C
 /*
- * In order to see the attributes of a complex type, they must be 
- * explicitly projected.  The following query will return tuples of
- * the form
+ * In order to see the attributes of a complex type, they
+ * must be explicitly projected.  The following query will
+ * return tuples of the form
  * ("carol", "mike", 23434), ("sunita", "mike", 23434)
-retrieve (newemp.name, newemp.manager.name, newemp.manager.manager)
+ */
+retrieve (newemp.name, newemp.manager.name,
+          newemp.manager.manager)
 .)C
 .SH "SEE ALSO"
 append(commands),
@@ -231,7 +236,7 @@ postquel(commands),
 replace(commands).
 .SH BUGS
 .BR "Retrieve into"
-does not delete duplicates in Version \*(PV.
+does not delete duplicates.
 .PP
 .IR Archive_mode 
 is not implemented in Version \*(PV.
@@ -242,13 +247,11 @@ the class file will remain on disk.  It can be safely removed by the
 database DBA, but a subsequent
 .BR "retrieve into"
 to the same name will fail with a cryptic error message about
-"BlockExtend".  A solution to this problem is being investigated and
-will be released in later version.
+"BlockExtend".
 .PP
 .BR "Retrieve iportal"
 returns data in an architecture dependent format, namely that of the
-server on which the backend is running.  A standard data format should
-be adopted, most likely XDR.  At that point, there will be no need to
-distinguish among external and internal data.
+server on which the backend is running.  A standard data format, such
+as XDR, should be adopted.
 .PP
 Aggregate functions can only appear in the target list.
