@@ -41,6 +41,14 @@ typedef TimeIntervalData *TimeInterval;
 #define AbsoluteTimeIsReal(time) \
     ((bool) ((time) < NOEND_ABSTIME && (time) > NOSTART_ABSTIME))
 
+/* have to include this because EPOCH_ABSTIME used to be invalid - yuk */
+#define AbsoluteTimeIsBackwardCompatiblyValid(time) \
+    ((bool) ((time) != INVALID_ABSTIME && (time) > EPOCH_ABSTIME))
+
+#define AbsoluteTimeIsBackwardCompatiblyReal(time) \
+    ((bool) ((time) < NOEND_ABSTIME && (time) > NOSTART_ABSTIME \
+             && (time) > EPOCH_ABSTIME))
+
 #define RelativeTimeIsValid(time) \
     ((bool) ((time) != INVALID_RELTIME))
 
