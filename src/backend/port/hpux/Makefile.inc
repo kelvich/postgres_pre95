@@ -16,24 +16,13 @@ CFLAGS+= -DUSE_POSIX_TIME
 LDFLAGS+= -W l,-E
 LDADD+= -ll -ldld
 
-.if (${HPUX_MAJOR} == "08")
 #
 # cbrt(3m) and rint(3m) are missing from the 8.07 math library.
-#
-CFLAGS+= -DNEED_RINT -DNEED_CBRT
-
-.elif (${HPUX_MAJOR} == "09")
-#
 # rint(3m) and cbrt(3m) are broken in the 9.01 math library.
-#
-CFLAGS+= -DNEED_RINT -DNEED_CBRT
-#
 # 9.00 on the 800s seems to be missing cbrt(3m) even though
 # it is documented.
 #
-.if (${HPUX_MINOR} == "00")
-CFLAGS+= -DNEED_CBRT
-.endif
+CFLAGS+= -DNEED_RINT -DNEED_CBRT
 
 #
 # The #pragma trick required on 8.07 no longer works -- the #pragma
