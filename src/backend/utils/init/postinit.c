@@ -493,6 +493,7 @@ InitPostgres(name)
     String	name;		/* database name */
 {
     bool	bootstrap;	/* true if BootstrapProcessing */
+	extern	DestroyLocalRelList();
 
     /* ----------------
      *	see if we're running in BootstrapProcessing mode
@@ -662,6 +663,7 @@ InitPostgres(name)
      * ----------------
      */
     PostgresIsInitialized = true;
+	on_exitpg(DestroyLocalRelList, NULL);
 
     /* ----------------
      *  Done with "InitPostgres", now change to NormalProcessing unless
