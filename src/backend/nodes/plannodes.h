@@ -202,6 +202,15 @@ extern bool     CopyScanTemp();
  *	Plan node
  * ----------------
  */
+
+/* followind typedef's were added and  'struct Blah''s were replaced
+ * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
+ * 'struct Blah *blah'.		- ron 'blah blah' choi
+ */
+typedef	struct EState *EStatePtr;
+typedef	struct ReturnState *ReturnStatePtr;
+typedef	struct Plan *PlanPtr;
+
 class (Plan) public (Node) {
 #define PlanDefs \
 	inherits(Node); \
@@ -210,12 +219,12 @@ class (Plan) public (Node) {
 	Count			plan_width; \
 	Index			fragment; \
 	int			parallel; \
-	struct EState		*state; \
-	struct ReturnState	*retstate; \
+	EStatePtr		state; \
+	ReturnStatePtr		retstate; \
 	List			qptargetlist; \
 	List			qpqual; \
-	struct Plan		*lefttree; \
-	struct Plan		*righttree
+	PlanPtr			lefttree; \
+	PlanPtr			righttree
  /* private: */
 	PlanDefs;
  /* public: */
@@ -226,6 +235,12 @@ class (Plan) public (Node) {
  *  Fragment node
  * --------------
  */
+/* followind typedef's were added and  'struct Blah''s were replaced
+ * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
+ * 'struct Blah *blah'.		- ron 'blah blah' choi
+ */
+typedef	struct Fragment *FragmentPtr;
+
 class (Fragment) public (Node) {
 #define FragmentDefs \
         inherits(Node); \
@@ -233,7 +248,7 @@ class (Fragment) public (Node) {
         Plan                    frag_parent_op; \
         int                     frag_parallel; \
         List                    frag_subtrees; \
-        struct Fragment         *frag_parent_frag
+        FragmentPtr         	frag_parent_frag
  /* private: */
         FragmentDefs;
  /* public: */
@@ -400,10 +415,17 @@ class (JoinRuleInfo) public (Node) {
  *	Join node
  * ----------------
  */
+
+/* followind typedef's were added and  'struct Blah''s were replaced
+ * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
+ * 'struct Blah *blah'.		- ron 'blah blah' choi
+ */
+typedef	struct JoinRuleInfo *JoinRuleInfoPtr;
+
 class (Join) public (Plan) {
 #define	JoinDefs \
 	inherits(Plan);	\
-	struct JoinRuleInfo	*ruleinfo
+	JoinRuleInfoPtr	ruleinfo
  /* private: */
 	JoinDefs;
  /* public: */
