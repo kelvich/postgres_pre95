@@ -46,7 +46,7 @@ struct PortalD {
 	classObj(PortalHeapMemory)	heap;
 	List				queryDesc;
 	EState				state;
-	void				(*cleanup) ARGS((Portal portal));
+	void				(*cleanup)();
 };
 
 /*
