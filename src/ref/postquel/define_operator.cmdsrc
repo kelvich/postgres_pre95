@@ -57,7 +57,7 @@ Also, the
 .i func_name
 function
 must have been previously defined using 
-.b define C function
+.b "define C function"
 and must have one
 or two arguments.
 The types of the arguments for the operator 
@@ -194,7 +194,7 @@ then \*(PP may have to
 estimate the fraction of the tuples in MYBOXES
 that satisfy the clause.  The function res_proc must
 be a registered function (meaning it is already defined using
-.b define C function
+.b "define C function"
 )
 which accepts one argument of the correct
 data type and returns a floating point number.  The query optimizer
@@ -245,7 +245,8 @@ define operator === (
 .)b
 .uh "SEE ALSO"
 .lp
-remove operator(commands).
+remove operator(commands)
+define C function(commands)
 .uh BUGS
 .lp
 Operator names cannot be composed of alphabetic
