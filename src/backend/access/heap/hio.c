@@ -222,7 +222,9 @@ RelationPutLongHeapTuple(relation, tuple)
 		(*lpp).lp_flags = LP_USED | LP_CTUP;
 		blockNumber = BufferGetBlockNumber(b);
 		bcopy(tp, (char *)dp + off, tailtlen);
-		if ((BufferWriteInOrder(b, headb)) < 0) {
+		if (BufferWriteInOrder(BufferGetBufferDescriptor(b),
+				       BufferGetBufferDescriptor(headb)) < 0)
+		{
 			elog(WARN,
 				"RelationPutLongHeapTuple: no WriteInOrder #$");
 		}
@@ -258,7 +260,10 @@ RelationPutLongHeapTuple(relation, tuple)
 			(*lpp).lp_len = MAXTUPLEN;	/* TCONTLEN + PAGELEN */
 			(*lpp).lp_flags = LP_USED | LP_DOCNT | LP_CTUP;
 			blockNumber = BufferGetBlockNumber(b);
-			if ((BufferWriteInOrder(b, headb)) < 0) {
+			if ( BufferWriteInOrder(
+				BufferGetBufferDescriptor(b),
+				BufferGetBufferDescriptor(headb)) < 0 )
+			{
 				elog(WARN,
 					"RelationPutLongHeapTuple: no WriteIn");
 			}
