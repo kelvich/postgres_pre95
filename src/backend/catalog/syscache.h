@@ -39,6 +39,7 @@
 #define	AMNAME		15
 #define	CLANAME		16
 #define INDRELIDKEY	17
+#define INHRELID	18
 
 /*
  *	struct cachedesc:	information needed for a call to InitSysCache()

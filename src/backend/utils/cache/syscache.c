@@ -160,7 +160,14 @@ static struct cachedesc cacheinfo[] = {
 	    IndexKeyAttributeNumber,
 	    0,
 	    0},
-	  sizeof(IndexTupleFormData) }
+	  sizeof(IndexTupleFormData) },
+	{ &InheritsRelationName,			/* INHRELID */
+	  2,
+	  { InheritsRelationIdAttributeNumber,
+	    InheritsSequenceNumberAttributeNumber,
+	    0,
+	    0},
+	  sizeof(InheritsTupleFormD) }
 };
 
 static struct catcache	*SysCache[lengthof(cacheinfo)];
