@@ -771,7 +771,7 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
      LispValue 	keys = LispNil;
      List 	ops = operators;
      int 	keyno = 1;
-     LispValue resdom = LispNil;
+     Resdom 	resdom ;
 
      foreach(keys,pathkeys) {
 	  resdom = tlist_member (CAAR (keys),

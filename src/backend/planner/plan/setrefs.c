@@ -39,7 +39,7 @@
 #include "setrefs.h"
 #include "nodeFuncs.h"
 #include "keys.h"
-
+#include "parse.h"
 
 /*     
  *     	NESTING LEVEL REFERENCES
@@ -72,7 +72,7 @@ new_level_tlist (tlist,prevtlist,prevlevel)
      LispValue xtl = LispNil;
      foreach (xtl, tlist) {
 	  if ( var_is_nested (tl_expr (xtl))) {
-	       push (new_tl (make_resdom (last_resdomno += 1,
+	       push (new_tl (MakeResdom (last_resdomno += 1,
 					  _UNION_TYPE_ID_,
 					  0,
 					  LispNil,
