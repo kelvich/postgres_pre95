@@ -27,7 +27,7 @@ wish to use.
 .uh "EXAMPLES"
 .lp
 \fBpostmaster &\fR
-.pp
+.lp
 This command will start up a postmaster on the default ports
 (4321 and 4322) which will expect to use the default path to the 
 postgres backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
@@ -35,7 +35,7 @@ This is the simplest way to start the postmaster.
 .sp
 .lp
 \fBpostmaster -p 1234 -b /a/postgres/bin/postgres &\fR
-.pp
+.lp
 This command will start up a postmaster communicating through ports
 1234 and 1235, which will expect to use the backend located at
 /a/postgres/bin/postgres.  Note: to connect to this postmaster using
@@ -45,12 +45,12 @@ the command line invoking the terminal monitor.
 .uh "DIAGNOSTICS"
 .lp
 \fBsemget: No space left on device\fR
-.pp
+.lp
 If you see this message, you should run the \fIipcclean\fR command.
 After doing this, try starting the postmaster again.  If this still doesn't
 work, you will need to configure your kernel for shared memory and
 semaphores as described in the installation notes.
-.pp
+.lp
 .uh "SEE ALSO"
 .lp
 postgres (unix),
