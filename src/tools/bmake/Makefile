@@ -43,7 +43,7 @@ beforeinstall: installproto
 
 installproto::
 .if (${PORTNAME} == "sparc")
-	if test ! -d ${PROTODIR}; then mkdir ${PROTODIR}; fi
+	-if test ! -d ${PROTODIR}; then mkdir ${PROTODIR}; fi || true
 .endif
 	for i in ${.CURDIR}/mk-proto/*.mk ; \
 	do \
