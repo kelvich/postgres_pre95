@@ -777,8 +777,6 @@ make_array_set(target_expr, upperIndexpr, lowerIndexpr, expr)
 
  **********************************************************************/
 
-static char tlist_buf[1024];
-static int end_tlist_buf = 0;
 static char *target_list_place;
 static char *from_list_place;
 
