@@ -18,9 +18,6 @@ RcsId("$Header$");
 
 #include "planner/keys.h"
 
-/* XXX - find what this really means */
-extern LispValue last_element();
-
 
 /*    
  *    	single_node
@@ -134,7 +131,7 @@ bool
 varid_indexes_into_array (var)
      Var var ;
 {
-    return((bool)listp (last_element (get_varid (var))));
+    return((bool)listp (last_element ((LispValue)(get_varid (var)))));
 }
 
 /*  .. add_tl_element, replace-nestvar-refs
@@ -143,7 +140,7 @@ List
 varid_array_index (var)
      LispValue var ;
 {
-    return(CAR (last_element (get_varid (var))));
+    return(CAR (last_element ((LispValue)(get_varid (var)))));
 }
 
 /*  .. add_tl_element, replace-nestvar-refs
@@ -247,10 +244,10 @@ non_null (c)
  */
 
 bool
-is_null (const)
-     Expr const ;
+is_null (constant)
+     Expr constant ;
 {
-    if (!non_null (const))
+    if (!non_null (constant))
       return(true);
     else
       return(false);

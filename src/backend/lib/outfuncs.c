@@ -68,10 +68,10 @@ _outPlanInfo(str, node)
 	_outLispValue(str, node->qpqual);
 	sprintf(buf, " :lefttree ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->lefttree);
+	_outLispValue(str, (LispValue)(node->lefttree));
 	sprintf(buf, " :righttree ");
 	appendStringInfo(str,buf); 
-	_outLispValue(str, node->righttree);
+	_outLispValue(str, (LispValue)(node->righttree));
 
 }
 
@@ -102,12 +102,12 @@ _outFragment(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :frag_root ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->frag_root, 0);
+	_outLispValue(str, (LispValue)(node->frag_root));
 	sprintf(buf, " :frag_parallel %d", node->frag_parallel);
 	appendStringInfo(str,buf);
 	sprintf(buf, " :frag_subtrees ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->frag_subtrees, 0);
+	_outLispValue(str, (LispValue)(node->frag_subtrees));
 
 }
 
@@ -237,7 +237,7 @@ _outJoin(str, node)
 
 	sprintf(buf, " :ruleinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->ruleinfo, 0);
+	_outLispValue(str, (LispValue)(node->ruleinfo));
 
 
 }
@@ -259,7 +259,7 @@ _outNestLoop(str, node)
 
 	sprintf(buf, " :ruleinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->ruleinfo, 0);
+	_outLispValue(str, (LispValue)(node->ruleinfo));
 
 }
 
@@ -281,11 +281,11 @@ _outMergeJoin(str, node)
 
 	sprintf(buf, " :ruleinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->ruleinfo, 0);
+	_outLispValue(str, (LispValue)(node->ruleinfo));
 
 	sprintf(buf, " :mergeclauses ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->mergeclauses);
+	_outLispValue(str, (LispValue)(node->mergeclauses));
 
 	sprintf(buf, " :mergesortop %ld", node->mergesortop);
 	appendStringInfo(str,buf);
@@ -327,11 +327,11 @@ _outHashJoin(str, node)
 
 	sprintf(buf, " :ruleinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->ruleinfo, 0);
+	_outLispValue(str, (LispValue)(node->ruleinfo));
 
 	sprintf(buf, " :hashclauses ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->hashclauses);
+	_outLispValue(str, (LispValue)(node->hashclauses));
 
 	sprintf(buf, " :hashjoinop %d",node->hashjoinop);
 	appendStringInfo(str,buf);
@@ -378,7 +378,7 @@ _outScanTemps(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :temprelDesc ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->temprelDescs, 0);
+	_outLispValue(str, (LispValue)(node->temprelDescs));
 
 }
 
@@ -531,7 +531,7 @@ _outHash(str, node)
 
 	sprintf(buf, " :hashkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->hashkey, 0);
+	_outLispValue(str, (LispValue)(node->hashkey));
 
 	sprintf(buf, " :hashtable 0x%x", node->hashtable);
 	appendStringInfo(str,buf);
@@ -1010,7 +1010,7 @@ _outPath(str, node)
 
 	sprintf(buf, " :sortpath ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->sortpath);
+	_outLispValue(str, (LispValue)(node->sortpath));
 
 }
 
@@ -1048,7 +1048,7 @@ _outIndexPath(str, node)
 
 	sprintf(buf, " :sortpath ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->sortpath);
+	_outLispValue(str, (LispValue)(node->sortpath));
 
 	sprintf(buf, " :indexid ");
 	appendStringInfo(str,buf);
@@ -1094,11 +1094,11 @@ _outJoinPath(str, node)
 
 	sprintf(buf, " :sortpath ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->sortpath);
+	_outLispValue(str, (LispValue)(node->sortpath));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->pathclauseinfo);
+	_outLispValue(str, (LispValue)(node->pathclauseinfo));
 
 	/*
 	 *  Not sure if these are nodes; they're declared as "struct path *".
@@ -1153,11 +1153,11 @@ _outMergePath(str, node)
 
 	sprintf(buf, " :sortpath ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->sortpath);
+	_outLispValue(str, (LispValue)(node->sortpath));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->pathclauseinfo);
+	_outLispValue(str, (LispValue)(node->pathclauseinfo));
 
 	/*
 	 *  Not sure if these are nodes; they're declared as "struct path *".
@@ -1224,11 +1224,11 @@ _outHashPath(str, node)
 
 	sprintf(buf, " :sortpath ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->sortpath);
+	_outLispValue(str, (LispValue)(node->sortpath));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->pathclauseinfo);
+	_outLispValue(str, (LispValue)(node->pathclauseinfo));
 
 	/*
 	 *  Not sure if these are nodes; they're declared as "struct path *".
@@ -1348,7 +1348,7 @@ _outCInfo(str, node)
 
 	sprintf(buf, " :clause ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->clause);
+	_outLispValue(str, (LispValue)(node->clause));
 
 	sprintf(buf, " :selectivity %f", node->selectivity);
 	appendStringInfo(str,buf);
@@ -1361,7 +1361,7 @@ _outCInfo(str, node)
 
 	sprintf(buf, " :mergesortorder ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, node->mergesortorder);
+	_outLispValue(str, (LispValue)(node->mergesortorder));
 
 	sprintf(buf, " :hashjoinoperator %ld", node->hashjoinoperator);
 	appendStringInfo(str,buf);

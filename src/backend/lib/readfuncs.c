@@ -79,8 +79,8 @@ extern Param 		RMakeParam();
 extern Path 		RMakePath();
 extern Plan 		RMakePlan();
 extern Rel 		RMakeRel();
-extern Resdom 		RMakeResdom();
 extern Result 		RMakeResult();
+extern Resdom 		RMakeResdom();
 extern Scan 		RMakeScan();
 extern SeqScan 		RMakeSeqScan();
 extern Sort 		RMakeSort();
@@ -2095,7 +2095,7 @@ readValue(type)
     } else if (length <= 0) {
 	s = NULL;
     } else if (length >= 1) {
-	s = palloc(length);
+	s = (char*)palloc(length);
 	Assert( s!=NULL );
 	for (i=0; i<length; i++) {
 	    token = lsptok(NULL, &tokenLength);

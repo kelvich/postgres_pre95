@@ -29,11 +29,9 @@ RcsId("$Header$");
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 
-extern bool _equalLispValue();
-extern void lispDisplayFp();
-extern void lispDisplay();
-extern int16 get_typlen();
-extern bool get_typbyval();
+#include "lib/equalfuncs.h"
+#include "nodes/pg_lisp.h"
+#include "utils/lsyscache.h"
 double atof();
 
 #define RIGHT_PAREN (1000000 + 1)
@@ -499,7 +497,7 @@ Param paramNode;
 	 * copy the entries of the old array to the new one
 	 */
 	bcopy((char *)paramList, (char *)temp, (unsigned int) oldSize);
-	pfree(paramList);
+	pfree((Pointer)paramList);
 	paramList = temp;
     }
 
