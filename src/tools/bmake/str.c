@@ -134,7 +134,7 @@ brk_string(str, store_argc)
 		case '\'':
 			if (inquote)
 				if (inquote == ch)
-					inquote = NULL;
+					inquote = (char) NULL;
 				else
 					break;
 			else
