@@ -105,7 +105,7 @@ Two generalized built-in functions,
 and
 .BR array_out,
 exist for quick creation of variable length array types.  These
-functions operate on any existing \*(PG type.
+functions operate on arrays of any existing \*(PG type.
 .SH "LARGE OBJECT TYPES"
 A \*(lqregular\*(rq \*(PG type can only be 8192 bytes in length.  If
 you need a larger type you must create a Large Object type.  The
@@ -147,6 +147,11 @@ define type bigobj
 
    create BIG_OBJS (id = int4, obj = bigobj)
 .)C
+.SH "RESTRICTIONS"
+Type names cannot begin with the underscore character (\*(lq_\*(rq)
+and can only be 15 characters long.  This is because \*(PG silently 
+creates an array type for each base type with a name consisting of the 
+base type's name prepended with an underscore.
 .SH "SEE ALSO"
 define function(commands),
 define operator(commands),
