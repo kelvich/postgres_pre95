@@ -1,17 +1,17 @@
 #
-# The following turns on intermediate linking of big objects
-# to speed the link cycle during development.  It's on by default.
-# You can disable it by commenting out the line in your local copy,
-# or by putting:
+# $Header$
+#
+# The following turns on intermediate linking of big objects to speed
+# the link cycle during development.  It's on by default.  You can
+# disable it by commenting out the line in your local copy, or by
+# putting:
 #	.undef BIGOBJS
 # in the file obj/Makefile.global in your main tree.
 #
 BIGOBJS= true
 
 .include <postgres.global.mk>
-#
-# Use "bmake" (BSD 4.4 make) to run this Makefile
-#
+
 PROG= postgres
 
 #
@@ -170,11 +170,11 @@ SUBOBJS= ACCESS.o BOOTSTRAP.o COMMANDS.o EXECUTOR.o main.o MISC.o NODES.o \
 .endif
 
 #
-# If you change the value of the following you need to "bmake clean; bmake"
-# Only other solution is to track the dependecies, but that seems
-# unreasonable.  But if you feel inspired, I suppose you could grep -w
-# the sources for POSTGRESDIR, DATADIR, etc and make a dependency
-# below somewhere (wouldn't larry wall do that ;)?
+# If you change the value of the following you need to "bmake clean;
+# bmake".  The only other solution is to track the dependencies, but
+# that seems unreasonable.  If you feel inspired, I suppose you could
+# "grep -w" the sources for POSTGRESDIR, DATADIR, etc. and make a
+# dependency below somewhere.
 #
 CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-DDATADIR='"${DATADIR}"' \
@@ -184,33 +184,15 @@ CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-I${.CURDIR}/port/${PORTNAME}
 
 #
+# All systems require the math library.
+# Loader flags for system-dependent libraries are appended in
+#	src/backend/port/<port>/Makefile.inc
+#
+LDADD+=	-lm
+
+#
 # == BEGIN MACHINE-SPECIFIC SECTION ==
 #
-
-LDADD+=	-lm
-#
-# Linux needs the BSD ipc library
-#
-.if (${PORTNAME} == "linux")
-LDADD+= -lipc
-#
-# HP-UX needs:
-# -Wl,-E - export symbols for linking with the shared libraries dynamic loader
-# -Wp,-H400000 - expand cpp #define table size so Nodes files don't break it
-#
-.elif (${PORTNAME} == "hpux")
-CFLAGS+= -W l,-E -W p,-H400000
-LDFLAGS+= -W l,-E
-LDADD+= -ll -ldld
-.else
-LDADD+=	-lln
-#
-# neither purify (SPARC) nor pixie (MIPS/Alpha) can handle OMAGIC files.
-#
-.  if (!defined(PROFILE) && !defined(PURIFY))
-LDADD+= -N 
-.  endif
-.endif
 
 .if defined(OLD_MKDIR)
 beforeinstall:
@@ -219,15 +201,14 @@ beforeinstall:
 .endif
 
 #
-# Install the bki files to the data directory.  We also
-# copy a version of them that has "PGUID" intact, so one
-# can change the value of the postgres userid before
-# running initdb in the case of customizing the binary
-# release (i.e. fixing up PGUID w/o recompiling the system).
-# Those files are copied out as foo.source.  The program
-# newbki(1) can be run later to reset the postgres login id (but it must
-# be run before initdb is run, or after clearing the data directory
-# with cleardbdir(1)).
+# Install the bki files to the data directory.  We also copy a version
+# of them that has "PGUID" intact, so one can change the value of the
+# postgres userid before running initdb in the case of customizing the
+# binary release (i.e., fixing up PGUID w/o recompiling the system).
+# Those files are copied out as foo.source.  The program newbki(1) can
+# be run later to reset the postgres login id (but it must be run before
+# initdb is run, or after clearing the data directory with
+# cleardbdir(1)).
 #
 afterinstall: pg_id
 	${INSTALL} ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
@@ -253,7 +234,8 @@ afterinstall: pg_id
 	done
 
 #
-# so we can get the UID of the postgres owner (w/o moving pg_id to tools/)
+# so we can get the UID of the postgres owner (w/o moving pg_id to
+# src/tools)
 #
 .PATH: ${.CURDIR}/../bin/pg_id
 pg_id:	pg_id.c
@@ -261,12 +243,12 @@ pg_id:	pg_id.c
 
 CLEANFILES+= pg_id
 
-###
-# depend target: since the backend has a bazillion source
-#	files, doing a mkdep on the whole thing is unweildly. This
-#	method has a higher fixed cost, but we only remake the
-#	dependecies we need to and don't lose if the mkdep fails on
-#	a file.
+
+#
+# depend target: since the backend has a bazillion source files, doing
+# a mkdep on the whole thing is unwieldly.  This method has a higher
+# fixed cost, but we only remake the dependencies we need to and don't
+# lose if the mkdep fails on a file.
 #
 .SUFFIXES: .d
 .c.d:
@@ -280,10 +262,10 @@ depend: .depend
 	cat ${DSRCS} > .depend
 
 #
-# Special rule to generate cpp'd version of a .c file.  This is especially
-# useful given all the hellish macro processing going on.  The cpp'd
-# version has a .C suffix.  To create foo.C from foo.c, just type
-#
+# Special rule to generate cpp'd version of a .c file.  This is
+# especially useful given all the hellish macro processing going on.
+# The cpp'd version has a .C suffix.  To create foo.C from foo.c, just
+# type
 #	bmake foo.C
 #
 .SUFFIXES: .C
@@ -291,16 +273,6 @@ depend: .depend
 	${CC} -E ${CFLAGS} ${.IMPSRC} | cat -s | cb > ${.TARGET}
 
 cppall: ${SRCS:S/.c/.C/g}
-
-#
-# To use Purify (SunOS only), define PURIFY to be the path (and options)
-# with which to invoke the Purify loader.  Only the executable needs to
-# be loaded with Purify.
-#
-.if defined(PURIFY)
-${PROG}: ${OBJS} ${LIBC} ${DPADD}
-	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
-.endif
 
 .include <postgres.prog.mk>
 
@@ -314,10 +286,9 @@ ${PROG}: ${SUBOBJS}
 .endif
 
 #
-# (have to set this after the .include so target "all" gets defined)
-# Bit of a hack.  Could redo .mk files to handle multiple
-# program targets based on a common or overlapping set of
-# sources.
+# We have to set this after the .include so target "all" gets defined.
+# This is a bit of a hack.  Could redo the .mk files to handle multiple
+# program targets based on a common or overlapping set of sources.
 #
 .PATH: ${.CURDIR}/postmaster
 postmaster: postmaster.o ${OBJS}
