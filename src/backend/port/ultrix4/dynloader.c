@@ -15,7 +15,7 @@ Return-Path: jsmith@king.mcs.drexel.edu
 #include <a.out.h>
 #include <symconst.h>
 
-#include "utils/dynamic_loader.h"
+#include "dynamic_loader.h"
 
 extern char pg_pathname[];
 
@@ -175,7 +175,7 @@ int entry_addr;
 
 	while (fgets(line, 127, fp) != NULL)
 	{
-		sscanf(line, "%lx T %s", func_addr, funcname);
+		sscanf(line, "%lx T %s", &func_addr, funcname);
 		if (entering)
 		{
 			head = (DynamicFunctionList *)
@@ -209,6 +209,4 @@ char **err;
 	return(NULL);
 }
 
-/*
 remove() {}
- */
