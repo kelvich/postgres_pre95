@@ -180,6 +180,8 @@ static
 void
 EstablishComm()
 {
+    extern void PQufs_init();
+
     if (!PQportset) { 
 	read_initstr();
 
@@ -191,6 +193,7 @@ EstablishComm()
 	}
 
 	pq_flush();
+	PQufs_init();
 	PQportset = 1;
     }
 }
