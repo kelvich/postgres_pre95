@@ -53,8 +53,6 @@ RcsId("$Header$");
 # define private static
 #endif
 
-#include "fd.h"
-
 #define FileClosed -1
 
 #include "fd.h"
@@ -64,9 +62,9 @@ RcsId("$Header$");
 
 typedef struct vfd {
 	signed short	fd;
-	File	nextFree;
-	File	lruMoreRecently;
-	File	lruLessRecently;
+	FileNumber	nextFree;
+	FileNumber	lruMoreRecently;
+	FileNumber	lruLessRecently;
 	long	seekPos;
 	char	*fileName;
 	int	fileFlags;
@@ -160,25 +158,25 @@ int enable;
 private
 void
 LruDelete ARGS((
-	File	file
+	FileNumber	file
 ));
 
 private
 int
 LruInsert ARGS((
-	File	file
+	FileNumber	file
 ));
 
 private
 void
 AssertLruRoom();
 
-private File
+private FileNumber
 AllocateVfd();
 
 private inline void
 Delete (file)
-	File	file;
+	FileNumber	file;
 {
 	Vfd	*fileP;
 	
@@ -196,7 +194,7 @@ Delete (file)
 
 private inline void
 LruDelete(file)
-	File	file;
+	FileNumber	file;
 {
 	Vfd     *fileP;
 	int	returnValue;
@@ -238,7 +236,7 @@ LruDelete(file)
 
 private inline void
 Insert(file)
-	File	file;
+	FileNumber	file;
 {
 	Vfd	*vfdP;
 	
@@ -254,7 +252,7 @@ Insert(file)
 
 private	int
 LruInsert (file)
-	File	file;
+	FileNumber	file;
 {
 	Vfd	*vfdP;
 	int	returnValue;
@@ -331,7 +329,7 @@ AssertLruRoom()
 
 private int
 FileAccess(file)
-	File	file;
+	FileNumber	file;
 {
 	int	returnValue;
 	Vfd	*vfdP;
@@ -366,11 +364,11 @@ FileAccess(file)
 	return 0;
 }
 
-private	File
+private	FileNumber
 AllocateVfd()
 {
 	Index	i;
-	File	file;
+	FileNumber	file;
 	
 	DO_DB(printf("DEBUG:	AllocateVfd\n"));
 
@@ -430,7 +428,7 @@ AllocateVfd()
 		
 private inline void
 FreeVfd(file)
-	File	file;
+	FileNumber	file;
 {
 	DO_DB(printf("DEBUG:	FreeVfd: %d (%s)\n",file,VfdCache[file].fileName));
 
@@ -439,14 +437,14 @@ FreeVfd(file)
 }
 
 /* VARARGS2 */
-File
+FileNumber
 FileNameOpenFile(fileName, fileFlags, fileMode) 
 	FileName	fileName;
 	int		fileFlags;
 	int		fileMode;
 {
 	static int osRanOut = 0;
-	File	file;
+	FileNumber	file;
 	Vfd	*vfdP;
 	int     tmpfd;
 	
@@ -494,7 +492,7 @@ tryAgain:
 
 void
 FileClose(file)
-	File	file;
+	FileNumber	file;
 {
 	int	returnValue;
 
@@ -532,7 +530,7 @@ FileClose(file)
 
 Amount
 FileRead (file, buffer, amount)
-	File	file;
+	FileNumber	file;
 	String	buffer;
 	Amount	amount;
 {
@@ -548,7 +546,7 @@ FileRead (file, buffer, amount)
 
 Amount
 FileWrite (file, buffer, amount)
-	File	file;
+	FileNumber	file;
 	String	buffer;
 	Amount	amount;
 {
@@ -563,7 +561,7 @@ FileWrite (file, buffer, amount)
 
 long
 FileSeek (file, offset, whence)
-	File	file;
+	FileNumber	file;
 	long	offset;
 	int	whence;
 {
@@ -598,7 +596,7 @@ FileSeek (file, offset, whence)
 
 long
 FileTell (file)
-	File	file;
+	FileNumber	file;
 {
 	DO_DB(printf("DEBUG: FileTell %d (%s)\n",file,VfdCache[file].fileName));
 	return FileSeek(file, 0, L_INCR);
@@ -606,7 +604,7 @@ FileTell (file)
 
 int
 FileSync (file)
-	File	file;
+	FileNumber	file;
 {
 	int	returnCode;
 	FileAccess(file);
