@@ -342,12 +342,12 @@ smgrblindwrt(which, dbname, relname, dbid, relid, blkno, buffer)
     status = (*(smgrsw[which].smgr_blindwrt))(dbstr, relstr, dbid, relid,
 					      blkno, buffer);
 
-    pfree(dbstr);
-    pfree(relstr);
-
     if (status == SM_FAIL)
 	elog(WARN, "cannot write block %d of %s [%s] blind",
 	     blkno, relstr, dbstr);
+
+    pfree(dbstr);
+    pfree(relstr);
 
     return (status);
 }
