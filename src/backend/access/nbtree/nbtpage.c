@@ -54,7 +54,7 @@ _bt_metapinit(rel)
 
     if ((nblocks = RelationGetNumberOfBlocks(rel)) != 0) {
 	elog(WARN, "Cannot initialize non-empty btree %s",
-		   rel->rd_rel->relname);
+		   RelationGetRelationName(rel));
     }
 
     buf = ReadBuffer(rel, P_NEW);
