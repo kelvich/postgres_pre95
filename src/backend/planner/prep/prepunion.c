@@ -38,6 +38,7 @@
 #include "planner/plancat.h"
 #include "planner/planner.h"
 #include "planner/prepunion.h"
+#include "planner/handleunion.h"
 
 /* ----------------
  *	Append creator declaration
@@ -226,8 +227,10 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 		break;
 
 	      case UNION :
-		/*    XXX What goes here?? */
-		union_relids = LispNil;
+		  union_plans = handleunion(root,rangetable,tlist,qual);
+		  return (make_append (union_plans,
+				       rt_index, rangetable,
+				       get_qptargetlist (CAR(union_plans))));
 		break;
 		
 	      case VERSION :
