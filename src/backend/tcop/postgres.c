@@ -116,7 +116,8 @@ BeginCommand(pname,attinfo)
  * ----------------
  */
 
-char InteractiveBackend(inBuf)
+char
+InteractiveBackend(inBuf)
     char *inBuf;
 {
     String stuff;
@@ -127,6 +128,9 @@ char InteractiveBackend(inBuf)
      */
 
     for (;;) {
+	char s[128];
+	int v;
+
 	printf("> ");
 	stuff = gets(inBuf);
     
@@ -144,18 +148,19 @@ char InteractiveBackend(inBuf)
 	    exit(0);
 	}
 
+#ifdef EXEC_DEBUGINTERACTIVE
 	/* ----------------
 	 *  now see if it's a debugging command...
 	 * ----------------
 	 */
-	if (strncmp("DEBUG", inBuf, strlen(inBuf)) == 0) {
-	    char s[128];
-	    int v;
-	    
-	    if (sscanf(inBuf+5, "%s%d", s, &v) == 2)
+	if (sscanf(inBuf, "DEBUG %s", s) == 1) {
+	    if (sscanf(inBuf, "DEBUG %s%d", s, &v) == 2) {
 		DebugVariableSet(s, v);
+		printf("DEBUG %s = %d\n", s, v);
+	    }
 	    continue;
 	}
+#endif EXEC_DEBUGINTERACTIVE
 
 	/* ----------------
 	 *  otherwise we have a user query so process it.
