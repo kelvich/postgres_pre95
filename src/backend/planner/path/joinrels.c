@@ -201,6 +201,7 @@ init_join_rel(outer_rel,inner_rel,joininfo)
     set_pathlist(joinrel,LispNil);
     set_unorderedpath(joinrel,(PathPtr)NULL);
     set_cheapestpath(joinrel,(PathPtr)NULL);
+    set_pruneable(joinrel,true);
     set_classlist(joinrel,(List)NULL);
     set_ordering(joinrel,LispNil);
     set_clauseinfo(joinrel,LispNil);
