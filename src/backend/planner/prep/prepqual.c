@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	prepqual
@@ -22,6 +21,8 @@
 #include "planner/clauses.h"
 #include "planner/prepqual.h"
 #include "utils/lsyscache.h"
+
+#include "lib/copyfuncs.h"
 
 /*    
  *    	preprocess-qualification
