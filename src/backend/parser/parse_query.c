@@ -646,19 +646,18 @@ make_var ( relname, attrname)
  *	typechecking to be sure the dereference is valid in the
  *	type system, but we don't do any bounds checking here.
  *
- *	For the current release, only single-dimension arrays are
- *	supported.
  */
 
 LispValue
-make_array_ref(expr, indexpr)
+make_array_ref(expr, upperIndexpr, lowerIndexpr)
      LispValue expr;
-     LispValue indexpr;
+     LispValue upperIndexpr, lowerIndexpr;
 {
     ObjectId typearray;
     HeapTuple type_tuple;
     TypeTupleForm type_struct_array, type_struct_element;
     ArrayRef aref;
+	int reftype;
 
     typearray = (ObjectId) CInteger(CAR(expr));
 
@@ -690,13 +689,72 @@ make_array_ref(expr, indexpr)
 				   type_struct_element->typlen,
 				   type_struct_array->typelem,
 				   type_struct_element->typbyval,
-				   CDR(indexpr),
-				   CDR(expr));
+			       upperIndexpr, lowerIndexpr,
+				   CDR(expr), LispNil);
 
-    return (lispCons(lispInteger(get_refelemtype(aref)),
+	if (lowerIndexpr == LispNil) /* accessing a single array element */
+		reftype = get_refelemtype(aref);
+	else /* request to clip a part of the array, the result is another array */
+		reftype = typearray;
+    return (lispCons(lispInteger(reftype),
 		     (LispValue)aref));
 }
 
+/****************************************************************************/
+LispValue
+make_array_set(target_expr, upperIndexpr, lowerIndexpr, expr)
+     LispValue expr;
+     LispValue upperIndexpr, lowerIndexpr;
+     LispValue target_expr;
+{
+    ObjectId typearray;
+    HeapTuple type_tuple;
+    TypeTupleForm type_struct_array;
+    TypeTupleForm type_struct_element;
+    ArrayRef aref;
+	int reftype;
+
+    typearray = (ObjectId) CInteger(CAR(target_expr));
+
+    type_tuple = SearchSysCacheTuple(TYPOID, typearray, NULL, NULL, NULL);
+
+    if (!HeapTupleIsValid(type_tuple))
+	elog(WARN, "make_array_ref: Cache lookup failed for type %d\n",
+	     typearray);
+
+    /* get the array type struct from the type tuple */
+    type_struct_array = (TypeTupleForm) GETSTRUCT(type_tuple);
+
+    if (type_struct_array->typelem == InvalidObjectId) {
+	elog(WARN, "make_array_ref: type %s is not an array",
+		(Name)&(type_struct_array->typname.data[0]));
+    }
+    /* get the type tuple for the element type */
+    type_tuple = SearchSysCacheTuple(TYPOID, type_struct_array->typelem,
+				     NULL, NULL, NULL);
+
+    if (!HeapTupleIsValid(type_tuple))
+	    elog(WARN, "make_array_ref: Cache lookup failed for type %d\n",
+		 typearray);
+
+    type_struct_element = (TypeTupleForm) GETSTRUCT(type_tuple);
+
+    aref = (ArrayRef) MakeArrayRef(type_struct_array->typlen,
+				   type_struct_element->typlen,
+				   type_struct_array->typelem,
+				   type_struct_element->typbyval,
+				   upperIndexpr, lowerIndexpr,
+				   CDR(target_expr),
+				   CDR(expr)
+				   );
+
+	if (lowerIndexpr == LispNil) /* accessing a single array element */
+		reftype = get_refelemtype(aref);
+	else /* request to set a part of the array, by another array */
+		reftype = typearray;
+    return (lispCons(lispInteger(reftype),
+		     (LispValue)aref));
+}
 /**********************************************************************
   SkipToFromList
 
