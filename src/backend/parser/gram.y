@@ -408,7 +408,7 @@ def_rest:
 	  def_name definition opt_def_args
 		{
 		   if ( $3 != LispNil ) 
-			$2 = nappend1 ($2, $2 );
+			$2 = nappend1 ($2, $3 );
 		   $$ = lispCons ($1 , $2 );
 		}
 	;
