@@ -84,7 +84,7 @@ int		ShowLock = 0;
 extern char	*PG_username;
 
 /* in elog.c */
-extern bool IsEmptyQuery;
+bool IsEmptyQuery = false;
 
 /* this global is defined in utils/init/postinit.c */
 extern int	testFlag;
@@ -253,13 +253,6 @@ InteractiveBackend(inBuf)
 		end = true;
 	}
 
-	/* ----------------
-	 *  "end" is true when there are no more queries to process.  The
-	 *  IsEmptyQuery global tells elog not to try to communicate with
-	 *  the front end, since it may be gone.  This is a workaround for
-	 *  a bug in Ultrix 3.x (at least).  See elog.c for details.
-	 * ----------------
-	 */
 	if (end) {
 	    if (!Quiet) puts("EOF");
 	    IsEmptyQuery = true;
@@ -358,6 +351,14 @@ char SocketBackend(inBuf, parseList)
     case 'F':	
         return('F');
         break;
+
+	/* ----------------
+	 *  'X':  frontend is exiting
+	 * ----------------
+	 */
+    case 'X':
+	return('X');
+	break;
 
     /* ----------------
      *  otherwise we got garbage from the frontend.
@@ -1354,6 +1355,15 @@ PostgresMain(argc, argv)
 	    }
 	    break;
 	    
+	/* ----------------
+	 *	'X' means that the frontend is closing down the socket
+	 * ----------------
+	 */
+	case 'X':
+	    IsEmptyQuery = true;
+	    pq_close();
+	    break;
+
 	default:
 	    elog(WARN,"unknown frontend message was recieved");
 	}
