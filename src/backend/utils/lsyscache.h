@@ -1,4 +1,4 @@
-$Header$
+/* $Header$ */
 
 extern Name AttributeGetAttName ARGS((Attribute attribute));
 extern bool op_class ARGS((LispValue opid, LispValue opclass));
