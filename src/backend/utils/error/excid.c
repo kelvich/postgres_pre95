@@ -3,9 +3,9 @@
  *	POSTGRES known exception identifier code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "excid.h"
+#include "utils/excid.h"
 
 RcsId("$Header$");
 

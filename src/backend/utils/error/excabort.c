@@ -3,11 +3,11 @@
  *	Default exception abort code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "exc.h"
+#include "utils/exc.h"
 
 /*ARGSUSED*/
 void
