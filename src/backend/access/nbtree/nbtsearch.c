@@ -649,32 +649,33 @@ _bt_first(scan, dir)
       case BTLessStrategyNumber:
 	if (result <= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, BackwardScanDirection))
-		    return ((RetrieveIndexResult) NULL);
+		if (!_bt_twostep(scan, &buf, BackwardScanDirection))
+		    break;
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result <= 0);
 
-	    if (!_bt_step(scan, &buf, ForwardScanDirection))
-		return((RetrieveIndexResult) NULL);
+	    /* if this is true, the key we just looked at is gone */
+	    if (result > 0)
+		(void) _bt_twostep(scan, &buf, ForwardScanDirection);
 	}
 	break;
 
       case BTLessEqualStrategyNumber:
 	if (result >= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, ForwardScanDirection))
-		    return ((RetrieveIndexResult) NULL);
+		if (!_bt_twostep(scan, &buf, ForwardScanDirection))
+		    break;
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result >= 0);
 
-	    if (!_bt_step(scan, &buf, BackwardScanDirection))
-		return((RetrieveIndexResult) NULL);
+	    if (result < 0)
+		(void) _bt_twostep(scan, &buf, BackwardScanDirection);
 	}
 	break;
 
@@ -685,29 +686,32 @@ _bt_first(scan, dir)
       case BTGreaterEqualStrategyNumber:
 	if (result <= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, BackwardScanDirection))
-		    return ((RetrieveIndexResult) NULL);
+		if (!_bt_twostep(scan, &buf, BackwardScanDirection))
+		    break;
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result <= 0);
 
-	    if (!_bt_step(scan, &buf, ForwardScanDirection))
-		return((RetrieveIndexResult) NULL);
+	    if (result > 0)
+		(void) _bt_twostep(scan, &buf, ForwardScanDirection);
 	}
 	break;
 
       case BTGreaterStrategyNumber:
 	if (result >= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, ForwardScanDirection))
-		    return ((RetrieveIndexResult) NULL);
+		if (!_bt_twostep(scan, &buf, ForwardScanDirection))
+		    break;
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result >= 0);
+
+	    if (result < 0)
+		(void) _bt_twostep(scan, &buf, BackwardScanDirection);
 	}
 	break;
     }
@@ -734,6 +738,15 @@ _bt_first(scan, dir)
     return (res);
 }
 
+/*
+ *  _bt_step() -- Step one item in the requested direction in a scan on
+ *		  the tree.
+ *
+ *	If no adjacent record exists in the requested direction, return
+ *	false.  Else, return true and set the currentItemData for the
+ *	scan to the right thing.
+ */
+
 bool
 _bt_step(scan, bufP, dir)
     IndexScanDesc scan;
@@ -745,6 +758,7 @@ _bt_step(scan, bufP, dir)
     OffsetIndex offind, maxoff;
     OffsetIndex start;
     BlockNumber blkno;
+    BlockNumber obknum;
     ItemPointer current;
     Relation rel;
 
@@ -807,6 +821,8 @@ _bt_step(scan, bufP, dir)
 		return (false);
 	    } else {
 
+		obknum = BufferGetBlockNumber(*bufP);
+
 		/* walk right to the next page with data */
 		_bt_relbuf(rel, *bufP, BT_READ);
 		for (;;) {
@@ -814,6 +830,22 @@ _bt_step(scan, bufP, dir)
 		    page = BufferGetPage(*bufP, 0);
 		    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 		    maxoff = PageGetMaxOffsetIndex(page);
+
+		    /*
+		     *  If the adjacent page just split, then we may have the
+		     *  wrong block.  Handle this case.  Because pages only
+		     *  split right, we don't have to worry about this failing
+		     *  to terminate.
+		     */
+
+		    while (opaque->btpo_next != obknum) {
+			blkno = opaque->btpo_next;
+			_bt_relbuf(rel, *bufP, BT_READ);
+			*bufP = _bt_getbuf(rel, blkno, BT_READ);
+			page = BufferGetPage(*bufP, 0);
+			opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+			maxoff = PageGetMaxOffsetIndex(page);
+		    }
 
 		    /* don't consider the high key */
 		    if (opaque->btpo_next == P_NONE)
@@ -826,6 +858,7 @@ _bt_step(scan, bufP, dir)
 			break;
 		    } else {
 			blkno = opaque->btpo_prev;
+			obknum = BufferGetBlockNumber(*bufP);
 			_bt_relbuf(rel, *bufP, BT_READ);
 			if (blkno == P_NONE) {
 			    ItemPointerSetInvalid(current);
@@ -841,6 +874,116 @@ _bt_step(scan, bufP, dir)
     ItemPointerSet(current, 0, blkno, 0, offind + 1);
 
     return (true);
+}
+
+/*
+ *  _bt_twostep() -- Move to an adjacent record in a scan on the tree,
+ *		     if an adjacent record exists.
+ *
+ *	This is like _bt_step, except that if no adjacent record exists
+ *	it restores us to where we were before trying the step.  This is
+ *	only hairy when you cross page boundaries, since the page you cross
+ *	from could have records inserted or deleted, or could even split.
+ *	This is unlikely, but we try to handle it correctly here anyway.
+ *
+ *	This routine contains the only case in which our changes to Lehman
+ *	and Yao's algorithm 
+ *
+ *	Like step, this routine leaves the scan's currentItemData in the
+ *	proper state and acquires a lock and pin on *bufP.  If the twostep
+ *	succeeded, we return true; otherwise, we return false.
+ */
+
+bool
+_bt_twostep(scan, bufP, dir)
+    IndexScanDesc scan;
+    Buffer *bufP;
+    ScanDirection dir;
+{
+    Page page;
+    BTPageOpaque opaque;
+    OffsetIndex offind, maxoff;
+    OffsetIndex start;
+    ItemPointer current;
+    ItemId itemid;
+    int itemsz;
+    BTItem btitem;
+    BTItem svitem;
+    BlockNumber blkno;
+    int nbytes;
+
+    blkno = BufferGetBlockNumber(*bufP);
+    page = BufferGetPage(*bufP, 0);
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    maxoff = PageGetMaxOffsetIndex(page);
+    current = &(scan->currentItemData);
+    offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+
+    if (opaque->btpo_next != P_NONE)
+	start = 1;
+    else
+	start = 0;
+
+    /* if we're safe, just do it */
+    if (ScanDirectionIsForward(dir) && offind < maxoff) {
+	ItemPointerSet(current, 0, blkno, 0, offind + 2);
+	return (true);
+    } else if (ScanDirectionIsBackward(dir) && offind < start) {
+	ItemPointerSet(current, 0, blkno, 0, offind);
+	return (true);
+    }
+
+    /* if we've hit end of scan we don't have to do any work */
+    if (ScanDirectionIsForward(dir) && opaque->btpo_next == P_NONE)
+	return (false);
+    else if (ScanDirectionIsBackward(dir) && opaque->btpo_prev == P_NONE)
+	return (false);
+
+    /*
+     *  Okay, it's off the page; let _bt_step() do the hard work, and we'll
+     *  try to remember where we were.  This is not guaranteed to work; this
+     *  is the only place in the code where concurrency can screw us up,
+     *  and it's because we want to be able to move in two directions in
+     *  the scan.
+     */
+
+    itemid = PageGetItemId(page, offind);
+    itemsz = ItemIdGetLength(itemid);
+    btitem = (BTItem) PageGetItem(page, itemid);
+    svitem = (BTItem) palloc(itemsz);
+    bcopy((char *) btitem, (char *) svitem, itemsz);
+
+    if (_bt_step(scan, bufP, dir)) {
+	pfree(svitem);
+	return (true);
+    }
+
+    /* try to find our place again */
+    *bufP = _bt_getbuf(scan->relation, blkno, BT_READ);
+    page = BufferGetPage(*bufP, 0);
+    maxoff = PageGetMaxOffsetIndex(page);
+    nbytes = sizeof(BTItemData) - sizeof(IndexTupleData);
+
+    while (offind <= maxoff) {
+	itemid = PageGetItemId(page, offind);
+	btitem = (BTItem) PageGetItem(page, itemid);
+	if (bcmp((char *) btitem, (char *) svitem, nbytes) == 0) {
+	    pfree (svitem);
+	    ItemPointerSet(current, 0, blkno, 0, offind + 1);
+	    return (false);
+	}
+    }
+
+    /*
+     *  XXX crash and burn -- can't find our place.  We can be a little
+     *  smarter -- walk to the next page to the right, for example, since
+     *  that's the only direction that splits happen in.  Deletions screw
+     *  us up less often since they're only done by the vacuum daemon.
+     */
+
+    elog(WARN, "btree synchronization error:  concurrent update botched scan");
+
+    /* NOTREACHED */
 }
 
 /*
@@ -933,7 +1076,7 @@ _bt_endpoint(scan, dir)
 
 	if (PageIsEmpty(page) || start > maxoff) {
 	    ItemPointerSet(current, 0, blkno, 0, maxoff + 1);
-	    if (!_bt_step(scan, &buf, ForwardScanDirection))
+	    if (!_bt_step(scan, &buf, BackwardScanDirection))
 		return ((RetrieveIndexResult) NULL);
 
 	    start = ItemPointerGetOffsetNumber(current, 0);
@@ -945,7 +1088,7 @@ _bt_endpoint(scan, dir)
 	start = PageGetMaxOffsetIndex(page);
 	if (PageIsEmpty(page)) {
 	    ItemPointerSet(current, 0, blkno, 0, start + 1);
-	    if (!_bt_step(scan, &buf, BackwardScanDirection))
+	    if (!_bt_step(scan, &buf, ForwardScanDirection))
 		return ((RetrieveIndexResult) NULL);
 
 	    start = ItemPointerGetOffsetNumber(current, 0);
@@ -959,12 +1102,19 @@ _bt_endpoint(scan, dir)
 
     btitem = (BTItem) PageGetItem(page, PageGetItemId(page, start));
     itup = &(btitem->bti_itup);
-    iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
-    bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
-    res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
-    /* unpin, but don't unlock, the buffer */
-    _bt_relbuf(rel, buf, BT_NONE);
+    /* see if we picked a winner */
+    if (_bt_checkqual(scan, itup)) {
+	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
+	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
+	res = ItemPointerFormRetrieveIndexResult(current, iptr);
+
+	/* unpin, but don't unlock, the buffer */
+	_bt_relbuf(rel, buf, BT_NONE);
+    } else {
+	_bt_relbuf(rel, buf, BT_READ);
+	res = (RetrieveIndexResult) NULL;
+    }
 
     return (res);
 }

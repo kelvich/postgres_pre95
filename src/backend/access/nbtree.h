@@ -153,6 +153,7 @@ RetrieveIndexResult	_bt_first();
 RetrieveIndexResult	_bt_next();
 RetrieveIndexResult	_bt_endpoint();
 bool			_bt_step();
+bool			_bt_twostep();
 StrategyNumber		_bt_getstrat();
 bool			_bt_invokestrat();
 BTItem			_bt_formitem();
