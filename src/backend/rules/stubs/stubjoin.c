@@ -12,6 +12,7 @@
 #include "rules/prs2stub.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
+#include "utils/log.h"
 
 /*----------------------------------------------------------------
  *
@@ -23,11 +24,11 @@
  *
  */
 Prs2OneStub
-prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer, relation)
+prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer, outerTupleDesc)
 JoinRuleInfo ruleInfo;
 HeapTuple tuple;
 Buffer buffer;
-Relation relation;
+TupleDescriptor outerTupleDesc;
 {
     Prs2OneStub oneStub;
     ObjectId ruleId;
@@ -58,7 +59,7 @@ Relation relation;
 			tuple,
 			buffer,
 			outerAttrNo,
-			RelationGetTupleDescriptor(relation),
+			outerTupleDesc,
 			&isNull);
     if (isNull) {
 	/*
@@ -70,7 +71,7 @@ Relation relation;
     qual = prs2MakeSimpleQuals(1);
     qual->attrNo = innerAttrNo;
     qual->operator = operator;
-    qual->constType = get_atttype(RelationGetRelationId(relation),outerAttrNo);
+    qual->constType = outerTupleDesc->data[outerAttrNo-1]->atttypid;
     qual->constByVal = get_typbyval(qual->constType);
     qual->constLength = get_typlen(qual->constType);
     qual->constData = value;
@@ -90,11 +91,12 @@ Relation relation;
  *
  * prs2AddLocksAndReplaceTuple
  *
- * Add the given lock to a tuple, if the qualification associated
- * with the `oneStub' is satisfied.
+ * If the qualification associated with the `oneStub' is satisfied
+ * by the given tuple, then add a rule lock and return true.
+ * Otherwise return false.
  *
  */
-void
+bool
 prs2AddLocksAndReplaceTuple(tuple, buffer, relation, oneStub, lock)
 HeapTuple tuple;
 Buffer buffer;
@@ -120,6 +122,51 @@ RuleLock lock;
 	 */
 	tupleId = &(tuple->t_ctid);
 	amreplace(relation, tupleId, newTuple);
+	return(true);
+    } else {
+	return(false);
     }
 }
 	
+/*----------------------------------------------------------------
+ *
+ * prs2UpdateStats
+ */
+prs2UpdateStats(ruleInfo, operation)
+JoinRuleInfo ruleInfo;
+int operation;
+{
+    Prs2StubStats stats;
+
+    stats = get_jri_stats(ruleInfo);
+    if (stats == NULL) {
+	stats = (Prs2StubStats) palloc(sizeof(Prs2StubStatsData));
+	if (stats == NULL) {
+	    elog(WARN, "prs2UpdateStats: run out of memory");
+	}
+	stats->stubsAdded = 0;
+	stats->stubsDeleted = 0;
+	stats->locksAdded = 0;
+	stats->locksDeleted = 0;
+    }
+
+    switch (operation) {
+	case PRS2_ADDSTUB:
+	    stats->stubsAdded += 1;
+	    break;
+	case PRS2_DELETESTUB:
+	    stats->stubsDeleted += 1;
+	    break;
+	case PRS2_ADDLOCK:
+	    stats->locksAdded += 1;
+	    break;
+	case PRS2_DELETELOCK:
+	    stats->locksDeleted += 1;
+	    break;
+	default:
+	    elog(WARN, "prs2UpdateStats:illegal operation %d",operation);
+    }
+
+    set_jri_stats(ruleInfo, stats);
+}
+
