@@ -39,6 +39,7 @@ jmp_buf		Warn_restart;
 int		NBuffers = 2;
 time_t		tim;
 bool 		override = false;
+int		NStriping = 1;  /* default no striping */
 
 /* ----------------------------------------------------------------
  *			support functions
@@ -440,7 +441,7 @@ main(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = flagS = 0;
     
-    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:S")) != EOF)
+    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:D:S")) != EOF)
       switch (flag) {
 	  
       case 'd':
@@ -494,6 +495,10 @@ main(argc, argv)
 	  flagM = 1;
 	  break;
 	  
+      case 'D':  /* degree of striping */
+	  NStriping = atoi(optarg);
+	  break;
+
       case 'p':	/* started by postmaster */
 	  /* ----------------
 	   *	p - special flag passed if backend was forked
