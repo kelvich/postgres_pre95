@@ -55,8 +55,8 @@ extern List _base_relation_list_;    /*   base relation list */
 extern List _join_relation_list_;    /*   join relation list */
 extern bool _query_is_archival_;       /*   archival query flag */
 
-extern void save_globals();
-extern void restore_globals();
+char *save_globals ARGS((void ));
+void restore_globals ARGS((char *pgh ));
 
 extern int NBuffers;
 /*
