@@ -28,6 +28,7 @@
  * ----------------
  */
 #include <stdio.h>
+#include <strings.h>
 
 #include "tmp/postgres.h"
 
@@ -1173,10 +1174,10 @@ _copyResdom(from, to, alloc)
     newnode->rescomplex = from->rescomplex;
     newnode->reslen  = 	from->reslen;
 
-    if (from->resname != NULL)
-	newnode->resname = (Name)
-	    strncpy((char *) COPYALLOC(NAMEDATALEN), from->resname, NAMEDATALEN);
-    else
+    if (from->resname != NULL) {
+	newnode->resname = (Name) COPYALLOC(NAMEDATALEN);
+	(void) namecpy(newnode->resname, from->resname);
+    } else
 	newnode->resname = (Name) NULL;
     
     newnode->reskey  = 	from->reskey;
@@ -1529,10 +1530,10 @@ _copyConst(from, to, alloc)
 	 * ----------------
 	 */
 	typeTuple = SearchSysCacheTuple(TYPOID,
-					from->consttype,
-					NULL,
-					NULL,
-					NULL);
+					(char *)
+					ObjectIdGetDatum(from->consttype),
+					(char *) NULL, (char *) NULL,
+					(char *) NULL);
 
 	/* ----------------
 	 *   get the type length and by-value from the type tuple and
@@ -1626,11 +1627,10 @@ _copyParam(from, to, alloc)
     newnode->paramkind = from->paramkind;
     newnode->paramid = from->paramid;
 
-    if (from->paramname != NULL)
-	newnode->paramname = (Name)
-	    strncpy((char *)COPYALLOC(NAMEDATALEN), from->paramname, 
-		NAMEDATALEN);
-    else
+    if (from->paramname != NULL) {
+	newnode->paramname = (Name) COPYALLOC(NAMEDATALEN);
+	(void) namecpy(newnode->paramname, from->paramname);
+    } else
 	newnode->paramname = (Name) NULL;
     
     newnode->paramtype = from->paramtype;
