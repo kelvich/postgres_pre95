@@ -286,19 +286,19 @@ StrategyTermEvaluate(term, map, left, right)
 
 	switch (operator->flags ^ entry->flags) {
 	case 0x0:
-	    result = (bool) fmgr(entry->procedure, left, right);
+	    result = (bool) (*(entry->func)) (left, right);
 	    break;
 	    
 	case NegateResult:
-	    result = (bool) !fmgr(entry->procedure, left, right);
+	    result = (bool) !(*(entry->func)) (left, right);
 	    break;
 	    
 	case CommuteArguments:
-	    result = (bool) fmgr(entry->procedure, right, left);
+	    result = (bool) (*(entry->func)) (right, left);
 	    break;
 	    
 	case NegateResult | CommuteArguments:
-	    result = (bool) !fmgr(entry->procedure, right, left);
+	    result = (bool) !(*(entry->func)) (right, left);
 	    break;
 
 	default:
@@ -526,10 +526,10 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
     ScanKeyData		scanKeyData;
     HeapTuple		tuple;
 
-    scanKeyData.data[0].flags = 0;
-    scanKeyData.data[0].attributeNumber = ObjectIdAttributeNumber;
-    scanKeyData.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKeyData.data[0].argument = ObjectIdGetDatum(operatorObjectId);
+	ScanKeyEntryInitialize(&scanKeyData.data[0], 0, 
+						   ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(operatorObjectId));
 
     scan = heap_beginscan(operatorRelation, false, NowTimeQual,
 			  1, &scanKeyData);
@@ -542,6 +542,7 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
 
     entry->flags = 0;
     entry->procedure = ((OperatorTupleForm) HeapTupleGetForm(tuple))->oprcode;
+	fmgr_info(entry->procedure, &entry->func, &entry->nargs);
 
     if (! RegProcedureIsValid(entry->procedure)) {
 	elog(WARN,
@@ -582,10 +583,9 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 
     maxStrategyNumber = AMStrategies(maxStrategyNumber);
 
-    entry[0].flags = 0;
-    entry[0].attributeNumber = IndexRelationIdAttributeNumber;
-    entry[0].procedure = ObjectIdEqualRegProcedure;
-    entry[0].argument = ObjectIdGetDatum(indexObjectId);
+	ScanKeyEntryInitialize(&entry[0], 0, IndexRelationIdAttributeNumber,
+						   ObjectIdEqualRegProcedure, 
+						   ObjectIdGetDatum(indexObjectId));
 
     relation = heap_openr(IndexRelationName);
     scan = heap_beginscan(relation, false, NowTimeQual, 1, (ScanKey)entry);
@@ -624,14 +624,12 @@ IndexSupportInitialize(indexStrategy, indexSupport,
     /* if support routines exist for this access method, load them */
     if (maxSupportNumber > 0) {
 
-	entry[0].flags = 0;
-	entry[0].attributeNumber = Anum_pg_amproc_amid;
-	entry[0].procedure = ObjectIdEqualRegProcedure;
-	entry[0].argument =  ObjectIdGetDatum(accessMethodObjectId);
+	ScanKeyEntryInitialize(&entry[0], 0, Anum_pg_amproc_amid,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(accessMethodObjectId));
 
-	entry[1].flags = 0;
-	entry[1].attributeNumber = Anum_pg_amproc_amopclaid;
-	entry[1].procedure = ObjectIdEqualRegProcedure;
+	ScanKeyEntryInitialize(&entry[1], 0, Anum_pg_amproc_amopclaid,
+						   ObjectIdEqualRegProcedure, 0);
 
 	relation = heap_openr(Name_pg_amproc);
 
@@ -666,16 +664,14 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 	heap_close(relation);
     }
 
-    entry[0].flags = 0;
-    entry[0].attributeNumber =
-	AccessMethodOperatorAccessMethodIdAttributeNumber;
-    entry[0].procedure = ObjectIdEqualRegProcedure;
-    entry[0].argument =  ObjectIdGetDatum(accessMethodObjectId);
+	ScanKeyEntryInitialize(&entry[0], 0, 
+	                       AccessMethodOperatorAccessMethodIdAttributeNumber,
+                           ObjectIdEqualRegProcedure,
+                           ObjectIdGetDatum(accessMethodObjectId));
 
-    entry[1].flags = 0;
-    entry[1].attributeNumber =
-	AccessMethodOperatorOperatorClassIdAttributeNumber;
-    entry[1].procedure = ObjectIdEqualRegProcedure;
+	ScanKeyEntryInitialize(&entry[1], 0, 
+	                       AccessMethodOperatorOperatorClassIdAttributeNumber,
+                           ObjectIdEqualRegProcedure, 0);
 
     relation = heap_openr(AccessMethodOperatorRelationName);
     operatorRelation = heap_openr(OperatorRelationName);
