@@ -25,7 +25,7 @@ struct varlena *shove_bytes ARGS((unsigned char *stuff , int len ));
  *
  *	Non-printable characters must be passed as '\nnn' (octal) and are
  *	converted to internal form.  '\' must be passed as '\\'.
- *	Returns NULL if bad form.
+ *	elog(WARN, ...) if bad form.
  *
  *	BUGS:
  *		The input is scaned twice.
@@ -41,15 +41,18 @@ byteain(inputText)
 	struct varlena	*result;
 
 	if (inputText == NULL)
-		return(NULL);
+		elog(WARN, "Bad input string for type bytea");
+
 	for (byte = 0, tp = inputText; *tp != '\0'; byte++)
 		if (*tp++ == '\\')
+		{
 			if (*tp == '\\')
 				tp++;
 			else if (!isdigit(*tp++) ||
 				 !isdigit(*tp++) ||
 				 !isdigit(*tp++))
-				return(NULL);
+				elog(WARN, "Bad input string for type bytea");
+		}
 	tp = inputText;
 	byte += sizeof(int32);					/* varlena? */
 	result = (struct varlena *) palloc(byte);
