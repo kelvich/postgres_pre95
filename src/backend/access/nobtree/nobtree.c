@@ -24,6 +24,7 @@
 #include "access/sdir.h"
 #include "access/isop.h"
 #include "access/nobtree.h"
+#include "access/funcindex.h"
 
 RcsId("$Header$");
 
@@ -33,7 +34,7 @@ bool	NOBT_Building = false;
 uint32  CurrentLinkToken = 0;
 
 void
-nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
+nobtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -41,6 +42,7 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     IndexStrategy istrat;
     uint16 pcount;
     Datum *params;
+    FuncIndexInfo *finfo;
 {
     HeapScanDesc hscan;
     Buffer buffer;
@@ -100,8 +102,13 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	     */
 
 	    attoff = AttributeNumberGetAttributeOffset(i);
-	    attdata[attoff] = HeapTupleGetAttributeValue(htup, buffer,
-				    attnum[attoff], htupdesc, &attnull);
+	    attdata[attoff] = GetIndexValue(htup,
+					    htupdesc,
+					    attoff,
+					    attnum,
+					    finfo,
+					    &attnull,
+					    buffer);
 	    null[attoff] = (attnull ? 'n' : ' ');
 	}
 
