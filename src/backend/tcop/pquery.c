@@ -264,6 +264,10 @@ ProcessPortal(portalName, portalType, parseTree, plan, state, attinfo, dest)
      * ----------------
      */
     
+    if (PortalNameIsSpecial(portalName))
+	elog(WARN,
+	     "The portal name %s is reserved for internal use",
+	     portalName);
 
     portal = BlankPortalAssignName(portalName);
 
