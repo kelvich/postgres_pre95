@@ -126,6 +126,7 @@ bool Typecast_ok = true;
 %right	NOT
 %left  	'+' '-'
 %left  	'*' '/'
+%left	'|'		/* this is the relation union op, not logical or */
 %right   UMINUS
 %nonassoc  '<' '>'
 %left	'.'
@@ -591,12 +592,7 @@ IndexStmt:
 
   ************************************************************/
 MergeStmt:
-	MERGE relation_union INTO relation_name
-		{ 
-		    elog(NOTICE, "merge is unsupported in version 1");
-		    $$ = MakeList ( $1, $2, $4, -1 );
-		}
-	| MERGE relation_expr INTO relation_name
+	MERGE relation_expr INTO relation_name
 		{ 
 		    elog(NOTICE, "merge is unsupported in version 1");
 		    $$ = MakeList ( $1, $2, $4, -1 );
@@ -999,9 +995,8 @@ OptimizableStmt:
 AppendStmt:
   	  APPEND
                 { SkipForwardToFromList(); }
-	  opt_star
           from_clause
-          relation_name
+          opt_star relation_name
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil)) == 0)
@@ -1022,7 +1017,7 @@ AppendStmt:
 			LispValue command;
                         int x = RangeTablePosn(CString($5),LispNil);
 
-			if ( $3 == LispNil )
+			if ( $4 == LispNil )
 			  command = KW(append);
 			else
 			  command = lispCons( lispInteger('*'),KW(append));
@@ -1051,7 +1046,8 @@ AppendStmt:
 DeleteStmt:
           DELETE
                 { SkipForwardToFromList(); }
-	  opt_star from_clause var_name
+          from_clause
+          opt_star var_name
                 {
 		    int x = 0;
 		    
@@ -1079,7 +1075,7 @@ DeleteStmt:
 		      ADD_TO_RT(MakeRangeTableEntry (CString ($5),
 						     LispNil,
 						     CString($5)));
-		    if ( $3 == LispNil )
+		    if ( $4 == LispNil )
 		      command = KW(delete);
 		    else
 		      command = lispCons( lispInteger('*'),KW(delete));
@@ -1125,9 +1121,8 @@ ExecuteStmt:
 ReplaceStmt:
  	REPLACE 
                 { SkipForwardToFromList(); }
-	opt_star
         from_clause
-        relation_name
+        opt_star relation_name
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil) ) == 0 )
@@ -1148,7 +1143,7 @@ ReplaceStmt:
                     int result = RangeTablePosn(CString($5),LispNil);
                     if (result < 1)
                       elog(WARN,"parser internal error , bogus relation");
-		    if ( $3 == LispNil )
+		    if ( $4 == LispNil )
 		      command = KW(replace);
 		    else
 		      command = lispCons( lispInteger('*'),KW(replace));
@@ -1163,8 +1158,10 @@ ReplaceStmt:
                     $$ = nappend1 ( $$ , $10 );         /* (eq p_qual $9) */
                     ResdomNoIsAttrNo = false;
                 }
-	;
+        ;
 
+
+		 
  /************************************************************
 
 	Retrieve:
@@ -1184,9 +1181,8 @@ RetrieveStmt:
 
 RetrieveSubStmt:
 	  { SkipForwardToFromList(); }
-	  opt_star
 	  from_clause 
-	  result opt_unique 
+	  opt_star result opt_unique 
 	  '(' res_target_list ')'
  	  where_clause ret_opt2 
   		{
@@ -1195,7 +1191,7 @@ RetrieveSubStmt:
 		    LispValue root;
 		    LispValue command;
 
-		    if ( $2 == LispNil )
+		    if ( $3 == LispNil )
 		      command = KW(retrieve);
 		    else
 		      command = lispCons( lispInteger('*'),KW(retrieve));
@@ -1254,6 +1250,8 @@ sortby:
 	  Id OptUseOp
 		{ $$ = lispCons ( $1, lispCons ($2, LispNil )) ; }
 	;
+
+
 
 opt_archive:
 		{ NULLTREE }
@@ -1333,16 +1331,11 @@ from_list:
 	;
 
 from_val:
-	  var_list IN relation_union
-		{
-		    extern List MakeFromClause ();
-		    $$ = MakeFromClause ( $1, $3 );
-		}
 	  var_list IN relation_expr
 		{
 		    extern List MakeFromClause ();
 		    $$ = MakeFromClause ( $1, $3 );
-		}
+		}	
 	;
 var_list:
 	  var_list ',' var_name			{ INC_LIST ;  }
@@ -1374,25 +1367,18 @@ OptUseOp:
 	| USING '>'			{ $$ = lispString(">"); }
 	;
 
-relation_union:
-	relation_expr '|' relation_expr
-		{ 
-		    $$ = append ( $1, $3 );
-		}
-	| relation_union '|' relation_expr
-		{ 
-		    $$ = append ( $1, $3 );
-		}
-	| '(' relation_union ')'
-		{ $$ = $2; }
-	;
-
 relation_expr:
 	  relation_name
   		{ 
 		    /* normal relations */
 		    $$ = lispCons ( MakeList ( $1, LispNil , LispNil , -1 ),
 				   LispNil );
+		}
+	| relation_expr '|' relation_expr %prec '='
+		{ 
+		    /* union'ed relations */
+		    elog ( NOTICE, "now consing the union'ed relations");
+		    $$ = append ( $1, $3 );
 		}
 	| relation_name '*'
 		{ 
@@ -1446,6 +1432,18 @@ opt_range_end:
 
   **********************************************************************/
 
+boolexpr:
+	  a_expr
+		{ $$ = CDR($1); }
+	| boolexpr AND boolexpr
+		{ $$ = MakeList ( lispInteger(AND) , $1 , $3 , -1 ); }
+	| boolexpr OR boolexpr
+		{ $$ = MakeList ( lispInteger(OR) , $1, $3, -1 ); }
+	| NOT boolexpr
+		{ $$ = MakeList ( lispInteger(NOT) , $2, -1 ); }
+	| '(' boolexpr ')'
+		{ $$ = $2; }
+	;
 
 record_qual:
 	/*EMPTY*/
@@ -1520,15 +1518,9 @@ opt_var_defs:
 	| {NULLTREE} ;
 
 
-/* 
- *  Expression rules.  We have two nearly-identical sets of productions
- *  here; the only difference between them is that b_expr includes the
- *  AND/OR/NOT productions for boolean expressions, and that the b_expr
- *  stuff tosses out the type info stored in the CAR of the list for the
- *  a_expr.  These were split in order to get rid of a shift-reduce
- *  conflict.  If you change one, you need to make the same change to
- *  the other.  Sorry about that.
- */
+ /* 
+  * expression grammar, still needs some cleanup
+  */
 
 a_expr:
 	  attr
@@ -1604,7 +1596,7 @@ a_expr:
 		    $$ = parser_typecast ( $1, $3 );
 		    Typecast_ok = false; /* it's already typecasted */
 					 /* don't do it again. */ }
-	| '(' a_expr ')'	%prec UMINUS
+	| '(' a_expr ')'
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
@@ -1618,19 +1610,6 @@ a_expr:
 			extern List ParseFunc();
 			$$ = ParseFunc ( CString ( $1 ), $3 ); 
 			Typecast_ok = false; }
-	;
-
-boolexpr:
-	a_expr
-		{ $$ = CDR($1); }
-	| boolexpr AND boolexpr
-		{ $$ = MakeList ( lispInteger(AND) , $1, $3, -1); }
-	| boolexpr OR boolexpr
-		{ $$ = MakeList ( lispInteger(OR) , $1, $3, -1); }
-	| NOT boolexpr
-		{ $$ = MakeList ( lispInteger(NOT) , $2, -1); }
-	| '(' boolexpr ')'
-		{ $$ = $2; }
 	;
 
 expr_list:
