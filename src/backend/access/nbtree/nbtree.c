@@ -188,7 +188,7 @@ btbeginscan(rel, fromEnd, keysz, scankey)
     BTScanOpaque so;
 
     /* first order the keys in the qualification */
-    if (keysz > 0)
+    if (keysz > 1)
 	_bt_orderkeys(rel, &keysz, scankey);
 
     /* now get the scan */
