@@ -46,18 +46,27 @@
  *	parallel state variables
  * ----------------
  */
-int     MyPid;			/* int representing the process id */
+/*
+ *	local data structures
+ */
+int MyPid;	/* int representing the process id */
+static ProcessNode *SlaveArray, *FreeSlaveP;
+int NumberOfFreeSlaves;
+ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
+static ProcGroupLocalInfo FreeProcGroupP;
 
+/*
+ *	shared data structures
+ */
 int 	*MasterProcessIdP;	/* master backend process id */
-int 	*SlaveProcessIdsP;	/* array of slave backend process id's */
-Pointer *SlaveQueryDescsP;	/* array of pointers to slave query descs */
-Pointer *SlaveRetStateP;	/* array of pointers to slave return states */
-int     *SlaveAbortFlagP;	/* flag set during a transaction abort */
+int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
+SlaveInfo	SlaveInfoP;	/* slave backend info */
+ProcGroupInfo	ProcGroupInfoP; /* process group info */
 
 TransactionState SharedTransactionState; /* current transaction info */
 
-#define CONDITION_NORMAL 0
-#define CONDITION_ABORT  1
+#define CONDITION_NORMAL	0
+#define CONDITION_ABORT		1
 
 /* --------------------------------
  *	SendAbortSignals
@@ -84,7 +93,7 @@ SendAbortSignals()
     nslaves = GetNumberSlaveBackends();
     for (i=0; i<nslaves; i++)
 	if (i != MyPid) {
-	    p = SlaveProcessIdsP[i];
+	    p = SlaveInfoP[i].unixPid;
 	    if (kill(p, SIGHUP) != 0) {
 		fprintf(stderr, "signaling slave %d (pid %d): ", i, p);
 		perror("kill");
@@ -180,7 +189,7 @@ SlaveBackendsAbort()
 	V_Abort();
 
 	SLAVE_elog(DEBUG, "Master Backend waiting for slave aborts");
-	P_Finished(nslaves);
+	P_FinishedAbort();
 
 	SLAVE_elog(DEBUG, "Master Backend reinitializing abort semaphore");
 	I_Abort();
@@ -208,7 +217,7 @@ SlaveBackendsAbort()
 		    MyPid);
 	
 	V_Abort();
-	V_Finished();
+	V_FinishedAbort();
     }
 }
 
@@ -221,7 +230,6 @@ SlaveMain()
 {
     List queryDesc;
     int i;
-    int nproc;
 
     /* ----------------
      *  before we begin processing we have to register a SIGHUP
@@ -273,42 +281,9 @@ SlaveMain()
 	 *  get the query descriptor to execute.
 	 * ----------------
 	 */
-	nproc = 0;
-	for (i=0; i<GetNumberSlaveBackends(); i++) {
-	    nproc += get_parallel(QdGetPlan((List) SlaveQueryDescsP[i]));
-	    if (MyPid < nproc) {
-	        queryDesc = (List)CopyObject((List)SlaveQueryDescsP[i]);
-		break;
-	      }
-	  }
-	Assert(i < GetNumberSlaveBackends());
+	queryDesc = (List)CopyObject(
+		     (List)ProcGroupInfoP[SlaveInfoP[MyPid].groupId].queryDesc);
 
-#if 0
-	/* ----------------
-	 *	for now, just test synchronization.
-	 * ----------------
-	 */
-	srandom(MyPid);
-	{
-	    int sleeptime = 5 + (random() & 017);
-	    
-	    elog(DEBUG, "Slave Backend %d executing (ETA:%d)",
-		 MyPid, sleeptime);
-	    
-	    sleep(sleeptime);
-	    
-	    elog(DEBUG, "Slave Backend %d finished", MyPid);
-	}
-#endif	
-#if 0
-	/* ----------------
-	 *  If the query desc is NULL, then we assume the master
-	 *  backend has finished execution.
-	 * ----------------
-	 */
-	if (queryDesc == NULL)
-	    exitpg();
-#endif	
 	/* ----------------
 	 *  process the query descriptor
 	 * ----------------
@@ -334,7 +309,7 @@ SlaveMain()
 	 * ----------------
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
-	V_Finished();
+	V_Finished(SlaveInfoP[MyPid].groupId);
     }
 }
 
@@ -428,11 +403,11 @@ SlaveBackendsInit()
      *  communication mechanisms.  All backends share these pointers.
      * ----------------
      */
-    MasterProcessIdP =  (int *)     ExecSMHighAlloc(sizeof(int));
-    SlaveProcessIdsP =  (int *)     ExecSMHighAlloc(nslaves * sizeof(int));
-    SlaveAbortFlagP  =  (int *)     ExecSMHighAlloc(sizeof(int));
-    SlaveQueryDescsP =  (Pointer *) ExecSMHighAlloc(nslaves * sizeof(Pointer));
-    SlaveRetStateP =  (Pointer *) ExecSMHighAlloc(nslaves * sizeof(Pointer));
+    MasterProcessIdP = (int*)ExecSMHighAlloc(sizeof(int));
+    SlaveAbortFlagP = (int*)ExecSMHighAlloc(sizeof(int));
+    SlaveInfoP = (SlaveInfo)ExecSMHighAlloc(nslaves * sizeof(SlaveInfoData));
+    ProcGroupInfoP = (ProcGroupInfo)ExecSMHighAlloc(nslaves *
+						    sizeof(ProcGroupInfoData));
 
     /* ----------------
      *	move the transaction system state data into shared memory
@@ -452,14 +427,22 @@ SlaveBackendsInit()
      *	fork several slave processes and save the process id's
      * ----------------
      */
-    MyPid = 0;
+    MyPid = -1;
     
-    for (i=1; i<nslaves; i++)
+    for (i=0; i<nslaves; i++)
 	if (IsMaster) {
 	    if ((p = fork()) != 0) {
-		SlaveProcessIdsP[i] = p;
-		SlaveQueryDescsP[i] = NULL;
-		SlaveRetStateP[i] = NULL;
+		/* initialize shared data structures */
+		SlaveInfoP[i].unixPid = p;
+		SlaveInfoP[i].groupId = -1;
+		SlaveInfoP[i].groupPid = -1;
+		SlaveInfoP[i].resultTmpRelDesc = NULL;
+		ProcGroupInfoP[i].status = IDLE;
+		ProcGroupInfoP[i].queryDesc = NULL;
+		ProcGroupInfoP[i].countdown = 0;
+#ifdef sequent
+		S_INIT_LOCK(&(ProcGroupInfoP[i].lock));
+#endif
 	    } else {
 		MyPid = i;
 		
@@ -474,7 +457,29 @@ SlaveBackendsInit()
      *  get sent off to the labor camp, never to return..
      * ----------------
      */
-    if (! IsMaster)
+    if (IsMaster) {
+	/* initialize local data structures of the master */
+	SlaveArray = (ProcessNode*)malloc(nslaves * sizeof(ProcessNode));
+	FreeSlaveP = SlaveArray;
+	NumberOfFreeSlaves = nslaves;
+	for (i=0; i<nslaves; i++) {
+	    SlaveArray[i].pid = i;
+	    SlaveArray[i].next = SlaveArray + i + 1;
+	  }
+	SlaveArray[nslaves-1].next = NULL;
+	ProcGroupLocalInfoP = (ProcGroupLocalInfo)malloc(nslaves *
+						sizeof(ProcGroupLocalInfoData));
+	FreeProcGroupP = ProcGroupLocalInfoP;
+	for (i=0; i<nslaves; i++) {
+	    ProcGroupLocalInfoP[i].id = i;
+	    ProcGroupLocalInfoP[i].fragment = NULL;
+	    ProcGroupLocalInfoP[i].memberProc = NULL;
+	    ProcGroupLocalInfoP[i].nmembers = 0;
+	    ProcGroupLocalInfoP[i].nextfree = ProcGroupLocalInfoP + i + 1;
+	  }
+	ProcGroupLocalInfoP[nslaves - 1].nextfree = NULL;
+      }
+    else
 	SlaveMain();
 
     /* ----------------
@@ -483,4 +488,134 @@ SlaveBackendsInit()
      * ----------------
      */
     return;
+}
+
+/* ----------------------
+ *	getFreeSlave
+ *
+ *	get a free slave backend from the FreeSlaveP queue
+ *	also decrements NumberOfFreeSlaves
+ * ----------------------
+ */
+static int
+getFreeSlave()
+{
+    ProcessNode *p;
+
+    p = FreeSlaveP;
+    FreeSlaveP = p->next;
+    NumberOfFreeSlaves--;
+
+    return p->pid;
+}
+
+/* ------------------------
+ *	freeSlave
+ *
+ *	frees a slave to FreeSlaveP queue
+ *	increments NumberOfFreeSlaves
+ * ------------------------
+ */
+static void
+freeSlave(i)
+int i;
+{
+    SlaveArray[i].next = FreeSlaveP;
+    FreeSlaveP = SlaveArray + i;
+    SlaveInfoP[i].groupId = -1;
+    SlaveInfoP[i].groupPid = -1;
+    NumberOfFreeSlaves++;
+}
+
+/* ------------------------
+ *	getFreeProcGroup
+ *
+ *	get a free process group with nproc free slave processes
+ * ------------------------
+ */
+int
+getFreeProcGroup(nproc)
+int nproc;
+{
+    ProcGroupLocalInfo p;
+    ProcessNode *slavep;
+    int i;
+    int pid;
+
+    p = FreeProcGroupP;
+    FreeProcGroupP = p->nextfree;
+    pid = getFreeSlave();
+    SlaveInfoP[pid].groupId = p->id;
+    SlaveInfoP[pid].groupPid = 0;
+    p->memberProc = SlaveArray + pid;
+    slavep = p->memberProc;
+    for (i=1; i<nproc; i++) {
+	pid = getFreeSlave();
+	SlaveInfoP[pid].groupId = p->id;
+	SlaveInfoP[pid].groupPid = i;
+	slavep->next = SlaveArray + pid;
+	slavep = slavep->next;
+      }
+    slavep->next = NULL;
+    p->nmembers = nproc;
+    return p->id;
+}
+
+/* -------------------------
+ *	freeProcGroup
+ *
+ *	frees a process group and all the slaves in the group
+ * -------------------------
+ */
+void
+freeProcGroup(gid)
+int gid;
+{
+    ProcessNode *p;
+
+    for (p=ProcGroupLocalInfoP[gid].memberProc; p!=NULL; p=p->next)
+	freeSlave(p->pid);
+    ProcGroupInfoP[gid].status = IDLE;
+    ProcGroupLocalInfoP[gid].fragment = NULL;
+    ProcGroupLocalInfoP[gid].nmembers = 0;
+    ProcGroupLocalInfoP[gid].nextfree = FreeProcGroupP;
+    FreeProcGroupP = ProcGroupLocalInfoP + gid;
+}
+
+/* ----------------------------
+ *	getFinishedProcGroup
+ *
+ *	walks the array of processes group and find the first
+ *	process group with status = FINISHED
+ * -----------------------------
+ */
+int
+getFinishedProcGroup()
+{
+    int i;
+
+    for (i=0; i<GetNumberSlaveBackends(); i++) {
+	if (ProcGroupInfoP[i].status == FINISHED)
+	    return i;
+      }
+    return -1;
+}
+
+/* -------------------------------
+ *	WakeupProcGroup
+ *
+ *	wake up the processes in process group
+ * -------------------------------
+ */
+void
+wakeupProcGroup(groupid)
+int groupid;
+{
+    ProcessNode *p;
+
+    for (p = ProcGroupLocalInfoP[groupid].memberProc;
+	 p != NULL;
+	 p = p->next) {
+      V_Start(p->pid);
+     }
 }
