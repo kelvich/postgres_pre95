@@ -1634,7 +1634,7 @@ a_expr:
 		{ 
 		     $$ = (List)make_array_ref_var ( CString(CAR($1)),
 						    CString(CADR($1)),
-						    CInteger($3), $4);
+						    CInteger($3), $5);
 		}
 	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
