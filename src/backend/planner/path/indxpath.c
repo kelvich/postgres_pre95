@@ -79,6 +79,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
     LispValue sortpath = LispNil;
     LispValue retval = LispNil;
     LispValue temp = LispNil;
+    List add_index_paths();
     
     if(consp (indices)) {
 	
@@ -164,11 +165,11 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	 *  the indexpath is valid.
 	 */
 	if (!null(scanpaths))
-	  retval = append (retval,scanpaths);
+	  retval = add_index_paths(retval,scanpaths);
 	if ( !null(joinpaths) )
-	  retval = append(retval,joinpaths);
+	  retval = add_index_paths(retval,joinpaths);
 	if (!null(sortpath))
-	  retval = append (retval,sortpath);
+	  retval = add_index_paths(retval,sortpath);
 	
 	if (!null((temp = find_index_paths (rel,
 					    CDR (indices),
@@ -178,7 +179,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 
 	return(retval);
     } 
-	return(NULL);
+    return(NULL);
 }  /* function end */
 
 
@@ -653,3 +654,42 @@ create_index_paths (rel,index,clausegroup_list,join)
      return(ip_list);
 }  /* function end */
 
+bool
+indexpath_useless(p, plist)
+IndexPath p;
+List plist;
+{
+    LispValue x;
+    IndexPath path;
+    List qual;
+
+    if (get_indexqual(p)) return false;
+    foreach (x, plist) {
+	path = (IndexPath)CAR(x);
+	qual = get_indexqual(path);
+	set_indexqual(path, LispNil);
+	if (equal(p, path)) {
+	    set_indexqual(path, qual);
+	    return true;
+	  }
+        set_indexqual(path, qual);
+      }
+    return false;
+}
+
+List
+add_index_paths(indexpaths, new_indexpaths)
+List indexpaths, new_indexpaths;
+{
+    LispValue x;
+    IndexPath path;
+    List retlist;
+
+    retlist = indexpaths;
+    foreach (x, new_indexpaths) {
+	path = (IndexPath)CAR(x);
+	if (!indexpath_useless(path, retlist))
+	    retlist = nappend1(retlist, path);
+      }
+    return retlist;
+}
