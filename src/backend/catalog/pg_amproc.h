@@ -103,4 +103,14 @@ BKI_BEGIN
 #endif /* NOBTREE */
 BKI_END
 
+DATA(insert OID = 0 (405 421 449 1));
+DATA(insert OID = 0 (405 423 452 1));
+DATA(insert OID = 0 (405 426 450 1));
+DATA(insert OID = 0 (405 427 453 1));
+DATA(insert OID = 0 (405 428 451 1));
+DATA(insert OID = 0 (405 429 454 1));
+DATA(insert OID = 0 (405 430 455 1));
+DATA(insert OID = 0 (405 431 456 1));
+
+
 #endif PgAmprocIncluded
