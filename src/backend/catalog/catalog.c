@@ -20,6 +20,11 @@ static	char	catalog_c[] = "$Header$";
  *	catalog.c	- system catalog utility functions
  */
 
+/*
+ * XXX The global relation names should be merged with the ones defined
+ * XXX in lib/catalog/catname.c, someday.
+ */
+
 char	AGGREGATE_R[16] = "pg_aggregate";
 char	AM_R[16] = "pg_am";
 char	AMOP_R[16] = "pg_amop";
@@ -40,6 +45,7 @@ char	PARG_R[16] = "pg_parg";
 char	PROC_R[16] = "pg_proc";
 char	RELATION_R[16] = "pg_relation";
 char	RULE_R[16] = "pg_rule";
+char	RULEPLANS_R[16] = "pg_ruleplans";
 char	SERVER_R[16] = "pg_server";
 char	STATISTIC_R[16] = "pg_statistic";
 char	TIME_R[16] = "pg_time";
@@ -51,8 +57,8 @@ char	VERSION_R[16] = "pg_version";
 static	char	*SystemRelname[] = {
 	AGGREGATE_R, AM_R, AMOP_R, ATTRIBUTE_R, DATABASE_R, DEFAULTS_R, DEMON_R,
 	INDEX_R, INHERITPROC_R, INHERITS_R, IPL_R, LANGUAGE_R, LOG_R, MAGIC_R,
-	OPCLASS_R, OPERATOR_R, PARG_R, PROC_R, RELATION_R, RULE_R, SERVER_R,
-	STATISTIC_R, TIME_R, TYPE_R, USER_R, VARIABLE_R, VERSION_R
+	OPCLASS_R, OPERATOR_R, PARG_R, PROC_R, RELATION_R, RULE_R, RULEPLANS_R,
+	SERVER_R, STATISTIC_R, TIME_R, TYPE_R, USER_R, VARIABLE_R, VERSION_R
 };
 
 static	char	**Spp;			/* system relname pointer */
@@ -64,8 +70,8 @@ static	char	**Spp;			/* system relname pointer */
 static	char	IsDbdb[] = {
 	'\0', '\0', '\0', '\0', '\001', '\001', '\001',
 	'\0', '\0', '\0', '\0', '\0', '\001', '\001',
-	'\0', '\0', '\0', '\0', '\0', '\0', '\001',
-	'\0', '\001', '\0', '\001', '\001', '\0'
+	'\0', '\0', '\0', '\0', '\0', '\0', '\0',
+	'\001', '\0', '\001', '\0', '\001', '\001', '\0'
 };
 
 /*
