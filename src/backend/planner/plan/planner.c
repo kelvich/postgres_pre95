@@ -48,9 +48,6 @@ extern Plan	RecursiveQueryPlan();
  */
 #include "planner/prepqual.h"
 
-/*   normal qualification preprocessing */
-#include "planner/preprule.h"
-
 /*   for rule queries */
 #include "planner/preptlist.h"
 
