@@ -214,7 +214,7 @@ Prs2EStateInfo prs2EStateInfo;
 	 * XXX SOS XXX
 	 * What kind of 'feature' should we use ??
 	 */
-	feature = EXEC_RESULT;
+	feature = EXEC_RUN;
 	prs2RunOnePlan(CAR(onePlan), paramList, prs2EStateInfo, feature);
     }
 	
