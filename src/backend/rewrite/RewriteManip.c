@@ -256,7 +256,7 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 	    switch ( NodeType (this_node)) {
 	    case classTag(LispList):
 		HandleRIRAttributeRule(this_node, rt,tl, rt_index, attr_num,
-				       modified);
+				       modified,badpostquel);
 		break;
 	    case classTag(Var): {
 		int this_varno = (int)get_varno ( this_node );
