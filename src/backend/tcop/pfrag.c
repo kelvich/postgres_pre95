@@ -39,6 +39,7 @@
  * ----------------------------------------------------------------
  */
 extern Pointer *SlaveQueryDescsP;
+extern Pointer *SlaveRetStateP;
 extern ScanTemps RMakeScanTemps();
 extern Fragment RMakeFragment();
 extern Relation CopyRelDescUsing();
@@ -52,11 +53,11 @@ Fragment rootFragment;
     int			nparallel;
     int			i;
     int			nproc;
+    int			nfrag;
     LispValue		x;
     Fragment		fragment;
     Plan		plan;
     Plan		parentPlan;
-    Plan		shmPlan;
     List		parseTree;
     HashJoinTable	hashtable;
     List		subtrees;
@@ -98,6 +99,7 @@ Fragment rootFragment;
 	 */
 
 	nproc = 0;
+	nfrag = 0;
 	foreach (x, fragmentlist) {
 	   fragment = (Fragment)CAR(x);
 	   nparallel = get_frag_parallel(fragment);
@@ -122,13 +124,16 @@ Fragment rootFragment;
 
 	/* ----------------
 	 *	place fragments in shared memory here.  
+	 *	each fragment only put one copy of the its
+	 *	querydesc in the shared memory.  each slave process
+	 *	that executes this fragment will have to
+	 *	make a local copy of the querydesc to work on.
 	 * ----------------
 	 */
-	   for (i=0; i<nparallel; i++) {
-	      SlaveQueryDescsP[nproc+i] = (Pointer)
-	    		CopyObjectUsing(fragQueryDesc, ExecSMAlloc);
-	     }
+	   SlaveQueryDescsP[nfrag] = (Pointer)
+	   		CopyObjectUsing(fragQueryDesc, ExecSMAlloc);
 	   nproc += nparallel;
+	   nfrag++;
 	  }
 
 	parse_tree_result_relation(parseTree) = finalResultRelation;
@@ -142,7 +147,8 @@ Fragment rootFragment;
 	    V_Start(i);
 	}
 
-	ProcessQueryDesc((List)SlaveQueryDescsP[0]);
+	fragQueryDesc = (List)CopyObject((List)SlaveQueryDescsP[0]);
+	ProcessQueryDesc(fragQueryDesc);
 
 	/* ----------------
 	 *	wait for slaves to complete execution
@@ -193,9 +199,8 @@ Fragment rootFragment;
 	       else {
 		  tempRelationDescList = LispNil;
 		  for (i=0; i<nparallel; i++) {
-		     shmPlan = QdGetPlan((List)SlaveQueryDescsP[nproc+i]);
 		     shmTempRelationDesc=get_resultTmpRelDesc(
-					  get_retstate(shmPlan));
+				(ReturnState)SlaveRetStateP[nproc+i]);
 #ifndef PALLOC_DEBUG		     
 		     tempRelationDesc = CopyRelDescUsing(shmTempRelationDesc,
 							 palloc);

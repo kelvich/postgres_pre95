@@ -40,6 +40,7 @@
 #include "access/xact.h"
 #include "utils/log.h"
 #include "catalog/syscache.h"
+#include "executor/execdesc.h"
 
 /* ----------------
  *	parallel state variables
@@ -50,6 +51,7 @@ int     MyPid;			/* int representing the process id */
 int 	*MasterProcessIdP;	/* master backend process id */
 int 	*SlaveProcessIdsP;	/* array of slave backend process id's */
 Pointer *SlaveQueryDescsP;	/* array of pointers to slave query descs */
+Pointer *SlaveRetStateP;	/* array of pointers to slave return states */
 int     *SlaveAbortFlagP;	/* flag set during a transaction abort */
 
 TransactionState SharedTransactionState; /* current transaction info */
@@ -218,6 +220,8 @@ void
 SlaveMain()
 {
     List queryDesc;
+    int i;
+    int nproc;
 
     /* ----------------
      *  before we begin processing we have to register a SIGHUP
@@ -269,7 +273,15 @@ SlaveMain()
 	 *  get the query descriptor to execute.
 	 * ----------------
 	 */
-	queryDesc = (List) SlaveQueryDescsP[MyPid];
+	nproc = 0;
+	for (i=0; i<GetNumberSlaveBackends(); i++) {
+	    nproc += get_parallel(QdGetPlan((List) SlaveQueryDescsP[i]));
+	    if (MyPid < nproc) {
+	        queryDesc = (List)CopyObject((List)SlaveQueryDescsP[i]);
+		break;
+	      }
+	  }
+	Assert(i < GetNumberSlaveBackends());
 
 #if 0
 	/* ----------------
@@ -420,6 +432,7 @@ SlaveBackendsInit()
     SlaveProcessIdsP =  (int *)     ExecSMHighAlloc(nslaves * sizeof(int));
     SlaveAbortFlagP  =  (int *)     ExecSMHighAlloc(sizeof(int));
     SlaveQueryDescsP =  (Pointer *) ExecSMHighAlloc(nslaves * sizeof(Pointer));
+    SlaveRetStateP =  (Pointer *) ExecSMHighAlloc(nslaves * sizeof(Pointer));
 
     /* ----------------
      *	move the transaction system state data into shared memory
@@ -446,6 +459,7 @@ SlaveBackendsInit()
 	    if ((p = fork()) != 0) {
 		SlaveProcessIdsP[i] = p;
 		SlaveQueryDescsP[i] = NULL;
+		SlaveRetStateP[i] = NULL;
 	    } else {
 		MyPid = i;
 		
