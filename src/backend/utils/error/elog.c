@@ -4,6 +4,7 @@
  */
 #include <stdio.h>
 #include <strings.h>
+#include <time.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <varargs.h>
@@ -69,7 +70,7 @@ va_dcl
 	char		buf[ELOG_MAXLEN], line[ELOG_MAXLEN];
 	register char	*bp, *cp;
 	extern	int	errno, sys_nerr;
-	extern	char	*sys_errlist[], *ctime(), *sprintf();
+	extern	char	*sys_errlist[];
 #ifndef PG_STANDALONE
 	extern	FILE	*Pfout;
 #endif /* !PG_STANDALONE */
