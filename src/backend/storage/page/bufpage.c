@@ -573,3 +573,101 @@ PageManagerModeSet(mode)
 	else if (mode == OverwritePageManagerMode)
 		PageManagerShuffle = false;
 }
+
+/*
+ *----------------------------------------------------------------
+ * PageIndexTupleDelete
+ *----------------------------------------------------------------
+ *
+ *	This routine does the work of removing a tuple from an index page.
+ */
+
+PageIndexTupleDelete(page, offset)
+	Page page;
+	OffsetNumber offset;
+{
+	PageHeader phdr;
+	char *addr;
+	ItemId tup;
+	Size size;
+	char *locn;
+	int nbytes;
+
+	phdr = (PageHeader) page;
+
+	/* change offset number to offset index */
+	offset--;
+
+	tup = PageGetItemId(page, offset);
+	size = ItemIdGetLength(tup);
+	size = LONGALIGN(size);
+
+	nbytes = phdr->pd_lower - sizeof (*phdr);
+
+	/* location of deleted tuple data */
+	locn = (char *) (page + ItemIdGetOffset(tup));
+
+	/*
+	 * First, we want to get rid of the pd_linp entry for the index
+	 * tuple.  We copy all subsequent linp's back one slot in the
+	 * array.
+	 */
+
+	bcopy((char *) &(phdr->pd_linp[offset + 1]),
+	      (char *) &(phdr->pd_linp[offset]),
+	      nbytes);
+
+	/*
+	 * Now move everything between the old lower bound (end of linp
+	 * space) and the beginning of the deleted tuple forward, so that
+	 * space in the middle of the page is left free.
+	 */
+
+	/* end of linp space */
+	addr = (char *) (page + phdr->pd_lower);
+
+	bcopy(addr, addr + size, (int) (locn - addr));
+
+	/* adjust free space boundary pointers */
+	phdr->pd_upper += size;
+	phdr->pd_lower -= sizeof (ItemIdData);
+
+	/* finally, we need to adjust the linp entries that remain */
+	PageIndexTupleDeleteAdjustLinePointers(phdr, locn, size);
+}
+
+/*
+ *----------------------------------------------------------------
+ * PageIndexTupleDeleteAdjustLinePointers
+ *----------------------------------------------------------------
+ *
+ *	Once the line pointers and tuple data have been shifted around
+ *	on the page, we need to go down the line pointer vector and
+ *	adjust pointers to reflect new locations.  Anything that used
+ *	to be before the deleted tuple's data was moved forward by the
+ *	size of the deleted tuple.
+ *
+ *	This routine does the work of adjusting the line pointers.
+ *	Location is where the tuple data used to lie; size is how
+ *	much space it occupied.  We assume that size has been aligned
+ *	as required by the time we get here.
+ */
+
+PageIndexTupleDeleteAdjustLinePointers(phdr, location, size)
+	register PageHeader phdr;
+	char *location;
+	Size size;
+{
+	int i;
+
+	/* location is an index into the page... */
+	location -= (int) phdr;
+
+	for (i = PageGetMaxOffsetIndex(phdr); i >= 0; i--)
+	{
+		if (phdr->pd_linp[i].lp_off <= (unsigned) location)
+		{
+			phdr->pd_linp[i].lp_off += size;
+		}
+	}
+}
