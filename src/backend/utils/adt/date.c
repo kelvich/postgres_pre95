@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <strings.h>
+#include <time.h>
 
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
@@ -146,6 +147,24 @@ int32 intervalov ARGS((TimeInterval i1 , TimeInterval i2 ));
 AbsoluteTime intervalstart ARGS((TimeInterval i ));
 AbsoluteTime intervalend ARGS((TimeInterval i ));
 
+#if defined(PORTNAME_alpha) || \
+    defined(PORTNAME_hpux)
+char *
+bsdtimezone(tz, dst)
+    short tz;
+    short dst;
+{
+    static char tzbuf[40];
+    time_t	t = 0;
+
+    if (!strftime(tzbuf, sizeof(tzbuf), "%Z", localtime(&t)))
+	return((char *) NULL);
+    return(tzbuf);
+}
+#else /* bsd */
+#define	bsdtimezone	timezone
+#endif /* bsd */
+
 	    /* ========== USER I/O ROUTINES ========== */
 
 /*
@@ -166,8 +185,8 @@ abstimein(datetime)
 	    TimeDifferenceFromGMT = (struct timeb *)
 	      malloc( sizeof(struct timeb));
 	    ftime(TimeDifferenceFromGMT);
-	    timezonename = (char *) timezone ( TimeDifferenceFromGMT->timezone,
-			        TimeDifferenceFromGMT->dstflag ) ;
+	    timezonename = bsdtimezone(TimeDifferenceFromGMT->timezone,
+				       TimeDifferenceFromGMT->dstflag);
 	    TimeDiffIsInited = true;
 	}
 
@@ -227,8 +246,8 @@ abstimeout(datetime)
 	    TimeDifferenceFromGMT = (struct timeb *)
 	      malloc( sizeof(struct timeb));
 	    ftime(TimeDifferenceFromGMT);
-	    timezonename = (char *) timezone ( TimeDifferenceFromGMT->timezone,
-			        TimeDifferenceFromGMT->dstflag ) ;
+	    timezonename = bsdtimezone(TimeDifferenceFromGMT->timezone,
+				       TimeDifferenceFromGMT->dstflag);
 	    TimeDiffIsInited = true;
 	}
 
@@ -328,8 +347,7 @@ reltimein(timestring)
 char	*
 reltimeout(timevalue)
 	int32 /* RelativeTime */	timevalue;
-{	extern char	*sprintf();
-	char		*timestring;
+{	char		*timestring;
 	long		quantity;
 	register int	i;
 	int		unitnr;
