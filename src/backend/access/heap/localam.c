@@ -75,7 +75,20 @@ local_heap_open(relation)
 Relation relation;
 
 {
+    MemoryContext    oldCxt;
+    MemoryContext    portalContext;
+    Portal	     portal;
+
+    /* ----------------
+     *	get the blank portal and its memory context
+     * ----------------
+     */
+    portal = GetPortalByName(NULL);
+    portalContext = (MemoryContext) PortalGetHeapMemory(portal);
+
+    oldCxt = MemoryContextSwitchTo(portalContext);
     AddToRelList(relation);
+    (void) MemoryContextSwitchTo(oldCxt);
 }
 
 void
