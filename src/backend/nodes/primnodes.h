@@ -177,9 +177,8 @@ class (Var) public (Expr) {
 	AttributeNumber		varattno;
 	ObjectId		vartype;
 	List			vardotfields;
-	Index			vararrayindex;
+	List			vararraylist;
 	List			varid;
-	ObjectId		varelemtype;
  /* public: */
 };
 
@@ -299,4 +298,14 @@ class (Func) public (Expr) {
  /* public: */
 };
 
+class (Array) public (Expr) {
+ /* private: */
+	inherits(Expr);
+	ObjectId		arrayelemtype;
+	int			arrayelemlength;
+	bool			arrayelembyval;
+	int			arraylow;
+	int			arrayhigh;
+ /* public: */
+};
 #endif /* PrimNodesIncluded */
