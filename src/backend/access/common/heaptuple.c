@@ -539,6 +539,10 @@ fastgetattr(tup, attnum, att, isnull)
 	{
 	    return((char *) fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
 	}
+	else if (attnum == 0)
+	{
+ 	    return((char *) fetchatt(att, (Pointer) tup + tup->t_hoff));
+	}
 	else if (!HeapTupleAllFixed(tup))
 	{
 	    register int j = 0;
@@ -550,7 +554,7 @@ fastgetattr(tup, attnum, att, isnull)
 
     /*
      * if slow is zero, and we got here, we know that we have a tuple with
-     * no nulls.  We also might have to initialize the remainder of
+     * no nulls.  We also have to initialize the remainder of
      * the attribute cached offset values.
      */
 
@@ -565,7 +569,7 @@ fastgetattr(tup, attnum, att, isnull)
 
 	att[0]->attcacheoff = 0;
 
-	while ((j < attnum) && att[j]->attcacheoff > 0) j++;
+	while (att[j]->attcacheoff > 0) j++;
 
 	off = att[j-1]->attcacheoff + att[j-1]->attlen;
 
