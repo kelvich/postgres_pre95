@@ -98,7 +98,7 @@ then
     exit 1
 fi
 
-SYSID=$RES
+SYSID=`echo $RES | sed 's/ //g'`
 
 #
 # destroy the databases owned by the deleted user.  First, use this query
