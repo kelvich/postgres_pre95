@@ -81,21 +81,21 @@ VersionCreate (vname, bname)
    *  Creating the dummy version relation for triggering rules.
    */
   sprintf(query_buf, "retrieve into %s ( %s.all) where 1 =2", vname,bname);
-  pg_eval (query_buf);
+/*  pg_eval (query_buf); */
 
   /* 
    * Creating the ``v_added'' relation 
    */
   sprintf (query_buf, "retrieve into %s_added (%s.all) where 1 = 2", vname, bname);
   printf ("%s\n",query_buf);
-  pg_eval (query_buf);
+/*  pg_eval (query_buf); */
 
   /* 
    * Creating the ``v_deleted'' relation. 
    */
   sprintf (query_buf, "create %s_del(DOID = oid)", vname);
   printf ("%s\n", query_buf);
-  pg_eval (query_buf);
+/*  pg_eval (query_buf); */
 
 }
 
@@ -141,12 +141,12 @@ VersionAppend (vname,bname)
      Name vname,bname;
 {
   sprintf(rule_buf,
-	  "define rule %s_append is on append to %s do instead append \
+	  "define rewrite rule %s_append is on append to %s do instead append \
 %s_added(%s)",
 	  vname, vname, vname, attr_list);
 
   printf("%s\n",rule_buf);
-  pg_eval(rule_buf);
+/*  pg_eval(rule_buf); */
  
 }
 
@@ -166,13 +166,13 @@ VersionRetrieve(vname,bname)
 {
 
   sprintf(rule_buf, 
-	  "define rule %s_retrieve is on retrieve to %s do instead\n\
+	  "define rewrite rule %s_retrieve is on retrieve to %s do instead\n\
 retrieve (%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
-	  vname, vname, vname, bname, bname, vname, vname, bname,vname,vname);
+	  vname, vname, vname, bname, bname, vname, vname, bname,bname,vname);
 
   printf("%s\n",rule_buf);
 
-  pg_eval(rule_buf);
+/*  pg_eval(rule_buf); */
 
 }
 
@@ -194,7 +194,7 @@ VersionDelete(vname,bname)
 {
 
   sprintf(rule_buf,
-	  "define rule %s_delete is on delete to %s do instead \n \
+	  "define rewrite rule %s_delete is on delete to %s do instead \n \
 { \n\
 delete %s_added where current.oid = %s_added.oid\n\
 append %s_del(DOID = %s.oid) where current.oid = %s.oid \n}\n",
@@ -202,7 +202,7 @@ append %s_del(DOID = %s.oid) where current.oid = %s.oid \n}\n",
 
   printf("%s\n",rule_buf);
 
-  pg_eval(rule_buf);
+/*  pg_eval(rule_buf); */
 
 }
 
@@ -225,7 +225,7 @@ VersionReplace(vname, bname)
      Name vname,bname;
 {
   sprintf(rule_buf,
-	  "define rule %s_replace is on replace to %s do instead \n\
+	  "define rewrite rule %s_replace is on replace to %s do instead \n\
 { \n\
 replace %s_added(%s) where current.oid = %s_added.oid \n\
 append %s_del(DOID = %s.oid) where current.oid = %s.oid\n\
@@ -238,7 +238,7 @@ append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
 
   printf("%s\n",rule_buf);
 
-  pg_eval(rule_buf); 
+/*  pg_eval(rule_buf);  */
 
 }
 
