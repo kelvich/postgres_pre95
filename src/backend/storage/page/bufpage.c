@@ -417,8 +417,8 @@ PageRepairFragmentation(page)
 	}
 
 	/* sort itemIdData array...*/
-	qsort((char *) itemidbase, nused, sizeof(struct itemIdData),
-	      itemidcompare);
+	pg_qsort((char *) itemidbase, nused, sizeof(struct itemIdData),
+		 itemidcompare);
 
 	/* compactify page */
 	((PageHeader)page)->pd_upper = ((PageHeader)page)->pd_special;

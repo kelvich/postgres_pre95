@@ -36,7 +36,7 @@ LispValue lisp_qsort(the_list,    /* the list to be sorted */
       nodearray[i] = lispCopy(CAR(tmp));
 
     /* sort the array */
-    qsort(nodearray, num, sizeof(LispValue), compare);
+    pg_qsort(nodearray, num, sizeof(LispValue), compare);
     
     /* cons together the array elements */
     output = LispNil;

@@ -619,7 +619,7 @@ Stream xfunc_stream_qsort(root, bottom)
       nodearray[i] = tmp;
 
     /* sort the array */
-    qsort(nodearray, num, sizeof(LispValue), xfunc_stream_compare);
+    pg_qsort(nodearray, num, sizeof(LispValue), xfunc_stream_compare);
     
     /* paste together the array elements */
     output = nodearray[num - 1];

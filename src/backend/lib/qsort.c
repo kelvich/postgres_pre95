@@ -52,7 +52,7 @@ static char sccsid[] = "@(#)qsort.c	5.9 (Berkeley) 2/23/91";
 #define	THRESH	4
 
 void
-qsort(bot, nmemb, size, compar)
+pg_qsort(bot, nmemb, size, compar)
 	void *bot;
 	size_t nmemb, size;
 	int (*compar) ARGS((const void *, const void *));
