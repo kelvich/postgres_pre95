@@ -78,7 +78,7 @@ void main(argc,argv)
 
 void copy(i,o)
 {
-    char buf[2048];
+    char buf[8192];
     int n;
     while ((n = read(i,buf,sizeof(buf))) > 0) {
 	write(o,buf,n);
@@ -87,7 +87,7 @@ void copy(i,o)
 
 pgcopy(i,o)
 {
-    char buf[2048];
+    char buf[8192];
     int n;
     while ((n = p_read(i,buf,sizeof(buf))) > 0) {
 	write(o,buf,n);
