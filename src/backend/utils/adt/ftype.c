@@ -29,7 +29,7 @@ RcsId("$Header$");
 typedef struct _f262desc {
     ObjectId f_oid;
     uint32 f_seqno;
-    uint32 f_offset;
+    uint32 f_off;
     Relation f_heap;
     Relation f_index;
     OidInt4 f_oslow;
@@ -70,7 +70,7 @@ f262file(name, flags, mode)
     File vfd;
 
     /* open the data file */
-    length = name->vl_len - sizeof(name->vl_len);
+    length = VARSIZE(name) - VARHDRSZ;
     pathname = (char *) palloc(length + 1);
     (void) bcopy(VARDATA(name), pathname, length);
     pathname[length] = '\0';
@@ -146,7 +146,7 @@ pftp_write(host, port)
     values[0] = foid;
     while ((nbytes = read(fd, VARDATA(fdata), FBLKSIZ)) > 0) {
 	values[1] = fseqno;
-	VARSIZE(fdata) = nbytes + sizeof(fdata->vl_len);
+	VARSIZE(fdata) = nbytes + VARHDRSZ;
 	values[2] = PointerGetDatum(fdata);
 	htup = heap_formtuple(3, tupdesc, &values[0], &nulls[0]);
 	(void) heap_insert(r, htup, (double *) NULL);
@@ -213,7 +213,7 @@ pftp_read(host, port, foid)
 
 	d = (Datum) heap_getattr(htup, b, 3, f->f_hdesc, &n);
 	fdata = (struct varlena *) DatumGetPointer(d);
-	fbytes = fdata->vl_len - sizeof(fdata->vl_len);
+	fbytes = VARSIZE(fdata) - VARHDRSZ;
 	if (write(fd, VARDATA(fdata), fbytes) < fbytes) {
 	    elog(NOTICE, "pftp_read: write failed");
 	    (void) f262close(f);
@@ -244,7 +244,7 @@ pftp_open(host, port)
     int i;
 
     /* open the comm port */
-    length = host->vl_len - sizeof(host->vl_len);
+    length = VARSIZE(host) - VARHDRSZ;
     hostname = (char *) palloc(length + 1);
     (void) bcopy(VARDATA(host), hostname, length);
     hostname[length] = '\0';
@@ -334,9 +334,9 @@ fimport(name)
     nulls[0] = nulls[1] = nulls[2] = ' ';
     fseqno = 0;
     values[0] = foid;
-    while ((nbytes = FileRead(vfd, VARDATA(fdata), FBLKSIZ)) > 0) {
+    while ((nbytes = FileRead(vfd, (String)VARDATA(fdata), FBLKSIZ)) > 0) {
 	values[1] = fseqno;
-	VARSIZE(fdata) = nbytes + sizeof(fdata->vl_len);
+	VARSIZE(fdata) = nbytes + VARHDRSZ;
 	values[2] = PointerGetDatum(fdata);
 	htup = heap_formtuple(3, tupdesc, &values[0], &nulls[0]);
 	(void) heap_insert(r, htup, (double *) NULL);
@@ -376,7 +376,7 @@ f262open(foid)
     f = (f262desc *) palloc(sizeof(f262desc));
     f->f_oid = foid;
     f->f_seqno = 0;
-    f->f_offset = 0;
+    f->f_off = 0;
     f->f_heap = heap_openr(PGFILES);
     f->f_hdesc = RelationGetTupleDescriptor(f->f_heap);
     f->f_index = index_openr((Name)INDNAME);
@@ -406,13 +406,13 @@ f262seek(f, loc)
 
     /* try to avoid advancing the seek pointer */
     if (f->f_seqno == (loc / FBLKSIZ)) {
-	f->f_offset = loc % FBLKSIZ;
+	f->f_off = loc % FBLKSIZ;
 	return (loc);
     }
 
     /* oh well */
     f->f_seqno = loc / FBLKSIZ;
-    f->f_offset = loc % FBLKSIZ;
+    f->f_off = loc % FBLKSIZ;
     (void) index_endscan(f->f_iscan);
 
     /* initialize the scan key */
@@ -461,8 +461,8 @@ f262read(f, dbuf, nbytes)
 	} else {
 	    return (0);
 	}
-    } else if (f->f_offset >= FBLKSIZ) {
-	f->f_offset -= FBLKSIZ;
+    } else if (f->f_off >= FBLKSIZ) {
+	f->f_off -= FBLKSIZ;
 	f->f_seqno++;
 	res = index_getnext(f->f_iscan, ForwardScanDirection);
 	if (res != (RetrieveIndexResult) NULL) {
@@ -482,16 +482,16 @@ f262read(f, dbuf, nbytes)
 	}
 	d = (Datum) heap_getattr(htup, b, 3, f->f_hdesc, &n);
 	fdata = (struct varlena *) DatumGetPointer(d);
-	fbytes = fdata->vl_len - sizeof(fdata->vl_len) - f->f_offset;
+	fbytes = VARSIZE(fdata) - VARHDRSZ - f->f_off;
 	if (fbytes > nbytes)
 	    fbytes = nbytes;
-	bcopy(&fdata->vl_dat[f->f_offset], dbuf, fbytes);
+	bcopy(&fdata->vl_dat[f->f_off], dbuf, fbytes);
 	ReleaseBuffer(b);
 	dbuf += fbytes;
 	nread += fbytes;
 	nbytes -= fbytes;
 	if (nbytes > 0) {
-	    f->f_offset = 0;
+	    f->f_off = 0;
 	    f->f_seqno++;
 	    res = index_getnext(f->f_iscan, ForwardScanDirection);
 	    if (res != (RetrieveIndexResult) NULL) {
@@ -597,8 +597,8 @@ fexport(name, foid)
 
 	d = (Datum) heap_getattr(htup, b, 3, f->f_hdesc, &n);
 	fdata = (struct varlena *) DatumGetPointer(d);
-	fbytes = fdata->vl_len - sizeof(fdata->vl_len);
-	if (FileWrite(vfd, VARDATA(fdata), fbytes) < fbytes) {
+	fbytes = VARSIZE(fdata) - VARHDRSZ;
+	if (FileWrite(vfd, (String)VARDATA(fdata), fbytes) < fbytes) {
 	    elog(NOTICE, "fexport() write failed");
 	    (void) f262close(f);
 	    (void) FileClose(vfd);
@@ -661,7 +661,7 @@ fabstract(name, foid, blksize, offset, size)
 	    break;
 
 	/* write to disk file */
-	if ((nbytes = FileWrite(vfd, buf, size)) < size) {
+	if ((nbytes = FileWrite(vfd, (String)buf, size)) < size) {
 	    elog(NOTICE, "fabstract() cannot write to disk file");
 	    break;
 	}
