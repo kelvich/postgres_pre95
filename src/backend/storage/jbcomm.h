@@ -6,7 +6,7 @@
 /* $Header$ */
 
 #define JB_SERVER_PORT	5000
-#define JB_SERVER_MACH	"hermes.Berkeley.EDU"
+#define JB_SERVER_MACH	"bunion.CS.Berkeley.EDU"
 
 /*
  * Packet format:
