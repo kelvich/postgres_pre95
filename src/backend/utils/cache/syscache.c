@@ -242,6 +242,22 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena),
+      NULL },
+    { &Prs2RuleRelationName,			/* PRS2RULEID	*/
+	  1,
+	  { Anum_pg_prs2rule_prs2name,
+		0,
+		0,
+		0 },
+	  sizeof(FormData_pg_prs2rule),
+      NULL },
+    { &Prs2RuleRelationName,			/* PRS2EVENTREL	*/
+	  1,
+	  { ObjectIdAttributeNumber,
+		0,
+		0,
+		0 },
+	  sizeof(FormData_pg_prs2rule),
       NULL }
 };
  
