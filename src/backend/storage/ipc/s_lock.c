@@ -35,36 +35,44 @@ static
 tas_dummy()
 
 {
+	asm(".seg \"data\"");
 	asm(".seg \"text\"");
-	asm(".globl _S_LOCK");
-
-	asm("loop:"); /* top of spin */
+	asm(".global _tas");
+	asm("_tas:");
 
 	/*
 	 * Sparc atomic test and set (sparc calls it "atomic load-store")
 	 */
 
-	asm("ldstub  [%RETURN_VAL_REG], %RETURN_VAL_REG"); 
+	asm("ldstub [%r8], %r8");
 
 	/*
 	 * Did test and set actually do the set?
 	 */
 
-	asm("tst %RETURN_VAL_REG");
+	asm("tst %r8");
 
-	/*
-	 * if it didn't, just keep spinning
-	 */
-
-	asm("bne,a loop");
+	asm("be,a ReturnZero");
 
 	/*
 	 * otherwise, just return.
 	 */
 
+	asm("clr %r8");
+	asm("mov 0x1, %r8");
+	asm("ReturnZero:");
 	asm("retl");
 	asm("nop");
 }
+
+S_LOCK(addr)
+
+unsigned char *addr;
+
+{
+	while (tas(addr));
+}
+
 
 /*
  * addr should be as in the above S_LOCK routine
@@ -72,7 +80,7 @@ tas_dummy()
 
 S_UNLOCK(addr)
 
-char *addr;
+unsigned char *addr;
 
 {
 	*addr = 0;
@@ -80,7 +88,7 @@ char *addr;
 
 S_INIT_LOCK(addr)
 
-char *addr;
+unsigned char *addr;
 
 {
 	*addr = 0;
