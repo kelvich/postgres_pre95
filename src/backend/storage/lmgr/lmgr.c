@@ -68,23 +68,11 @@
 
 #define TupleLevelLockLimit	10
 
-extern bool	TransactionInitWasProcessed;	/* XXX style */
 extern ObjectId	MyDatabaseId;
 
 static LRelId	VariableRelationLRelId =
 { VariableRelationId, InvalidObjectId };
 
-/* ----------------
- * LockInfoIsValid --
- *	True iff lock information is valid.
- * ----------------
- */
-static bool
-LockInfoIsValid ARGS((
-		      LockInfo	info
-		      ));
-
-    
 /* ----------------
  *	RelationGetLRelId
  * ----------------
@@ -361,6 +349,17 @@ RelationSetLockForRead(relation)
     LOCKDEBUG_40;
 
     /* ----------------
+     * If we don't have lock info on the reln just go ahead and
+     * lock it without trying to short circuit the lock manager.
+     * ----------------
+     */
+    if (!LockInfoIsValid(linfo))
+    {
+        MultiLockReln(relation, READ_LOCK);
+	return;
+    }
+
+    /* ----------------
      *	return if lock already set, otherwise set lock.
      *  Have to make sure lock was set in current transaction
      *  otherwise we really don't have it!! mer 9 Jul 1991
@@ -409,13 +408,23 @@ RelationUnsetLockForRead(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
+    linfo = (LockInfo) relation->lockInfo;
+
+    /* ----------------
+     * If we don't have lock info on the reln just go ahead and
+     * release it.
+     * ----------------
+     */
+    if (!LockInfoIsValid(linfo))
+    {
+        MultiReleaseReln(relation, READ_LOCK);
+	return;
+    }
 
     /* -----------------
      * We will no longer have this lock
      * -----------------
      */
-    linfo = (LockInfo) relation->lockInfo;
-    linfo = (LockInfo) relation->lockInfo;
     linfo->flags &= ~ReadRelationLock;
 
     MultiReleaseReln(relation, READ_LOCK);
@@ -451,6 +460,17 @@ RelationSetLockForWrite(relation)
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_60;
     
+    /* ----------------
+     * If we don't have lock info on the reln just go ahead and
+     * lock it without trying to short circuit the lock manager.
+     * ----------------
+     */
+    if (!LockInfoIsValid(linfo))
+    {
+        MultiLockReln(relation, WRITE_LOCK);
+	return;
+    }
+
     /* ----------------
      *	return if lock already set, otherwise set lock.
      *  Have to make sure lock was set in current transaction
@@ -499,11 +519,23 @@ RelationUnsetLockForWrite(relation)
     if (LockingDisabled())
 	return;
 
+    linfo = (LockInfo) relation->lockInfo;
+
+    /* ----------------
+     * If we don't have lock info on the reln just go ahead and
+     * release it without updating linfo masks.
+     * ----------------
+     */
+    if (!LockInfoIsValid(linfo))
+    {
+        MultiReleaseReln(relation, WRITE_LOCK);
+	return;
+    }
+
     /* -----------------
      * We will no longer have this lock
      * -----------------
      */
-    linfo = (LockInfo) relation->lockInfo;
     linfo->flags &= ~WriteRelationLock;
 
     MultiReleaseReln(relation, WRITE_LOCK);
@@ -752,26 +784,4 @@ RelationUnsetLockForExtend(relation)
 	return;
 
     MultiReleaseReln(relation, EXTEND_LOCK);
-}
-
-/* ----------------
- *	LockInfoIsValid
- * ----------------
- */
-static bool
-LockInfoIsValid(info)
-    LockInfo	info;
-{
-    if (! PointerIsValid(info)) 
-	return false;
-    
-    if (! TransactionInitWasProcessed) 
-	return true;
-    
-    if (! info->initialized) 
-	return false;
-    
-    return (bool)
-	TransactionIdEquals(GetCurrentTransactionId(),
-			    &info->transactionIdData);
 }
