@@ -27,7 +27,9 @@
 
 /* ----------------
  *	pg_index definition.  cpp turns this into
- *	typedef struct FormData_pg_index
+ *	typedef struct FormData_pg_index.  The oid of the index relation
+ *	is stored in indexrelid; the oid of the indexed relation is stored
+ *	in indrelid.
  * ----------------
  */ 
 CATALOG(pg_index) {
