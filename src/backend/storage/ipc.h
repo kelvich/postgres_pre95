@@ -24,10 +24,9 @@
  * spinlock code for the architectures listed.
  *
  * This should also be done for:
- *	Digital Alpha AXP
- *	Intel 80386
  *	H-P PA-RISC
- * since these also have atomic test-and-set instructions.
+ * since these also have atomic test-and-set instructions or the 
+ * moral equivalent.
  */
 #if defined(PORTNAME_aix) || \
     defined(PORTNAME_alpha) || \
@@ -36,7 +35,8 @@
     defined(m68k) || \
     defined(mc68020) || \
     defined(mc68030) || \
-    defined(mc68040)
+    defined(mc68040) || \
+    (defined(__i386__) && defined(__GNUC__))
 #define HAS_TEST_AND_SET
 #endif
 
@@ -58,7 +58,6 @@
 typedef struct mutex	slock_t;
 
 #define S_LOCK(lock)		mutex_lock(lock)
-#define S_CLOCK(lock)		mutex_try_lock(lock)
 #define S_UNLOCK(lock)		mutex_unlock(lock)
 #define S_INIT_LOCK(lock)	mutex_init(lock)
 #else /* next */
