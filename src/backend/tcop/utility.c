@@ -294,9 +294,7 @@ ProcessUtility(command, args)
 		commandTag = "RENAME";
 	{
 		int	len;
-#ifndef	PERFECTPARSER
-		AssertArg(listp(args));
-#endif
+
 		len = length(args);
 #ifndef	PERFECTPARSER
 		AssertArg(len == 3 || len == 4);
@@ -322,7 +320,6 @@ ProcessUtility(command, args)
 	case DEFINE:
 		commandTag = "DEFINE";
 #ifndef	PERFECTPARSER
-		AssertArg(listp(args));
 		/*
 		 * Index is an integer; Type, etc. are atoms?!?
 		 */
@@ -445,14 +442,15 @@ ProcessUtility(command, args)
 		}
 			break;
 		case RULE:
-			elog(DEBUG,
-				"InvokeUtility: REMOVE RULE now unsupported");
-#if 0
-			rule_remove(CDR(args));
+#ifndef	PERFECTPARSER
+			AssertArg(length(args) == 2);
+			AssertArg(lispStringp(CADR(args)));
 #endif
+			RemoveRule(CString(CADR(args)));
 			break;
 		case P_TYPE:
 #ifndef	PERFECTPARSER
+			AssertArg(length(args) == 2);
 			AssertArg(lispStringp(CADR(args)));
 #endif
 			RemoveType(CString(CADR(args)));
