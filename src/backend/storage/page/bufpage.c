@@ -365,7 +365,7 @@ PageGetTempPage(page, specialSize)
 
 	/* set high, low water marks */
 	thdr->pd_lower = sizeof (PageHeaderData) - sizeof (ItemIdData);
-	thdr->pd_upper = pageSize - specialSize;
+	thdr->pd_upper = pageSize - LONGALIGN(specialSize);
 
 	return (temp);
 }
