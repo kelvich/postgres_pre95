@@ -19,13 +19,14 @@ removes the old indices and attempts to reconstruct them from the base
 class data.
 .PP
 Before running 
-.BR reindexdb ,
+.IR reindexdb ,
 make sure that the
 .IR postmaster
 process is not running on the database server host.
 .PP
-.BR Reindexdb
-can only be executed by the \*(PG superuser.
+.IR Reindexdb
+is a shell script that invokes the backend server directly.  Hence, it
+must be executed by the \*(PG super-user.
 .SH "SEE ALSO"
 initdb(unix),
 postmaster(unix).
@@ -36,6 +37,6 @@ solved by simply shutting down the
 process and restarting it.
 .PP
 If the base system catalog classes are damaged, 
-.BR reindexdb
+.IR reindexdb
 will generally print a cryptic message and fail.  In this case, 
 there is very little recourse but to reload the data.
