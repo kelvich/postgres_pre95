@@ -48,6 +48,7 @@
 #include "executor/execmisc.h"
 
 #include "executor/externs.h"
+#include "executor/x_hashjoin.h"
 
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
@@ -368,7 +369,7 @@ ExecHashJoin(node)
 		     */
                     inntuple = (TupleTableSlot)
 			ExecStoreTuple(curtuple, 
-                                       get_hj_TemporaryTupleSlot(hjstate),
+                                       get_hj_HashTupleSlot(hjstate),
 				       InvalidBuffer,
                                        false); /* don't pfree this tuple */
 		    
@@ -524,7 +525,7 @@ ExecInitHashJoin(node, estate, parent)
      * ----------------
      */
     ExecInitResultTupleSlot(estate, hjstate);    
-    ExecInitSavedTupleSlot(estate, hjstate);    
+    ExecInitOuterTupleSlot(estate, hjstate);    
     
     /* ----------------
      * initializes child nodes
@@ -548,9 +549,9 @@ ExecInitHashJoin(node, estate, parent)
     {
 	HashState      hashstate  = get_hashstate(hashNode);
 	TupleTableSlot slot 	  = get_cs_ResultTupleSlot(hashstate);
-	set_hj_TemporaryTupleSlot(hjstate, slot);
+	set_hj_HashTupleSlot(hjstate, slot);
     }
-    (void)ExecSetSlotDescriptor(get_hj_SavedTupleSlot(hjstate),
+    (void)ExecSetSlotDescriptor(get_hj_OuterTupleSlot(hjstate),
 				ExecGetTupType(outerNode));
 			      
     /* ----------------
@@ -635,8 +636,8 @@ ExecEndHashJoin(node)
      * ----------------
      */
     ExecClearTuple(get_cs_ResultTupleSlot(hjstate));
-    ExecClearTuple(get_hj_SavedTupleSlot(hjstate));
-    ExecClearTuple(get_hj_TemporaryTupleSlot(hjstate));
+    ExecClearTuple(get_hj_OuterTupleSlot(hjstate));
+    ExecClearTuple(get_hj_HashTupleSlot(hjstate));
 
 } 
 
@@ -684,11 +685,12 @@ ExecHashJoinOuterGetTuple(node, hjstate)
        outerreadBuf = ABSADDR(hashtable->readbuf); 
     batchno = curbatch - 1;
     
-    slot = ExecHashJoinGetSavedTuple(hjstate,
-				      outerreadBuf,
-				      outerbatches[batchno],
-				      &outerreadBlk,
-				      &outerreadPos);
+   slot = ExecHashJoinGetSavedTuple(hjstate,
+				    outerreadBuf,
+				    outerbatches[batchno],
+				    get_hj_OuterTupleSlot(hjstate),
+				    &outerreadBlk,
+				    &outerreadPos);
     
     set_hj_OuterReadPos(hjstate, outerreadPos);
     set_hj_OuterReadBlk(hjstate, outerreadBlk);
@@ -704,10 +706,11 @@ ExecHashJoinOuterGetTuple(node, hjstate)
  */
  
 TupleTableSlot
-ExecHashJoinGetSavedTuple(hjstate, buffer, file, block, position)
+ExecHashJoinGetSavedTuple(hjstate, buffer, file, tupleSlot, block, position)
     HashJoinState hjstate;    
     char 	  *buffer;
     File 	  file;
+    Pointer	  tupleSlot;
     int 	  *block;       /* return parameter */
     char 	  **position;  /* return parameter */
 {
@@ -746,7 +749,7 @@ ExecHashJoinGetSavedTuple(hjstate, buffer, file, block, position)
 
     return (TupleTableSlot)
 	ExecStoreTuple(heapTuple,
-		       get_hj_SavedTupleSlot(hjstate),
+		       tupleSlot,
 		       InvalidBuffer,
 		       false);
 }
@@ -888,6 +891,7 @@ ExecHashJoinNewBatch(hjstate)
     while ((slot = ExecHashJoinGetSavedTuple(hjstate,
 					    readBuf, 
 					    innerBatches[newbatch-1],
+					    get_hj_HashTupleSlot(hjstate),
 					    &readBlk,
 					    &readPos))
 	   && ! TupIsNull(slot)) {

@@ -203,18 +203,6 @@ ExecInitHash(node, estate, parent)
 {
     HashState		hashstate;
     Plan		outerPlan;
-    Pointer		hashkeys;
-    List		targetList;
-    int			len;
-    TupleDescriptor	tupType;
-    Pointer	        tupValue;
-    ObjectId		tempOid;
-    ObjectId		hashOid;
-    Relation		tempDesc;
-    Relation		hashedDesc;
-    ParamListInfo       paraminfo;
-    ExprContext	        econtext;
-    int			baseid;
     
     SO1_printf("ExecInitHash: %s\n",
 	       "initializing hash node");
@@ -828,7 +816,7 @@ ExecScanHashBucket(hjstate, bucket, curtuple, hjclauses, econtext)
 	
 	    inntuple = (TupleTableSlot)
 		ExecStoreTuple(heapTuple,	/* tuple to store */
-			       get_hj_TemporaryTupleSlot(hjstate), /* slot */
+			       get_hj_HashTupleSlot(hjstate), /* slot */
 			       InvalidBuffer,	/* tuple has no buffer */
 			       false);		/* do not pfree this tuple */
 	    
@@ -861,7 +849,7 @@ ExecScanHashBucket(hjstate, bucket, curtuple, hjclauses, econtext)
 	
 	inntuple = (TupleTableSlot)
 	    ExecStoreTuple(heapTuple,	  /* tuple to store */
-			   get_hj_TemporaryTupleSlot(hjstate), /* slot */
+			   get_hj_HashTupleSlot(hjstate), /* slot */
 			   InvalidBuffer, /* SP?? this tuple has no buffer */
 			   false);	  /* do not pfree this tuple */
 
