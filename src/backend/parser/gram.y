@@ -722,7 +722,7 @@ RemoveStmt:
 	;
 
 remove_type:
-	  Function | Type | Index | RuleType ;
+	  Function | Type | Index | RuleType | VIEW;
 
 RuleType:
 	 newruleTag RULE
