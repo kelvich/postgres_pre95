@@ -81,7 +81,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
      */
 
     if ((nb = RelationGetNumberOfBlocks(index)) != 0)
-	elog(WARN, "%.16s already contains data", index->rd_rel->relname);
+	elog(WARN, "%.16s already contains data", &(index->rd_rel->relname.data[0]));
 
     /* initialize the root page */
     buffer = ReadBuffer(index, P_NEW);
