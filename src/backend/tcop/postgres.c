@@ -114,7 +114,7 @@ main(argc, argv)
      * ----------------
      */
     flagC = flagQ = 0;
-    while ((flag = getopt(argc, argv, "CQOdpPBb:")) != EOF)
+    while ((flag = getopt(argc, argv, "CQOdpP:B:b:")) != EOF)
       switch (flag) {
 	case 'd':	/* -debug mode */
 	  /* DebugMode = true; */
