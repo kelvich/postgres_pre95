@@ -107,9 +107,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 }
 	 constant_qual = pull_constant_clauses (qual);
 	 qual = set_difference (qual,constant_qual);
-#ifdef PLANNER_FIX_OPIDS
 	 fix_opids (constant_qual);
-#endif
 	 sortkeys = relation_sortkeys (tlist);
 	 flattened_tlist = flatten_tlist (tlist);
 	 if (flattened_tlist)

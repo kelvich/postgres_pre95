@@ -169,15 +169,10 @@ create_scan_node (best_path,tlist)
 {
      /*Extract the relevant clauses from the parent relation and replace the */
      /* operator OIDs with the corresponding regproc ids. */
-#ifdef PLANNER_FIX_OPIDS
+
      LispValue scan_clauses = fix_opids(get_actual_clauses
 					(get_clauseinfo 
 					 (get_parent (best_path))));
-#else
-     LispValue scan_clauses = get_actual_clauses(get_clauseinfo 
-					 (get_parent (best_path)));
-#endif
-
      switch (get_pathtype (best_path)) {
 
 	case T_SeqScan : 
