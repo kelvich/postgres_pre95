@@ -7,7 +7,7 @@
 define type \(em define a new base data type 
 .SH SYNOPSIS
 .(l M
-\fBdefine type\fP typename \fB(\fR\fBexternallength\fR = (\fBnumber\fR | \fBvariable\fR),
+\fBdefine type\fP typename \fB(\fR\fBinternallength\fR = (\fBnumber\fR | \fBvariable\fR),
 	[ \fBexternallength\fR = (\fBnumber\fR | \fBvariable\fR)\fB,\fR ]
 	\fBinput\fR = input_function,
 	\fBoutput\fR = output_function
