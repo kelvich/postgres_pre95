@@ -1389,6 +1389,7 @@ _copyArray(from, to, alloc)
     newnode->arrayelemtype = 	from->arrayelemtype;
     newnode->arrayelemlength = 	from->arrayelemlength;
     newnode->arrayelembyval = 	from->arrayelembyval;
+    newnode->arrayndim = 	from->arrayndim;
     newnode->arraylow = 	from->arraylow;
     newnode->arrayhigh = 	from->arrayhigh;
     newnode->arraylen = 	from->arraylen;
@@ -1426,8 +1427,10 @@ _copyArrayRef(from, to, alloc)
     newnode->refelemlength = 	from->refelemlength;
     newnode->refelembyval = 	from->refelembyval;
 
-    (void) NodeCopy(from->refindexpr, &(newnode->refindexpr), alloc);
+    (void) NodeCopy(from->refupperindexpr, &(newnode->refupperindexpr), alloc);
+    (void) NodeCopy(from->reflowerindexpr, &(newnode->reflowerindexpr), alloc);
     (void) NodeCopy(from->refexpr, &(newnode->refexpr), alloc);
+    (void) NodeCopy(from->refassgnexpr, &(newnode->refassgnexpr), alloc);
 
     (*to) = newnode;
     return true;
