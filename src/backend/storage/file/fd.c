@@ -953,6 +953,12 @@ int whence;
 	    return sfdP->seekPos;
 	}
     }
+
+    /*
+     * probably never gets here, but to keep lint happy...
+     */
+
+    return(0);
 }
 
 long

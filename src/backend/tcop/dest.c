@@ -75,6 +75,12 @@ void
 	return donothing;
 	break;
     }	
+
+    /*
+     * never gets here, but DECstation lint appears to be stupid...
+     */
+
+    return donothing;
 }
 
 /* ----------------
