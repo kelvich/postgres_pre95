@@ -2,6 +2,8 @@
  * pqpacket.c -- routines for reading and writing data packets
  *	sent/received by POSTGRES clients and servers
  *
+ * $Header$
+ *
  * This is the module that understands the lowest-level part
  * of the communication protocol.  All of the trickyness in
  * this module is for making sure that non-blocking IO in
