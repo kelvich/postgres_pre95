@@ -1,190 +1,30 @@
 /* ----------------------------------------------------------------
- *   FILE
- *	RuleHandler.c
- *	
- *   NOTES
- *
- *   IDENTIFICATION
- * $Header$
+ * $RCSfile$
+ * $Revision$
+ * $State$
  * ----------------------------------------------------------------
  */
 
+/****************************************************/
+
 #include "tmp/postgres.h"
-
-/*************************************************************
-
-  LockTypeRetrieveAction = "on retrieve do x" where x = {append,delete,replace}
-  LockTypeRetrieveWrite = "on retrieve do x" where x = "replace current"
-  LockTypeRetrieveRelation = "on retrieve do instead retrieve"
-
-#define LockTypeRetrieveAction		((Prs2LockType) 'r')
-#define LockTypeAppendAction		((Prs2LockType) 'a')
-#define LockTypeDeleteAction		((Prs2LockType) 'd')
-#define LockTypeReplaceAction		((Prs2LockType) 'u')
-#define LockTypeRetrieveWrite		((Prs2LockType) 'R')
-#define LockTypeAppendWrite		((Prs2LockType) 'A')
-#define LockTypeDeleteWrite		((Prs2LockType) 'D')
-#define LockTypeReplaceWrite		((Prs2LockType) 'U')
-#define LockTypeRetrieveRelation	((Prs2LockType) 'V')
-
-**************************************************************/
-
-#include "access/ftup.h";
-#include "access/heapam.h"		/* access methods like amopenr */
-#include "access/htup.h"
-#include "access/itup.h"		/* for T_LOCK */
-#include "parser/atoms.h"
-#include "parser/parse.h"
-#include "parser/parsetree.h"
-#include "rules/prs2.h"
-#include "rules/prs2locks.h"
-#include "utils/fmgr.h"
 #include "utils/log.h"
-#include "utils/rel.h"		/* for Relation stuff */
+#include "nodes/pg_lisp.h"		/* for LispValue and lisp support */
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"		/* for accessors to varnodes etc */
 
-#include "nodes/pg_lisp.h"
-#include "nodes/relation.h"
-#include "nodes/primnodes.a.h"
-    
-#include "catalog/catname.h"
-#include "catalog/syscache.h"		/* for SearchSysCache ... */
-    
-#include "catalog_utils.h"
+#include "rules/prs2.h"			/* XXX - temporarily */
+#include "rules/prs2locks.h"		/* XXX - temporarily */
 
-extern LispValue TheseLocksWereTriggered ( /* RuleLock, LispValue */ );
-/*
- *	RelationHasLocks
- *	- returns true iff a relation has some locks on it
- */
-extern RuleLock prs2GetLocksFromTuple();
+#include "parser/parse.h"		/* for RETRIEVE,REPLACE,APPEND ... */
+#include "parser/parsetree.h"		/* for parsetree manipulation */
 
-RuleLock
-RelationGetRelationLocks ( relation )
-     Relation relation;
-{
-    HeapTuple relationTuple;
-    RuleLock relationLocks;
+#include "./RewriteSupport.h"	
+#include "./RewriteDebug.h"
+#include "./RewriteManip.h"
+#include "./RewriteHandler.h"
 
-    relationTuple = SearchSysCacheTuple(RELNAME,
-		       &(RelationGetRelationTupleForm(relation)->relname),
-		       (char *) NULL,
-		       (char *) NULL,
-		       (char *) NULL);
-
-    relationLocks = prs2GetLocksFromTuple( relationTuple,
-					   InvalidBuffer,
-					   (TupleDescriptor) NULL );
-    return(relationLocks);
-}
-
-bool
-RelationHasLocks ( relation )
-     Relation relation;
-{
-    RuleLock relationLock = RelationGetRelationLocks (relation);
-
-    if ( relationLock == NULL )
-      return (false );
-    else
-      return ( true );
-    
-}
-
-/* 
- * RuleIdGetRuleParsetrees
- *
- * given a rule oid, look it up and return the prs2text
- *
- */
-
-List
-RuleIdGetRuleParsetrees ( ruleoid )
-     OID ruleoid;
-{
-    HeapTuple 		ruletuple;
-    char 		*ruleaction = NULL;
-    bool		action_is_null = false;
-    Relation 		ruleRelation = NULL;
-    TupleDescriptor	ruleTupdesc = NULL;
-    List    		ruleparse = NULL;
-    List		i = NULL;
-
-    ruleRelation = amopenr ("pg_prs2rule");
-    ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
-    ruletuple = SearchSysCacheTuple ( RULOID,  ruleoid );
-    ruleaction = amgetattr ( ruletuple, InvalidBuffer , 7 , 
-			    ruleTupdesc , &action_is_null ) ;
-    
-    ruleaction = fmgr (F_TEXTOUT,ruleaction );
-    ruleparse = (List)StringToPlan(ruleaction);
-    
-    if ( action_is_null ) {
-	printf ("action is empty !!!\n");
-	return ( LispNil );
-    } else {
-	foreach ( i , ruleparse ) {
-	    Print_parse ( CAR(i) );
-	}
-    }
-    fflush(stdout);
-
-    amclose ( ruleRelation );
-    return (ruleparse);
-}
-
-List
-RuleIdGetRuleParse (ruleoid)
-     OID ruleoid;
-{
-    /* XXX - assume only one parsetree */
-    elog(WARN,"calling unsupported routine RuleIdGetRuleParse");
-    return (CAR(RuleIdGetRuleParsetrees(ruleoid)));
-}
-
-/*
- * offset all the varnos in the rule parsetree by length
- * of the user parsetree - 2 ( -2 is because of current and new )
- *
- */
-OffsetAllVarNodes ( trigger_varno, parsetree, offset )
-     int trigger_varno;
-     List parsetree;
-     int offset;
-{
-    List i;
-
-    foreach ( i , parsetree ) {
-	Node thisnode = (Node)CAR(i);
-	if ( thisnode && IsA(thisnode,Var)) {
-	    if (get_varno (thisnode) == 1) {
-		/* *CURRENT* */
-		printf("taking care of a varnode pointing to *CURRENT*");
-		set_varno ( thisnode, trigger_varno );
-		CAR ( get_varid (thisnode) ) =
-		  lispInteger ( trigger_varno );
-		/* XXX - should fix the varattno too !!! */
-	    } else if (get_varno(thisnode) == 2 ) {
-		/* *NEW* 
-		 *
-		 * should take the right side out of the corresponding
-		 * targetlist entry from the user query
-		 * and stick it here
-		 */
-		elog(NOTICE,"NEW not properly taken care of");
-	    } else {
-		set_varno ( thisnode, get_varno(thisnode) + offset );
-
-		CAR( get_varid ( thisnode ) ) =
-		  lispInteger (get_varno(thisnode) );
-	    }
-	}
-	if ( thisnode && IsA(thisnode,Param) ) {
-	    /* currently only *CURRENT* */
-	}
-	if ( thisnode && thisnode->type == PGLISP_DTPR )
-	  OffsetAllVarNodes(trigger_varno,(List)thisnode,offset);
-    }
-}
+/*****************************************************/
 
 /*
  * ChangeTheseVars
@@ -205,22 +45,27 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement )
 
     foreach ( i , parser_subtree ) {
 	Node temp = (Node)CAR(i);
-	
-	if (IsA(temp,Var) &&
-	    ((get_varattno((Var)temp) == varattno )||
-	     (varattno == -1 )) && 
-	    (get_varno((Var)temp) == varno ) ) {
-
-	    CAR(i) = replacement;
-	    /*
-	    CDR(last(replacement)) = CDR(i);
-	    CDR(i) = CDR(replacement);
-	    */
+	if (temp ) {
+	    if (IsA(temp,Var) &&
+		((get_varattno((Var)temp) == varattno )||
+		 (varattno == -1 )) && 
+		(get_varno((Var)temp) == varno ) ) {
+		
+		CAR(i) = replacement;
+		/*
+		  CDR(last(replacement)) = CDR(i);
+		  CDR(i) = CDR(replacement);
+		  */
+	    }
+	    if (  temp->type == classTag(LispList))
+	      ChangeTheseVars ( varno, varattno, (List)temp, replacement );
 	}
-	if ( temp->type == PGLISP_DTPR )
-	  ChangeTheseVars ( varno, varattno, (List)temp, replacement );
     }
 }
+
+/*
+ * used only by procedures, 
+ */
 
 ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement )
      int varno;
@@ -296,26 +141,15 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement )
     }
 
 }
-StickOnUpperAndLower ( user, rule )
-     List user;
-     List rule;
-{
-    List i = NULL;
 
-    foreach ( i , rule ) {
-	List entry = CAR(i);
-	if ((! strcmp ( get_resname (CAR(entry)), "u") ) ||
-	    (! strcmp ( get_resname (CAR(entry)), "l") )      )
-	  CDR(last(user)) = lispCons ( entry, LispNil );
-    }
-    
-}
 /*
- * walk the targetlist,
- * fixing the resnodes resnos 
- * as well as removing "extra" resdoms
- * caused by the replacement of varnodes by
- * entire "targetlists"
+ * FixResdom
+ * - walk the targetlist, fixing the resnodes resnos 
+ * as well as removing "extra" resdoms caused by the replacement 
+ * of varnodes by entire "targetlists"
+ *
+ * XXX - should only be called on "retrieve" targetlists
+ *	 otherwise badness happens
  */
 
 FixResdom ( targetlist )
@@ -468,79 +302,6 @@ TheseLocksWereTriggered ( rulelocks , parse_subtree, event_type , varno )
     return ( real_locks );
 }
 
-Print_quals ( quals )
-     List quals;
-{
-    printf("\nQualifications = \n");
-    lispDisplay(quals,0);
-    fflush(stdout);
-}
-Print_targetlist ( tlist )
-     List tlist;
-{
-    printf("\nTargetlist = \n");
-    lispDisplay(tlist,0);
-    fflush(stdout);
-}
-Print_rangetable ( rtable )
-     List rtable;
-{
-    printf("\nRangetable = \n");
-    lispDisplay(rtable,0);
-    fflush(stdout);
-}
-
-Print_parse ( parsetree )
-     List parsetree;
-{
-    List quals = parse_qualification(parsetree);
-    List tlist = parse_targetlist(parsetree);
-    List rtable = root_rangetable (parse_root (parsetree));
-    
-    Print_rangetable(rtable);
-    Print_targetlist(tlist);
-    Print_quals(quals);
-    fflush(stdout);
-}
-
-void
-PrintRuleLock ( rlock )
-     Prs2OneLock rlock;
-{
-    printf("#S(RuleLock ");
-    printf(":rulid %ld ",rlock->ruleId);
-    printf(":locktype %c ", rlock->lockType );
-    printf(":attnum %d )", rlock->attributeNumber );
-    fflush(stdout);
-}
-
-void
-PrintRuleLockList ( rlist )
-     List rlist;
-{
-    Prs2OneLock temp = NULL;
-    List j = NULL;
-    foreach ( j , rlist ) {
-	temp = (Prs2OneLock)CAR(j);
-	PrintRuleLock ( temp );
-    }
-    printf("\n");
-}
-
-void
-AddRuleQualifications ( user_parsetree , rule_qual )
-     List user_parsetree;
-     List rule_qual;
-{
-    if ( parse_qualification(user_parsetree) == NULL )
-      parse_qualification(user_parsetree) = rule_qual;
-    else
-      parse_qualification ( user_parsetree ) =
-	lispCons ( lispInteger(AND),  
-		  lispCons ( parse_qualification(user_parsetree),
-			    lispCons ( rule_qual, LispNil )));    
-}
-
 List
 ModifyVarNodes( retrieve_locks , user_rt_length , current_varno , 
 	        to_be_rewritten , user_tl , user_rt ,user_parsetree )
@@ -557,6 +318,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
     List k			= NULL;
     List ruletrees		= NULL;
     List additional_queries	= NULL; /* set by locktyperetrieveaction */
+    List user_qual		= parse_qualification(user_parsetree);
 
     foreach ( i , retrieve_locks ) {
 	Prs2OneLock this_lock = (Prs2OneLock)CAR(i);
@@ -580,10 +342,20 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    if ( this_lock->attributeNumber == -1 )
 	      elog(NOTICE, "firing a multi-attribute rule");
 
+	    /****************************************
+
+	      XXX - old version
+
 	    OffsetAllVarNodes ( current_varno, 
-			        ruleparse, 
-			        user_rt_length -2 );
-	    
+			       ruleparse, 
+			       user_rt_length -2 );
+			       
+	     *****************************************/
+	    HandleVarNodes ( ruleparse,
+			     user_parsetree,
+			     current_varno,
+			     user_rt_length - 2 );
+			     
 	    switch ( this_lock->lockType ) {
 	      case LockTypeRetrieveWrite: 
 		/* ON RETRIEVE DO REPLACE CURRENT */
@@ -612,6 +384,10 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		    ChangeTheseVars ( current_varno, 
 				     attno,
 				     user_tl,
+				     tlist_expr );
+		    ChangeTheseVars ( current_varno, 
+				     attno,
+				     user_qual,
 				     tlist_expr );
 		} /* foreach */
 		break;
@@ -642,14 +418,17 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	      default:
 		elog(WARN,"on retrieve do <action>, action unknown");
 	    }
-	    
+
+	    AddQualifications ( user_parsetree , 
+			        rule_qual ,
+			        0 );
+
 	    /* add the additional rt_entries */
 	    CDR(last(user_rt)) = 
 	      CDR(CDR(rule_rangetable));
 
 	    /* XXX - clean up redundant rt_entries ??? */
 
-	    AddRuleQualifications ( user_parsetree , rule_qual );
 	    
 	    printf ("\n");
 	    printf ("*************************\n");
@@ -662,31 +441,23 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 
     return ( additional_queries );
 }
-List
-ModifyDeleteQueries( drop_user_query )
-     bool *drop_user_query;
-{
-    return(NULL);
-}
 
-List
-MatchDeleteLocks ( )
-{
-
-}
 /*
  * MatchUpdateLocks
  * - match the list of locks, 
  */
 List
-MatchUpdateLocks ( command , rulelocks )
+MatchUpdateLocks ( command , rulelocks , current_varno , user_parsetree )
      int command;
      RuleLock rulelocks;
+     int current_varno;
+     List user_parsetree;
 {
     List real_locks 		= NULL;
     Prs2OneLock oneLock		= NULL;
     int nlocks			= 0;
     int i			= 0;
+    List actual_replace_reln	= NULL;
 
     Assert ( rulelocks != NULL ); /* we get called iff there is some lock */
 
@@ -698,6 +469,16 @@ MatchUpdateLocks ( command , rulelocks )
      * user_command must be a replace or append
      * XXX - (does it matter which ???)
      */
+
+    Assert ( user_parsetree != NULL );
+
+    actual_replace_reln = 
+      root_result_relation ( parse_root ( user_parsetree ) );
+
+    if ( CInteger ( actual_replace_reln ) != current_varno ) {
+	return ( real_locks );
+    }
+
     nlocks = prs2GetNumberOfLocks ( rulelocks );
     Assert (nlocks <= 16 );
 
@@ -714,14 +495,6 @@ MatchUpdateLocks ( command , rulelocks )
 
 }
 
-List
-ProduceOneAction( original_action )
-     List original_action;
-{
-    printf("\nNow modifying this rule-action : \n");
-    Print_parse ( original_action );
-    return ( NULL );
-}
 /*
  * ModifyUpdateNodes
  * RETURNS:	list of additional parsetrees
@@ -733,15 +506,19 @@ ProduceOneAction( original_action )
  *			
  */
 List
-ModifyUpdateNodes( update_locks , user_parsetree, drop_user_query )
+ModifyUpdateNodes( update_locks , user_parsetree, 
+		  drop_user_query ,current_varno )
      List update_locks;
      List user_parsetree;
      bool *drop_user_query;
+     int current_varno;
 {
+    List user_rt	= root_rangetable(parse_root(user_parsetree));
     List i		= NULL;
     List j		= NULL;
     List new_queries	= NULL;
     List ruletrees	= NULL;
+    int offset_trigger  = 0;
 
     Assert ( update_locks != NULL ); /* otherwise we won't have been called */
 
@@ -757,13 +534,60 @@ ModifyUpdateNodes( update_locks , user_parsetree, drop_user_query )
 	ruletrees = RuleIdGetRuleParsetrees ( this_lock->ruleId );
 	foreach ( j , ruletrees ) {
 	    List rule_action = CAR(j);
-	    List final_action = NULL;
+	    List rule_tlist = parse_targetlist(rule_action);
+	    List rule_qual = parse_qualification(rule_action);
+	    List rule_root = parse_root(rule_action);
+	    List rule_rt = root_rangetable(rule_root);
+	    int rule_command = root_command_type(rule_root);
+	    
+	    offset_trigger = length(rule_rt) - 2 + current_varno;
+	
+	    switch(rule_command) {
+		case REPLACE:
+		case APPEND:
+	    	    /* ModifyUpdateTlist( rule_tlist , user_parsetree ,
+			       current_varno ); */
+		    HandleVarNodes ( rule_tlist , user_parsetree,
+				     offset_trigger, -2 );
+		    root_result_relation(rule_root) =
+			lispInteger ( CInteger(root_result_relation(rule_root))
+				      - 2 );
+		    HandleVarNodes ( rule_qual, user_parsetree, 
+				     offset_trigger,
+				     -2 );
+		    break;
+		case RETRIEVE:
+		    elog(NOTICE,"on <update> do retrieve not supported");
+		    break;
+		case DELETE:
+		    elog(NOTICE,"on <update> do delete not supported");
+		    break;
+		default:
+		    elog(NOTICE,"unsupported action");
+	    }
 
-	    final_action = ProduceOneAction ( rule_action );
-	    new_queries = nappend1 ( new_queries, final_action );
+	    FixRangeTable ( rule_root, user_rt );
+
+#ifdef OLD_CODE
+	    /* get rid of current and new from rule rangetable */
+
+    	    root_rangetable(rule_root) = 
+		CDR(CDR(rule_rt));
+
+	    /* add the additional rt_entries */
+
+	    CDR(last(rule_rt)) = user_rt;
+#endif
+
+	    AddQualifications(rule_action, 
+			     parse_qualification(user_parsetree),
+			     length(rule_rt) );
+
+	    new_queries = nappend1 ( new_queries, rule_action );
 	}
 	
     }
+
     return(new_queries);
 }
 /*
@@ -788,7 +612,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
     List retrieve_locks 	= NULL;
     List update_locks		= NULL;
     List delete_locks		= NULL;
-    List additional_queries = NULL;
+    List additional_queries 	= NULL;
+    List i 			= NULL;
     List user_tlist = parse_targetlist(user_parsetree);
 
 #ifdef NOTYET
@@ -858,7 +683,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 	break;
       case APPEND:
       case REPLACE:
-	update_locks = MatchUpdateLocks ( command , rlocks );
+	update_locks = MatchUpdateLocks ( command , rlocks , current_varno,
+					  user_parsetree );
 	if ( update_locks ) {
 	    List new_queries = NULL;
 	    printf ( "\nUpdate triggered the following locks:\n");
@@ -867,7 +693,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 	    new_queries = 
 	      ModifyUpdateNodes( update_locks,
 				 user_parsetree,
-				 drop_user_query );
+				 drop_user_query,
+				 current_varno);
 
 	    additional_queries = append (additional_queries, new_queries );
 	}
@@ -882,7 +709,7 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
      * ALSO: what do we do if the retrieve rule says "instead"
      * but another rule ( that is also active on this query ) doesn't
      */
-    
+
     return ( additional_queries );
 }
 
@@ -890,6 +717,8 @@ List
 QueryRewrite ( parsetree )
      List parsetree;
 {
+    List new_parsetree 		= NULL;
+    List new_rewritten 		= NULL;
     List user_root		= NULL;
     List user_rangetable    	= NULL;
     int  user_command		;
@@ -949,25 +778,59 @@ QueryRewrite ( parsetree )
 						 this_relation_varno++ ,
 						 user_command ,
 						 &drop_user_query );
-	    if ( drop_user_query == false ) {
+	    if ( drop_user_query == false && additional_queries != NULL ) {
 		/* start the output parse list with the
 		 * user query since no qualifying
 		 * "instead" clauses were found
 		 */
 		output_parselist = lispCons ( parsetree, LispNil );
 	    }
-	    if ( additional_queries != NULL )
-	      foreach ( additional_query, additional_queries ) {
-		  List additional_query_parsetree = CAR(additional_query);
-		  nappend1 ( output_parselist , additional_query_parsetree );
-	      }
+	    if ( additional_queries != NULL ) {
+		List i = NULL;
+		foreach ( i , additional_queries ) {
+		    new_parsetree = CAR(i);
+		    new_rewritten = NULL;
+		    
+		    if ( new_parsetree != NULL ) 
+		      new_rewritten = QueryRewrite ( new_parsetree );
+		    if ( new_rewritten == NULL ) {
+			/* if nothing in fact got changed */
+			output_parselist = 
+			  nappend1 ( output_parselist , new_parsetree );
+		    } else {
+		        output_parselist = append ( output_parselist,
+						    new_rewritten );
+		    }
+		} /* rewrite any new queries */
+	    } /* if there are new queries */
 	} 
 	
     }
-
+    
     return ( output_parselist ); 
 
 }
 
 	
     
+
+
+/*****************************************************
+  
+  the following routines still need to be written
+
+ *****************************************************/
+
+List
+ModifyDeleteQueries( drop_user_query )
+     bool *drop_user_query;
+{
+    return(NULL);
+}
+
+List
+MatchDeleteLocks ( )
+{
+	return(NULL);
+}
+
