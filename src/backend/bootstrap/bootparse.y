@@ -22,7 +22,6 @@ static	char ami_parser_y[] =
 #include "nodes/pg_lisp.h"
 
 #undef BOOTSTRAP
-#include "bootstrap.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -49,7 +48,8 @@ static OID objectid;
 %}
 
 %token OPEN XCLOSE XCREATE P_RELN INSERT_TUPLE QUIT
-%token ID STRING FLOAT INT XDEFINE MACRO INDEX ON USING
+%token ID STRING FLOAT INT XDEFINE MACRO
+%token XDECLARE INDEX ON USING XBUILD INDICES
 %token COMMA COLON EQUALS LPAREN RPAREN AS XIN XTO
 %token XDESTROY XRENAME RELATION ATTR ADD
 %token DISPLAY OBJ_ID SHOW BOOTSTRAP NULLVAL
@@ -78,11 +78,12 @@ Query :
 	| DestroyStmt
 	| InsertStmt 
 	| QuitStmt
-	| DefineIndexStmt
+	| DeclareIndexStmt
 	| RenameRelnStmt
 	| RenameAttrStmt
 	| DisplayStmt
 	| MacroDefStmt
+	| BuildIndsStmt
 	;
 
 OpenStmt: 
@@ -209,8 +210,8 @@ QuitStmt:
 		}
 	;
 
-DefineIndexStmt:
-	  XDEFINE INDEX ident ON ident USING ident LPAREN index_params RPAREN
+DeclareIndexStmt:
+	  XDECLARE INDEX ident ON ident USING ident LPAREN index_params RPAREN
 		{
 		  List params;
 
@@ -224,6 +225,9 @@ DefineIndexStmt:
 		  DO_END;
 		}
 	;
+
+BuildIndsStmt:
+	  XBUILD INDICES	{ build_indices(); }
 
 index_params:
 	index_on ident

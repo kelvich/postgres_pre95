@@ -17,13 +17,13 @@
 #include <signal.h>
 
 #include "tmp/postgres.h"
+#include "tmp/miscadmin.h"
 #include "tcop/tcopprot.h"
 
 RcsId("$Header$");
 
 #include "access/heapam.h"
 #include "access/tqual.h"
-#include "tmp/miscadmin.h"
 #include "utils/exc.h"	/* for ExcAbort and <setjmp.h> */
 #include "utils/fmgr.h"
 #include "utils/mcxt.h"
@@ -32,7 +32,6 @@ RcsId("$Header$");
 #include "catalog/pg_type.h"
 
 #undef BOOTSTRAP
-#include "bootstrap.h"
 
 /* ----------------
  *	prototypes
@@ -129,20 +128,37 @@ int		numattr;		/* number of attributes for cur. rel */
 jmp_buf		Warn_restart;
 int		DebugMode;
 static int UseBackendParseY = 0;
+GlobalMemory	nogc = (GlobalMemory) NULL;	/* special no-gc mem context */
 
 extern bool override;
 
 extern	int	optind;
 extern	char	*optarg;
 
+/*
+ *  At bootstrap time, we first declare all the indices to be built, and
+ *  then build them.  The IndexList structure stores enough information
+ *  to allow us to build the indices after they've been declared.
+ */
+
+typedef struct _IndexList {
+    Name		il_heap;
+    Name		il_ind;
+    AttributeNumber	il_natts;
+    AttributeNumber	*il_attnos;
+    uint16 		il_nparams;
+    Datum *		il_params;
+    FuncIndexInfo 	*il_finfo;
+    LispValue 		il_predicate;
+    struct _IndexList 	*il_next;
+} IndexList;
+
+static IndexList *ILHead = (IndexList *) NULL;
+
 
 /* ----------------------------------------------------------------
  *			misc functions
  * ----------------------------------------------------------------
- */
-/* ----------------
- *	hack so linker links 
- * ----------------
  */
 
 /* ----------------
@@ -863,8 +879,9 @@ InsertOneNull(i)
 /* ----------------
  *	defineindex
  *
- *	This defines an index on the oid attribute of the specified
- *	heap relation.
+ *	This defines an index on the specified heap relation.  The index
+ *	is not yet populated; that happens at the end of bootstrapping, in
+ *	response to a 'build indices' command.
  * ----------------
  */
 void
@@ -874,35 +891,12 @@ defineindex(heapName, indexName, accessMethodName, attributeList)
     char  *accessMethodName;
     List  attributeList;
 {
-    Relation    cur_relation;
-
     DefineIndex(heapName,
 		indexName,
 		accessMethodName,
 		attributeList,
 		LispNil,
 		LispNil);
-    /*
-     * All of the rest of this routine is needed only because in bootstrap
-     * processing we don't increment xact id's.  The normal DefineIndex
-     * code replaces a pg_class tuple with updated info including the
-     * relhasindex flag (which we need to have updated).  Unfortunately, 
-     * there are always two indices defined on each catalog causing us to 
-     * update the same pg_class tuple twice for each catalog getting an 
-     * index during bootstrap resulting in the ghost tuple problem (see 
-     * heap_replace).  To get around this we change the relhasindex 
-     * field ourselves in this routine keeping track of what catalogs we 
-     * already changed so that we don't modify those tuples twice.  The 
-     * normal mechanism for updating pg_class is disabled during bootstrap.
-     *
-     *		-mer 
-     */
-    cur_relation = heap_openr(heapName);
-    if (! RelationIsValid(cur_relation))
-            elog(WARN, "defineindex: could not open %s relation", heapName);
-
-    if (!BootstrapAlreadySeen(cur_relation->rd_id))
-	UpdateStats(cur_relation->rd_id, 0, true);
 }
 
 #define MORE_THAN_THE_NUMBER_OF_CATALOGS 256
@@ -1272,6 +1266,7 @@ AddStr(str, strlength, mderef)
 {
     hashnode	*temp, *trail, *newnode;
     int		hashresult;
+    int		len;
     char	*stroverflowmesg =
 "There are too many string constants and identifiers for\
  the compiler to handle.";
@@ -1282,7 +1277,19 @@ AddStr(str, strlength, mderef)
     }
 
     strtable[strtable_end] = new(macro);
-    strtable [strtable_end]->s = malloc((unsigned) strlength + 1);
+
+    /*
+     *  Some of the utilites (eg, define type, create relation) assume
+     *  that the string they're passed is a char16.  We get array bound
+     *  read violations from purify if we don't allocate at least 16
+     *  bytes for strings of this sort.  Because we're lazy, we allocate
+     *  at least sixteen bytes all the time.
+     */
+
+    if ((len = strlength + 1) < 16)
+	len = 16;
+
+    strtable [strtable_end]->s = malloc((unsigned) len);
     strtable[strtable_end]->mderef = 0;
     strcpy (strtable[strtable_end]->s, str);
 
@@ -1432,3 +1439,118 @@ printmacros()
     }
 }
 
+/*
+ *  index_register() -- record an index that has been set up for building
+ *			later.
+ *
+ *	At bootstrap time, we define a bunch of indices on system catalogs.
+ *	We postpone actually building the indices until just before we're
+ *	finished with initialization, however.  This is because more classes
+ *	and indices may be defined, and we want to be sure that all of them
+ *	are present in the index.
+ */
+
+index_register(heap, ind, natts, attnos, nparams, params, finfo, predicate)
+    Name heap;
+    Name ind;
+    AttributeNumber natts;
+    AttributeNumber *attnos;
+    uint16 nparams;
+    Datum *params;
+    FuncIndexInfo *finfo;
+    LispValue predicate;
+{
+    Datum *v;
+    IndexList *newind;
+    int len;
+    MemoryContext oldcxt;
+
+    /*
+     *  XXX mao 10/31/92 -- don't gc index reldescs, associated info
+     *  at bootstrap time.  we'll declare the indices now, but want to
+     *  create them later.
+     */
+
+    if (nogc == (GlobalMemory) NULL)
+	nogc = CreateGlobalMemory("BootstrapNoGC");
+
+    oldcxt = MemoryContextSwitchTo((MemoryContext) nogc);
+
+    newind = (IndexList *) palloc(sizeof(IndexList));
+    newind->il_heap = (Name) palloc(sizeof(NameData));
+    strncpy(&(newind->il_heap->data[0]), &(heap->data[0]), sizeof(NameData));
+    newind->il_ind = (Name) palloc(sizeof(NameData));
+    strncpy(&(newind->il_ind->data[0]), &(ind->data[0]), sizeof(NameData));
+    newind->il_natts = natts;
+
+    if (PointerIsValid(finfo))
+	len = FIgetnArgs(finfo) * sizeof(AttributeNumber);
+    else
+	len = natts * sizeof(AttributeNumber);
+
+    newind->il_attnos = (AttributeNumber *) palloc(len);
+    bcopy(attnos, newind->il_attnos, len);
+
+    if ((newind->il_nparams = nparams) > 0) {
+	v = newind->il_params = (Datum *) palloc(2 * nparams * sizeof(Datum));
+	nparams *= 2;
+	while (nparams-- > 0) {
+	    *v = (Datum) palloc((char *) strlen((char *)(*params)) + 1);
+	    strcpy((char *) *v++, (char *) *params++);
+	}
+    } else {
+	newind->il_params = (Datum *) NULL;
+    }
+
+    if (finfo != (FuncIndexInfo *) NULL) {
+	newind->il_finfo = (FuncIndexInfo *) palloc(sizeof(FuncIndexInfo));
+	bcopy(finfo, newind->il_finfo, sizeof(FuncIndexInfo));
+    } else {
+	newind->il_finfo = (FuncIndexInfo *) NULL;
+    }
+
+    if (predicate != (LispValue) NULL)
+	newind->il_predicate = (LispValue) lispCopy(predicate);
+    else
+	newind->il_predicate = predicate;
+
+    newind->il_next = ILHead;
+
+    ILHead = newind;
+
+    (void) MemoryContextSwitchTo(oldcxt);
+}
+
+build_indices()
+{
+    Relation heap;
+    Relation ind;
+
+    for ( ; ILHead != (IndexList *) NULL; ILHead = ILHead->il_next) {
+	heap = heap_openr(ILHead->il_heap);
+	ind = (Relation) index_openr(ILHead->il_ind);
+	index_build(heap, ind, ILHead->il_natts, ILHead->il_attnos,
+		    ILHead->il_nparams, ILHead->il_params, ILHead->il_finfo,
+		    ILHead->il_predicate);
+
+	/*
+	 * All of the rest of this routine is needed only because in bootstrap
+	 * processing we don't increment xact id's.  The normal DefineIndex
+	 * code replaces a pg_class tuple with updated info including the
+	 * relhasindex flag (which we need to have updated).  Unfortunately, 
+	 * there are always two indices defined on each catalog causing us to 
+	 * update the same pg_class tuple twice for each catalog getting an 
+	 * index during bootstrap resulting in the ghost tuple problem (see 
+	 * heap_replace).  To get around this we change the relhasindex 
+	 * field ourselves in this routine keeping track of what catalogs we 
+	 * already changed so that we don't modify those tuples twice.  The 
+	 * normal mechanism for updating pg_class is disabled during bootstrap.
+	 *
+	 *		-mer 
+	 */
+	heap = heap_openr(ILHead->il_heap);
+
+	if (!BootstrapAlreadySeen(heap->rd_id))
+	    UpdateStats(heap->rd_id, 0, true);
+    }
+}

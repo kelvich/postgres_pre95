@@ -83,6 +83,9 @@ add		{return(ADD);}
 ^\#[^\n]* ; /*drop everything after "#" for comments */
 
 
+"declare"	{return(XDECLARE);}
+"build"		{return(XBUILD);}
+"indices"	{return(INDICES);}
 "define"	{return(XDEFINE);}
 "macro"		{return(MACRO);}
 "index"		{return(INDEX);}
