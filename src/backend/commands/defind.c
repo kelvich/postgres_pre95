@@ -13,6 +13,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "access/funcindex.h"
 #include "catalog/syscache.h"
+#include "catalog/pg_index.h"
 #include "nodes/pg_lisp.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
@@ -95,7 +96,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 #ifndef	PERFECTPARSER
 			AssertArg(lispStringp(CAR(parameterList)));
 #endif
-			*nextP = (String)CString(CAR(parameterList));
+			*nextP = (Datum)CString(CAR(parameterList));
 			parameterList = CDR(parameterList);
 			nextP += 1;
 		}
@@ -106,6 +107,13 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		int nargs;
 
 		nargs = length(CDR(CAAR(attributeList)));
+		if (nargs > INDEX_MAX_KEYS)
+		{
+			elog(WARN, 
+			     "Too many args to function, limit of %d",
+			     INDEX_MAX_KEYS);
+		}
+
 		FIgetnArgs(&fInfo) = nargs;
 		strncpy(FIgetname(&fInfo), 
 			CString(CAAR(CAR(attributeList))), 
