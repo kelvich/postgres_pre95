@@ -7,12 +7,13 @@
 abort \*- abort the current transaction
 .uh SYNOPSIS
 .lp
-.b abort
+.(l
+\fBabort\fR
+.)l
 .uh DESCRIPTION
 .lp
 This command aborts the current transaction and causes all the
 updates made by the transaction to be discarded.   
 .uh "SEE ALSO"
 .lp
-begin(commands),
-end(commands).
+begin(commands), end(commands).
