@@ -61,9 +61,9 @@ char *filename;
     }
     else
     {
+		if (pipe && IsUnderPostmaster) SendCopyBegin();
         if (IsUnderPostmaster)
         {
-			SendCopyBegin();
             fp = pipe ? Pfout : fopen(filename, "w");
         }
         else
