@@ -236,6 +236,7 @@ int *nStubPiecesP;
 	    sumSizes = headerSize;
 	    nstubs = 0;
 	}
+	sumSizes = sumSizes + stubSizes[i];
 	nstubs ++;
 	/*
 	 * copy this prs2OneStub to the raw stub piece
@@ -471,9 +472,9 @@ Prs2RawStub stub2;
      * stub1 and stub2 and copy them in the new union stub
      */
     s += sizeof(nstubs);
-    bcopy(&(stub1->vl_dat[0]), s, size1);
+    bcopy(data1, s, size1);
     s += size1;
-    bcopy(&(stub2->vl_dat[0]), s, size2);
+    bcopy(data2, s, size2);
 
     /*
      * OK, we are done...
