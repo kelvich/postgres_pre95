@@ -34,6 +34,8 @@ extern int32		boolin();
 extern char 		*boolout();
 extern int32		charin();
 extern char		*charout();
+extern int32		cidin();
+extern char		*cidout();
 extern int32		chareq();
 extern int32		charne();
 extern int32		charlt();
