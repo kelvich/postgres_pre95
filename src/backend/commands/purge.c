@@ -98,7 +98,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	 */
 	relation = heap_openr(RelationRelationName->data);
 	key[0].argument = NameGetDatum(relationName);
-	fmgr_info(key[0].procedure, &key[0].func, &key[0].nargs);
+	fmgr_info(key[0].procedure, (func_ptr *) &key[0].func, &key[0].nargs);
 
 	scan = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) key);
 	oldTuple = heap_getnext(scan, 0, &buffer);
@@ -140,12 +140,12 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	}
 	if (dateTag & ABSOLUTE) {
 		values[RelationExpiresAttributeNumber-1] =
-			(char *) absoluteTime;
+			(char *) UInt32GetDatum(absoluteTime);
 		replace[RelationExpiresAttributeNumber-1] = 'r';
 	}
 	if (dateTag & RELATIVE) {
 		values[RelationPreservedAttributeNumber-1] =
-			(char *) relativeTime;
+			(char *) UInt32GetDatum(relativeTime);
 		replace[RelationPreservedAttributeNumber-1] = 'r';
 	}
 

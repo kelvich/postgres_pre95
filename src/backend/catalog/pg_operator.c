@@ -226,24 +226,24 @@ OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
      * ----------------
      */
     i = 0;
-    values[i++] = (char *) operatorName;
-    values[i++] = (char *) InvalidObjectId;
+    values[i++] = (char *) NameGetDatum(operatorName);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
     values[i++] = (char *) (uint16) 0;
 
     values[i++] = (char *)'b';	/* fill oprkind with a bogus value */
 
     values[i++] = (char *) (Boolean) 0;
     values[i++] = (char *) (Boolean) 0;
-    values[i++] = (char *) leftObjectId; 	/* <-- left oid */
-    values[i++] = (char *) rightObjectId; 	/* <-- right oid */
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
-    values[i++] = (char *) InvalidObjectId;
+    values[i++] = (char *) ObjectIdGetDatum(leftObjectId);  /* <-- left oid */
+    values[i++] = (char *) ObjectIdGetDatum(rightObjectId); /* <-- right oid */
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
+    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
 
     /* ----------------
      *	create a new operator tuple
@@ -517,17 +517,18 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     }
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
-			      nargs,
-			      typeId,
+			      (char *) Int32GetDatum(nargs),
+			      (char *) typeId,
 			      (char *) NULL);
     
     if (!PointerIsValid(tup))
 	func_error("OperatorDef", procedureName, nargs, typeId);
 
     values[ OperatorProcedureAttributeNumber-1 ] =
-	(char *) tup->t_oid;
+	(char *) ObjectIdGetDatum(tup->t_oid);
     values[ OperatorResultAttributeNumber-1 ] =
-	(char *) ((struct proc *) GETSTRUCT(tup))->prorettype;
+	(char *) ObjectIdGetDatum(((struct proc *)
+				   GETSTRUCT(tup))->prorettype);
 
     /* ----------------
      *	find restriction
@@ -542,15 +543,17 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	typeId[4] = INT4OID;		/* flags - left or right selectivity */
 	tup = SearchSysCacheTuple(PRONAME,
 				  (char *) restrictionName,
-				  5,
-				  typeId,
+				  (char *) 5,
+				  (char *) typeId,
 				  (char *) NULL);
 	if (!HeapTupleIsValid(tup))
 	    func_error("OperatorDef", restrictionName, 5, typeId);
 	
-	values[ OperatorRestrictAttributeNumber-1 ] = (char *) tup->t_oid;
+	values[ OperatorRestrictAttributeNumber-1 ] =
+	    (char *) ObjectIdGetDatum(tup->t_oid);
     } else
-	values[ OperatorRestrictAttributeNumber-1 ] = (char *) InvalidObjectId;
+	values[ OperatorRestrictAttributeNumber-1 ] =
+	    (char *) ObjectIdGetDatum(InvalidObjectId);
 
     /* ----------------
      *	find join - only valid for binary operators
@@ -566,15 +569,17 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 
 	tup = SearchSysCacheTuple(PRONAME,
 				  (char *) joinName,
-				  5,
-				  typeId,
+				  (char *) 5,
+				  (char *) typeId,
 				  (char *) NULL);
 	if (!HeapTupleIsValid(tup))
 	    func_error("OperatorDef", joinName, 5, typeId);
 
-	values[OperatorJoinAttributeNumber-1] =	(char *) tup->t_oid;
+	values[OperatorJoinAttributeNumber-1] =
+	    (char *) ObjectIdGetDatum(tup->t_oid);
     } else
-	values[OperatorJoinAttributeNumber-1] =	(char *) InvalidObjectId;
+	values[OperatorJoinAttributeNumber-1] =
+	    (char *) ObjectIdGetDatum(InvalidObjectId);
 
     /* ----------------
      * set up values in the operator tuple
@@ -582,14 +587,14 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
      */
     i = 0;
     values[i++] = (char *) operatorName;
-    values[i++] = (char *) (ObjectId) GetUserId();
-    values[i++] = (char *) precedence;
-    values[i++] = (char *) (NameIsValid(leftTypeName) ?
+    values[i++] = (char *) Int32GetDatum(GetUserId());
+    values[i++] = (char *) UInt16GetDatum(precedence);
+    values[i++] = (char *) (long) (NameIsValid(leftTypeName) ?
 			    (NameIsValid(rightTypeName) ? 'b' : 'r') : 'l');
-    values[i++] = (char *) isLeftAssociative;
-    values[i++] = (char *) canHash;
-    values[i++] = (char *) leftTypeId;
-    values[i++] = (char *) rightTypeId;
+    values[i++] = (char *) Int8GetDatum(isLeftAssociative);
+    values[i++] = (char *) Int8GetDatum(canHash);
+    values[i++] = (char *) ObjectIdGetDatum(leftTypeId);
+    values[i++] = (char *) ObjectIdGetDatum(rightTypeId);
 
     ++i; 	/* Skip "prorettype", this was done above */
 	
@@ -621,7 +626,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	    }
 
 	    if (ObjectIdIsValid(other_oid)) /* already in catalogs */
-		values[i++] = (char *) other_oid;
+		values[i++] = (char *) ObjectIdGetDatum(other_oid);
 	    else if (!NameIsEqual(operatorName, name[j])) {
 		/* not in catalogs, different from operator */
 
@@ -640,13 +645,13 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 		    elog(WARN,
 			 "OperatorDef: can't create operator \"%-.*s\"",
 			 NAMEDATALEN, name[j]);     
-		values[i++] = (char *) other_oid;
+		values[i++] = (char *) ObjectIdGetDatum(other_oid);
 		
 	    } else /* not in catalogs, same as operator ??? */
-		values[i++] = (char *) InvalidObjectId;
+		values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
 	    
 	} else 	/* new operator is optional */
-	    values[i++] = (char *) InvalidObjectId;
+	    values[i++] = (char *) ObjectIdGetDatum(InvalidObjectId);
     }
 
     /* last three fields were filled in first */

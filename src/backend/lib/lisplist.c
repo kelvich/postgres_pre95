@@ -22,7 +22,7 @@ va_dcl
 
     va_start(args);
 
-    while ( (int)(temp =  va_arg(args, LispValue) ) != -1) {
+    while ((temp = va_arg(args, LispValue)) != (LispValue) -1) {
 	temp = lispCons ( temp, LispNil );
 	if ( tempcons == LispNil )
 	    retval = temp;

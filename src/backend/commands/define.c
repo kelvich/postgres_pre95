@@ -474,8 +474,8 @@ DefineAggregate(name, parameters)
 		    baseType,		/* type of object being aggregated */
 		    stepfunc1Type,	/* return type of first function */
 		    stepfunc2Type,	/* return type of second function */
-		    primVal,		/* first initial condition */
-		    secVal);		/* second initial condition */
+		    (char *) primVal,	/* first initial condition */
+		    (char *) secVal);	/* second initial condition */
 
     /* XXX free palloc'd memory */
 }

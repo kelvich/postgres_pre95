@@ -101,12 +101,12 @@ CreateVersion (name, bnamestring)
   if ( NodeType(bnamestring) == classTag(LispStr) ) {
     /* no time ranges */
     bname = (Name)CString(bnamestring);
-    strcpy(saved_basename, bname);
+    (void) strcpy(saved_basename, (char *) bname);
     *saved_snapshot = (char)NULL;
   } else {
     /* version is a snapshot */
     bname = (Name)CString(CAR(bnamestring));
-    strcpy(saved_basename, bname);
+    (void) strcpy(saved_basename, (char *) bname);
     sprintf(saved_snapshot, "[\"%s\"]",
 	    CString(CADR(bnamestring)) );
   }
@@ -360,7 +360,7 @@ CreateBVersion(vname,bnamestring)
      Name vname;
      List bnamestring;
 {
-    AbsoluteTime now	= NULL;
+    AbsoluteTime now	= EPOCH_ABSTIME;
     char *timestring 	= NULL;
     static char query_buf[MAX_QUERY_LEN];
     static char saved_vname[sizeof(NameData)+1];

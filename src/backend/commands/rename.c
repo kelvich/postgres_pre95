@@ -90,7 +90,7 @@ renameatt(relname, oldattname, newattname, userName, recurse)
 	 *
 	 * normally, only the owner of a class can change its schema.
 	 */
-	if (NameIsSystemRelationName(relname))
+	if (NameIsSystemRelationName((Name) relname))
 	    elog(WARN, "renameatt: class \"%-.*s\" is a system catalog",
 		 NAMEDATALEN, relname);
 #ifndef NO_SECURITY
