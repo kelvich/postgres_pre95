@@ -125,7 +125,8 @@ set_cheapest (parent_rel,pathlist)
  *    	For each path in the list 'new-paths', add to the list 'unique-paths' 
  *    	only those paths that are unique (i.e., unique ordering and ordering 
  *    	keys).  Should a conflict arise, the more expensive path is thrown out,
- *    	thereby pruning the plan space.
+ *    	thereby pruning the plan space.  But we don't prune if xfunc
+ *		told us not to.
  *    
  *    	'parent-rel' is the relation entry to which these paths correspond.
  *    
@@ -158,7 +159,7 @@ add_pathlist (parent_rel,unique_paths,new_paths)
 	   ;  /* do nothing if path is not cheaper */
 	 else if (IsA(old_path,Path)) {
 	     set_parent (new_path,parent_rel);
-	     if (testFlag) {
+	     if (testFlag || !get_pruneable(parent_rel)) {
 	         unique_paths = lispCons((LispValue)new_path, unique_paths);
 		}
 	     else
