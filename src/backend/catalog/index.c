@@ -714,7 +714,9 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
     ObjectId		accessMethodObjectId;
 {
     IndexStrategy	strategy;
+    RegProcedure	*support;
     uint16		amstrategies;
+    uint16		amsupport;
     ObjectId		attrelid;
     Size 		strsize;
     extern GlobalMemory CacheCxt;
@@ -725,6 +727,7 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
      */
     attrelid = 	   indexRelation->rd_att.data[0]->attrelid;
     amstrategies = indexRelation->rd_am->amstrategies;
+    amsupport =    indexRelation->rd_am->amsupport;
 
     /* ----------------
      *	get the size of the strategy
@@ -746,6 +749,13 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
     strategy = (IndexStrategy)
 	MemoryContextAlloc(CacheCxt, strsize);
 
+    if (amsupport > 0) {
+        strsize = numatts * (amstrategies * sizeof(RegProcedure));
+        support = (RegProcedure *) MemoryContextAlloc(CacheCxt, strsize);
+    } else {
+	support = (RegProcedure *) NULL;
+    }
+
     /* ----------------
      *	fill in the index strategy structure with information
      *  from the catalogs.  Note: we use heap override mode
@@ -755,10 +765,9 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
      */
     setheapoverride(1);
 
-    IndexStrategyInitialize(strategy,
-			    attrelid,
-			    accessMethodObjectId,
-			    amstrategies);
+    IndexSupportInitialize(strategy, support,
+			    attrelid, accessMethodObjectId,
+			    amstrategies, amsupport);
 
     setheapoverride(0);
 
@@ -766,7 +775,7 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
      *	store the strategy information in the index reldesc
      * ----------------
      */
-    RelationSetIndexStrategy(indexRelation, strategy);
+    RelationSetIndexSupport(indexRelation, strategy, support);
 }
 
 
