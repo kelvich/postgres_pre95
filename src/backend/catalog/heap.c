@@ -256,7 +256,6 @@ heap_creatr(relname, natts, smgr, att)
      *	initialize the fields of our new relation descriptor
      * ----------------
      */
-    rdesc->rd_fd = fd;
 
     /* ----------------
      *  nail the reldesc if this is a bootstrap create reln and

@@ -60,6 +60,7 @@ ScanTemps node;
     scantempState = get_scantempState(node);
     whichplan = get_st_whichplan(scantempState);
     nplans = get_st_nplans(scantempState);
+    dir = get_es_direction(estate);
     
 #if 0
     elog(DEBUG, "ScanTemps: total %d plans, current plan %d", nplans,whichplan);
