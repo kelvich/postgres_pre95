@@ -25,8 +25,10 @@ letter_or_digit	[_A-Za-z0-9]
 identifier	{letter}{letter_or_digit}*
 
 self		[,()\[\].;$\:\+\-\*\/\<\>\=]
-operator	[\!\@\#\%\^\&\|\`\|\?]+
+op_and_self	[\!\@\#\%\^\&\|\`\|\?\$\:\+\-\*\/\<\>\=]
+op_only		[\!\@\#\%\^\&\|\`\|\?]
 
+operator	({op_and_self}{op_and_self}+)|{op_only}+
 string		\"
 character	"'"
 
@@ -40,6 +42,7 @@ other		.
 
 %%
 {comment}	{ scancmnt();		}
+"::"		{ return TYPECAST;	}
 {self}		{ return (yytext[0]);	}
 {operator}	{
 			yylval = lispString(yytext);
