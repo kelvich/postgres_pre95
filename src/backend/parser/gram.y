@@ -1785,8 +1785,9 @@ res_target_el:
 		      Resdom resnode;
 		      int type_id, type_len;
 
-		      temp = make_array_ref_var ( CString(CAR($1)) , CString(CADR($1)),
-										 $2);
+		      temp = (LispValue) make_array_ref_var ( CString(CAR($1)),
+							      CString(CADR($1)),
+							      $2);
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
