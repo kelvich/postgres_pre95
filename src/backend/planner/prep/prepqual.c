@@ -19,8 +19,8 @@
 #include "planner/clauses.h"
 #include "planner/internal.h"
 #include "planner/clause.h"
+#include "planner/clauses.h"
 #include "planner/prepqual.h"
-
 #include "utils/lsyscache.h"
 
 /*    
@@ -39,7 +39,7 @@ LispValue
 preprocess_qualification (qual,tlist)
      LispValue qual,tlist ;
 {
-    LispValue cnf_qual = cnfify (qual);
+    LispValue cnf_qual = cnfify (qual, true);
     LispValue existential_qual = 
       update_clauses (lispCons (lispInteger(_query_result_relation_),
 				update_relations (tlist)),
@@ -75,14 +75,20 @@ preprocess_qualification (qual,tlist)
  *    	successive normalizations.
  *    
  *    	Returns the modified qualification with an extra level of nesting.
+ *
+ *      If 'removeAndFlag' is true then it removes the explicit ANDs.
+ *
+ *	NOTE: this routine is called by the planner (removeAndFlag = true)
+ *	and from the rule manager (removeAndFlag = false).
  *    
  */
 
 /*  .. preprocess-qualification, print_parse    */
 
 LispValue
-cnfify (qual)
+cnfify (qual, removeAndFlag)
      LispValue qual ;
+     bool removeAndFlag;
 {
     LispValue newqual = LispNil;
 
@@ -92,11 +98,14 @@ cnfify (qual)
 	newqual = qualcleanup (pull_args (newqual));
 	newqual = pull_args (newqual);;
 	
-	if(and_clause (newqual)) 
-	  newqual = remove_ands (newqual);
-	else 
-	  newqual = remove_ands (make_andclause (lispCons (newqual,LispNil)));
-}
+	if (removeAndFlag) {
+	    if(and_clause (newqual)) 
+	      newqual=remove_ands(newqual);
+	    else 
+	      newqual=remove_ands(make_andclause(lispCons(newqual,LispNil)));
+	}
+    }
+
     return (newqual);
 
 } /*  function end   */
