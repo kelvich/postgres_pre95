@@ -31,16 +31,18 @@ typedef struct PortalBlockData {
 
 typedef PortalBlockData	*PortalBlock;
 
-typedef struct PortalData {
+typedef struct PortalD	PortalD;
+typedef PortalD		*Portal;
+
+struct PortalD {
 	String				name;	/* XXX PortalName */
 	classObj(PortalVariableMemory)	variable;
 	classObj(PortalHeapMemory)	heap;
 	LispValue			parse;
 	Plan				plan;
 	EState				state;
-} PortalData;
-
-typedef PortalData	*Portal;
+	void				(*cleanup) ARGS((Portal portal));
+};
 
 /*
  * EnablePortalManager --
@@ -115,10 +117,11 @@ BlankPortalAssignName ARGS((
 extern
 void
 PortalSetQuery ARGS((
-	Portal		portal,
-	LispValue	parse,
-	Plan		plan,
-	EState		state
+	Portal	portal,
+	List	parse,
+	Plan	plan,
+	EState	state,
+	void	(*cleanup) ARGS((Portal portal))
 ));
 
 /*
