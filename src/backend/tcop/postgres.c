@@ -204,20 +204,6 @@ GetUserName()
 	strcpy(PG_username, t);
 }
 
-void
-get_pathname(argv)
-    char **argv;
-{
-    char buffer[256];
-
-    if (argv[0][0] == '/') { /* ie, from execve in postmaster */
-	strcpy(pg_pathname, argv[0]);
-    } else {
-	getwd(buffer);
-	sprintf(pg_pathname, "%s/%s", buffer, argv[0]);
-    }
-}
-
 
 /* ----------------------------------------------------------------
  *	routines to obtain user input
@@ -889,7 +875,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:bCd:Ef:GiLNP:pQSst:Tx:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:bCd:Ef:GiLNo:P:pQSst:Tx:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -1013,6 +999,14 @@ PostgresMain(argc, argv)
 	  UseNewLine = 0;
 	  break;
 	  
+      case 'o':
+	  /* ----------------
+	   *	o - send output (stdout and stderr) to the given file
+	   * ----------------
+	   */
+	  (void) strncpy(OutputFileName, optarg, MAXPGPATH);
+	  break;
+
       case 'p':	/* started by postmaster */
 	  /* ----------------
 	   *	p - special flag passed if backend was forked
@@ -1123,6 +1117,15 @@ PostgresMain(argc, argv)
 	  errs++;
       }
 
+    /* ----------------
+     *	get user name and pathname and check command line validity
+     * ----------------
+     */
+    GetUserName();
+    if (FindBackend(pg_pathname, argv[0]) < 0)
+	    elog(FATAL, "%s: could not locate executable, bailing out...",
+		 argv[0]);
+
     if (errs || argc - optind > 1) {
 	fprintf(stderr, "Usage: %s [-A alloctype] [-B nbufs] [-d lvl] ] [-f plantype]\n", argv[0]);
 	fprintf(stderr,"\t[-P portno] [-t tracetype] [-x opttype] [-bCEGiLNpQSsT] [dbname]\n");
@@ -1159,13 +1162,6 @@ PostgresMain(argc, argv)
 	fprintf(stderr, "-s can not be used together with -t.\n");
 	exitpg(1);
     }
-
-    /* ----------------
-     *	get user name and pathname and check command line validity
-     * ----------------
-     */
-    GetUserName();
-    get_pathname(argv);
 
     Noversion = flagC;
     Quiet = flagQ;
