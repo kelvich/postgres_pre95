@@ -55,53 +55,42 @@ typedef struct HeapTupleData {
 
 	Size		t_len;		/* length of entire tuple */
 
-	/* this is six bytes long */
-
-	/* ItemPointerData	t_anchor;*/	/* anchor point TID */
-
-	/* keep these chars here as padding */
-
+					/* anchor point TID -- 6 bytes, was
+					 * commented out, and I have removed
+					 * it from the file -mer 5/27/92 
+					 */
 
 	ItemPointerData	t_ctid;		/* current TID of this tuple */
 
-	/* keep these here as padding */
+					/* keep these here as padding */
 
 
 	ItemPointerData	t_chain;	/* replaced tuple TID */
 
-	/* keep these here as padding */
+					/* keep these here as padding */
 
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
 		RuleLock	l_lock;	/* internal lock format */
 	}		t_lock;
 
-	/* four bytes long */
+	ObjectId	t_oid;		/* OID of this tuple -- 4 bytes */
 
-	ObjectId	t_oid;		/* OID of this tuple */
+	CommandId	t_cmin;		/* insert CID stamp -- 2 bytes each */
+	CommandId	t_cmax;		/* delete CommandId stamp */
 
-	/* char[5] each */
+	TransactionId	t_xmin;		/* insert XID stamp -- 4 bytes each */
+	TransactionId	t_xmax;		/* delete XID stamp */
 
-	XID		t_xmin;		/* insert XID stamp */
-	XID		t_xmax;		/* delete XID stamp */
-
-	/* one byte each */
-
-	CID		t_cmin;		/* insert CID stamp */
-	CID		t_cmax;		/* delete CID stamp */
-
-	/* four bytes each */
-
-	ABSTIME		t_tmin, t_tmax;	/* time stamps */
+	ABSTIME		t_tmin, t_tmax;	/* time stamps -- 4 bytes each */
 
 	AttributeNumber	t_natts;	/* number of attributes */
 
-    /* one byte each */
-
+	char		t_vtype;	/* `d', `i', `r' */
+	char		t_infomask;	/* used for various stuff in getattr */
 	char		t_locktype;	/* type of rule lock representation*/
 	uint8		t_hoff;		/* sizeof tuple header */
-	char		t_vtype;	/* `d', `i', `r' */
-	char		t_infomask; /* used for various stuff in getattr() */
+
 
 	char		t_bits[MinHeapTupleBitmapSize / 8];
 					/* bit map of domains */
