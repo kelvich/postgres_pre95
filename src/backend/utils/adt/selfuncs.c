@@ -95,34 +95,13 @@ intltsel(opid, relid, attno, value, flag)
 	if (NONVALUE(attno) || NONVALUE(relid))
 		*result = 1.0 / 3;
 	else {
-/* XXX		val = atol(value);*/
-		val = value;
-		gethilokey(relid, (int) attno, opid, &highchar, &lowchar);
-		high = atol(highchar);
-		low = atol(lowchar);
-		if (high == 0 || low == 0) {
-			*result = 1.0/3.0;
-			return (result);
-		}
-		if ((flag & SEL_RIGHT && val < low) ||
-		    (!(flag & SEL_RIGHT) && val > high))
-			*result = 0.0;
-		else {
-			bottom = high - low;
-			if (bottom == 0)
-				++bottom;
-			if (flag & SEL_RIGHT)
-				top = val - low;
-			else
-				top = high - val;
-			if (top > bottom)
-				*result = 1.0;
-			else {
-				if (top == 0)
-					++top;
-				*result = ((1.0 * top) / bottom);
-			}
-		}
+		int nvals;
+
+		nvals = getattnvals(relid, (int) attno);
+		if (nvals == 0)
+			*result = 1.0 / 3.0;
+		else
+			*result = 3.0 / nvals;
 	}
 	return(result);
 }
