@@ -4,13 +4,10 @@
 .XA 2 "Addattr"
 .uh NAME
 .lp
-add \*- add attributes to a relation
+addattr \*- add attributes to a relation
 .uh SYNOPSIS
 .lp
 .b addattr
-.r relname [\c
-.b * \c
-]
 .b (
 attname1
 .b =
@@ -23,10 +20,12 @@ type1
 .i i
 }
 .b )
+.b TO
+.r relname{*}
 .uh DESCRIPTION
 .lp
 The
-.b add
+.b addattr
 command
 causes new attributes to be added to an existing relation,
 .i relname .
@@ -56,7 +55,7 @@ a subsequent
 .lp
 /* add the date of hire to the emp relation */
 .br
-add emp (hiredate = abstime)
+addattr (hiredate = abstime) to emp
 .uh "SEE ALSO"
 .lp
 create(commands).
