@@ -15,7 +15,7 @@ extern char *calloc();
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
 static Stack		*adjlist[NDBUFS];
-static Lbufdesc 	*datlist[NDBUFS];
+static BufferDesc 	*datlist[NDBUFS];
 static int		used[NDBUFS];
 
 
@@ -74,7 +74,7 @@ bwinit()
 
 	for (i = 0; i < NDBUFS; i++) {
 		adjlist[i] = (Stack *) NULL;
-		datlist[i] = (Lbufdesc *) NULL;
+		datlist[i] = (BufferDesc *) NULL;
 		used[i] = 0;
 	}
 }
@@ -89,7 +89,7 @@ bwinit()
  */
 
 BufferWriteInOrder(predb, succb)
-	Lbufdesc 	*predb, *succb;
+	BufferDesc 	*predb, *succb;
 {
 	register int	i;
 	int		before = -1, after = -1;
@@ -101,7 +101,7 @@ BufferWriteInOrder(predb, succb)
 
 	/* Save the buffer pointers in our static array */
 	for (i = 0; i < NDBUFS; i++) {
-		if (datlist[i] == (Lbufdesc *) NULL)
+		if (datlist[i] == (BufferDesc *) NULL)
 			break;
 		if (datlist[i] == predb)
 			before = i;
@@ -143,20 +143,20 @@ BufferWriteInOrder(predb, succb)
  *	Uses the O(n+e) topological sort from Mellhorn, Vol. I.
  */
 
-Lbufdesc **
+BufferDesc **
 bwsort(item)
-	Lbufdesc	*item;
+	BufferDesc	*item;
 {
 	register int		i;
 	int			count = 0, active_bufs = 0;
 	register Stack		*sp;
 	Stack			*zeroindeg = (Stack *) NULL;
 	int			indeg[NDBUFS];
-	static Lbufdesc	*ret[NDBUFS];
+	static BufferDesc	*ret[NDBUFS];
 
 
 	for (i = 0; i < NDBUFS; i++) {
-		ret[i] = (Lbufdesc *) NULL;
+		ret[i] = (BufferDesc *) NULL;
 		indeg[i] = 0;
 	}
 
@@ -184,7 +184,7 @@ bwsort(item)
 	while (zeroindeg != (Stack *) NULL) {
 		if ((i = bs_pop(&zeroindeg)) < 0) {
 			elog(WARN, "bwsort: stack error");
-			return((Lbufdesc **) NULL);
+			return((BufferDesc **) NULL);
 		}
 		if (used[i])			/* ignore unused buffers */
 			ret[count++] = datlist[i];
@@ -200,7 +200,7 @@ bwsort(item)
 		active_bufs += used[i];
 	if (count != active_bufs) {
 		elog(WARN, "bwsort: cycle in buffer ordering!");
-		return((Lbufdesc **) NULL);
+		return((BufferDesc **) NULL);
 	}
 
 	return(ret);
@@ -215,7 +215,7 @@ bwsort(item)
 
 bwremove(nitems, items)
 	int		nitems;
-	Lbufdesc	*items[];
+	BufferDesc	*items[];
 {
 	register Stack	*p;
 	register int	i, j;
