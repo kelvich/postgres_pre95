@@ -40,9 +40,11 @@ extern bool _enable_mergesort_;
  *    	relations in the list 'joinrels.'  Each unique path will be included
  *    	in the join relation's 'pathlist' field.
  *    
- *    	In reality, n-way joins are handled left-only (permuting clauseless
+ *    	In postgres, n-way joins are handled left-only (permuting clauseless
  *    	joins doesn't usually win much).
  *    
+ *	In xprs, bushy-tree joins are cosidered for parallelism's sake
+ *
  *    	'joinrels' is the list of relation entries to be joined
  *    	'previous-level-rels' is the list of (outer) relation entries from
  *    		the previous join processing level
@@ -50,6 +52,8 @@ extern bool _enable_mergesort_;
  *    
  *    	Modifies the pathlist field of the appropriate rel node to contain
  *    	the unique join paths.
+ *	If bushy trees are considered, may modify the relid field of the
+ *	join rel nodes to flatten the lists.
  *   
  *      Returns nothing of interest. (?) 
  *      It does a destructive modification.
@@ -66,9 +70,23 @@ find_all_join_paths (joinrels,previous_level_rels,nest_level)
      LispValue hashinfo_list = LispNil;
      LispValue temp_list = LispNil;
      LispValue path = LispNil;
+#ifdef _xprs_
+     LispValue form_relid();
+#endif /* _xprs_ */
+
 
      if ( consp (joinrels) ) {
 	  LispValue joinrel = CAR (joinrels);
+#ifdef _xprs_
+          LispValue innerrelids = CADR (get_relids (joinrel));
+          LispValue outerrelids = CAR (get_relids (joinrel));
+          LispValue innerrelid =          /*   grow bushy plan trees */
+            form_relid (innerrelids);
+          LispValue outerrelid =
+            form_relid (outerrelids);
+          Rel innerrel = rel_member (innerrelids,previous_level_rels);
+          Rel outerrel = rel_member (outerrelids,previous_level_rels);
+#else /* _xprs_ */
 	  LispValue innerrelid = 	  /*   grow left-only plan trees */
 	    last_element (get_relids (joinrel));
 	  Rel innerrel = get_rel (innerrelid);
@@ -76,6 +94,7 @@ find_all_join_paths (joinrels,previous_level_rels,nest_level)
 					   (innerrelid,
 					    get_relids (joinrel)),
 					   previous_level_rels);
+#endif /* _xprs_ */
 	  Path bestinnerjoin = best_innerjoin(get_innerjoin
 						   (innerrel),
 						   get_relids(outerrel));
@@ -93,6 +112,9 @@ find_all_join_paths (joinrels,previous_level_rels,nest_level)
 					CAR(get_relids (innerrel)));
 	  } 
 	  
+#ifdef _xprs_
+          set_relids (joinrel, append (outerrelids,innerrelids));
+#endif /* _xprs_ */
 
 
 /*    1. Consider mergesort paths where both relations must be explicitly 
@@ -587,3 +609,20 @@ hash_inner_and_outer (joinrel,outerrel,innerrel,hashinfo_list)
     return(hjoin_list);
     
 }   /* function end  */
+
+#ifdef _xprs_
+/*
+ *      form_relid
+ *
+ */
+
+LispValue
+form_relid (relids)
+        LispValue relids;
+{
+  if (length (relids) == 1)
+    return (CAR (relids));
+  else
+    return (relids);
+}
+#endif /* _xprs_ */

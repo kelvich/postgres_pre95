@@ -18,6 +18,7 @@
 
 #include "pg_lisp.h"
 #include "relation.h"
+#include "relation.a.h"
 #include "planner/pathnode.h"
 #include "planner/prune.h"
 
@@ -63,7 +64,7 @@ prune_joinrels (rel_list)
  *    
  */
 
-/*  .. prune-joinrels */
+/*  .. prune-joinrels, merge_joinrels */
 
 LispValue
 prune_joinrel (rel,other_rels)
@@ -167,3 +168,71 @@ prune_rel_path (rel,unorderedpath)
      return(cheapest);
 
 }  /* function end  */
+
+
+#ifdef _xprs_
+/*
+ *      merge-joinrels
+ *
+ *      Given two lists of rel nodes that are already
+ *      pruned, merge them into one pruned rel node list
+ *
+ *      'rel-list1' and
+ *      'rel-list2' are the rel node lists
+ *
+ *      Returns one pruned rel node list
+ */
+
+/* .. find-join-paths
+*/
+LispValue
+merge_joinrels (rel_list1,rel_list2)
+LispValue rel_list1, rel_list2;
+{
+    LispValue xrel = LispNil;
+
+    foreach (xrel,rel_list1) {
+        LispValue rel = CAR(xrel);
+        rel_list2 = prune_joinrel (rel,rel_list2);
+    }
+    return (append (rel_list1, rel_list2));
+}
+
+/*
+ *	prune_oldrels
+ *
+ *	If all the joininfo's in a rel node are inactive,
+ *	that means that this node has been joined into
+ *	other nodes in all possible ways, therefore
+ *	this node can be discarded.  If not, it will cause
+ *	extra complexity of the optimizer.
+ *
+ *	old_rels is a list of rel nodes
+ *	
+ *	Returns a new list of rel nodes
+ */
+
+/* .. find_join_paths
+*/
+LispValue
+prune_oldrels (old_rels)
+LispValue old_rels;
+{
+     Rel rel;
+     LispValue joininfo_list, xjoininfo;
+
+     if (old_rels == LispNil)
+	  return (LispNil);
+
+     rel = (Rel)CAR(old_rels);
+     joininfo_list = get_joininfo(rel);
+     if (joininfo_list == LispNil)
+	 return (lispCons (rel, prune_oldrels (CDR(old_rels))));
+     foreach (xjoininfo, joininfo_list) {
+	 JInfo joininfo = (JInfo)CAR(xjoininfo);
+	 if (!joininfo_inactive(joininfo))
+	      return (lispCons (rel, prune_oldrels (CDR(old_rels))));
+      }
+     return(prune_oldrels(CDR(old_rels)));
+}
+#endif /* _xprs */
