@@ -65,4 +65,16 @@ RelationIdInvalidateHeapTuple ARGS((
 	HeapTuple	tuple
 ));
 
+InvalidationEntry InvalidationEntryAllocate ARGS((uint16 size ));
+
+LocalInvalid LocalInvalidRegister ARGS((
+	LocalInvalid invalid,
+	InvalidationEntry entry
+));
+
+void LocalInvalidInvalidate ARGS((LocalInvalid invalid , void (*function )()));
+
+void getmyrelids ARGS((void ));
+
 #endif	/* !defined(InvalIncluded) */
+

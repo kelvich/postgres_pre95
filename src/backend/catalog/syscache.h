@@ -58,8 +58,16 @@ struct cachedesc {
     Name  *indname;	/* name of index relation for this cache, if exists */
 };
 
-extern long		SearchSysCacheStruct();
-extern HeapTuple	SearchSysCacheTuple();
+int zerocaches ARGS(( void ));
+void InitCatalogCache ARGS((void ));
+/*
+ * SearchSysCacheStruct and SearchSysCacheTuple take a varying number of 
+ * args depending on how many keys the lookup requires.  For this reason 
+ * the formal arg list has been left out.
+ */
+int32 SearchSysCacheStruct();
+HeapTuple SearchSysCacheTuple();
+
 /*
  * XXX Declarations for LISP stuff deliberately left out.
  *     You shouldn't be using them.

@@ -29,10 +29,8 @@ RelationIdCacheGetRelation ARGS((
 	ObjectId	relationId
 ));
 
-extern Relation
-RelationNameCacheGetRelation ARGS((
-	ObjectId	relationId
-));
+extern
+Relation RelationNameCacheGetRelation ARGS((Name relationName ));
 
 extern Relation
 RelationIdGetRelation ARGS((
@@ -73,7 +71,7 @@ RelationRegisterRelation ARGS((
 
 extern void
 RelationRegisterTempRel ARGS((
-	Relation relation
+	Relation temprel
 ));
 
 /*
@@ -128,5 +126,14 @@ extern void
 RelationCacheInvalidate ARGS((
 	bool            onlyFlushReferenceCountZero
 ));
+
+Relation AllocateRelationDesc ARGS((u_int natts , RelationTupleForm relp ));
+int IndexedAccessMethodInitialize ARGS((Relation relation ));
+void RelationClose ARGS((Relation relation ));
+
+void RelationIdInvalidateRelationCacheByAccessMethodId ARGS((
+	ObjectId accessMethodId
+));
+void RelationInitialize ARGS((void ));
 
 #endif	/* !defined(RelCacheIncluded) */
