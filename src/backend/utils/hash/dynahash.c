@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.6  1991/07/31 23:00:03  mer
-    fixes for expanding tables
+    Revision 1.7  1991/08/06 10:44:13  mer
+    fix compile bug
 
+ * Revision 1.6  91/07/31  23:00:03  mer
+ * fixes for expanding tables
+ * 
  * Revision 1.5  91/07/29  16:54:33  mer
  * cleanup
  * 
@@ -468,9 +471,9 @@ int     len;
  */
 int *
 hash_search(hashp, keyPtr, action, foundPtr)
-HTAB	*hashp;
-char	*keyPtr;
-ACTION 	action;			       /* HASH_FIND/HASH_ENTER/HASH_REMOVE */
+HTAB		*hashp;
+char		*keyPtr;
+HASHACTION	action;		/* HASH_FIND/HASH_ENTER/HASH_REMOVE */
 Boolean	*foundPtr;
 {
 	uint32 bucket;
