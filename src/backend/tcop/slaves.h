@@ -26,6 +26,20 @@ extern int ParallelExecutorEnableState;
 extern int NumberSlaveBackends;
 #define GetNumberSlaveBackends()	NumberSlaveBackends
 
+struct mastercommunicationdata {
+    long	data[2]; /* long for now, may be replaced by some union */
+    M1Lock	m1lock; /* one producer multiple consumer lock */
+};
+typedef struct mastercommunicationdata MasterCommunicationData;
+
+struct slavecommunicationdata {
+    long	data; /* long for now, may be replaced by some union */
+#ifdef HAS_TEST_AND_SET
+    slock_t	lock;	/* mutex lock */
+#endif
+};
+typedef struct slavecommunicationdata SlaveCommunicationData;
+
 /* slave info will stay in shared memory */
 struct slaveinfo {
     int		unixPid;		/* the unix process id -- for sending
@@ -34,13 +48,27 @@ struct slaveinfo {
 					   belongs to */
     int		groupPid;		/* virtual pid within the process 
 					   group */
+    bool	isAddOnSlave;		/* true if is add-on slave */
     Relation	resultTmpRelDesc;	/* the reldesc of the tmp relation
 					   that holds the result of this
 					   slave backend */
+    SlaveCommunicationData	comdata;	/* communication data area */
 };
 typedef struct slaveinfo SlaveInfoData;
 typedef SlaveInfoData *SlaveInfo;
 extern SlaveInfo SlaveInfoP;
+
+struct slavelocalinfo {
+    int			nparallel;	/* degree of parallelism */
+    int			startpage;	/* heap scan starting page number */
+    bool		paradjpending;	/* parallelism adjustment pending */
+    int			paradjpage;   /* page on which to adjust parallelism */
+    int			newparallel;  /* new page skip */
+    HeapScanDesc	heapscandesc; /* heap scan descriptor */
+    IndexScanDesc	indexscandesc; /* index scan descriptor */
+};
+typedef struct slavelocalinfo SlaveLocalInfoData;
+extern SlaveLocalInfoData SlaveLocalInfoD;
 
 /* pgroupinfo will stay in shared memory */
 struct pgroupinfo {
@@ -48,6 +76,7 @@ struct pgroupinfo {
 		status;		/* status of the process group */
     List	queryDesc;	/* querydesc for the process group */
     int		countdown;	/* countdown of # of proc in progress */
+    int		nprocess;	/* # of processes in group */
 #ifdef sequent
     slock_t	lock;		/* for synchronization when dec. countdown */
 #endif
@@ -68,7 +97,6 @@ struct lpgroupinfo {
     int			id;
     Fragment		fragment;
     ProcessNode		*memberProc;
-    int			nmembers;
     MemoryHeader	groupSMQueue;
     struct lpgroupinfo	*nextfree;
 };
@@ -76,14 +104,19 @@ typedef struct lpgroupinfo ProcGroupLocalInfoData;
 typedef ProcGroupLocalInfoData *ProcGroupLocalInfo;
 extern ProcGroupLocalInfo ProcGroupLocalInfoP;
 extern int getFreeProcGroup();
+extern void addSlaveToProcGroup();
 extern int getFinishedProcGroup();
 extern void freeProcGroup();
 extern void wakeupProcGroup();
+extern void signalProcGroup();
 extern void ProcGroupSMBeginAlloc();
 extern void ProcGroupSMEndAlloc();
 extern char *ProcGroupSMAlloc();
 extern void ProcGroupSMClean();
 extern void SlaveTmpRelDescInit();
 extern char *SlaveTmpRelDescAlloc();
+extern int getProcGroupMaxPage();
+
+#define SIGPARADJ	SIGUSR1
 
 #endif  TcopIncluded
