@@ -41,6 +41,8 @@
 #include "executor/execdebug.h"
 #include "executor/x_execstats.h"
 #include "planner/costsize.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
 
 #include "storage/bufmgr.h"
 #include "utils/fmgr.h"
@@ -86,6 +88,10 @@ int		EchoQuery = 0;		/* default don't echo */
 char pg_pathname[256];
 int		testFlag = 0;
 int		MasterPid;
+static int	ShowParserStats;
+static int	ShowPlannerStats;
+static int	ShowExecutorStats;
+
 
 /* ----------------
  *	for memory leak debugging
@@ -398,7 +404,12 @@ pg_eval(query_string, dest)
      *	(1) parse the request string into a set of plans
      * ----------------
      */
+    if (ShowParserStats) ResetUsage();
     parser(query_string, parsetree_list);
+    if (ShowParserStats) {
+	fprintf(stderr, "! Parser Stats:\n");
+	ShowUsage();
+      }
 
     /* ----------------
      *	(2) rewrite the queries, as necessary
@@ -558,7 +569,12 @@ pg_eval(query_string, dest)
 	     *   generate the plan
 	     * ----------------
 	     */
+	    if (ShowPlannerStats) ResetUsage();
 	    plan = planner(parsetree);
+	    if (ShowPlannerStats) {
+		fprintf(stderr, "! Planner Stats:\n");
+		ShowUsage();
+	      }
 	    
 	    if ( DebugPrintPlan == true ) {
 		printf("\nPlan is :\n");
@@ -566,6 +582,22 @@ pg_eval(query_string, dest)
 		printf("\n");
 	    }
 	    
+	    if (testFlag && IsA(plan,Choose)) {
+		Plan p;
+		List planlist;
+		LispValue x;
+
+		planlist = get_chooseplanlist(plan);
+		foreach (x, planlist) {
+		    p = (Plan)CAR(x);
+		    p_plan(p);
+		    BufferPoolBlowaway();
+		    ResetUsage();
+		    ProcessQuery(parsetree, p, dest);
+		    ShowUsage();
+		  }
+	       }
+	    else {
 	    /* ----------------
 	     *   execute the plan
 	     *
@@ -573,7 +605,7 @@ pg_eval(query_string, dest)
 	     *	       by a DEBUG command.
 	     * ----------------
 	     */
-	    if (testFlag) ResetUsage();
+	    if (ShowExecutorStats) ResetUsage();
 	    for (j = 0; j < _exec_repeat_; j++) {
 		if (! Quiet) {
 		    time(&tim);
@@ -581,7 +613,11 @@ pg_eval(query_string, dest)
 		}
 		ProcessQuery(parsetree, plan, dest);
 	    }
-	    if (testFlag) ShowUsage();
+	    if (ShowExecutorStats) {
+		fprintf(stderr, "! Executor Stats:\n");
+		ShowUsage();
+	      }
+	   }
 	    
 	} /* if atom car */
 
@@ -672,10 +708,11 @@ PostgresMain(argc, argv)
      * ----------------
      */
     numslaves = 0;
-    flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
+    flagC = flagQ = flagM = flagS = flagE = ShowStats = 0;
+    ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSsTf:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSst:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -820,11 +857,35 @@ PostgresMain(argc, argv)
 	  break;
 	  
       case 's':
+          /* ----------------
+           *    s - report usage statistics (timings) after each query
+           * ----------------
+           */
+          ShowStats = 1;
+          break;
+
+      case 't':
 	  /* ----------------
-	   *    s - report usage statistics (timings) after each query
+	   *	tell postgres to report usage statistics (timings) for
+	   *	each query
+	   *
+	   *	-tpa[rser] = print stats for parser time of each query
+	   *	-tpl[anner] = print stats for planner time of each query
+	   *	-te[xecutor] = print stats for executor time of each query
+	   *	caution: -s can not be used together with -t.
 	   * ----------------
 	   */
-	  ShowStats = 1;
+	  switch (optarg[0]) {
+	  case 'p':  if (optarg[1] == 'a')
+			ShowParserStats = 1;
+		     else if (optarg[1] == 'l')
+			ShowPlannerStats = 1;
+		     else
+			errs++;
+		     break;
+	  case 'e':  ShowExecutorStats = 1;   break;
+	  default:   errs++; break;
+	  } 
 	  break;
 	  
       case 'T':
@@ -874,6 +935,11 @@ PostgresMain(argc, argv)
 	  errs++;
       }
 
+      if (ShowStats && 
+	  (ShowParserStats || ShowPlannerStats || ShowExecutorStats)) {
+	  fprintf(stderr, "-s can not be used together with -t.\n");
+	  exitpg(1);
+	}
     /* ----------------
      *	get user name and pathname and check command line validity
      * ----------------
