@@ -1433,7 +1433,7 @@ int *argtypes;
 		    *(ptr + 16) = '\0';
 	      }
 	      else
-		    strcpy(ptr, "wildcard");
+		    strcpy(ptr, "any");
 	      ptr += strlen(ptr);
 	}
 
