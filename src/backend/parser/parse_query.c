@@ -416,7 +416,11 @@ make_op(op,ltree,rtree)
 	right = CDR(rtree);
 	ltype = get_id_type ( CInteger ( CAR(ltree) ));
 	rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-
+	/* XXX - do we want auto type casting ?
+	   if ( !strcmp(CString(op),"=") &&
+	     (ltype != rtype) )
+	  */
+	  
 	if ( lispNullp(left) ) {
 		/* right operator */
 	 	temp = right_oper( CString( op ), typeid(rtype));
@@ -527,7 +531,7 @@ SkipForwardToFromList()
 	while ((next_token=(LispValue)yylex()) > 0 && 
 	        next_token != (LispValue)FROM ) {
 		tlist_buf[end_tlist_buf++] = ' ';
-		fputc(' ',stdout);
+		/* fputc(' ',stdout); */
 		switch( (int) next_token ) {
 		      case SCONST:
 			temp = (char *)CString(yylval);
@@ -552,7 +556,7 @@ SkipForwardToFromList()
 			for (i = 0; i < yyleng; i ++) {
 				tlist_buf[end_tlist_buf++] =
 				  yytext[i];
-				fputc(yytext[i],stdout);
+				/* fputc(yytext[i],stdout); */
 			}
 			break;
 		}
@@ -565,7 +569,7 @@ SkipForwardToFromList()
 		fflush(stdout);*/
 		for (i = end_tlist_buf; i > -1 ;--i ) {
 			unput(tlist_buf[i] );
-			fputc(tlist_buf[i],stdout);
+			/* fputc(tlist_buf[i],stdout); */
 		}
 		end_tlist_buf = 0;
 		fflush(stdout);
@@ -576,7 +580,7 @@ SkipForwardToFromList()
 */
 		for (i = yyleng ; i > -1; --i ) {
 			unput(yytext[i] );
-			fputc(yytext[i],stdout);
+			/* fputc(yytext[i],stdout); */
 		}
 		fflush(stdout);
 	}
@@ -598,7 +602,7 @@ SkipBackToTlist()
 		/*printf("putting the where back\n");*/
 		for (i = yyleng; i > -1 ; -- i ) {
 			unput (yytext[i]);
-			fputc (yytext[i],stdout);
+			/* fputc (yytext[i],stdout); */
 		}
 	}
 	fflush(stdout);
@@ -608,7 +612,7 @@ SkipBackToTlist()
 	/* printf("Moving back to target list\n");*/
 	while( end_tlist_buf > 0 ) {
 		unput(tlist_buf[--end_tlist_buf] );
-		fputc(tlist_buf[end_tlist_buf],stdout);
+		/* fputc(tlist_buf[end_tlist_buf],stdout); */
 	}
 	fflush(stdout);
 	return(LispNil);
