@@ -25,7 +25,6 @@ RcsId("$Header$");
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
 #include "storage/lmgr.h"
-#include "tmp/master.h"
 #include "utils/log.h"
 
 #include "catalog/catname.h"
@@ -47,4 +46,3 @@ bool		IsUnderPostmaster = false;
 bool		IsPostmaster = false;
 
 short		DebugLvl = 0;
-
