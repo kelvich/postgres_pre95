@@ -34,7 +34,12 @@ parser(str, l)
 
 
     init_io();
+/*
+ * Parser must now return a parse tree in C space.  Thus, it cannot
+ * start/end at this high a granularity.
+ *
     startmmgr(0);
+ */
 
     /* Set things up to read from the string, if there is one */
     /* DB_PARSE("parser got : %s\n",str);  
@@ -82,7 +87,12 @@ parser(str, l)
     }
     ExcEnd();
     /* XXX close_rt(); */
+/*
+ * Parser must now return a parse tree in C space.  Thus, it cannot
+ * start/end at this high a granularity.
+ *
     endmmgr(NULL);
+ */
     if (yyl == NULL) {
 	return(-1);
     } else {
