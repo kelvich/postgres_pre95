@@ -17,13 +17,13 @@
  *     		prune-rel-path
  */
 
-
-#include "pg_lisp.h"
+#include "relation.h"
+#include "pathnode.h"
+#include "prune.h"
 
 #define foreach(elt,list)     for(elt=list;elt!=LispNil;elt=CDR(elt))
 
-extern LispValue prune_joinrel();
-extern LispValue prune_rel_path();
+
 
 /*    
  *    	prune-joinrels
@@ -114,7 +114,7 @@ LispValue rel_list ;
      foreach (rel, rel_list) {
 	  /* XXX - let form, maybe incorrect */
 	  /* XXX Lisp find_if_not function used  */
-	  LispValue cheapest = 
+	  Path cheapest = 
 	    prune_rel_path (rel,find_if_not (get_ordering(get_pathlist(rel))));
 	  set_size (rel,compute_joinrel_size (cheapest));
      }
@@ -134,15 +134,15 @@ LispValue rel_list ;
 
 /*  .. find-rel-paths, prune-rel-paths	 */
 
-LispValue
+Path
 prune_rel_path (rel,unordered_path)
      LispValue rel,unordered_path ;
 {
      /* XXX - let form, maybe incorrect */
-     LispValue cheapest = set_cheapest (rel,get_pathlist (rel));
+     Path cheapest = set_cheapest (rel,get_pathlist (rel));
      if (!(eq (unordered_path,cheapest))) {
 	  set_unordered_path (rel,LispNil);
-	  set_pathlist (rel,delete (unordered_path,get_pathlist (rel)));
+	  set_pathlist (rel,LispDelete(unordered_path,get_pathlist (rel)));
      } 
      else {
 	  set_unordered_path (rel,unordered_path);
