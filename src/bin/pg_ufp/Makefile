@@ -8,15 +8,9 @@ PROG= pg_ufp
 
 SRCS= ufp.c dfmgr.c dynloader.c
 
-.if defined(USE_DLD)
-.PATH:	${.CURDIR}/../../backend/port/dld \
-	${.CURDIR}/../../backend/utils/fmgr
-CFLAGS+= -DUSE_DLD
-LDADD+= -ldld
-.else
 .PATH:	${.CURDIR}/../../backend/port/${PORTNAME} \
 	${.CURDIR}/../../backend/utils/fmgr
-.endif
+
 
 
 CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
