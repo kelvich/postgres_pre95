@@ -63,10 +63,8 @@ int Quiet;
  *	(note: lack of spaces here is critical)
  * ----------------
  */
-#define debugconstantquote(x)"
-#define debugprefixquote(x)debugconstantquote(x)x
-#define debugquote(x)debugprefixquote(x)"
-#define DV(x) { debugquote(x), (Pointer) &x }
+
+#define DV(x) { CppAsString(x), (Pointer) &x }
  
 /* ----------------
  *	DebuggingVariables is our table of debugging variables
