@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	storeplan
@@ -7,7 +6,10 @@
  *     	Routines to store and retrieve plans
  *     
  */
-defvar (_RCS_storeplan_,"$Header$");
+#include "c.h"
+#include "postgres.h"
+
+RcsId("$Header$");
 
 /*     
  *      EXPORTS
@@ -18,13 +20,22 @@ defvar (_RCS_storeplan_,"$Header$");
  *     		find-parameters
  *     		substitute-parameters
  */
-provide ("storeplan");
-require ("internal");
-#ifdef and (opus43,pg_production)
-declare (localf (pg_out,pg_in,find_all_parameters,assoc_params))
-#endif
-;
 
+/*
+ * provide ("storeplan");
+ * require ("internal");
+ * #ifdef and (opus43,pg_production)
+ * declare (localf (pg_out,pg_in,find_all_parameters,assoc_params))
+ * #endif
+ * ;
+ */ 
+#include "planner/internal.h"
+#include "pg_lisp.h"
+#include "nodes.h"
+
+extern LispValue	string_to_plan();
+extern LispValue	plan_to_string();
+extern LispValue	pg_out();
 /*    
  *    	plan-save
  *    	plan-load
@@ -33,14 +44,15 @@ declare (localf (pg_out,pg_in,find_all_parameters,assoc_params))
  *    
  */
 LispValue
-plan_save (planplan,filenamefilename)
-LispValue plan,filename ;
+plan_save (plan, filename)
+	LispValue plan;
+	LispValue filename;
 {
 	with_open_file (ofile (filename),print (plan_to_string (plan),ofile));
 }
 LispValue
-plan_load (filenamefilename)
-LispValue filename ;
+plan_load (filename)
+	LispValue filename;
 {
 	with_open_file (ifile (filename),string_to_plan (read (ifile)));
 }
@@ -56,8 +68,8 @@ LispValue filename ;
 /*  .. plan-load
  */
 LispValue
-string_to_plan (stringstring)
-LispValue string ;
+string_to_plan (string)
+	LispValue string;
 {
 	pg_in (read_from_string (string));
 }
@@ -65,8 +77,8 @@ LispValue string ;
 /*  .. plan-save
  */
 LispValue
-plan_to_string (planplan)
-LispValue plan ;
+plan_to_string (plan)
+LispValue plan;
 {
 	pg_out (plan);
 }
@@ -76,98 +88,83 @@ LispValue plan ;
  *    	pg-in
  *    
  *    	Internal routines.
- *    
  */
 LispValue
-pg_out (treetree)
-LispValue tree ;
+pg_out (tree)
+	LispValue tree;
 {
-
 	/*   ok to make write expensive -- write once, read many */
 	/* XXX - let form, maybe incorrect */
-	LispValue s = "";
-	if(member (type_of (tree),_node_types_)) {
-		strcat ("#S(",vprop (tree)," ",dotimes (i (vsize (tree),s),s = strcat (s,pg_out (aref (tree,i)));),")");
+	/*
+	 * if(member (type_of (tree),_node_types_)) {
+	 * 	strcat ("#S(",vprop (tree),
+	 * 		" ",
+	 * 		dotimes (i (vsize (tree),s),
+	 * 		s = strcat (s,pg_out (aref (tree,i)));),")");
+	 *
+	 * } else if (vectorip (tree)) {
+	 * 	vectori_to_string (tree);
+	 *
+	 * } else if (consp (tree)) {
+	 * 	strcat ("(",foreach (elt, trees) {
+	 * 		s = strcat (s,pg_out (elt));;
+	 * 		    ,")");
+	 *
+	 * 	} else {
+	 * strcat (" ",prin1_to_string (tree));
+	 */
 
-	} else if (vectorip (tree)) {
-		vectori_to_string (tree);
+	 (*((Node)tree)->printFunc)(tree);
+}
 
-	} else if 
-	/*   C function */
-	(consp (tree)) {
-		strcat ("(",foreach (elt, trees) {
-			s = strcat (s,pg_out (elt));;
-			    ,")");
 
-		} else if (1 /* XXX - true */) {
-	strcat (" ",prin1_to_string (tree));
+/*
+ *  Mao says:  this stuff must already exist elsewhere, or plans wouldn't
+ *	       work at all.  Turn it off.
+ */
 
-} else if ( true ) ;  
-end-cond ;
-;
-	}
-	LispValue
-	    reader (streamstream,subcharsubchar,argarg)
-	    LispValue stream,subchar,arg ;
-	{
-		declare (ignore (subchar,arg));
-		/* XXX - let form, maybe incorrect */
-		LispValue items = read_delimited_list ("#']",stream,1 /* XXX - true */);
-		make_array (length (items),element_type,/* XXX- QUOTE fixnum,*/,initial_contents,items);
-		;
-	}
+#ifdef notdef
 
-	/*  (set-dispatch-macro-character  #\# #\[ #'|#[-reader|)
+LispValue
+reader (stream,subchar,arg)
+	LispValue stream,subchar,arg ;
+{
+	declare (ignore (subchar,arg));
+	/* XXX - let form, maybe incorrect */
+	LispValue items = read_delimited_list ("#']",stream,1 /* XXX - true */);
+	make_array (length (items),element_type,/* XXX- QUOTE fixnum,*/,initial_contents,items);
+	;
+}
+
+/*  (set-dispatch-macro-character  #\# #\[ #'|#[-reader|)
  *  (set-macro-character #\] (get-macro-character #\)) nil)
  *  .. pg-in, string-to-plan
  */
-	define (pg_in,identity);
-
-	/*   will read plans many times */
-	defvar (_node_types_,/* XXX- QUOTE append,const,existential,func,indexscan,mergesort,nestloop,oper,param,resdom,result,seqscan,sort,var,rule_lock,*/);
-
-	/*  .. pg-out, plan-to-string
+/*
+ *	define (pg_in,identity);
  */
-	LispValue
-	    pg_out (treetree)
-	    LispValue tree ;
-	{
-		/* XXX - let form, maybe incorrect */
-		LispValue s = "";
-		if(member (type_of (tree),_node_types_)) {
-			strcat ("(vector ",vprop (tree),dotimes (i (vsize (tree),s),s = strcat (s,pg_out (aref (tree,i)));),
-			    ")");
 
-		} else if (vectorp (tree)) {
-			strcat (nil);
-
-		} else if (vectorip (tree)) {
-			strcat ("(vectori",dotimes (i (vsize_byte (tree),s),s = strcat (s," ",vrefi_byte (tree,i));),")");
-
-		} else if (consp (tree)) {
-			strcat ("(list",foreach (elt, trees) {
-				s = strcat (s,pg_out (elt));;
-				    ,")");
-
-			} else if (1 /* XXX - true */) {
-	strcat (" ",prin1_to_string (tree));
-
-} else if ( true ) ;  
-end-cond ;
-;
-		}
-
-		/*  .. pg-in, string-to-plan
+/*   will read plans many times */
+/*
+ *  Mao says:  don't need these anymore.  Only place that _node_types_
+ *	       was used was in this file, but we now have other ways of
+ *	       determining whether a LispValue is a node.
+ *
+ * defvar (_node_types_, QUOTE append,const,existential,func,
+ *			indexscan,mergesort,nestloop,oper,param,resdom,
+ *			result,seqscan,sort,var,rule_lock,);
  */
-		LispValue
-		    pg_in (treetree)
-		    LispValue tree ;
-		{
-			if(consp (tree)) {
-				switch (nth (0,tree)) {
+/*
+ * .. pg-in, string-to-plan
+ */
+LispValue
+pg_in (tree)
+	LispValue tree ;
+{
+	if(consp (tree)) {
+		switch (nth (0,tree)) {
 
-				case: 
-					vector
+		case vector:
 					    { /* XXX - let form, maybe incorrect */
 						LispValue new_vector = apply (/* XXX - hash-quote */ vector,mapcar (/* XXX - hash-quote */ pg_in,
 						    cddr (tree)));
@@ -311,3 +308,4 @@ end-cond ;
 			} else if ( true ) ;  
 			end-cond ;
 		}
+#endif /* notdef */
