@@ -377,17 +377,24 @@ dosplit(r, buffer, stack, itup)
     WriteBuffer(rightbuf);
 
     /*
-     *  Okay, the page is split.  We have two things left to do:
+     *  Okay, the page is split.  We have three things left to do:
      *
-     *    1)  "Tighten" the bounding box of the pointer to the left
+     *    1)  Adjust any active scans on this index to cope with changes
+     *        we introduced in its structure by splitting this page.
+     *
+     *    2)  "Tighten" the bounding box of the pointer to the left
      *	      page in the parent node in the tree, if any.  Since we
      *	      moved a bunch of stuff off the left page, we expect it
-     *	      to get smaller.
+     *	      to get smaller.  This happens in the internal insertion
+     *        routine.
      *
-     *    2)  Insert a pointer to the right page in the parent.  This
+     *    3)  Insert a pointer to the right page in the parent.  This
      *	      may cause the parent to split.  If it does, we need to
      *	      repeat steps one and two for each split node in the tree.
      */
+
+    /* adjust active scans */
+    rtadjscans(r, RTOP_SPLIT, BufferGetBlockNumber(buffer), 0);
 
     ltup = (IndexTuple) formituple(r->rd_rel->relnatts, &r->rd_att.data[0],
 			           &(v.spl_ldatum), isnull);
@@ -703,7 +710,6 @@ freestack(s)
     }
 }
 
-/* ================================================================ */
 char *
 rtdelete()
 {
