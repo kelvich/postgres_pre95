@@ -1017,18 +1017,24 @@ make_agg (arglist, aggidnum)
      List arglist;
      int aggidnum;
 {
+     /* arglist is (Resnode ((interesting stuff), NULL)) */
      Agg node = RMakeAgg();
-     Name aggname = CAR(arglist);
-     LispValue query = CADR(arglist);
-     List tlist = LispNil;
-     arglist = CDR(CDR(arglist)); /* trying to get rid of a misalignment */
-     tlist = CAR(arglist);
+     Resdom resdom = (Resdom)CAR(arglist);
+     LispValue aggname = LispNil; 
+     LispValue query = LispNil;
+     List varnode = LispNil;
+     arglist = CADR(arglist);
+     aggname = CAR(arglist);
+     arglist = CDR(arglist);
+     query = CAR(arglist);
+     arglist = CDR(arglist);
+     varnode = CAR(arglist);
      set_cost(node, 0.0);
      set_fragment(node, 0);
      set_parallel(node, 1);
      set_state(node, (EState)NULL);
      set_qpqual(node, LispNil);
-     set_qptargetlist(node, tlist);
+     set_qptargetlist(node, lispCons(MakeList(resdom, varnode, -1), LispNil));
      set_lefttree(node, planner(query));
      set_righttree(node, LispNil);
      set_tempid(node, aggidnum);
