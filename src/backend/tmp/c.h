@@ -417,6 +417,10 @@ typedef unsigned int	Size;
  */
 typedef unsigned int	Index;
 
+#define MAXDIM 6
+typedef struct {
+	int indx[MAXDIM];
+	} IntArray;
 /*
  * Count --
  *	Generic counter type.
