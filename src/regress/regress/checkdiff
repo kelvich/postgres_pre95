@@ -3,6 +3,7 @@
 # hack to weed out most of the cruft from diffing 
 # sample.regress.out with obj/regress.out
 #
+[ -z "$MAKEOBJDIR" ] && MAKEOBJDIR=obj
 HERE=`pwd | sed 's%.*/%%'`
 SAMPLE=/tmp/sample$$
 ACTUAL=/tmp/actual$$
