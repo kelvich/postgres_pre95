@@ -14,23 +14,17 @@ dbname
 .b Destroydb
 removes the catalog entries for an existing database
 and deletes the directory containing the data.
-It must be executed by the database administrator
+It can only be executed by the database administrator
 (see
 .b createdb (commands)
 for details).
-.lp
-This is a new Postquel command as of release 3.0.
-Since it is a query language command,
-it must be executed inside an open database.
-The
-.b destroydb
-shell script opens the template database and submits
-the
-.b destroydb
-query on the user's database.
-See
-.b destroydb (unix).
 .uh "SEE ALSO"
 .lp
 createdb(commands),
 destroydb(unix).
+.lp
+.uh BUGS
+.lp
+This query should NOT be executed by humans.  The destroydb (unix) script,
+should be used instead.
+.lp
