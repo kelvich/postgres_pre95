@@ -5,10 +5,10 @@
 
 #include "tmp/c.h"
 
+#include "storage/ipci.h"
 #include "storage/ipc.h"
 #include "utils/log.h"
 #include "storage/sinval.h"
-#include "storage/ipci.h"
 #include "storage/bufmgr.h"
 #include "storage/lock.h"
 #include "tcop/slaves.h"

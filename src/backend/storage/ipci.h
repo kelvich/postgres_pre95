@@ -17,9 +17,9 @@
 
 #include "tmp/c.h"
 
-#include "storage/ipc.h"
-
 typedef uint32	IPCKey;
+
+#include "storage/ipc.h"
 
 #define PrivateIPCKey	IPC_PRIVATE
 #define DefaultIPCKey	17317

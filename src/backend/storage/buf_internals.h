@@ -15,6 +15,7 @@
 
 #include "tmp/postgres.h"
 #include "storage/buf.h"
+#include "storage/ipci.h"
 #include "storage/ipc.h"
 #include "storage/shmem.h"
 #include "tmp/miscadmin.h"

@@ -52,8 +52,8 @@
  */
 
 #include "tmp/postgres.h"
-#include "storage/ipc.h"
 #include "storage/ipci.h"
+#include "storage/ipc.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "utils/hsearch.h"

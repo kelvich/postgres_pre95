@@ -18,8 +18,8 @@ RcsId("$Header$");
 #include "machine.h"
 
 #include "storage/block.h"
-#include "storage/ipc.h"
 #include "storage/ipci.h"
+#include "storage/ipc.h"
 #include "storage/smgr.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"

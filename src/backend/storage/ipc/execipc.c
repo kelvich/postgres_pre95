@@ -58,8 +58,8 @@
  */
 #include "tmp/c.h"
 
-#include "storage/ipc.h"
 #include "storage/ipci.h"
+#include "storage/ipc.h"
 #include "storage/sinval.h"
 
 #include "tcop/slaves.h"

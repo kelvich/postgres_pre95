@@ -35,6 +35,7 @@
  * ----------------------------------------------------------------
  */
 
+#include "storage/ipci.h"
 #include "storage/ipc.h"
 
 RcsId("$Header$");
