@@ -28,7 +28,6 @@ plan_archive(rt)
 			reloid = CInteger(rt_relid(rte));
 			r = RelationIdGetRelation(reloid);
 			if (r->rd_rel->relarch != 'n') {
-				elog(NOTICE, "Got one!");
 				rt_flags(rte) = lispCons(lispAtom("archive"),
 							 rt_flags(rte));
 			}
@@ -68,8 +67,6 @@ find_archive_rels(relid)
 	CDR(arelid) = lispList();
 	CAR(CDR(arelid)) = lispInteger(roid);
 	CDR(CDR(arelid)) = LispNil;
-
-	elog(NOTICE, "Hey mao:  arch rel for %ld is %ld", roid, arel->rd_id);
 
 	return (arelid);
 }
