@@ -152,7 +152,7 @@ PageInit(page, pageSize, specialSize)
 
 	((PageHeader)page)->pd_lower = sizeof (PageHeaderData) - sizeof
 		(ItemIdData);
-	((PageHeader)page)->pd_upper = pageSize - specialSize;
+	((PageHeader)page)->pd_upper = pageSize - LONGALIGN(specialSize);
 	((PageHeader)page)->pd_special = pageSize - specialSize;
 
 	OpaqueSetPageSize((Opaque)&((PageHeader)page)->opaque, pageSize);
