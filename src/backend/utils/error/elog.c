@@ -148,8 +148,11 @@ va_dcl
 			fflush(stderr);
 			exitpg(lev);
 		}
-	if (lev == WARN)
+	if (lev == WARN) {
+		ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
 		kill(getpid(), 1);	/* abort to traffic cop */
+	}
+
 	if (lev >= FATAL) {
 		fflush(stdout);
 		fflush(stderr);
