@@ -419,7 +419,8 @@ pg_eval(query_string, dest)
     List parsetree;
     LispValue i, x;
     int j;
-    bool unrewritten = true;
+    List new_list = LispNil;
+    List rewritten = LispNil;
     MemoryContext oldcontext;
     extern Plan planner();
 
@@ -455,7 +456,6 @@ pg_eval(query_string, dest)
      */
     foreach (i, parsetree_list ) {
 	LispValue parsetree = CAR(i);
-	List rewritten  = LispNil;
 	
 	extern void init_planner();
 	extern List QueryRewrite();
@@ -466,8 +466,10 @@ pg_eval(query_string, dest)
 	 *	if it is a utility, no need to rewrite
 	 * ----------------
 	 */
-	if (atom(CAR(parsetree))) 
-	  continue;
+	if (atom(CAR(parsetree))) {
+	    new_list = nappend1(new_list,parsetree);
+	    continue;
+	}
 	
 	/* ----------------
 	 *	display parse strings
@@ -485,21 +487,26 @@ pg_eval(query_string, dest)
 	 * ----------------
 	 */
 	
-	if ( unrewritten == true && EnableRewrite ) {
-	    if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
+	if (EnableRewrite ) {
+	    rewritten = QueryRewrite ( parsetree );
+	    if (rewritten != LispNil) {
+#ifdef OLD_LIST_MUNGING
 		CAR(i) =  CAR(rewritten);
 		CDR(last(rewritten)) = CDR(i);
-		CDR(i) = CDR(rewritten);
-		unrewritten = false;
-		continue;
+		CDR(i) = CDR(rewritten);           
+#endif OLD_LIST_MUNGING
+		new_list = append(new_list, rewritten);
 	    }
-	    
-	    unrewritten = false;	
-	    
-	} /* if unrewritten, then rewrite */
+	    continue;
+	}
+	else  {
+	    new_list = nappend1(new_list, parsetree);
+	}
 
     } /* foreach parsetree in the list */
-    
+
+    parsetree_list = new_list;
+
     /* ----------------
      * Fix time range quals
      * this _must_ go here, because it must take place after rewrites
