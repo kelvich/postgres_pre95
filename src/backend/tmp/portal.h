@@ -2,14 +2,22 @@
  * portal.h --
  *	POSTGRES portal definitions.
  *
+ * Note:
+ *	A portal is an abstraction which represents the execution state of
+ * a running query (or a fixed sequence of queries).  The "blank portal" is
+ * a portal with an InvalidName.  This blank portal is in existance except
+ * between calls to BlankPortalAssignName and GetPortalByName(NULL).
+ *
  * Identification:
  *	$Header$
  */
 
-#ifndef	PortalIncluded
-#define PortalIncluded	1	/* Include this file only once */
+#ifndef	PortalIncluded		/* Include this file only once */
+#define PortalIncluded	1
 
+#ifndef	C_H
 #include "c.h"
+#endif
 
 #include "mnodes.h"
 #include "nodes.h"
@@ -58,11 +66,11 @@ PortalIsValid ARGS((
 
 /*
  * GetPortalByName --
- *	Returns a portal given a portal name.
+ *	Returns a portal given a portal name; returns blank portal given
+ * NULL; returns invalid portal if portal not found.
  *
  * Exceptions:
  *	BadState if called when disabled.
- *	BadArg if portal name is invalid.
  */
 extern
 Portal
@@ -71,12 +79,36 @@ GetPortalByName ARGS((
 ));
 
 /*
+ * BlankPortalAssignName --
+ *	Returns former blank portal as portal with given name.
+ *
+ * Side effect:
+ *	All references to the former blank portal become incorrect.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadState if called without an intervening call to GetPortalByName(NULL).
+ *	BadArg if portal name is invalid.
+ *	"WARN" if portal name is in use.
+ */
+extern
+Portal
+BlankPortalAssignName ARGS((
+	String	name	/* XXX PortalName */
+));
+
+/*
  * CreatePortal --
  *	Returns a new portal given a name.
+ *
+ * Note:
+ *	This is expected to be of very limited usability.  See instead,
+ * BlankPortalAssignName.
  *
  * Exceptions:
  *	BadState if called when disabled.
  *	BadArg if portal name is invalid.
+ *	"WARN" if portal name is in use.
  */
 extern
 Portal
@@ -86,7 +118,7 @@ CreatePortal ARGS((
 
 /*
  * PortalDestroy --
- *	Returns a new portal given a name.
+ *	Destroys portal.
  *
  * Exceptions:
  *	BadState if called when disabled.
