@@ -71,27 +71,37 @@ YYSTYPE	       p_trange,
 
 static int p_numlevels,p_last_resno;
 static Relation CurrentRelationPtr = NULL;
+static bool QueryIsRule = false;
+
 
 %}
 
 /* Commands */
 
-%token 	ABORT_TRANS ADD_ATTR APPEND ATTACH_AS BEGIN_TRANS CLOSE 
-	CLUSTER COPY CREATE DEFINE DELETE DESTROY END_TRANS EXECUTE
-	FETCH MERGE MOVE PURGE REMOVE RENAME REPLACE RETRIEVE
+%token  ABORT_TRANS ADD_ATTR APPEND ATTACH_AS BEGIN_TRANS CLOSE
+        CLUSTER COPY CREATE DEFINE DELETE DESTROY END_TRANS EXECUTE
+        FETCH MERGE MOVE PURGE REMOVE RENAME REPLACE RETRIEVE
 
 /* Keywords */
 
-%token  ALL ALWAYS AFTER AND ARCHIVE ARG ASCENDING BACKWARD BEFORE BINARY BY 
-	DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
-	IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT MERGE
-	NEVER NEWVERSION NONE NONULLS NOT PNULL	ON ONCE OR OUTPUTPROC 
-	PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SORT TO TRANSACTION
-	UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE
+%token  ALL ALWAYS AFTER AND ARCHIVE ARG ASCENDING BACKWARD BEFORE BINARY BY
+        DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
+        IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT MERGE
+        NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
+        PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SORT TO TRANSACTION
+        UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE
+
 
 /* Special keywords */
 
 %token  IDENT SCONST ICONST Op CCONST FCONST
+
+/* add tokens here */
+
+%token   	INHERITANCE VERSION CURRENT NEW ON THEN DO INSTEAD
+
+
+
 
 /* precedence */
 %right '='
@@ -109,8 +119,34 @@ query:
 	;
 
 experiment: 
-	a_expr
-	{ parsetree = $1; };
+	ON RETRIEVE TO relation_name opt_qual
+	THEN DO opt_instead 
+	{ 
+	    QueryIsRule = true;
+	} 
+	OptimizableStmt
+	{
+	    HandleRetrieveRuleDef(parsetree,$4,$5,$7);
+	}
+	| ON REPLACE TO relation_name opt_qual
+	THEN DO opt_instead 
+	{
+	    QueryIsRule = true;
+	}
+	OptimizableStmt
+	{
+	    HandleReplaceRuleDef(parsetree,$2,$4,$5,$7);
+	}
+	;
+
+opt_qual:
+					{ NULLTREE }
+	;
+
+opt_instead:
+	INSTEAD
+	| /* EMPTY */			{ NULLTREE }
+	;
 
 stmt :
 	  AttributeAddStmt
@@ -143,7 +179,7 @@ stmt :
 
   **********************************************************************/
 AttributeAddStmt:
-	  Addattr '(' dom_list ')' To relation_name
+	  Addattr '(' dom_list ')' TO relation_name
 		{
 		     $6 = lispCons( $6 , $3);
 		     $$ = lispCons( $1 , $6);
@@ -213,7 +249,12 @@ CopyStmt:
 		}
 	;
 
-copy_dirn:	  To	| From	;
+copy_dirn:	  
+  	TO 
+		{ $$ = KW(to); }
+	| FROM
+		{ $$ = KW(from); }
+	;
 
 copy_map:
 	/*EMPTY*/				{ NULLTREE }
@@ -314,7 +355,11 @@ OptArchiveType:
 	| Archive equals archive_type		{$$ = lispCons ($1 , $3); }
 	;
 
-archive_type:	  Heavy	| Light	| None	;
+archive_type:	  
+	HEAVY	{ $$ = KW(heavy); }
+	| LIGHT { $$ = KW(light); }
+	| NONE  { $$ = KW(none); }
+	;
 
 OptInherit:
 	  /*EMPTY */				{ NULLTREE }
@@ -372,7 +417,7 @@ def_name:
 	;
 
 opt_def_args:	/* Because "define procedure .." */
-	  Arg Is '(' def_name_list ')'
+	  ARG Is '(' def_name_list ')'
 		{ $$ = lispCons (KW(arg), $4); }
 	| /*EMPTY*/
 		{ NULLTREE }
@@ -394,12 +439,8 @@ definition:
 
 def_elem:
 	  def_name equals def_arg
-
-/*		{ $$ = lispCons ( lispAtom(CString($1)) , */
-/*			lispCons ($3, LispNil)); } */
 		{ $$ = lispCons($1, lispCons($3, LispNil)); }
 	| def_name
-/*		{ $$ = lispCons(lispAtom(CString($1)), LispNil); } */
 		{ $$ = lispCons($1, LispNil); }
 	;
 
@@ -452,7 +493,7 @@ OptFetchNum:
 
 OptFetchPname:
 	/*EMPTY*/				{ NULLTREE }
-	| In portal_name			{ $$ = $2; }
+	| In name	 			{ $$ = $2; }
 	;
 
  /************************************************************
@@ -465,7 +506,7 @@ OptFetchPname:
 
   ************************************************************/
 MergeStmt:
-	Merge Relation Into relation_name
+	MERGE Relation Into relation_name
 		{ 
 		    elog(NOTICE, "merge is unsupported in version 1");
 		    $$ = lispCons($1,
@@ -498,15 +539,15 @@ opt_move_dirn:
 opt_move_where: 
 	/*EMPTY*/				{ NULLTREE }
 	| NumConst				/* $$ = $1 */
-	| To NumConst				
-		{ $$ = lispCons ( $1 , lispCons( $2, LispNil )); }
-	| To record_qual			
+	| TO NumConst				
+		{ $$ = lispCons ( KW($1) , lispCons( $2, LispNil )); }
+	| TO record_qual			
 		{ $$ = lispString("record quals unimplemented") ; }
 	;
 
 opt_move_pname:
 	/*EMPTY*/				{ NULLTREE }
-	| In portal_name			{ $$ = $2;}
+	| In name				{ $$ = $2;}
 	;
 
 
@@ -600,14 +641,14 @@ remove_operator:
   **********************************************************************/
 
 RenameStmt :
-	  RENAME att_name In relation_name To att_name
+	  RENAME att_name In relation_name TO att_name
 		{ 
 		    $2 = lispCons ($2 , lispCons ($6, LispNil ));
 		    $4 = lispCons ($4 , $2);
 		    $$ = lispCons ($1 , 
 				   lispCons(lispString("ATTRIBUTE") ,$4 ));
 		}
-	| RENAME relation_name To relation_name
+	| RENAME relation_name TO relation_name
                 {
 		    $2 = lispCons ($2, lispCons ($4, LispNil));
 		    $$ = lispCons ($1,
@@ -643,7 +684,14 @@ RuleStmt:
 		}
 	;
 
-rule_tag:	  Always | Once	| Never	;
+rule_tag:	  
+	ALWAYS 
+		{ $$ = KW(always); }
+  	| ONCE
+		{ $$ = KW(once); }
+	| NEVER 
+		{ $$ = KW(never); }
+	;
 
 opt_priority:
 	  /*EMPTY*/				{ $$ = lispInteger(0); }
@@ -663,11 +711,11 @@ opt_priority:
 	
   **************************************************/
 TransactionStmt:
-	  Abort Transaction
+	  Abort TRANSACTION
 		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| Begin Transaction
+	| Begin TRANSACTION
 		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| End Transaction
+	| End TRANSACTION
 		{ $$ = lispCons ( $1, LispNil ) ; } 
 	| Abort
 		{ $$ = lispCons ( $1, LispNil ) ; } 
@@ -796,10 +844,10 @@ DeleteStmt:
   **************************************************/
 
 ExecuteStmt:
-	  Execute opt_star opt_portal '(' res_target_list ')'
+	  EXECUTE opt_star opt_portal '(' res_target_list ')'
             from_clause with_clause where_clause
 		{ 
-			$$ = $1; 
+			$$ = KW($1); 
 		  	elog(WARN, "execute does not work in Version 1");
 		}
 	;
@@ -813,7 +861,7 @@ ExecuteStmt:
   **********************************************************************/
 
 ReplaceStmt:
- 	Replace 
+ 	REPLACE 
 		{ SkipForwardToFromList(); }
 	from_clause  
 	opt_star relation_name
@@ -843,9 +891,6 @@ ReplaceStmt:
 		}
 	;
 		 
-opt_rep_duration: /*EMPTY*/ {NULLTREE} 	| Demand | Always ;
-
-
  /************************************************************
 
 	Retrieve:
@@ -858,7 +903,7 @@ opt_rep_duration: /*EMPTY*/ {NULLTREE} 	| Demand | Always ;
   ************************************************************/
 
 RetrieveStmt:
-	  Retrieve 
+	  RETRIEVE 
 		{ SkipForwardToFromList(); }
 	  from_clause 
 	  opt_star result opt_unique 
@@ -903,13 +948,14 @@ result:
 opt_unique:
 	/*EMPTY*/
 		{ NULLTREE }
-	| Unique 
+	| UNIQUE
+		{ $$ = KW($1); }
 	;
 
 ret_opt2: 
 	/*EMPTY*/
 		{ NULLTREE }
-	| Sort By sortby_list
+	| Sort BY sortby_list
 		{ $$ = $3 ; }
 	;
 
@@ -926,7 +972,7 @@ sortby:
 
 
 opt_archive:
-		{$$=LispNil;}
+		{ NULLTREE }
 	| Archive
 	;
 
@@ -989,11 +1035,13 @@ param:
 	;
 
 from_clause:
-	 From from_list 			{ $$ = $2 ; 
+	 FROM from_list 			
+		{ 
+			$$ = $2 ; 
 			SkipBackToTlist();
 			yychar = -1;
 			/* goto yynewstate; */
-						}
+		}
 	| /*empty*/				{ NULLTREE ; }
 	;
 
@@ -1046,7 +1094,7 @@ opt_portal:
   	/* common to retrieve, execute */
 	/*EMPTY*/
 		{ NULLTREE }
-	| Portal portal_name 
+	| Portal name 
 		{
 		    $2=lispCons($2,LispNil);
 		    $$=lispCons($1,$2);
@@ -1055,8 +1103,8 @@ opt_portal:
 
 OptUseOp:
 	  /*EMPTY*/			{ NULLTREE }
-	| Using Op			{ $$ = $2; }
-	| Using Id			{ $$ = $2; }
+	| USING Op			{ $$ = $2; }
+	| USING Id			{ $$ = $2; }
 	;
 
 from_rel_name:
@@ -1321,7 +1369,11 @@ opt_id:
 	| Id
 	;
 
-relation_name:		Id		/*$$=$1*/;
+relation_name:
+	Id		/*$$=$1*/
+	| SpecialRuleRelation
+	;
+
 access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
 att_name: 		Id		/*$$=$1*/;
@@ -1330,7 +1382,6 @@ col_name:		Id		/*$$=$1*/;
 dom_name: 		Id 		/*$$=$1*/;
 index_name: 		Id		/*$$=$1*/;
 map_rel_name:		Id		/*$$=$1*/;
-portal_name: 		Id		/*$$=$1*/;
 var_name:		Id		/*$$=$1*/;
 name:			Id		/*$$-$1*/;
 string: 		Id		/*$$=$1 Sconst ?*/;
@@ -1370,87 +1421,53 @@ Sconst:		SCONST			{ $$ = yylval; }
 Id:
 	  IDENT					
 		{ $$ = yylval; }
-	/* | Keyword				
-		{ extern char yytext[];
-		  $$ = lispString( yytext ); } /* XXX - may not be good */
+SpecialRuleRelation:
+	CURRENT
+		{ if (QueryIsRule) $$ = yylval; else elog(WARN,"parser"); }
+	| NEW
+		{ if (QueryIsRule) $$ = yylval; else elog(WARN,"parser"); }
 	;
-		
- /* Keyword:
-	  Sort
-	| Before
-	;*/
 
 Abort:			ABORT_TRANS	{ $$ = yylval ; } ;
 Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
-After:			AFTER		{ $$ = yylval ; } ;
 All:			ALL		{ $$ = yylval ; } ;
-Always:			ALWAYS		{ $$ = yylval ; } ;
 And:			AND		{ $$ = yylval ; } ;
 Append:			APPEND		{ $$ = yylval ; } ;
 Archive:		ARCHIVE		{ $$ = yylval ; } ;
-Arg:			ARG		{ $$ = yylval ; } ;
-Ascending:		ASCENDING	{ $$ = yylval ; } ;
 Attachas:		ATTACH_AS	{ $$ = yylval ; } ;
 Backward:		BACKWARD	{ $$ = yylval ; } ;
-Before:			BEFORE		{ $$ = yylval ; } ;
 Begin:			BEGIN_TRANS	{ $$ = yylval ; } ;
 Binary:			BINARY		{ $$ = yylval ; } ;
-By:			BY		{ $$ = yylval ; } ;
 Close:			CLOSE		{ $$ = yylval ; } ;
 Cluster:		CLUSTER		{ $$ = yylval ; } ;
 Copy:			COPY		{ $$ = yylval ; } ;
 Create:			CREATE		{ $$ = yylval ; } ;
 Define:			DEFINE		{ $$ = yylval ; } ;
 Delete:			DELETE		{ $$ = yylval ; } ;
-Demand:			DEMAND		{ $$ = yylval ; } ;
-Descending:		DESCENDING	{ $$ = yylval ; } ;
 Destroy:		DESTROY		{ $$ = yylval ; } ;
-Empty:			EMPTY		{ $$ = yylval ; } ;
 End:			END_TRANS	{ $$ = yylval ; } ;
-Execute:		EXECUTE		{ $$ = yylval ; } ;
 Fetch:			FETCH		{ $$ = yylval ; } ;
 Forward:		FORWARD		{ $$ = yylval ; } ;
-From:			FROM		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
-Heavy:			HEAVY		{ $$ = yylval ; } ;
 In:			IN		{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
 Inherits:		INHERITS	{ $$ = yylval ; } ;
-Input_proc:		INPUTPROC	{ $$ = yylval ; } ;
-Intersect:		INTERSECT	{ $$ = yylval ; } ;
 Into:			INTO		{ $$ = yylval ; } ;
 Is:			IS		{ $$ = yylval ; } ;
 Key:			KEY		{ $$ = yylval ; } ;
-Leftouter:		LEFTOUTER	{ $$ = yylval ; } ;
-Light:			LIGHT		{ $$ = yylval ; } ;
-Merge:			MERGE		{ $$ = yylval ; } ;
 Move:			MOVE		{ $$ = yylval ; } ;
-Never:			NEVER		{ $$ = yylval ; } ;
-None:			NONE		{ $$ = yylval ; } ;
 Nonulls:		NONULLS		{ $$ = yylval ; } ;
 Not:			NOT		{ $$ = yylval ; } ;
 On:			ON		{ $$ = yylval ; } ;
-Once:			ONCE		{ $$ = yylval ; } ;
 Operator:		OPERATOR	{ $$ = yylval ; } ;
 Or:			OR		{ $$ = yylval ; } ;
-Output_proc:		OUTPUTPROC	{ $$ = yylval ; } ;
 Portal:			PORTAL		{ $$ = yylval ; } ;
-Priority:		PRIORITY	{ $$ = yylval ; } ;
 Purge:			PURGE		{ $$ = yylval ; } ;
-Quel:			QUEL		{ $$ = yylval ; } ;
 Remove:			REMOVE		{ $$ = yylval ; } ;
-Rename:			RENAME		{ $$ = yylval ; } ;
-Replace:		REPLACE		{ $$ = yylval ; } ;
-Retrieve:		RETRIEVE	{ $$ = yylval ; } ;
-Rightouter:		RIGHTOUTER	{ $$ = yylval ; } ;
 Rule:			RULE		{ $$ = yylval ; } ;
 Sort:			SORT		{ $$ = yylval ; } ;
-To:			TO		{ $$ = yylval ; } ;
 Type:			P_TYPE		{ $$ = yylval ; } ;
-Transaction:		TRANSACTION	{ $$ = yylval ; } ;
-Union:			UNION		{ $$ = yylval ; } ;
-Unique:			UNIQUE		{ $$ = yylval ; } ;
 Using:			USING		{ $$ = yylval ; } ;
 Version:		NEWVERSION	{ $$ = yylval ; } ;
 Where:			WHERE		{ $$ = yylval ; } ;
@@ -1473,6 +1490,7 @@ parser_init()
 	p_numlevels = 0;
 	p_target_resnos = LispNil;
 	ResdomNoIsAttrNo = 0;
+	QueryIsRule = false;
 }
 
 char *
