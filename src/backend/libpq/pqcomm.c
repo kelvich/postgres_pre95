@@ -269,7 +269,7 @@ pq_getinaddr(sin, host, port)
     }
     
     sin->sin_family = AF_INET;
-    sin->sin_port = htons(port);
+    sin->sin_port = htonl(port);
     
     return(0);
 }
@@ -296,7 +296,7 @@ pq_getinserv(sin, host, serv)
     }
     
     return
-	pq_getinaddr(sin, host, ntohs(ss->s_port));
+	pq_getinaddr(sin, host, ntohl(ss->s_port));
 }
 
 /* ----------------------------------------
@@ -346,6 +346,10 @@ short	portName;
   {
     strncpy(startup.execFile, execFile, sizeof(startup.execFile));
   }
+  else
+  {
+    strncpy(startup.execFile, "", sizeof(startup.execFile));
+  }
 
   /* If no port  was suggested grab the default or PGPORT value */
   if (!portName)
@@ -356,6 +360,7 @@ short	portName;
    * are important to the packet.c library.
    */
   MyConn = (Connection *) malloc(sizeof(Connection));
+  bzero(MyConn, sizeof(Connection));
   MyConn->id = INVALID_ID;
   MyConn->seqno = INITIAL_SEQNO;
 
@@ -370,6 +375,7 @@ short	portName;
    * Save communication port state.
    */
   SendPort = (Port *) malloc(sizeof(Port));
+  bzero(SendPort, sizeof(Port));
   SendPort->sock =  sock;
 
   /* initialize */
@@ -464,7 +470,7 @@ int	*fdP;
   }
 
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(portName);
+  sin.sin_port = htonl(portName);
 
   if (bind(fd, (char *)&sin, sizeof sin) < 0) {
     fprintf(stderr,"StreamServerPort: cannot bind to port\n");
@@ -566,7 +572,7 @@ int	*sockP;
   }
 
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(portName);
+  addr.sin_port = htonl(portName);
 
   *sockP = sock;
   if (! connect(sock, &addr, sizeof(addr)))
