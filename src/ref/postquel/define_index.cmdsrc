@@ -60,7 +60,7 @@ Predefined type classes are:
 .(l
 int2_ops	float4_ops
 int4_ops	float8_ops	
-area_ops	oid_opS
+area_ops	oid_ops
 .)l
 All are defined for the normal comparison operators ( <, <=, =, >, >=).
 .lp
@@ -96,3 +96,7 @@ define index emp-index on emp using btree (age int4_ops)
 Archives are not supported in Version 2.
 .lp
 There should be an access method designers guide.
+.lp
+The 
+.i parameter-list
+is not supported in Version 2.
