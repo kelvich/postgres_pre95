@@ -65,6 +65,9 @@ char delimiter;
             case '\"':
                 scanning_string = !scanning_string;
                 break;
+	    case 0:
+		elog(WARN, "array constant is missing a closing bracket");
+		break;
             default:
                 if (!scanning_string
                   && nest_level == 1
@@ -129,7 +132,16 @@ ObjectId element_type;
     if (string[0] != '{')
     {
 	if (element_type == charTypid)
+	{
+	    /*
+	     * this is a hack to allow char arrays to have a { in the
+	     * first position.  Of course now \{ can never be the first
+	     * two characters, but what else can we do?
+	     */
+	    string =
+		(*string == '\\' && *(string+1) == '{') ? &string[1] : string;
 	    return (char *)textin(string);
+	}
 	else
 	    elog(WARN, "array_in:  malformed array constant");
     }
