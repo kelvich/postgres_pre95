@@ -141,7 +141,6 @@ ObjectId element_type;            /* type OID of an array element */
     } else  {
         int dummy, bytes, lobjtype;
         bool chunked = false;
-        bool inversion = false;
 
         dataPtr = _ReadLOArray(p, &bytes, &dummy, &chunked, &lobjtype, ndim, 
                 dim, typlen );
@@ -360,6 +359,8 @@ int ndim, dim[], baseSize;
 {
     char *inputfile, *accessfile = NULL, *chunkfile = NULL;
     char *retStr, *_AdvanceBy1word();
+
+    *lobjtype = Unix;	/* default */
 
     str = _AdvanceBy1word(str, &inputfile); 
 
