@@ -1,11 +1,13 @@
-#include "pg_lisp.h"
-#include "align.h"
-#include "log.h"
 #include "c.h"
-#include "htup.h"
-#include "utils/pg_malloc.h"
 
 RcsId("$Header$");
+
+#include "access/htup.h"
+#include "tmp/align.h"
+#include "utils/log.h"
+#include "utils/pg_malloc.h"
+
+#include "nodes/pg_lisp.h"
 
 static bool8 memory_is_initialized = FALSE;
 static int number_of_nodes = 0;
