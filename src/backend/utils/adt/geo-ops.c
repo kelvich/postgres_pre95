@@ -21,6 +21,10 @@ static char rcs_id[] =
 #define	LSEGNARGS	4
 #define	POINTNARGS	2
 
+#ifdef sequent
+#define HUGE_VAL	1.8e+308
+#endif
+
 /***********************************************************************
  **
  ** 	Routines for two-dimensional boxes.
