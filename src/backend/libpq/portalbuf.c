@@ -70,7 +70,7 @@ pbuf_alloc(size)
     caddr_t 	addr;
 
     if (size <= 0)
-	libpq_raise(&MemoryError, form((int)"Invalid argument to pg_alloc()."));
+	libpq_raise(&MemoryError, form((int)"Invalid argument to pbuf_alloc()."));
 
     addr = (caddr_t) palloc(size);
     if (addr == NULL)
