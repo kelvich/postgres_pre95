@@ -11,9 +11,6 @@
  *	Arithmetic operators:
  *	 intpl, intmi, int4mul, intdiv
  *
- * 	Routines for (non-builtin) integer operations.
- *		(included if FMGR_MATH is defined in h/fmgr.h)
- *
  *	Arithmetic operators:
  *	 intmod, int4fac
  */
@@ -269,7 +266,6 @@ int32 int2mul(arg1, arg2)	int16	arg1, arg2; { return(arg1 * arg2); }
 int32 int2div(arg1, arg2)	int16	arg1, arg2; { return(arg1 / arg2); }
 int32 int2inc(arg)		int16   arg;	    { return(arg + (int16)1); }
 
-#ifdef FMGR_MATH
 /*
  *	int[24]mod	- returns arg1 mod arg2
  */
@@ -338,14 +334,3 @@ int4smaller(arg1, arg2)
 {
 	return ((arg1 > arg2) ? arg2 : arg1);
 }
-
-
-#endif FMGR_MATH
-
-
-
-
-	     /* ========== PRIVATE ROUTINES ========== */
-
-
-			     /* (none) */

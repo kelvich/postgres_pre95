@@ -14,6 +14,7 @@
 #include "access/heapam.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 #include "utils/fmgr.h"
+#include "utils/builtins.h"	/* for textout() prototype */
 #include "utils/log.h"
 
 #include "catalog/catname.h"

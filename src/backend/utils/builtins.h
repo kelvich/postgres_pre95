@@ -23,9 +23,7 @@
 
 #include "utils/large_object.h"
 
-#ifdef FMGR_ADT
 #include "utils/geo-decls.h"
-#endif /* FMGR_ADT */
 
 
 /*
@@ -108,13 +106,11 @@ extern int32		intpl();
 extern int32		intmi();
 extern int32		intdiv();
 
-#ifdef FMGR_MATH
 int32 int4mod ARGS((int32 arg1 , int32 arg2 ));
 int32 int2mod ARGS((int16 arg1 , int16 arg2 ));
 int32 int4fac ARGS((int32 arg1 ));
 int32 int2fac ARGS((int16 arg1 ));
 extern int32		intmod();
-#endif /* FMGR_MATH */
 
 /*
  *  	New btree code.
@@ -173,7 +169,6 @@ extern void		rtrescan();
 extern void		rtbuild();
 
 /* support routines for the rtree access method, by opclass */
-#ifdef FMGR_ADT
 extern BOX		*rt_box_union();
 extern BOX		*rt_box_inter();
 extern int		rt_box_size();
@@ -181,7 +176,6 @@ extern int		rt_bigbox_size();
 extern int		rt_poly_size();
 extern POLYGON	*rt_poly_union();
 extern POLYGON	*rt_poly_inter();
-#endif /* FMGR_ADT */
 
 /* rule locks */
 extern Datum GetAttribute();
@@ -252,7 +246,6 @@ long float8gt ARGS((float64 arg1 , float64 arg2 ));
 long float8ge ARGS((float64 arg1 , float64 arg2 ));
 float64 ftod ARGS((float32 num ));
 float32 dtof ARGS((float64 num ));
-#ifdef FMGR_MATH
 float64 dround ARGS((float64 arg1 ));
 float64 dtrunc ARGS((float64 arg1 ));
 float64 dsqrt ARGS((float64 arg1 ));
@@ -280,14 +273,12 @@ long float84lt ARGS((float64 arg1 , float32 arg2 ));
 long float84le ARGS((float64 arg1 , float32 arg2 ));
 long float84gt ARGS((float64 arg1 , float32 arg2 ));
 long float84ge ARGS((float64 arg1 , float32 arg2 ));
-#endif /* FMGR_MATH */
 
 /* in utils/adt/ftype.c -- mao's stuff */
 ObjectId fimport ARGS((struct varlena *name ));
 int32 fexport ARGS((struct varlena *name , ObjectId foid ));
 int32 fabstract ARGS((struct varlena *name , ObjectId foid , int32 blksize , int32 offset , int32 size ));
 
-#ifdef FMGR_ADT
 /* geo-ops.c */
 BOX *box_in ARGS((char *str ));
 char *box_out ARGS((BOX *box ));
@@ -333,7 +324,6 @@ long poly_contained ARGS((POLYGON *polya , POLYGON *polyb ));
 /* geo-selfuncs.c */
 float64 areasel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
 float64 areajoinsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
-#endif /* FMGR_ADT */
 
 /* lo_regprocs.c */
 char *lo_filein ARGS((char *filename ));
@@ -362,13 +352,11 @@ bool oidseqne ARGS((OidSeq o1 , OidSeq o2 ));
 bool oidseqcmp ARGS((OidSeq o1 , OidSeq o2 ));
 OidSeq mkoidseq ARGS((ObjectId v_oid , uint32 v_seq ));
 
-#ifdef FMGR_ADT
 /* regexp.c */
 bool char16regexeq ARGS((char *s , char *p ));
 bool char16regexne ARGS((char *s , char *p ));
 bool textregexeq ARGS((struct varlena *s , struct varlena *p ));
 bool textregexne ARGS((char *s , char *p ));
-#endif /* FMGR_ADT */
 
 /* regproc.c */
 int32 regprocin ARGS((char *proname ));

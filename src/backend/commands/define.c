@@ -27,6 +27,7 @@ RcsId("$Header$");
 #include "nodes/pg_lisp.h"
 #include "parser/parse.h"	/* for ARG */
 #include "utils/fmgr.h"		/* for fmgr */
+#include "utils/builtins.h"	/* prototype for textin() */
 #include "utils/log.h"
 
 #include "commands/defrem.h"

@@ -15,9 +15,6 @@
  *	Conversion routines:
  *	 ftod, dtof
  *
- *	Routines for (non-builtin) floating point operations.
- *		(included if FMGR_MATH is defined in h/fmgr.h)
- *
  *	Random float8 ops:
  * 	 dround, dtrunc, dsqrt, dcbrt, dpow, dexp, dlog1
  *	Arithmetic operators:
@@ -37,6 +34,7 @@
 
 #include "tmp/postgres.h"
 #include "utils/fmgr.h"
+#include "utils/builtins.h"	/* for ftod() prototype */
 
 #ifndef sun
 #include "utils/log.h"
@@ -580,7 +578,6 @@ dtof(num)
 }
 
 
-#ifdef FMGR_MATH
 /*
  *	=======================
  *	RANDOM FLOAT8 OPERATORS
@@ -880,7 +877,6 @@ float84ge(arg1, arg2)
 	float64	arg1;
 	float32	arg2;
 { return(*arg1 >= *arg2); }
-#endif FMGR_MATH
 
 
 
