@@ -48,7 +48,11 @@ On diskless platforms or when running across NFS,
 can take two or three minutes or more, depending on network traffic.  On
 diskful platforms,
 .b load
-takes about one minute.
+takes from a few seconds on Suns and Sparcs to several minutes on DECstations.
 .lp
 On DECstations, you must use the "-G O" option when compiling object files to
 be loaded.
+.lp
+Note that if you are porting Postgres to a new platform, the
+.b load
+command will have to work in order to support ADT's.
