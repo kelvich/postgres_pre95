@@ -441,11 +441,13 @@ Param paramNode;
 
     /*
      * search the array until either another entry with
-     * the same name is found or till we reach the end of the array.
+     * the same name  and paramkind is found
+     * or till we reach the end of the array.
      */
     i = 0;
     while(paramList[i].kind != PARAM_INVALID &&
-	    ! NameIsEqual(paramList[i].name, get_paramname(paramNode))) {
+	    ! (NameIsEqual(paramList[i].name, get_paramname(paramNode))
+	      && paramList[i].kind == get_paramkind(paramNode))) {
 	i += 1;
     }
 
