@@ -33,7 +33,7 @@ typedef int LOCKT;
 typedef int TableId;
 
 /* MAX_LOCKTYPES cannot be larger than the bits in MASK */
-#define MAX_LOCKTYPES 5
+#define MAX_LOCKTYPES 6
 
 /*
  * MAX_TABLES corresponds to the number of spin locks allocated in

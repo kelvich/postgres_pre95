@@ -39,19 +39,20 @@
 static
 int MultiConflicts[] = {
   NULL,	
-  /* everything conflicts with a write lock */
-  0xF,  
+  /* All reads and writes at any level conflict with a write lock */
+  (1 << WRITE_LOCK)|(1 << WRITE_INTENT)|(1 << READ_LOCK)|(1 << READ_INTENT),
   /* read locks conflict with write locks at curr and lower levels */
   (1 << WRITE_LOCK)| (1 << WRITE_INTENT),  
   /* write intent locks */
   (1 << READ_LOCK) | (1 << WRITE_LOCK),
   /* read intent locks*/
   (1 << WRITE_LOCK),
-  /* Will add extend locks for archive storage manager */
+  /* extend locks for archive storage manager conflict only w/extend locks */
+  (1 << EXTEND_LOCK)
 };
 
 /*
- * write locks have higher priority than read locks.  May
+ * write locks have higher priority than read locks and extend locks.  May
  * want to treat INTENT locks differently.
  */
 static
@@ -60,6 +61,7 @@ int MultiPrios[] = {
   2,
   1,
   2,
+  1,
   1
 };
 
@@ -86,7 +88,7 @@ InitMultiLevelLockm()
   if (MultiTableId)
 	return MultiTableId;
 
-  tableId = LockTabInit("LockTable", MultiConflicts, MultiPrios, 4);
+  tableId = LockTabInit("LockTable", MultiConflicts, MultiPrios, 5);
   MultiTableId = tableId;
   if (! (MultiTableId)) {
     elog(WARN,"InitMultiLockm: couldnt initialize lock table");

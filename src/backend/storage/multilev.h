@@ -21,6 +21,8 @@
 #define READ_INTENT	(READ_LOCK+INTENT)
 #define WRITE_INTENT	(WRITE_LOCK+INTENT)
 
+#define EXTEND_LOCK	5
+
 #define SHORT_TERM	1
 #define LONG_TERM	2
 #define UNLOCK		0

@@ -726,6 +726,34 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     MultiReleasePage(relation, itemPointer, WRITE_LOCK);
 }
 
+RelationSetLockForExtend(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    MultiLockReln(relation, EXTEND_LOCK);
+}
+
+RelationUnsetLockForExtend(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    MultiReleaseReln(relation, EXTEND_LOCK);
+}
+
 /* ----------------
  *	LockInfoIsValid
  * ----------------
