@@ -3,6 +3,7 @@
  *	format.c
  *	
  *   DESCRIPTION
+ *	a wrapper around code that does what vsprintf does.
  *
  *   INTERFACE ROUTINES
  *	form
@@ -62,13 +63,9 @@ form(va_alist)
     va_list	args;
     char	*format;
     char	*str;
+#ifdef NO_VSPRINTF
     FILE	fake;
 
-#if !sprite
-    /* ----------------
-     *	non-sprite hacks
-     * ----------------
-     */
 #ifdef	lint
     fmt = fmt;
 #endif  /* lint */
@@ -77,37 +74,25 @@ form(va_alist)
 	FormBufP = FormBuf;
 
     fake._cnt  = ((FormBuf + FormMaxSize) - FormBufP) - 1;
-    fake._base = fake._ptr = (iochar *)FormBufP;
+    fake._base = fake._ptr = (iochar *) FormBufP;
     fake._flag = _IOWRT | _IOSTRG;
     fake._file = _NFILE;
-#endif /* sprite */
+#endif /* NO_VSPRINTF */
     
     va_start(args);
     format = va_arg(args, char *);
 
-#if !sprite
-    /* ----------------
-     *	when not in sprite use _doprnt.
-     * ----------------
-     */
+    str = FormBufP;
+#ifdef NO_VSPRINTF
     _doprnt(format, args, &fake);
-    va_end(args);
-
 #ifndef	lint
     (void) putc('\0', &fake);
 #endif  /* lint */
-
-    str = FormBufP;
     FormBufP += strlen(FormBufP) + 1;
-    
-#else /* sprite */
-    /* ----------------
-     *	when in sprite, use vsprintf.
-     * ----------------
-     */
-    str = vsprintf(FormBuf, format, args);
+#else /* NO_VSPRINTF */
+    (void) vsprintf(FormBuf, format, args);
+#endif /* NO_VSPRINTF */
     va_end(args);
-#endif /* sprite */
     
     return (str);
 }
