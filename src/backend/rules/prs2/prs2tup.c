@@ -204,8 +204,10 @@ Prs2RuleData r;
      * "write" lock...
      */
     oldStubs = prs2GetRelationStubs(r->eventRelationOid);
-    newLocks = prs2FindLocksThatWeMustPut(oldStubs, thislock, attributeNo);
-    prs2FreeLocks(thislock);
+    if (lockType == LockTypeTupleRetrieveWrite)
+	newLocks = prs2FindLocksThatWeMustPut(oldStubs, thislock, attributeNo);
+    else
+	newLocks = prs2CopyLocks(thislock);
 
     /*
      * Now scan one by one the tuples & put locks to all the
@@ -248,12 +250,17 @@ Prs2RuleData r;
      * But don't forget to put the relation level stub !
      * NOTE: we can not use the qualification as produced by the
      * parser. We have to preprocess it a little bit...
+     *
+     * NOTE: the lock of this stub is the original lock for this
+     * rule only and NOT the locks that we put in the
+     * tuples (which contain the original lock + locks
+     * for all other rules that depend on the one we define)!
      */
     oneStub = prs2MakeOneStub();
     oneStub->ruleId = r->ruleId;
     oneStub->stubId = (Prs2StubId) 0;
     oneStub->counter = 1;
-    oneStub->lock = newLocks;
+    oneStub->lock = thislock;
     oneStub->qualification = planQual;
     prs2AddRelationStub(rel, oneStub);
 
@@ -262,6 +269,8 @@ Prs2RuleData r;
      */
     RelationCloseHeapRelation(rel);
     pfree(attrList);
+    pfree(thislock);
+    pfree(newLocks);
     return(true);
 }
 
