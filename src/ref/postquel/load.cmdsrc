@@ -1,0 +1,55 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP LOAD COMMANDS 6/14/90
+.XA 2 Load
+.uh NAME
+.lp
+load \*- dynamically load an object file
+.uh SYNOPSIS
+.lp
+.b load 
+"filename"
+.uh DESCRIPTION
+.lp
+.b Load
+loads an object (or ".o") file into Postgres's address space.  Once a file
+is loaded, all functions in that file can be accessed.  This function is
+used in support of ADT's.
+.lp
+If a file is not loaded using the 
+.b load
+command, the file will be loaded automatically the first time the function
+is called by Postgres.
+.b Load
+can also be used to reload an object file if it has been edited and recompiled.
+Only objects created from C language files are supported at this time.
+.uh EXAMPLE
+.lp
+.nf
+/* Load the file /usr/postgres/demo/circle.o */
+
+   load "/usr/postgres/demo/circle.o"
+.fi
+.sp
+.uh CAVEATS
+.sp
+Functions in loaded object files should not call functions in other object
+files loaded through the 
+.b load
+command, meaning, for example, that all functions in file A should call
+each other, functions in the standard or math libraries, or in Postgres itself.
+They should not call functions defined in a different loaded file B.  This is
+because if B is reloaded, the Postgres loader is not "smart" enough to relocate
+the calls from the functions in A into the new address space of B.  If B is
+not reloaded, however, there will not be a problem.
+.lp
+On diskless platforms or when running across NFS,
+.b load
+can take two or three minutes or more, depending on network traffic.  On
+diskful platforms,
+.b load
+takes about one minute.
+.lp
+On DECstations, you must use the "-G O" option when compiling object files to
+be loaded.
+.pp
