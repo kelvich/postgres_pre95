@@ -170,7 +170,7 @@ private void formrdesc ARGS((
 	AttributeTupleFormData att []
 ));
 private void RelationFlushIndexes ARGS((
-	Relation relation,
+	Relation *relation,
 	ObjectId accessMethodId
 ));
  
