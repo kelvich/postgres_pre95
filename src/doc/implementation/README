@@ -1,0 +1,14 @@
+$Header$
+
+This directory contains detailed implementation notes that are still
+(more or less) current.  Where they aren't current, we don't have a
+better description anywhere else.
+
+am.me			Access method interface
+bufmgr.doc		Buffer manager interface
+fastpath.me		Fast-path interface [NOT COMPLETE]
+fmgr.me			Function manager interface
+libpq.me		LIBPQ internals documentation
+parse-tree.me		Parser output format
+query-tree.me		Optimizer input/output format [NOT CURRENT]
+smgr.me			Storage manager interface
