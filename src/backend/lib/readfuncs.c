@@ -862,14 +862,6 @@ _readConst()
 
 	local_node->constlen = atoi(token);
 
-	token = lsptok(NULL, &length);      /* get :constvalue */
-
-	/*
-	/* token = lsptok(NULL, &length);      /* now read it */
-	/* local_node->constvalue = Int32GetDatum(atoi(token));
-	/* */
-	local_node->constvalue = readValue(local_node->consttype);
-
 	token = lsptok(NULL, &length);      /* get :constisnull */
 	token = lsptok(NULL, &length);      /* now read it */
 
@@ -880,6 +872,18 @@ _readConst()
 	else
 	{
 		local_node->constisnull = false;
+	}
+
+
+	token = lsptok(NULL, &length);      /* get :constvalue */
+
+	if (local_node->constisnull) {
+	    token = lsptok(NULL, &length);      /* skip "NIL" */
+	} else {
+	    /*
+	     * read the value
+	     */
+	    local_node->constvalue = readValue(local_node->consttype);
 	}
 
 	token = lsptok(NULL, &length);      /* get :constbyval */
