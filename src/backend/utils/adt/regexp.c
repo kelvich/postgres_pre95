@@ -13,7 +13,7 @@
 #define GETC()		(*p++)
 #define PEEKC()		*(p+1)
 #define	UNGETC(c)	(*--p = (c))
-#define	RETURN(v)	(v)
+#define	RETURN(v)	return(v)
 #define	ERROR(val)	elog(WARN, "regexp library reports error %d", (val));
 
 #define	EXPBUFSZ	256
