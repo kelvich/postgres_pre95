@@ -79,10 +79,44 @@ extern          int Int_yylval;
 
 extern Relation reldesc;
 extern char relname[80];
-extern printrel();
-extern unsigned char MapEscape();
 extern int numattr;          /* number of attributes for the new reln */
 
 extern struct attribute *attrtypes[MAXATTR];
 
 extern Portal BlankPortal;
+
+extern void createrel	ARGS((char *));
+extern void openrel	ARGS((char *));
+extern void closerel	ARGS((char *));
+extern void printrel	ARGS((void));
+extern void randomprintrel ARGS((void));
+extern void showtup	ARGS((HeapTuple, Buffer, Relation));
+
+extern void showtime	ARGS((Time));
+extern void DefineAttr ARGS((char *, char *, int));
+extern void InsertOneTuple ARGS((ObjectId));
+extern void InsertOneValue ARGS((ObjectId, int, char *));
+extern void handletime ARGS((void));
+extern void cleanup	ARGS((void));
+extern int gettype	ARGS((char *));
+extern struct attribute * AllocateAttribute ARGS((void));
+extern void err	ARGS((void));
+extern void handle_warn ARGS((void));
+extern void die		ARGS((void));
+extern void ExcAbort 	ARGS((Exception *, ExcDetail, ExcData, ExcMessage));
+extern unsigned char MapEscape ARGS((char **));
+extern int  EnterString ARGS((char *));
+extern char *LexIDStr	ARGS((int));
+extern int  Hash	ARGS((char *, int));
+extern hashnode *FindStr ARGS((char *, int, hashnode *));
+extern hashnode *AddStr ARGS((char *, int, int));
+extern void printhashtable ARGS((void));
+extern void printstrtable ARGS((void));
+extern char *emalloc	ARGS((unsigned));
+extern int LookUpMacro ARGS((char *));
+extern void printmacros ARGS((void));
+extern void DefineMacro ARGS((int, int));
+extern void AddAttr	ARGS((char *));
+extern int  LexIDLen	ARGS((int));
+extern char LexIDChar	ARGS((int, int));
+
