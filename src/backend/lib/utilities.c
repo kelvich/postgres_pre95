@@ -28,6 +28,7 @@
 #include "pg_lisp.h"
 #include "c.h"
 #include "log.h"
+#include "nodes.h"
 
 /*     	=================
  *     	GENERAL UTILITIES
@@ -97,25 +98,14 @@ collect (pred,list)
  *    	same
  *    
  *    	Returns t if two lists contain the same elements.
+ *       now defined in lispdep.c
  *    
  */
 
 /*  .. best-innerjoin, prune-joinrel
  */
 
-LispValue
-same (list1,list2)
-     LispValue list1,list2 ;
-{
-    elog(WARN,"'same' is an unsuppported function");
-/*
-    if ((length(list1) == length(list2)) &&
-	(length(list1) == subset(list1,list2)))
-      return(true);
-    else
-      return(false);
-*/
-}
+
 
 /*    
  *    	last-element
@@ -152,38 +142,45 @@ copy_seq_tree (seqtree)
     LispValue elem = LispNil;
     LispValue i = LispNil;
 
+    if ( null(seqtree))
+      return(LispNil);
     if (IsA(seqtree,LispList))
       foreach (i,seqtree) {
 	  LispValue elem = CAR(i);
-	  switch(elem->type) {
-	    case PGLISP_ATOM:
-	      new_elem = lispAtom(CAtom(elem));
-	      break;
-	    case PGLISP_DTPR:
-	      elog(NOTICE,"sequence is more than one deep !");
+	  if (elem != LispNil)
+	    switch(elem->type) {
+	      case PGLISP_ATOM:
+		new_elem = lispInteger(CAtom(elem));
+		NodeSetTag(new_elem,classTag(LispSymbol));
+		break;
+	      case PGLISP_DTPR:
+		elog(NOTICE,"sequence is more than one deep !");
 	      new_elem = copy_seq_tree(elem);
-	      break;
-	    case PGLISP_VECI:
-	      elog(WARN,"copying vectors unsupported");
-	      break;
-	    case PGLISP_FLOAT:
+		break;
+	      case PGLISP_VECI:
+		elog(WARN,"copying vectors unsupported");
+		break;
+	      case PGLISP_FLOAT:
 	      elog(WARN,"copying floats unsupported");
-	      break;
-	    case PGLISP_INT:
-	      new_elem = lispInteger(CInteger(elem));
-	      break;
+		break;
+	      case PGLISP_INT:
+		new_elem = lispInteger(CInteger(elem));
+		break;
 	    case PGLISP_STR:
-	      new_elem = lispString(CString(elem));
-	      break;
-	    default:
-	      elog(NOTICE,"copying non-lisp type");
-	      new_elem = (LispValue)palloc(sizeof(*elem));
-	      bcopy(new_elem,elem,sizeof(*elem));
-	      break;
-	  }
+		new_elem = lispString(CString(elem));
+		break;
+	      default:
+		new_elem = (LispValue)NewNode(NodeTagGetSize(NodeType(elem)),
+					      NodeType(elem));
+		bcopy(elem,new_elem,
+		      NodeTagGetSize(NodeType(elem)));
+		break;
+	    }
+	  else 
+	    new_elem = LispNil;
 	  new_seq = nappend1(new_seq,new_elem);
       }
-
+    
     return(new_seq);
 }
 
