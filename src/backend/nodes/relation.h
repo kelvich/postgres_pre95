@@ -131,6 +131,13 @@ typedef	List	Relid;
 
 /* hack */
 
+/* the following typedef's were added and 
+ * 'struct Blah *blah' replaced with 'BlahPtr blah' in the #define's.  
+ * the reason?  sprite cannot handle 'struct Blah *blah'.         
+ * - ron 'blah blah' choi
+ */
+typedef struct Path *PathPtr;
+
 class (Rel) public (Node) {
 	inherits(Node);
   /* all relations: */
@@ -144,8 +151,8 @@ class (Rel) public (Node) {
   /* materialization information */
 	List	targetlist;
 	List	pathlist;
-	struct Path	*unorderedpath;
-	struct Path 	*cheapestpath;
+	PathPtr	unorderedpath;
+	PathPtr	cheapestpath;
   /* used solely by indices: */
 	List	classlist;
 	List	indexkeys;
@@ -201,12 +208,19 @@ class (IndexPath) public (Path) {
  /* public: */
 };
 
+/* the following typedef's were added and 
+ * 'struct Blah *blah' replaced with 'BlahPtr blah' in the #define's.  
+ * the reason?  sprite cannot handle 'struct Blah *blah'.         
+ * - ron 'blah blah' choi
+ */
+typedef struct path *pathPtr;
+
 class (JoinPath) public (Path) {
 #define JoinPathDefs \
 	inherits(Path); \
 	List		pathclauseinfo; \
-	struct path	*outerjoinpath; \
-	struct path	*innerjoinpath
+	pathPtr	outerjoinpath; \
+	pathPtr	innerjoinpath
  /* private: */
 	JoinPathDefs;
  /* public: */
