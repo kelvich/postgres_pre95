@@ -342,7 +342,10 @@ short	portName;
   strncpy(startup.user,user,sizeof(startup.user));
   strncpy(startup.options,args,sizeof(startup.options));
   strncpy(startup.tty,debugTty,sizeof(startup.tty));
-  strncpy(startup.execFile, execFile, sizeof(startup.execFile));
+  if (execFile != NULL)
+  {
+    strncpy(startup.execFile, execFile, sizeof(startup.execFile));
+  }
 
   /* If no port  was suggested grab the default or PGPORT value */
   if (!portName)
