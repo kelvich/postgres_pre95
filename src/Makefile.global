@@ -1,0 +1,37 @@
+#
+# A Makefile.global is seen by the Makefile in the current
+# directory and any Makefiles in any subdirectories (assuming
+# they .include <postgres.global.mk>).  Also, if there is
+# a Makefile.global in the "obj" directory it is first included.
+# This allows machines to tailor Makefiles and override default
+# setting when sharing a source tree between a number of
+# machines.  Note that since the "obj" directories themselves
+# are actually symbolic links which are stored on the serving
+# machine and visable to all sharing sites, it is not possible to
+# change where the "obj" directories point (without changing
+# it for everyone).  You can, however, change any of the values
+# below simply by altering your private copy of this Makefile
+# in the "obj" directory.
+#
+# Note: if you change any of these defines you should 
+#
+#	bmake clean; bmake
+#
+# since no dependecies are created for these.
+#
+
+POSTGRESHOME?=	/private/postgres/devel
+PORTNAME?=	ultrix4
+MACHINE!=	machine
+BINDIR?=	${POSTGRESHOME}/bin
+POSTGRESDATA?=	${POSTGRESHOME}/data
+
+#
+# PG_SRCDIR is where this src tree is rooted.  Hopefully
+# we won't end up needing this.
+#
+PG_SRCDIR?=	/usr/local/dev/postgres/newtree/src
+
+.if (${MACHINE} == "alpha")
+CFLAGS+= -Dlong=int
+.endif
