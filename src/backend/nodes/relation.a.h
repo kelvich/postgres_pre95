@@ -112,8 +112,6 @@ extern bool get_mergesortable ARGS((JInfo node));
 extern void set_hashjoinable ARGS((JInfo node, bool value));
 extern bool get_hashjoinable ARGS((JInfo node));
 extern Rel MakeRel ARGS(());
-extern TLE MakeTLE ARGS((Resdom resdom, Node expr));
-extern TL MakeTL ARGS((TLE entry, List joinlist));
 extern SortKey MakeSortKey ARGS((List varkeys, List sortkeys, Relid relid, List sortorder));
 extern Path MakePath ARGS((SortKey sort pathtype, int parent, int cost, int ordering, int keys, int sortpath));
 extern IndexPath MakeIndexPath ARGS((ObjectId indexid, List indexqual));
