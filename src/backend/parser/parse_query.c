@@ -274,8 +274,10 @@ make_op(op,ltree,rtree)
 	
 	left = CDR(ltree);
 	right = CDR(rtree);
-	ltype = get_id_type ( CInteger ( CAR(ltree) ));
-	rtype = get_id_type ( CInteger ( CAR(rtree) ) );
+	if (! lispNullp(left)) 
+	  ltype = get_id_type ( CInteger ( CAR(ltree) ));
+	if (! lispNullp(right))
+	  rtype = get_id_type ( CInteger ( CAR(rtree) ) );
 	/* XXX - do we want auto type casting ?
 	   if ( !strcmp(CString(op),"=") &&
 	     (ltype != rtype) )
