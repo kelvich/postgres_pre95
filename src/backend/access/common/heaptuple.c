@@ -335,13 +335,13 @@ heap_sysattrbyval(attno)
 	    byval = true;
 	    break;
 	case MinTransactionIdAttributeNumber:
-	    byval = false;
+	    byval = true;
 	    break;
 	case MinCommandIdAttributeNumber:
 	    byval = true;
 	    break;
 	case MaxTransactionIdAttributeNumber:
-	    byval = false;
+	    byval = true;
 	    break;
 	case MaxCommandIdAttributeNumber:
 	    byval = true;
