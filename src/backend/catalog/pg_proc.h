@@ -255,6 +255,9 @@ DATA(insert OID = 204 (  float4pl          6 11 f t f 2 700 "0" foo bar ));
 DATA(insert OID = 205 (  float4mi          6 11 f t f 2 700 "0" foo bar ));
 DATA(insert OID = 206 (  float4um          6 11 f t f 1 700 "0" foo bar ));
 DATA(insert OID = 207 (  float4abs         6 11 f t f 1 700 "0" foo bar ));
+DATA(insert OID = 208 (  float4inc         6 11 f t f 1 700 "0" foo bar ));
+DATA(insert OID = 209 (  float4larger      6 11 f t f 2 700 "0" foo bar ));
+DATA(insert OID = 211 (  float4smaller     6 11 f t f 2 700 "0" foo bar ));
     
 DATA(insert OID = 214 (  float8in          6 11 f t f 1 701 "0" foo bar ));
 DATA(insert OID = 215 (  float8out         6 11 f t f 1  23 "0" foo bar ));
@@ -264,6 +267,9 @@ DATA(insert OID = 218 (  float8pl          6 11 f t f 2 701 "0" foo bar ));
 DATA(insert OID = 219 (  float8mi          6 11 f t f 2 701 "0" foo bar ));
 DATA(insert OID = 220 (  float8um          6 11 f t f 1 701 "0" foo bar ));
 DATA(insert OID = 221 (  float8abs         6 11 f t f 1 701 "0" foo bar ));
+DATA(insert OID = 222 (  float8inc         6 11 f t f 1 701 "0" foo bar ));
+DATA(insert OID = 223 (  float8larger      6 11 f t f 2 701 "0" foo bar ));
+DATA(insert OID = 224 (  float8smaller     6 11 f t f 2 701 "0" foo bar ));
 DATA(insert OID = 228 (  dround            6 11 f t f 1 701 "0" foo bar ));
 DATA(insert OID = 229 (  dtrunc            6 11 f t f 1 701 "0" foo bar ));
 DATA(insert OID = 230 (  dsqrt             6 11 f t f 1 701 "0" foo bar ));
@@ -422,6 +428,10 @@ DATA(insert OID = 764 (  lo_filein         6 11 f t f 1  605 "0" foo bar ));
 DATA(insert OID = 765 (  lo_fileout        6 11 f t f 1  19 "0" foo bar ));
 DATA(insert OID = 766 (  int4inc             6 11 f t f 1  23 "0" foo bar ));
 DATA(insert OID = 767 (  int2inc             6 11 f t f 1  23 "0" foo bar ));
+DATA(insert OID = 768 (  int4larger          6 11 f t f 2  23 "0" foo bar ));
+DATA(insert OID = 769 (  int4smaller         6 11 f t f 2  23 "0" foo bar ));
+DATA(insert OID = 770 (  int2larger          6 11 f t f 2  23 "0" foo bar ));
+DATA(insert OID = 771 (  int2smaller         6 11 f t f 2  23 "0" foo bar ));
 
 BKI_BEGIN
 #ifdef NOBTREE
