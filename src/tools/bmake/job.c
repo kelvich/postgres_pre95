@@ -1920,7 +1920,7 @@ Job_CatchChildren (block)
 	return;
     }
     
-    while ((pid = wait3((int *)&status, (block?0:WNOHANG)|WUNTRACED,
+    while ((pid = wait3(&status, (block?0:WNOHANG)|WUNTRACED,
 			(struct rusage *)0)) > 0)
     {
 	if (DEBUG(JOB))
@@ -2012,7 +2012,8 @@ Job_CatchOutput ()
 	timeout.tv_sec = SEL_SEC;
 	timeout.tv_usec = SEL_USEC;
 
-	if ((nfds = select (FD_SETSIZE, &readfds, (int *) 0, (int *) 0, &timeout)) < 0)
+	if ((nfds = select (FD_SETSIZE, &readfds,
+			    (fd_set *) 0, (fd_set *) 0, &timeout)) < 0)
 	{
 	    return;
 	} else {
@@ -2599,7 +2600,7 @@ Job_AbortAll ()
 {
     LstNode           	ln;		/* element in job table */
     Job            	*job;	/* the job descriptor in that element */
-    int     	  	foo;
+    union wait 	  	foo;
     
     aborting = ABORT_ERROR;
     
