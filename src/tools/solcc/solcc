@@ -1,0 +1,99 @@
+#!/bin/sh
+# /usr/local/bin/cc	Solaris 2.3	940408	SIO/ODF	fmd
+# cc -- compile/link with gcc under Solaris 2.x
+# Compilation environment is determined by environmental
+# variable COMPILER_ENVIRONMENT (BSD or SYSV), or by -BSD or -SYSV
+# command-line switches.
+#
+GCCBINDIR=/opt/gnu/bin
+#
+INCLUDES=
+LIBS=
+LIBDIRS=
+FILES=
+OPTIONS=
+link=1
+noRoption=0
+trad=1
+OutputFile=
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+    -c | -E | -M* | -S)
+	link=0
+	OPTIONS="${OPTIONS} $1"
+	shift
+	;;
+    -notraditional)
+	trad=0
+	shift
+	;;
+    -BSD)
+	COMPILER_ENVIRONMENT=BSD
+	shift
+	;;
+    -SYSV)
+	COMPILER_ENVIRONMENT=SYSV
+	shift
+	;;
+    -R*)
+	noRoption=1
+	OPTIONS="${OPTIONS} $1"
+	shift
+	;;
+    -I*)
+	INCLUDES="${INCLUDES} $1"
+	shift
+	;;
+    -L*)
+	LIBDIRS="${LIBDIRS} $1"
+	LIBS="${LIBS} $1"
+	shift
+	;;
+    -l*)
+	LIBS="${LIBS} $1"
+	shift
+	;;
+    -o)
+	OutputFile="$1 $2"
+	shift 2
+	;;
+    -*)
+	OPTIONS="${OPTIONS} $1"
+	shift
+	;;
+    *)
+	FILES="${FILES} $1"
+	shift
+	;;
+    esac
+done
+
+COMPILER_ENVIRONMENT=${COMPILER_ENVIRONMENT:-SYSV}
+
+if [ $link -eq 1 ]; then
+    if [ ${COMPILER_ENVIRONMENT} = BSD ]; then
+	LIBS="${LIBS} -L/usr/ucblib -lucb -lsocket -lnsl -lelf -laio"
+	LIBDIRS="${LIBDIRS} -L/usr/ucblib"
+    fi
+    if [ ${noRoption} -eq 0 -a "${LIBDIRS}" != "" ]; then
+	LIBDIRS=`echo ${LIBDIRS}|sed -e 's/-L//g' -e 's/ /:/g'`
+	LIBS="-R${LIBDIRS}${LD_RUN_PATH+:$LD_RUN_PATH} ${LIBS}"
+    fi
+fi
+
+case "${COMPILER_ENVIRONMENT}" in
+SYSV)
+    PATH=/usr/bin:${GCCBINDIR}:/usr/ucb:/usr/ccs/bin:; export PATH
+    ;;
+BSD)
+    if [ $trad -eq 1 ]; then
+	OPTIONS="${OPTIONS} -traditional"
+    fi
+    INCLUDES="${INCLUDES} -I/usr/ucbinclude"
+    PATH=/usr/ucb:${GCCBINDIR}:/usr/bin:/usr/ccs/bin:; export PATH
+    ;;
+esac
+
+exec ${GCCBINDIR}/gcc ${OPTIONS} ${INCLUDES} ${FILES} ${LIBS} ${OutputFile}
