@@ -70,6 +70,7 @@ rtrescan(s, fromEnd, key)
     RTreeScanOpaque p;
     int nbytes;
     RegProcedure internal_proc;
+    int i;
 
     if (!IndexScanIsValid(s)) {
 	elog(WARN, "rtrescan: invalid scan.");
@@ -114,8 +115,6 @@ rtrescan(s, fromEnd, key)
 	p->s_stack = p->s_markstk = (RTSTACK *) NULL;
 	p->s_flags = 0x0;
     } else {
-	int i;
-
 	/* initialize opaque data */
 	nbytes = sizeof(RTreeScanOpaqueData);
 	if (s->numberOfKeys > 0) {
@@ -128,6 +127,8 @@ rtrescan(s, fromEnd, key)
 	p->s_stack = p->s_markstk = (RTSTACK *) NULL;
 	p->s_internalNKey = s->numberOfKeys;
 	p->s_flags = 0x0;
+	for (i = 0; i < s->numberOfKeys; i++)
+	    p->s_internalKey.data[i].argument = s->keyData.data[i].argument;
 	if (s->numberOfKeys > 0) {
 
 	    /*
