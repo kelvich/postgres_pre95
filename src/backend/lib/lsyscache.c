@@ -89,7 +89,8 @@ AttributeGetAttName (attribute)
  */
 bool
 op_class (opid,opclass)
-     LispValue opid,opclass ;
+     ObjectId opid;
+     int32 opclass ;
 {
     AccessMethodOperatorTupleForm amoptup = 
       new(AccessMethodOperatorTupleFormD);
@@ -121,9 +122,13 @@ get_attname (relid,attnum)
      AttributeNumber attnum;
 {
     Attribute att_tup = new(AttributeTupleFormD);
+    Name retval = (Name)NULL;
 
-    if( SearchSysCacheStruct (ATTNUM,att_tup,relid,attnum,0,0)) 
-	return(AttributeGetAttName (att_tup));
+    if( SearchSysCacheStruct (ATTNUM,att_tup,relid,attnum,0,0)) {
+	retval = (Name)palloc(sizeof(att_tup->attname));
+	bcopy(&(att_tup->attname),retval,sizeof(att_tup->attname));
+	return(retval);
+    }
     else
       return((Name)NULL);
 }
@@ -407,10 +412,13 @@ get_rel_name (relid)
      ObjectId relid ;
 {
     RelationTupleForm reltup = new(RelationTupleFormD);
+    Name retval = (Name)NULL;
 
-    if(SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))
-      return(RelationGetRelationName (reltup));
-    else
+    if((SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))) {
+	retval = (Name)palloc(sizeof(reltup->relname));
+	bcopy(&(reltup->relname),retval,sizeof(reltup->relname));
+	return(retval);
+    } else
       return((Name)NULL);
 }
 
