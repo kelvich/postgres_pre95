@@ -34,8 +34,6 @@ database names into an application program:
 \fBPGPORT\fR sets the default communication port with the POSTGRES back-end.
 .bu
 \fBPGTTY\fR sets the tty on the PQhost back-end on which debugging messages are displayed.
-.bu
-\fBPGOPTION\fR contains optional arguements to the POSTGRES back-end.
 .)l
 .lp
 The following internal variables of libpq can be accessed by
