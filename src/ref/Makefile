@@ -1,9 +1,13 @@
 #
 # $Header$
 #
-# [This is a really lame Makefile, but I'm tired of dealing with it..
-#	unfortunately we have targets generated from individual files and
-#	from an ORDERED SET of files, which makes it hard to do this cleanly.]
+# This is a really lame Makefile, but I'm tired of dealing with it..
+# unfortunately we have targets generated from individual files and
+# from an ORDERED SET of files, which makes it hard to do this cleanly.
+#
+# The stupid shell scripts are just in case you DON'T have a troff/tbl but 
+# just have awf or nroff or something else that lets you print out plain man 
+# pages.
 #
 .include <postgres.global.mk>
 
@@ -11,13 +15,13 @@
 
 MACROS=-man
 
-PRDEV=-Tps
+PRDEV=ps
 
 NROFF=nroff
 NROFFOPTS=${MACROS}
 
 GROFF=groff -spt
-GROFFOPTS=${MACROS} ${PRDEV}
+GROFFOPTS=${MACROS} -T${PRDEV}
 
 SOELIM=gsoelim
 
@@ -264,12 +268,12 @@ ref.cat: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${NR_MAC_SOURCES}
 	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES:S,^${.CURDIR}/,,g} ${SOURCES:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 
-ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
+ref.${PRDEV}: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
 	HERE=`pwd`; cd ${.CURDIR}; \
 	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES:S,^${.CURDIR}/,,g} ${SOURCES:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 
-CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.ps
+CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.${PRDEV}
 
 all: ref.cat ref.ps ${OBJS}
 
