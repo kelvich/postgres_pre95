@@ -28,6 +28,9 @@
 #include "utils/nabstime.h"
 #include "tmp/c.h"
 
+extern AbsoluteTime nabstimein ARGS((char *datetime ));	/* XXX BUILTIN */
+extern char *nabstimeout ARGS((AbsoluteTime datetime ));/* XXX BUILTIN */
+
 RcsId("$Header$");
 
 #define	TM_YEAR_BASE	1900		/* compatible to UNIX time */
@@ -273,9 +276,7 @@ tintervalin(intervalstr)
 char	*
 tintervalout(interval)
 	TimeInterval	interval;
-{	extern	char	*abstimeout();
-	extern	char	*strcat();
-	extern	char	*strcpy();
+{
 	char	*i_str, *p;
 
 	i_str = (char	*) palloc( T_INTERVAL_LEN );  /* ['...' '...'] */
@@ -443,8 +444,6 @@ char	*
 timenowout()
 {
 	extern			gettimeofday();
-	extern	struct tm 	*localtime();
-	extern	char		*asctime();
 
 	struct timeval	*tp;
 	struct timezone *tzp;
@@ -737,8 +736,6 @@ isreltime(timestring, sign, quantity, unitnr)
 	int	*sign, *unitnr;
 	long	*quantity;
 {
-	extern	int	strncmp();
-	extern 	char	*strcpy();
 	register char	*p;
 	register char	c;
 	int		i;
@@ -904,7 +901,6 @@ istinterval(i_string, i_start, i_end)
 	char	*i_string;
 	AbsoluteTime	*i_start, *i_end;
 {
-	extern	AbsoluteTime	abstimein();
 	register char		*p,*p1;
 	register char		c;
 
