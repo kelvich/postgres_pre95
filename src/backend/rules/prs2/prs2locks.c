@@ -42,7 +42,6 @@ RuleLock lock;
     }
 #endif PRS2_DEBUG
 
-    printf("---> free 0x%x\n", lock);
     pfree(lock);
 }
 
