@@ -31,6 +31,7 @@
 #include "access/sdir.h"
 #include "access/htup.h"
 #include "access/tupdesc.h"
+#include "access/funcindex.h"
 #include "utils/rel.h"
 #include "access/relscan.h"
 #include "executor/hashjoin.h"
@@ -89,6 +90,7 @@ class (IndexInfo) public (Node) {
     inherits0(Node);
     int                 ii_NumKeyAttributes;
     AttributeNumberPtr  ii_KeyAttributeNumbers;
+    FuncIndexInfoPtr	ii_FuncIndexInfo;
 };
 
 typedef IndexInfo       *IndexInfoPtr;
