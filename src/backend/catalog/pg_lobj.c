@@ -114,7 +114,7 @@ int CreateLOBJTuple(objOID,objtype,desc)
     i = 0;
     values[i++] = (Datum) objOID;
     values[i++] = (Datum) objtype;
-    values[i++] = PointerGetDatum(VARDATA(desc));
+    values[i++] = PointerGetDatum(desc);
 
     tup = heap_formtuple(Natts_pg_large_object,
 			 &lobjDesc->rd_att,
