@@ -124,7 +124,7 @@ extern Exception MemoryError, PortalError, PostquelError, ProtocolError;
  */
 
 #define initstr_length 256
-#define error_msg_length 80
+#define error_msg_length 4096
 #define command_length 20
 #define remark_length 80
 #define portal_name_length 16
