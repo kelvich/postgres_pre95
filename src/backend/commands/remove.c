@@ -185,7 +185,7 @@ AttributeAndRelationRemove(typeOid)
 			Name	name;
 
 			name = &((RelationTupleForm)GETSTRUCT(tup))->relname;
-			RelationNameDestroyHeapRelation(name);
+			RelationNameDestroyHeapRelation(name->data);
 		}
 	}
 	heap_endscan(sdesc);

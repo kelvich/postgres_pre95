@@ -379,7 +379,7 @@ PerformAddAttribute(relationName, schema)
 	List	rest;
 	
 	foreach (rest, CDR(element)) {
-	    if (equal(CAR(CAR(element)), CAR(CAR(rest)))) {
+	    if (equal((Node)CAR(CAR(element)), (Node)CAR(CAR(rest)))) {
 		elog(WARN, "Add: \"%s\" repeated",
 		     CString(CAR(CAR(element))));
 	    }
