@@ -7,8 +7,9 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
-#include <sys/dir.h>
+#include <dirent.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "tmp/c.h"
 #include "tmp/libpq-fe.h"
@@ -589,7 +590,7 @@ docopy_in(srcfname, destfname, smgrno)
     /* start a transaction */
     ibegin();
 
-    if ((destfd = p_creat(destfname, INV_WRITE|smgrno, Inversion)) < 0) {
+    if ((destfd = p_creat(destfname, 0666, Unix)) < 0) {
 	fprintf(stderr, "Cannot create Inversion file %s\n", destfname);
 	fflush(stderr);
 	return (-1);
@@ -666,7 +667,7 @@ docopy_out(srcfname, destfname, smgrno)
     /* start a transaction */
     ibegin();
 
-    if ((srcfd = p_open(srcfname, INV_READ)) < 0) {
+    if ((srcfd = p_open(srcfname, O_RDONLY)) < 0) {
 	fprintf(stderr, "%s: cannot open Inversion file %s\n",
 		ProgName, srcfname);
 	fflush(stderr);
