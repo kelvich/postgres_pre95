@@ -58,6 +58,7 @@ CATALOG(pg_relation) BOOTSTRAP {
      char 	relkind;
      char 	relarch;
      int2 	relnatts;
+     int2	relsmgr;
      int28 	relkey;
      oid8	relkeyop;
 } FormData_pg_relation;
@@ -76,7 +77,7 @@ typedef FormData_pg_relation	*Form_pg_relation;
 /* pg_relation is now called pg_class -cim 2/26/90 */
 #define Name_pg_relation		"pg_class"
 
-#define Natts_pg_relation		14
+#define Natts_pg_relation		15
 #define Anum_pg_relation_relname	1
 #define Anum_pg_relation_relowner	2
 #define Anum_pg_relation_relam		3
@@ -89,30 +90,31 @@ typedef FormData_pg_relation	*Form_pg_relation;
 #define Anum_pg_relation_relkind	10
 #define Anum_pg_relation_relarch	11
 #define Anum_pg_relation_relnatts	12
-#define Anum_pg_relation_relkey		13
-#define Anum_pg_relation_relkeyop	14
+#define Anum_pg_relation_relsmgr	13
+#define Anum_pg_relation_relkey		14
+#define Anum_pg_relation_relkeyop	15
 
 /* ----------------
  *	initial contents of pg_relation
  * ----------------
  */
 
-DATA(insert OID =  71 (  pg_type           6 0 0 0 0 0 f f r n 15 - - ));
-DATA(insert OID =  88 (  pg_database       6 0 0 0 0 0 f t r n 3 - - ));
-DATA(insert OID =  76 (  pg_demon          6 0 0 0 0 0 f t r n 4 - - ));
-DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 - - ));
-DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 - - ));
-DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 - - ));
-DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 13 - - ));
+DATA(insert OID =  71 (  pg_type           6 0 0 0 0 0 f f r n 15 "magnetic disk" - - ));
+DATA(insert OID =  88 (  pg_database       6 0 0 0 0 0 f t r n 3 "magnetic disk" - - ));
+DATA(insert OID =  76 (  pg_demon          6 0 0 0 0 0 f t r n 4 "magnetic disk" - - ));
+DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 "magnetic disk" - - ));
+DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 "magnetic disk" - - ));
+DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 "magnetic disk" - - ));
+DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 13 "magnetic disk" - - ));
     
 /* pg_relation is now called pg_class -cim 2/26/90 */
-DATA(insert OID =  83 (  pg_class          6 0 0 0 0 0 f f r n 14 - - ));
+DATA(insert OID =  83 (  pg_class          6 0 0 0 0 0 f f r n 15 "magnetic disk" - - ));
     
-DATA(insert OID =  80 (  pg_magic          6 0 0 0 0 0 f t r n 2 - - ));
-DATA(insert OID =  89 (  pg_defaults       6 0 0 0 0 0 f t r n 2 - - ));
-DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 - - ));
-DATA(insert OID =  99 (  pg_log            6 0 0 0 0 0 f t s n 1 - - ));
-DATA(insert OID = 100 (  pg_time           6 0 0 0 0 0 f t s n 1 - - ));
+DATA(insert OID =  80 (  pg_magic          6 0 0 0 0 0 f t r n 2 "magnetic disk" - - ));
+DATA(insert OID =  89 (  pg_defaults       6 0 0 0 0 0 f t r n 2 "magnetic disk" - - ));
+DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 "magnetic disk" - - ));
+DATA(insert OID =  99 (  pg_log            6 0 0 0 0 0 f t s n 1 "magnetic disk" - - ));
+DATA(insert OID = 100 (  pg_time           6 0 0 0 0 0 f t s n 1 "magnetic disk" - - ));
 
 #define RelOid_pg_type		71
 #define RelOid_pg_database    	88   
@@ -157,6 +159,7 @@ typedef struct RelationTupleFormD {
 	char		relkind;
 	char		relarch;
 	AttributeNumber	relnatts;
+	int2		relsmgr;
 	AttributeNumber	relkey[8];
 	ObjectId	relkeyop[8];
 /*	LOCK	rellock; */
@@ -187,6 +190,7 @@ struct	relation {
 	char	relkind;
 	char	relarch;
 	uint16	relnatts;
+	int2	relsmgr;
 	int16	relkey[8];
 	OID	relkeyop[8];
 /*	LOCK	rellock; */

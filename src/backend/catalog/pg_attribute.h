@@ -365,9 +365,10 @@ DATA(insert OID = 0 (  75 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
 { 83l, "relkind",      18,  83l, 0l, 0l,  1, 10, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 83l, "relarch",      18,  83l, 0l, 0l,  1, 11, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 83l, "relnatts",     21,  83l, 0l, 0l,  2, 12, 0, '\001', '\001', 0l, 0l, -1l }, \
-{ 83l, "relkey",       22,  83l, 0l, 0l, 16, 13, 0,   '\0', '\001', 0l, 0l, -1l }, \
-{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0,   '\0', '\001', 0l, 0l, -1l }
-    
+{ 83l, "relsmgr",      210l,  83l, 0l, 0l,  2, 13, 0, '\001', '\001', 0l, 0l, -1l }, \
+{ 83l, "relkey",       22,  83l, 0l, 0l, 16, 14, 0,   '\0', '\001', 0l, 0l, -1l }, \
+{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 15, 0,   '\0', '\001', 0l, 0l, -1l }
+
 DATA(insert OID = 0 (  83 relname          19 0 0 0 16   1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 relowner         26 0 0 0  4   2 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relam            26 0 0 0  4   3 0 t t 0 0 -1));
@@ -380,8 +381,9 @@ DATA(insert OID = 0 (  83 relisshared      16 0 0 0  1   9 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relkind          18 0 0 0  1  10 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relarch          18 0 0 0  1  11 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relnatts         21 0 0 0  2  12 0 t t 0 0 -1));
-DATA(insert OID = 0 (  83 relkey           22 0 0 0 16  13 0 f t 0 0 -1));
-DATA(insert OID = 0 (  83 relkeyop         30 0 0 0 32  14 0 f t 0 0 -1));
+DATA(insert OID = 0 (  83 relsmgr         210 0 0 0  2  13 0 t t 0 0 -1));
+DATA(insert OID = 0 (  83 relkey           22 0 0 0 16  14 0 f t 0 0 -1));
+DATA(insert OID = 0 (  83 relkeyop         30 0 0 0 32  15 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 oid              26 0 0 0  4  -3 0 t t 0 0 -1));

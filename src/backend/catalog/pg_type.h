@@ -110,6 +110,7 @@ DATA(insert OID = 30 (  oid8       6 32  89 f b t \054 0  26 oid8in oid8out oid8
 DATA(insert OID = 31 (  lock       6 -1  -1 f b t \054 0  -1 lockin lockout lockin lockout - ));
 DATA(insert OID = 32 (  SET        6 -1  -1 f r t \054 0  -1 textin textout textin textout - ));
 DATA(insert OID = 33 (  stub       6 -1  -1 f b t \054 0  -1 stubin stubout stubin stubout - ));
+DATA(insert OID = 210 (  smgr       6 2  12 t b t \054 0  -1 smgrin smgrout smgrin smgrout - ));
 DATA(insert OID = 591 (  ref 	   6  8   1 f b t \054 0   0 refn refout refin refout - ));
 DATA(insert OID = 600 (  point     6 16  24 f b t \054 0 701 point_in point_out point_in point_out - ));
 DATA(insert OID = 601 (  lseg      6 32  48 f b t \054 0 600 lseg_in lseg_out lseg_in lseg_out - ));
