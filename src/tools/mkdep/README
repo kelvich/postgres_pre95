@@ -1,0 +1,5 @@
+need to handle different compilers.
+basically, steal BSD's three diffent ones:
+	Ultrix
+	No CC switch
+	Everyone else

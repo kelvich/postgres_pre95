@@ -1,0 +1,688 @@
+
+{ 
+11 Plan 
+cost: Cost cost  
+plan_size: Count plan_size  
+plan_width: Count plan_width  
+plan_tupperpage: Count plan_tupperpage  
+fragment: int fragment  
+parallel: int parallel  
+state: EStatePtr state  
+qptargetlist: List qptargetlist  
+qpqual: List qpqual  
+lefttree: PlanPtr lefttree  
+righttree: PlanPtr righttree 
+} 
+ 
+{ 
+8 Fragment 
+frag_root: Plan frag_root  
+frag_parent_op: Plan frag_parent_op  
+frag_parallel: int frag_parallel  
+frag_subtrees: List frag_subtrees  
+frag_parent_frag: FragmentPtr frag_parent_frag  
+frag_parsetree: List frag_parsetree  
+frag_is_inprocess: bool frag_is_inprocess  
+frag_iorate: float frag_iorate 
+} 
+ 
+{ 
+0 Existential 
+} 
+ 
+{ 
+3 Result 
+resrellevelqual: List resrellevelqual 
+resconstantqual: List resconstantqual 
+resstate: ResultState resstate 
+} 
+ 
+{ 
+4 Append 
+unionplans: List unionplans 
+unionrelid: Index unionrelid 
+unionrtentries: List unionrtentries 
+unionstate: AppendState unionstate 
+} 
+ 
+{ 
+2 Scan 
+scanrelid: Index scanrelid  
+scanstate: ScanState scanstate 
+} 
+ 
+{ 
+0 SeqScan 
+} 
+ 
+{ 
+2 ScanTemps 
+temprelDescs: List temprelDescs  
+scantempState: ScanTempState scantempState 
+} 
+ 
+{ 
+3 IndexScan 
+indxid: List indxid 
+indxqual: List indxqual 
+indxstate: IndexScanState indxstate 
+} 
+ 
+{ 
+8 JoinRuleInfo 
+jri_operator: ObjectId jri_operator 
+jri_inattrno: AttributeNumber jri_inattrno 
+jri_outattrno: AttributeNumber jri_outattrno 
+jri_lock: RuleLock jri_lock 
+jri_ruleid: ObjectId jri_ruleid 
+jri_stubid: Prs2StubId jri_stubid 
+jri_stub: Prs2OneStub jri_stub 
+jri_stats: Prs2StubStats jri_stats 
+} 
+ 
+{ 
+1 Join 
+ruleinfo: JoinRuleInfoPtr ruleinfo 
+} 
+ 
+{ 
+2 NestLoop 
+nlstate: NestLoopState nlstate 
+nlRuleInfo: JoinRuleInfo nlRuleInfo 
+} 
+ 
+{ 
+5 MergeJoin 
+mergeclauses: List mergeclauses 
+mergesortop: ObjectId mergesortop 
+mergerightorder: List mergerightorder 
+mergeleftorder: List mergeleftorder 
+mergestate: MergeJoinState mergestate 
+} 
+ 
+{ 
+7 HashJoin 
+hashclauses: List hashclauses 
+hashjoinop: ObjectId hashjoinop 
+hashjoinstate: HashJoinState hashjoinstate 
+hashjointable: HashJoinTable hashjointable 
+hashjointablekey: IpcMemoryKey hashjointablekey 
+hashjointablesize: int hashjointablesize 
+hashdone: bool hashdone 
+} 
+ 
+{ 
+2 Temp 
+tempid: ObjectId tempid  
+keycount: Count keycount 
+} 
+ 
+{ 
+1 Material 
+matstate: MaterialState matstate 
+} 
+ 
+{ 
+1 Sort 
+sortstate: SortState sortstate 
+} 
+ 
+{ 
+2 Agg 
+aggname: String aggname  
+aggstate: AggState aggstate 
+} 
+ 
+{ 
+1 Unique 
+uniquestate: UniqueState uniquestate 
+} 
+ 
+{ 
+5 Hash 
+hashkey: Var hashkey  
+hashstate: HashState hashstate  
+hashtable: HashJoinTable hashtable  
+hashtablekey: IpcMemoryKey hashtablekey  
+hashtablesize: int hashtablesize 
+} 
+ 
+{ 
+1 Choose 
+chooseplanlist: List chooseplanlist 
+} 
+ 
+{ 
+8 Resdom 
+resno: AttributeNumber resno 
+restype: ObjectId restype 
+rescomplex: bool rescomplex 
+reslen: Size reslen 
+resname: Name resname 
+reskey: Index reskey 
+reskeyop: OperatorTupleForm reskeyop  
+resjunk: int resjunk 
+} 
+ 
+{ 
+5 Fjoin 
+fj_initialized: bool fj_initialized 
+fj_nNodes: int fj_nNodes 
+fj_innerNode: List fj_innerNode 
+fj_results: DatumPtr fj_results 
+fj_alwaysDone: BoolPtr fj_alwaysDone 
+} 
+ 
+{ 
+0 Expr 
+} 
+ 
+{ 
+5 Var 
+varno: Index varno  
+varattno: AttributeNumber varattno 
+vartype: ObjectId vartype 
+varid: List varid 
+varslot: Pointer varslot 
+} 
+ 
+{ 
+6 Oper 
+opno: ObjectId opno 
+opid: ObjectId opid 
+oprelationlevel: bool oprelationlevel 
+opresulttype: ObjectId opresulttype 
+opsize: int opsize 
+op_fcache: FunctionCachePtr op_fcache 
+} 
+ 
+{ 
+5 Const 
+consttype: ObjectId consttype 
+constlen: Size constlen 
+constvalue: Datum constvalue 
+constisnull: bool constisnull 
+constbyval: bool constbyval 
+} 
+ 
+{ 
+5 Param 
+paramkind: int paramkind 
+paramid: AttributeNumber paramid 
+paramname: Name paramname 
+paramtype: ObjectId paramtype 
+param_tlist: List param_tlist 
+} 
+ 
+{ 
+7 Func 
+funcid: ObjectId funcid 
+functype: ObjectId functype 
+funcisindex: bool funcisindex 
+funcsize: int funcsize 
+func_fcache: FunctionCachePtr func_fcache 
+func_tlist: List func_tlist 
+func_planlist: List func_planlist 
+} 
+ 
+{ 
+7 Array 
+arrayelemtype: ObjectId arrayelemtype 
+arrayelemlength: int arrayelemlength 
+arrayelembyval: bool arrayelembyval 
+arrayndim: int arrayndim 
+arraylow: IntArray arraylow 
+arrayhigh: IntArray arrayhigh 
+arraylen: int arraylen 
+} 
+ 
+{ 
+8 ArrayRef 
+refattrlength: int refattrlength 
+refelemlength: int refelemlength 
+refelemtype: ObjectId refelemtype 
+refelembyval: bool refelembyval 
+refupperindexpr: LispValue refupperindexpr 
+reflowerindexpr: LispValue reflowerindexpr 
+refexpr: LispValue refexpr 
+refassgnexpr: LispValue refassgnexpr 
+} 
+ 
+{ 
+20 Rel 
+relids: Relid relids 
+indexed: bool indexed 
+pages: Count pages 
+tuples: Count tuples 
+size: Count size 
+width: Count width 
+targetlist: List targetlist 
+pathlist: List pathlist 
+unorderedpath: PathPtr unorderedpath 
+cheapestpath: PathPtr cheapestpath 
+pruneable: bool pruneable 
+classlist: List classlist 
+indexkeys: List indexkeys 
+indproc: oid indproc 
+indpred: List indpred 
+ordering: List ordering 
+clauseinfo: List clauseinfo 
+joininfo: List joininfo 
+innerjoin: List innerjoin 
+superrels: List superrels 
+} 
+ 
+{ 
+4 SortKey 
+varkeys: List varkeys 
+sortkeys: List sortkeys 
+relid: Relid relid 
+sortorder: List sortorder 
+} 
+ 
+{ 
+9 Path 
+pathtype: int32 pathtype  
+parent: Rel parent  
+path_cost: Cost path_cost  
+p_ordering: List p_ordering  
+keys: List keys  
+pathsortkey: SortKey pathsortkey  
+outerjoincost: Cost outerjoincost  
+joinid: Relid joinid  
+locclauseinfo: List locclauseinfo 
+} 
+ 
+{ 
+2 IndexPath 
+indexid: List indexid 
+indexqual: List indexqual 
+} 
+ 
+{ 
+3 JoinPath 
+pathclauseinfo: List pathclauseinfo  
+outerjoinpath: pathPtr outerjoinpath  
+innerjoinpath: pathPtr innerjoinpath 
+} 
+ 
+{ 
+3 MergePath 
+path_mergeclauses: List path_mergeclauses 
+outersortkeys: List outersortkeys 
+innersortkeys: List innersortkeys 
+} 
+ 
+{ 
+3 HashPath 
+path_hashclauses: List path_hashclauses 
+outerhashkeys: List outerhashkeys 
+innerhashkeys: List innerhashkeys 
+} 
+ 
+{ 
+2 OrderKey 
+attribute_number: int attribute_number 
+array_index: Index array_index 
+} 
+ 
+{ 
+2 JoinKey 
+outer: LispValue outer 
+inner: LispValue inner 
+} 
+ 
+{ 
+5 MergeOrder 
+join_operator: ObjectId join_operator 
+left_operator: ObjectId left_operator 
+right_operator: ObjectId right_operator 
+left_type: ObjectId left_type 
+right_type: ObjectId right_type 
+} 
+ 
+{ 
+7 CInfo 
+clause: LispValue clause 
+selectivity: Cost selectivity 
+notclause: bool notclause 
+indexids: List indexids 
+mergesortorder: MergeOrder mergesortorder 
+hashjoinoperator: ObjectId hashjoinoperator 
+cinfojoinid: Relid cinfojoinid 
+} 
+ 
+{ 
+2 JoinMethod 
+jmkeys: List jmkeys  
+clauses: List clauses 
+} 
+ 
+{ 
+1 HInfo 
+hashop: ObjectId hashop 
+} 
+ 
+{ 
+1 MInfo 
+m_ordering: MergeOrder m_ordering 
+} 
+ 
+{ 
+5 JInfo 
+otherrels: List otherrels 
+jinfoclauseinfo: List jinfoclauseinfo 
+mergesortable: bool mergesortable 
+hashjoinable: bool hashjoinable 
+inactive: bool inactive 
+} 
+ 
+{ 
+1 Iter 
+iterexpr: LispValue iterexpr 
+} 
+ 
+{ 
+8 Stream 
+pathptr: pathPtr pathptr 
+cinfo: CInfo cinfo 
+clausetype: int clausetype 
+upstream: StreamPtr upstream 
+downstream: StreamPtr downstream 
+groupup: bool groupup 
+groupcost: Cost groupcost 
+groupsel: Cost groupsel 
+} 
+ 
+{ 
+4 IndexInfo 
+ii_NumKeyAttributes: int ii_NumKeyAttributes 
+ii_KeyAttributeNumbers: AttributeNumberPtr ii_KeyAttributeNumbers 
+ii_FuncIndexInfo: FuncIndexInfoPtr ii_FuncIndexInfo 
+ii_Predicate: List ii_Predicate 
+} 
+ 
+{ 
+5 RelationInfo 
+ri_RangeTableIndex: Index ri_RangeTableIndex 
+ri_RelationDesc: Relation ri_RelationDesc 
+ri_NumIndices: int ri_NumIndices 
+ri_IndexRelationDescs: RelationPtr ri_IndexRelationDescs 
+ri_IndexRelationInfo: IndexInfoPtr ri_IndexRelationInfo 
+} 
+ 
+{ 
+6 TupleCount 
+tc_retrieved: int tc_retrieved 
+tc_appended: int tc_appended 
+tc_deleted: int tc_deleted 
+tc_replaced: int tc_replaced 
+tc_inserted: int tc_inserted 
+tc_processed: int tc_processed 
+} 
+ 
+{ 
+6 TupleTableSlot 
+ttc_shouldFree: bool ttc_shouldFree 
+ttc_descIsNew: bool ttc_descIsNew 
+ttc_tupleDescriptor: TupleDescriptor ttc_tupleDescriptor 
+ttc_execTupDescriptor: ExecTupDescriptor ttc_execTupDescriptor 
+ttc_buffer: Buffer ttc_buffer 
+ttc_whichplan: int ttc_whichplan 
+} 
+ 
+{ 
+7 ExprContext 
+ecxt_scantuple: TupleTableSlot ecxt_scantuple  
+ecxt_innertuple: TupleTableSlot ecxt_innertuple  
+ecxt_outertuple: TupleTableSlot ecxt_outertuple  
+ecxt_relation: Relation ecxt_relation  
+ecxt_relid: Index ecxt_relid  
+ecxt_param_list_info: ParamListInfo ecxt_param_list_info  
+ecxt_range_table: List ecxt_range_table 
+} 
+ 
+{ 
+5 ProjectionInfo 
+pi_targetlist: List pi_targetlist 
+pi_len: int pi_len 
+pi_tupValue: Pointer pi_tupValue 
+pi_exprContext: ExprContext pi_exprContext 
+pi_slot: TupleTableSlot pi_slot 
+} 
+ 
+{ 
+7 JunkFilter 
+jf_targetList: List jf_targetList 
+jf_length: int jf_length 
+jf_tupType: TupleDescriptor jf_tupType 
+jf_cleanTargetList: List jf_cleanTargetList 
+jf_cleanLength: int jf_cleanLength 
+jf_cleanTupType: TupleDescriptor jf_cleanTupType 
+jf_cleanMap: AttributeNumberPtr jf_cleanMap 
+} 
+ 
+{ 
+27 EState 
+es_direction: ScanDirection es_direction 
+es_time: abstime es_time 
+es_owner: ObjectId es_owner 
+es_locks: List es_locks 
+es_subplan_info: List es_subplan_info 
+es_error_message: Name es_error_message 
+es_range_table: List es_range_table 
+es_qualification_tuple: HeapTuple es_qualification_tuple 
+es_qualification_tuple_id: ItemPointer es_qualification_tuple_id 
+es_qualification_tuple_buffer: Buffer es_qualification_tuple_buffer 
+es_raw_qualification_tuple: HeapTuple es_raw_qualification_tuple 
+es_relation_relation_descriptor: Relation es_relation_relation_descriptor 
+es_into_relation_descriptor: Relation es_into_relation_descriptor 
+es_result_relation_info: RelationInfo es_result_relation_info 
+es_tuplecount: TupleCount es_tuplecount 
+es_param_list_info: ParamListInfo es_param_list_info 
+es_prs2_info: Prs2EStateInfo es_prs2_info 
+es_explain_relation: Relation es_explain_relation 
+es_BaseId: int es_BaseId 
+es_tupleTable: TupleTable es_tupleTable 
+es_junkFilter: JunkFilter es_junkFilter 
+es_result_rel_scanstate: Pointer es_result_rel_scanstate 
+es_whichplan: int es_whichplan 
+es_result_relation_info_list: List es_result_relation_info_list 
+es_junkFilter_list: List es_junkFilter_list 
+es_result_rel_ruleinfo: RelationRuleInfo es_result_rel_ruleinfo 
+es_refcount: intPtr es_refcount 
+} 
+ 
+{ 
+7 HookNode 
+hook_at_initnode: HookFunction hook_at_initnode  
+hook_pre_procnode: HookFunction hook_pre_procnode  
+hook_pre_endnode: HookFunction hook_pre_endnode  
+hook_post_initnode: HookFunction hook_post_initnode  
+hook_post_procnode: HookFunction hook_post_procnode  
+hook_post_endnode: HookFunction hook_post_endnode  
+hook_data: Pointer hook_data 
+} 
+ 
+{ 
+4 BaseNode 
+base_id: int base_id  
+base_parent: Pointer base_parent  
+base_parent_state: Pointer base_parent_state  
+base_hook: HookNode base_hook 
+} 
+ 
+{ 
+7 CommonState 
+cs_OuterTupleSlot: TupleTableSlot cs_OuterTupleSlot  
+cs_ResultTupleSlot: TupleTableSlot cs_ResultTupleSlot  
+cs_ExprContext: ExprContext cs_ExprContext  
+cs_ProjInfo: ProjectionInfo cs_ProjInfo  
+cs_NumScanAttributes: int cs_NumScanAttributes  
+cs_ScanAttributes: AttributeNumberPtr cs_ScanAttributes  
+cs_TupFromTlist: bool cs_TupFromTlist 
+} 
+ 
+{ 
+1 ResultState 
+rs_Loop: int rs_Loop 
+} 
+ 
+{ 
+4 AppendState 
+as_whichplan: int as_whichplan 
+as_nplans: int as_nplans 
+as_initialized: ListPtr as_initialized 
+as_rtentries: List as_rtentries 
+} 
+ 
+{ 
+5 CommonScanState 
+css_currentRelation: Relation css_currentRelation  
+css_currentScanDesc: HeapScanDesc css_currentScanDesc  
+css_ruleInfo: RelationRuleInfo css_ruleInfo  
+css_ScanTupleSlot: TupleTableSlot css_ScanTupleSlot  
+css_RawTupleSlot: TupleTableSlot css_RawTupleSlot 
+} 
+ 
+{ 
+2 ScanState 
+ss_ProcOuterFlag: bool ss_ProcOuterFlag 
+ss_OldRelId: Index ss_OldRelId 
+} 
+ 
+{ 
+2 ScanTempState 
+st_whichplan: int st_whichplan 
+st_nplans: int st_nplans 
+} 
+ 
+{ 
+7 IndexScanState 
+iss_NumIndices: int iss_NumIndices 
+iss_IndexPtr: int iss_IndexPtr 
+iss_ScanKeys: ScanKeyPtr iss_ScanKeys 
+iss_NumScanKeys: IntPtr iss_NumScanKeys 
+iss_RuntimeKeyInfo: Pointer iss_RuntimeKeyInfo 
+iss_RelationDescs: RelationPtr iss_RelationDescs 
+iss_ScanDescs: IndexScanDescPtr iss_ScanDescs 
+} 
+ 
+{ 
+0 JoinState 
+} 
+ 
+{ 
+1 NestLoopState 
+nl_PortalFlag: bool nl_PortalFlag 
+} 
+ 
+{ 
+4 MergeJoinState 
+mj_OSortopI: List mj_OSortopI 
+mj_ISortopO: List mj_ISortopO 
+mj_JoinState: int mj_JoinState 
+mj_MarkedTupleSlot: TupleTableSlot mj_MarkedTupleSlot 
+} 
+ 
+{ 
+12 HashJoinState 
+hj_HashTable: HashJoinTable hj_HashTable 
+hj_HashTableShmId: IpcMemoryId hj_HashTableShmId 
+hj_CurBucket: HashBucket hj_CurBucket 
+hj_CurTuple: HeapTuple hj_CurTuple 
+hj_CurOTuple: OverflowTuple hj_CurOTuple 
+hj_InnerHashKey: Var hj_InnerHashKey 
+hj_OuterBatches: FileP hj_OuterBatches 
+hj_InnerBatches: FileP hj_InnerBatches 
+hj_OuterReadPos: charP hj_OuterReadPos 
+hj_OuterReadBlk: int hj_OuterReadBlk 
+hj_OuterTupleSlot: Pointer hj_OuterTupleSlot 
+hj_HashTupleSlot: Pointer hj_HashTupleSlot 
+} 
+ 
+{ 
+2 MaterialState 
+mat_Flag: bool mat_Flag 
+mat_TempRelation: Relation mat_TempRelation 
+} 
+ 
+{ 
+2 AggState 
+agg_Flag: bool agg_Flag 
+agg_TempRelation: Relation agg_TempRelation 
+} 
+ 
+{ 
+3 SortState 
+sort_Flag: bool sort_Flag  
+sort_Keys: Pointer sort_Keys  
+sort_TempRelation: Relation sort_TempRelation 
+} 
+ 
+{ 
+0 UniqueState 
+} 
+ 
+{ 
+1 HashState 
+hashBatches: FileP hashBatches 
+} 
+ 
+{ 
+1 MemoryContext 
+method: MemoryContextMethods method 
+} 
+ 
+{ 
+3 GlobalMemory 
+setData: AllocSetData setData 
+name: String name 
+elemData: OrderedElemData elemData 
+} 
+ 
+{ 
+0 PortalMemoryContext 
+} 
+ 
+{ 
+1 PortalVariableMemory 
+setData: AllocSetData setData 
+} 
+ 
+{ 
+2 PortalHeapMemory 
+block: Pointer block 
+stackData: FixedStackData stackData 
+} 
+ 
+{ 
+2 LispValue 
+val: LispValueUnion val  
+cdr: struct _LispValue *cdr  
+} 
+ 
+{ 
+0 LispSymbol 
+} 
+ 
+{ 
+0 LispList 
+} 
+ 
+{ 
+0 LispInt 
+} 
+ 
+{ 
+0 LispFloat 
+} 
+ 
+{ 
+0 LispVector 
+} 
+ 
+{ 
+0 LispStr 
+} 
+ 

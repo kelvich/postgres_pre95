@@ -1,0 +1,466 @@
+.\" this is -*- nroff -*-
+.\" ------------------------------------------------------------------
+.sh 0 "An Introduction to the POSTGRES Development Source Tree"
+.pp
+This is a brief cribsheet for POSTGRES software developers.
+.\" ------------------------------------------------------------------
+.sh 1 "The Master Tree"
+.pp
+The POSTGRES development source consists of two parts:
+.np
+A unique
+.q "master"
+source file directory tree that contains the most current revision of
+the source code as well as the RCS history for each source file.
+On POSTGRES machines, the master tree is part of an NFS file system,
+.i "/usr/local/devel" ,
+that is exported by a central file server.  Hence, the root of the
+master tree,
+.i "/usr/local/devel/postgres" ,
+is the same on all clients.  In the discussion that follows, we will
+assume (for simplicity) that the master tree directory structure
+exists as just described.
+.np
+A set of
+.q "local"
+source file directory trees that are used by developers to make and
+test changes prior to incorporating them into the master source.
+These trees have the same basic structure as the master tree but do
+not contain RCS directories; instead, they contain symbolic links to
+the master tree's RCS directories.
+.pp
+POSTGRES source code is contained in the 
+.i "src"
+subdirectory.  The
+other subdirectories \(em 
+.i "bin" ,
+.i "data" ,
+.i "include"
+and
+.i "lib"
+\(em need not exist in the same directory as the source.  More on that
+later.
+.pp
+There are three valid operations that may be performed on the master
+tree.
+.np
+An application developer (or a development programmer who wishes to
+test the current system) may 
+.i compile
+the system directly from the master tree.  The resulting set of
+executables may then be used as a (relatively) stable application
+development base.
+.np
+A POSTGRES developer may 
+.i clone
+trees from the master tree, thereby creating a local, or private, copy
+of the master tree.  This is the only viable option for doing any
+actual work on the database system itself; if each programmer made
+his/her own changes directly to the master source, one could never be
+sure that the master tree compiled at any given moment.  In addition,
+a mechanism exists for keeping such cloned trees in synchronization
+with the master tree whenever the programmer desires.
+.np
+A POSTGRES developer may 
+.i "check in"
+source code changes using the Revision Control System (RCS).
+.pp
+The only reason why the master tree must be distinguished from any
+other tree is the existence of the RCS files within it.  Removal of or
+damage to these files is disastrous; hence, 
+.b "great care"
+should be taken when making any changes to the directory structure of
+the master tree (e.g., any use of
+.q "rm -rf" ")."
+.\" ------------------------------------------------------------------
+.sh 1 "Basic Tools"
+.pp
+Two programs are required to do any POSTGRES software development.
+.\" ------------------------------------------------------------------
+.sh 2 "Bmake"
+.pp
+The POSTGRES build mechanism uses the 
+.i "make"
+program that comes with 4.4BSD UNIX (formerly known as 
+.i "pmake"
+in Sprite).  This program is somewhat compatible with AT&T-based
+.i "make"
+programs and GNU 
+.i "make" ;
+however, it is known to have compatibility problems.  In addition,
+since it is an extended version of the old 
+.i "make" ,
+POSTGRES Makefiles cannot be executed by any other 
+.i "make"
+program.  Therefore, to prevent any confusion, Berkeley
+.i "make" 
+is installed as 
+.i "bmake"
+on POSTGRES machines and one must invoke this command as 
+.q "bmake" .
+.pp
+See the manual page for details on using 
+.i bmake .
+.\" ------------------------------------------------------------------
+.sh 2 "RCS"
+.pp
+For more information on RCS, see the manual pages for 
+.i rcs (1),
+.i ci (1)
+and 
+.i co (1).
+In addition, several local commands have been developed
+for querying RCS files.  See the manual pages for
+.i  rlocks (1)
+and
+.i rcstool (1).
+.\" ------------------------------------------------------------------
+.sh 1 "Working with the Master Tree"
+.\" ------------------------------------------------------------------
+.sh 2 "Compiling From the Master Tree"
+.pp
+Assume that you have a workstation on which POSTGRES development has
+never been performed.
+.np
+Mount the master tree using the
+.i mount (8nfs)
+command.
+.np
+In order to build from the master tree, a development workstation must
+have at least 80MB free on a file system called 
+.i "/private"
+(or have sufficient disk space in a location that is linked to 
+.i "/private" ).
+Note that 80MB is sufficient to store a set of object files and
+executables compiled with debugging (-g) turned on, but not to store
+any data at all.  An additional 40MB is required to run the regression
+tests.
+.np
+Create a root directory for the object file directory tree.
+.(l
+mkdir -p /private/obj
+.)l
+This directory must also be writable by the user who will build
+POSTGRES.
+.ip
+Note that this location cannot be changed if you are building from the
+master tree.
+.np
+Once
+.i "/private/obj"
+has been constructed, the user can simply type
+.(l
+cd /usr/local/devel/postgres/src
+bmake objdir
+.)l
+and 
+.i bmake
+will recursively construct the required object directories for the
+basic POSTGRES system.  The object directories for other subsystems,
+such as the directories containing contributed software, the
+documentation and the POSTGRES software tools, are NOT automatically
+constructed.  If you want to build those subsystems, you must
+explicitly go into those subdirectories and execute
+.q "bmake objdir"
+in each of them.
+.ip
+.q "bmake objdir"
+will construct an object tree structure that reflects the source tree
+structure.  By default, this object tree will be rooted at a directory
+with the same name as the source tree, except that
+.i "/usr"
+is replaced by
+.i "/private/obj" .
+For example, since the source code for the backend is located in
+.i "/usr/local/devel/postgres/src/backend" ,
+object files for the backend are placed in
+.i "/usr/local/devel/postgres/src/backend/obj" ,
+which is in turn a symbolic link to the directory
+.i "/private/obj/local/devel/postgres/src/backend" .
+.ip
+.i Bmake
+has the rather annoying property that, if it cannot find an object
+directory 
+.i obj
+into which to place its results, it will go ahead and place them in
+the current working directory.  This is annoying because, if one
+forgets to do 
+.q "bmake objdir" ,
+the object files are placed in the master tree.
+.np
+The location in which to install binaries, libraries, etc. is
+specified in 
+.i src/Makefile.global .
+By default, this is 
+.i /private/devel/postgres .
+To change this value, you must either change the variable POSTGRESDIR
+in
+.i src/Makefile.global
+or add a line of this form to
+.i src/obj/Makefile.global :
+.(l
+POSTGRESDIR=\fI/i/want/my/stuff/here\fP
+.)l
+Like the root of the object directory tree, this directory must exist
+and be writable prior to building POSTGRES.
+.np
+Any other compile-time options may be added with lines of the form:
+.(l
+\&.undef CDEBUG
+CFLAGS+= -O -NO_ASSERT_CHECKING
+CFLAGS+= -Bstatic
+LDFLAGS+= +u
+LDADD+= -lbsd
+.)l
+and so on.
+.np
+All that remains is to compile the system.  Type
+.q "bmake install" .
+.\" ------------------------------------------------------------------
+.sh 2 "Cloning the Master Tree"
+.np
+Create a directory into which to copy the new tree.  In order to
+generate a useful private copy of the master tree, one must have
+enough room for the binary files (i.e., about 80MB) plus another 15MB
+for the source code.  And, of course, as previously mentioned, this
+directory must be writable.
+.np
+Place the line
+.(l
+localhost \fImyusername\fP
+.)l
+in the file
+.i .rhosts
+in your home directory.
+.np
+Execute the command
+.(l
+pg_copytree -u \fI/my/new/tree\fP
+.)l
+This will perform an 
+.i rdist (1)
+from the master tree to the new directory; the source code will be
+placed in a
+.i src
+subdirectory.
+.np
+Edit
+.i src/obj/Makefile.global
+as required (as described in the last subsection).  In particular,
+make sure that POSTGRESDIR points to some existing directory in which
+there is enough space to hold the executables.
+.np
+Go into the 
+.i src
+directory and execute
+.q "bmake install" .
+This will compile the new private source tree and install the new
+binaries, libraries, etc. in POSTGRESDIR.
+.pp
+When changes are made to the master tree, you can resynchronize your
+private source tree by re-running
+.i pg_copytree .
+Remember that
+.i pg_copytree
+just runs 
+.i rdist (1).
+If you have files that have been modified more recently than the
+current master tree source,
+.i rdist
+will (fortunately) not overwrite those files.  However, if you
+modified a file at some time and the corresponding file in the master
+tree somehow gets modified (touched, edited, ...) afterward,
+.i rdist
+will happily 
+.b overwrite
+your file, regardless of RCS locks, write permissions, or any other
+factors that an intelligent program would use to detect conflicts.  Be
+warned.
+.pp
+For this reason, an intelligent thing to do is to always run
+.q "pg_copytree -v"
+before running 
+.q "pg_copytree -u" .
+This option uses 
+.i rdist 
+to report what actions would be taken if you used the 
+.q "-u"
+option.  That way, you will always (if you are awake) be able to
+detect potential problems.
+.\" ------------------------------------------------------------------
+.sh 2 "Folding Your Changes Into the Master Source"
+.pp
+Your new private tree has RCS directories in each of the
+subdirectories of
+.i src .
+These are actually just symbolic links to the RCS directories in the
+master tree.  You can therefore use the regular RCS interface to check
+files in and out.
+.pp
+There are two problems with using plain old
+.i ci 
+and 
+.i co .
+.np
+Sometimes, changes you make to the source will have to be immediately
+visible to all other developers.  An example of this is a change to
+global 
+.i bmake
+include files that must be visible at the same time as changes to the
+POSTGRES Makefiles.
+Obviously, just checking a file into the RCS history doesn't make your
+change visible in the master tree.  Even if you use
+.q "ci -u" ,
+the change will only appear in your private source tree, not the
+master tree.  In order to ensure source file consistency, you must
+always check out files in the master tree.
+.np
+Using
+.q "ci -u"
+can break
+.i pg_copytree
+since 
+.i rdist
+just looks at timestamps.  Your private tree may be updated in
+unexpected ways if the timestamps are not identical to those found in
+the master trees.  In order to ensure timestamp consistency, you must
+always check out the files in the right order.
+.pp
+The standard solution to these problems is to use the
+.i pci
+script (which checks in your change and checks out a copy into the
+master tree) followed by a call to
+.i pg_copytree .
+That ensures that all file timestamps are correctly ordered.  Other
+solutions are possible.
+.pp
+When adding new files to the source tree, remember to copy the file to
+the master tree and create an initial RCS revision (always!).  When
+adding new source directories, remember to create new symbolic links
+(such as
+.i obj )
+or new subdirectories (such as
+.i RCS )
+as necessary.
+.\" ------------------------------------------------------------------
+.sh 1 "Other Things You Can Do With Your Source Tree"
+.pp
+Other useful 
+.i Makefile
+targets are:
+.(l
+depend - generate dependency files
+clean - remove object files
+cleandir - remove object files and dependency files
+.)l
+.pp
+I routinely run 
+.(l
+bmake depend install
+.)l
+whenever i have made changes.
+.pp
+Unfortunately, 
+.q "bmake depend"
+has the property that the dependency file only depends on its
+immediate source file.  Hence, if a header changes, the dependency
+file may not necessarily be updated.  The current build system has no
+way of detecting this.
+.pp
+An incidental note: if things don't seem to build quite right, or some
+weird bug crops up, my first move is usually to run
+.(l
+bmake cleandir depend install
+.)l
+which is very time-consuming but often fixes some very strange bugs.
+.\" ------------------------------------------------------------------
+.sh 1 "Support for Multiple Object Trees"
+.pp
+Having a single set of objects per machine per source tree can be a
+problem.  So can forcing users to place their object files in the same
+location on each machine.
+.i Bmake
+provides for support for multiple object trees (in various locations)
+in the form of the MAKEOBJDIR environment variable.
+.pp
+The master tree contains symbolic links named 
+.i obj
+in each source subdirectory.  These point to a fixed location under
+.i /private/obj ,
+which means that a client workstation can only build a single set of
+object files from the master tree.  Hence, while you can build object
+files and binaries for different architectures from the master tree,
+you cannot two object trees with different compiler options from the
+master tree on the same machine.
+.pp
+By default, private trees are set up with physical 
+.i obj
+subdirectories.  This means that, if you export a private tree to
+several hosts, they will overwrite the same object files.
+.pp
+One solution to these problems is to create a set of symbolic links
+to each different object tree and then defining the environment
+variable MAKEOBJDIR as the name to use instead of 
+.i obj
+in each source subdirectory.
+.np
+Run a script like the one that follows.
+.(l
+#!/bin/sh
+# run this script in .../postgres/src, e.g.:
+#	cd ~/postgres/src
+#	portobj /usr/local/hpux/postgres/src obj.hpux
+#
+[ -z "$1" ] && exit 1;
+[ -z "$2" ] && exit 1;
+umask 002
+PORTOBJDIR=$1
+MAKEOBJDIR=$2
+for i in `find . -name obj -print | \e
+ sed -e 's%^\./%%' -e 's%/obj$%%'` ; do
+	echo $i/$MAKEOBJDIR '->' $PORTOBJDIR/$i
+	if [ ! -d $PORTOBJDIR/$i ]; then
+		mkdir -p $PORTOBJDIR/$i
+		if [ -d $i/$MAKEOBJDIR ]; then
+			mv -f $i/$MAKEOBJDIR/* $PORTOBJDIR/$i
+		fi
+	fi
+	rm -rf $i/$MAKEOBJDIR
+	ln -s $PORTOBJDIR/$i $i/$MAKEOBJDIR
+done
+.)l
+This turns a set of local symbolic links or local object directories
+into a set of symbolic links into a new object tree.
+.np
+Once the symbolic links are in place, type
+.(l
+setenv MAKEOBJDIR obj.hpux
+bmake install
+.)l
+and the right thing will happen.  That is, wherever
+.i bmake
+normally looks into a local directory called
+.i obj
+for object files and
+.i Makefile.global
+files, it will instead look into MAKEOBJDIR.
+.pp
+As an example, my source tree is set up as follows:
+.(l
+cd ~/postgres/src
+portobj /private/obj/faerie/aoki/postgres/src obj
+portobj /data/26/private/ultrix4/aoki/postgres/src obj.ultrix4
+portobj /data/26/private/sparc/aoki/postgres/src obj.sparc
+portobj /net/toe/data/26/private/hpux/aoki/postgres/src obj.hpux
+.)l
+That is, on the Ultrix host
+.i faerie
+I have a strictly local set of object files compiled with debugging
+options (obj); I have another, globally-exported set of Ultrix object
+files that are compiled with a different set of compiler options
+(obj.ultrix4); and I have two other globally-exported object trees
+that are used for compiling SPARC (obj.sparc) and PA-RISC (obj.hpux)
+systems.  All of these object trees are built from a single
+NFS-exported source tree that is periodically re-synchronized with the
+master tree in the usual way.
+.\" ------------------------------------------------------------------
