@@ -1481,14 +1481,15 @@ b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info
 array_attribute:
 	  attr
 		{
-		$$ = make_var ( CString(CAR ($1)) , CString(CADR($1)));
+		$$ = make_var ( CString(CAR ($1)) , CString(CADR($1) ));
 		}
 	| attr '[' Iconst ']'
 		{ 
 		     Var temp = (Var)NULL;
-		     temp = (Var)make_var ( CString(CAR($1)),
-				       CString(CADR($1)) );
-		     $$ = (LispValue)MakeArrayRef( temp , $3 );
+		     temp = (Var) 
+		     make_array_ref_var ( CString(CAR($1)),
+		                          CString(CADR($1)),
+					  CInteger($3));
 		}
 		*/
 a_expr:
