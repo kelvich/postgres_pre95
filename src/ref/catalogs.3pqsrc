@@ -115,9 +115,9 @@ pg_am
     oid         amowner	/* usesysid of creator */
     char        amkind		/* - deprecated */
 				/* originally:
-					h=hashed
-					o=ordered
-					s=special */
+				   h=hashed
+				   o=ordered
+				   s=special */
     int2        amstrategies	/* total NUMBER of strategies by which
 				   we can traverse/search this AM */
     int2        amsupport	/* total NUMBER of support functions
@@ -238,7 +238,7 @@ pg_inherits
 				   - unused */
     bool        indisarchived	/* is the index archival?
 				   - unused */
-    text        indpred        /* query plan for partial index predicate */
+    text        indpred	/* query plan for partial index predicate */
 .)C
 .(C
 pg_type
@@ -289,7 +289,7 @@ pg_operator
 .)C
 .(C
 pg_opclass
-    char16 opcname	/* operator class name */
+    char16      opcname	/* operator class name */
 .)C
 .(C
 pg_proc
@@ -409,10 +409,10 @@ pg_lobj
 				   identifies this object in the
 				   Inversion file system namespace */
     int4        objtype		/* storage type code:
-					0=Inversion
-					1=Unix
-					2=External
-					3=Jaquith */
+				   0=Inversion
+				   1=Unix
+				   2=External
+				   3=Jaquith */
     bytea       object_descripto/* opaque object-handle structure */
 .)C
 .(C
