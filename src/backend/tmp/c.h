@@ -21,11 +21,19 @@
 /*
  * bool --
  *	Boolean value, either true or false.
+ *
+ * used to be:
+ *
+ * typedef enum bool {
+ *	false,		must be first, to be 0
+ *	true
+ * } bool;
+ *
+ * this may soon be moved to postgres.h -cim
  */
-typedef enum bool {
-	false,	/* must be first, to be 0 */
-	true
-} bool;
+#define bool	char
+#define false	((char) 0)
+#define true	((char) 1)
 
 /*
  * CppIdentity --
