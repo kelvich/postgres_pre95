@@ -66,7 +66,6 @@ find_paths(rels,nest_level,sortkeys)
 	    return(rels);   
 	} 
 	else {
-	    LispValue x;
 	    /* 
 	     * this means that joins or sorts are required.
 	     * set selectivities of clauses that have not been set
@@ -109,7 +108,6 @@ find_rel_paths(rels,level,sortkeys)
 {
      LispValue temp;
      Rel rel;
-     LispValue tmppath;
      
      foreach(temp,rels) {
 	  LispValue sequential_scan_list;
@@ -180,10 +178,8 @@ find_join_paths(outer_rels,levels_left,nest_level)
      LispValue outer_rels;
      int levels_left, nest_level;
 {
-    LispValue x, y;
+    LispValue x;
     Rel rel;
-    Path curpath;
-    LispValue tmp_rels;
 
     /*
     * Determine all possible pairs of relations to be joined at this level.
