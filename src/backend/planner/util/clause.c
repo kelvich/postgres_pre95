@@ -276,11 +276,26 @@ bool
 join_clause_p (clause)
      LispValue clause ;
 {
-	if (is_clause(clause) &&
-	    IsA(get_leftop(clause),Var) &&
-	    IsA(get_rightop(clause),Var))
-	  return(true);
-	else
+	LispValue leftop = (LispValue) get_leftop(clause);
+	LispValue rightop = (LispValue) get_rightop(clause);
+
+	if (!is_clause(clause))
+		return false;
+	
+	/*
+	 * One side of the clause (i.e. left or right operands)
+	 * must either be a var node ...
+	 */
+	if (IsA(leftop,Var) || IsA(rightop,Var))
+		return true;
+
+	/*
+	 * ... or a func node.
+	 */
+	if (consp(leftop) && IsA(CAR(leftop),Func))
+		return(true);
+	if (consp(rightop) && IsA(CAR(rightop),Func))
+		return true;
 	  return(false);
 }
 
@@ -297,80 +312,20 @@ bool
 qual_clause_p (clause)
      LispValue clause ;
 {
-	if (is_clause (clause) &&
-	    IsA (get_leftop (clause),Var) &&
-	    IsA (get_rightop (clause),Const))
-	  return(true);
-	else
-	  return(false);
-}
+    if (!is_clause(clause))
+	return false;
 
-/*    
- *    	function-index-clause-p		XXX FUNCS
- *    
- *    	Returns t iff 'clause' is a valid index-function qualification clause.
- *    
- */
-
-bool
-function_index_clause_p (clause,rel,index)
-     LispValue clause,rel;
-     Rel index;
-{
-    
-  if (is_clause (clause) &&
-      is_funcclause (get_leftop (clause)) &&
-      constant_p (get_rightop (clause)) ) {
-    Var funcclause = get_leftop (clause);
-    LispValue function = get_function (funcclause);
-    LispValue funcargs = get_funcargs (funcclause);
-    List index_keys = get_indexkeys (index);
-    bool result1 = true;
-    bool result2 = true;
-    LispValue arg = LispNil;
-    LispValue t_list = LispNil;
-    LispValue var = LispNil;
-    LispValue temp = LispNil;
-    LispValue temp1 = LispNil;
-
-    /*  XXX  was a lisp every function  */
-    foreach (arg, funcargs) {
-      if ( ! ((IsA (arg,Var) && 
-	       equal (get_relid (rel) && get_varno (arg)))))
-	result1 = false;
-    }        
-    
-    /*  XXX was mapcar  */
-    foreach (var, funcargs) 
-      t_list = nappend1 (t_list, get_varattno(var));
-  
-    /* XXX was lisp every   */
-    foreach (temp, t_list) {
-      temp1 = CAR (index_keys);
-      index_keys = CDR (index_keys);
-      if (! equal(temp,temp1))
-	result2 = false;
-      if (index_keys == LispNil) {
-	result2 = false;
-	break;
-      }
+    if (IsA (get_leftop (clause),Var) &&
+	IsA (get_rightop (clause),Const))
+    {
+	return(true);
     }
-
-
-
-    set_funcisindex (function, true);
-    
-    return ((bool) (function_index_info (get_funcid (function),
-					 /* XXX used to be CAR(get_indexid ..*/
-					 get_indexid (index)) &&
-		    (length (funcargs) == length (index_keys)) &&
-		    result1 &&
-		    result2 ));
-
-  }
-  else
-    return (false);
-
+    else if (IsA (get_rightop(clause),Var) &&
+	     IsA (get_leftop(clause),Const))
+    {
+	return(true);
+    }
+    return(false);
 }
 
 /*    
@@ -488,6 +443,25 @@ get_relattval (clause)
 					     LispNil)))));
 	} 
     } /* if (is_clause(clause . . . */ 
+
+    else if (is_clause(clause) && is_funcclause(left) && IsA(right,Const)) {
+	    return(lispCons (lispInteger(get_varno (CAR(get_funcargs(left)))),
+		      lispCons(lispInteger(InvalidAttributeNumber),
+			       lispCons(lispInteger(get_constvalue (right)),
+					lispCons(lispInteger(
+						  (_SELEC_CONSTANT_RIGHT_ |
+						   _SELEC_IS_CONSTANT_)),
+						 LispNil)))));
+    }
+    
+    else if (is_clause(clause) && is_funcclause(right) && IsA(left,Const)) {
+	    return(lispCons (lispInteger(get_varno (CAR(get_funcargs(right)))),
+		      lispCons(lispInteger(InvalidAttributeNumber),
+			       lispCons(lispInteger(get_constvalue (left)),
+					lispCons(lispInteger(
+						  (_SELEC_IS_CONSTANT_)),
+						 LispNil)))));
+    }
     
     else if (is_clause (clause) && IsA (right,Var) &&
 	     ! var_is_mat (right) && IsA (left,Const)) {
@@ -507,7 +481,7 @@ get_relattval (clause)
 	} 
     } else  {
 	/*    One or more of the operands are expressions 
-	      (e.g., oper or func clauses
+	      (e.g., oper clauses
 	      */
 	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
 		  lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
@@ -592,4 +566,41 @@ is_clause(clause)
     
     return(false);
     
+}
+
+void
+CommuteClause(clause)
+    LispValue clause;
+{
+    LispValue temp;
+    Oper commu;
+    OperatorTupleForm commuTup;
+    HeapTuple heapTup;
+
+    if (!(is_clause(clause) &&
+	  IsA(CAR(clause),Oper)))
+	return;
+
+    heapTup = (HeapTuple)
+	get_operator_tuple( get_commutator(get_opno(CAR(clause))) );
+
+    if (heapTup == (HeapTuple)NULL)
+	return;
+
+    commuTup = (OperatorTupleForm)GETSTRUCT(heapTup);
+
+    commu = MakeOper(heapTup->t_oid,
+	     InvalidObjectId, 
+	     get_oprelationlevel(CAR(clause)),
+	     commuTup->oprresult,
+	     get_opsize(CAR(clause)),
+	     NULL);
+
+    /*
+     * reform the clause -> (operator func/var constant)
+     */
+    CAR(clause) = (LispValue)commu;
+    temp = CADR(clause);
+    CADR(clause) = CADDR(clause);
+    CADDR(clause) = temp;
 }
