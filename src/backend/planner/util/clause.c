@@ -80,7 +80,7 @@ static bool
 lambda2 (qual)
      LispValue qual ;
 {
-    if (relation_level_clause_p (qual) && !(nested_clause_p (qual)))
+    if (relation_level_clause_p (qual))
       return(true);
     else
       return(false);
@@ -160,65 +160,6 @@ NumRelids (clause)
     return(length(t_list));
 
 }
-
-/*    
- *    	nested-clause-p
- *    
- *    	Returns t if any of the vars in the qualification clause 'clause'
- *    	contain dot fields, indicating that the clause should be ignored
- *    	at this nesting level.
- *    
- */
-
-/*  .. add-clause-to-rels, in-line-lambda%598037258, nested-clause-p
- */
-bool
-nested_clause_p (clause)
-     LispValue clause ;
-{
-    bool retval = false;
-
-/*
- *  XXX turn it off for now since it always return false
- * until we support dotted queries.
- 
-    if(null (clause) ||single_node (clause)) {
-    } 
-    else if (IsA(clause,Var) && var_is_nested (clause)) {
-	retval = true;
-    } else if (or_clause (clause)) {
-	LispValue i = LispNil;
-	LispValue orclause = LispNil;
-
-	foreach (i,get_orclauseargs (clause)) {
-	    orclause = CAR(i);
-	    if (nested_clause_p (orclause)) {
-	      retval = true;
-	      break;
-	  }
-	}
-    } else if (is_funcclause (clause)) {
-	if (some (nested_clause_p,get_funcargs (clause)))
-	  retval = true;
-    } 
-    else if (not_clause (clause)) {
-	retval = nested_clause_p (get_notclausearg (clause));
-    } 
-    else {
-	retval = (bool)(nested_clause_p (get_leftop (clause)) ||
-			nested_clause_p (get_rightop (clause)));
-    }
- */
-    return(retval);
-}
-
-/*    
- *    	relation-level-clause-p
- *    
- *    	Returns t iff the qualification clause 'clause' is a relation-level
- *    	clause.
- *    
- */
 
 /*  .. add-clause-to-rels, in-line-lambda%598037258, relation-level-clause-p
  */

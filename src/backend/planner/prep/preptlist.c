@@ -104,11 +104,10 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
                                              0,
                                              0,
 				             1),  /* set resjunk to 1 */
+			/* jesus, what is this mess?  --mao 7/92 */
                         lispCons((LispValue)MakeVar(CInteger(result_relation),
                                                     -1,
                                                     27,
-                                                    LispNil,
-					            0,
                                                     lispCons(result_relation,
                                                        lispCons(lispInteger(-1),
                                                           LispNil)),
@@ -314,7 +313,6 @@ new_relation_targetlist (relid,rt_index,node_type)
 		 temp_var = MakeVar (rt_index,
 				 CInteger(attno),
 				 atttype,
-				 LispNil,LispNil,
 				 lispCons (lispInteger(rt_index),
 					   lispCons(attno,
 						    LispNil)), 0);

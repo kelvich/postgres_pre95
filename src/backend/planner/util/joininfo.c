@@ -114,9 +114,9 @@ other_join_clause_var(var,clause)
 	  l = (Var) get_leftop(clause);
 	  r = (Var) get_rightop(clause);
 
-	  if(var_equal((LispValue)var, (LispValue)l, false)) {
+	  if(var_equal((LispValue)var, (LispValue)l)) {
 	       retval = r;
-	  } else if(var_equal((LispValue)var, (LispValue)r, false)) {
+	  } else if(var_equal((LispValue)var, (LispValue)r)) {
 	       retval = l;
 	  }
      }

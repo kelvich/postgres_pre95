@@ -89,6 +89,7 @@ extern Temp 		RMakeTemp();
 extern Unique		RMakeUnique();
 extern Var 		RMakeVar();
 extern Array 		RMakeArray();
+extern ArrayRef		RMakeArrayRef();
 
 /* ----------------
  *	_getPlan
@@ -811,26 +812,13 @@ _readVar()
 	
 	local_node->vartype = (ObjectId) atol(token);
 
-	token = lsptok(NULL, &length);    		/* eat :vardotfields */
-
-
-	/* What to do about the extra ")"'s??? */
-
-	local_node->vardotfields = lispRead(true); 	/* now read it */
-
-	token = lsptok(NULL, &length);    	       /* eat :vararraylist */
-	
-	local_node->vararraylist = lispRead(true);	/* now read it */
-
 	token = lsptok(NULL, &length);    		/* eat :varid */
-
 	local_node->varid = lispRead(true); 		/* now read it */
 
 	return(local_node);
 }
 
-/*
- * ----------------
+/* ----------------
  * _readArray
  *
  * Array is a subclass of Expr
@@ -880,7 +868,48 @@ _readArray()
 	return(local_node);
 }
 
+/* ----------------
+ * _readArrayRef
+ *
+ * ArrayRef is a subclass of Expr
+ * ----------------
+ */
 
+ArrayRef
+_readArrayRef()
+
+{
+	ArrayRef	local_node;
+	char		*token;
+	int		length;
+
+	local_node = RMakeArrayRef();
+
+	token = lsptok(NULL, &length);    		/* eat :refelemtype */
+	token = lsptok(NULL, &length);    		/* get refelemtype */
+	
+	local_node->refelemtype = (ObjectId) atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :refelemlength */
+	token = lsptok(NULL, &length);    		/* get refelemlength */
+	
+	local_node->refelemlength = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :refelembyval */
+	token = lsptok(NULL, &length);    		/* get refelembyval */
+	
+	local_node->refelembyval = (token[0] == 't') ? true : false;
+
+	token = lsptok(NULL, &length);    		/* eat :refindex */
+	token = lsptok(NULL, &length);    		/* get refindex */
+
+	local_node->refindex = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :refexpr */
+	local_node->refexpr = (LispValue) lispRead(true);
+
+	return(local_node);
+}
 
 /* ----------------
  *	_readConst

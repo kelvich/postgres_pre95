@@ -168,12 +168,11 @@ add_clause_to_rels(clause)
     LispValue relids = nth(0,relids_vars);
     LispValue vars = nth(1,relids_vars);
     
-    if(nested_clause_p(clause) || 
-       relation_level_clause_p(clause)) 
-      /* Ignore quals containing dot fields or relation level clauses, */
-      /* but place the vars in the target list so their values can be  */
-      /* referenced later. */
-      
+    if(relation_level_clause_p(clause)) 
+      /*
+       * Ignore quals containing relation level clauses, but place the vars
+       * in the target list so their values can be referenced later.
+       */
       add_vars_to_rels(vars,LispNil);
     else {
 	CInfo clauseinfo = RMakeCInfo();

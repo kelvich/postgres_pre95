@@ -48,6 +48,8 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 
+extern bool	_copyLispValue();
+
 /* ----------------------------------------------------------------
  *	lispCopy
  *
@@ -1317,8 +1319,6 @@ _copyVar(from, to, alloc)
     newnode->varattno =  from->varattno;
     newnode->vartype = 	 from->vartype;
     
-    Node_Copy(from, newnode, alloc, vardotfields);
-    Node_Copy(from, newnode, alloc, vararraylist);
     Node_Copy(from, newnode, alloc, varid);    
 
     /* ----------------
@@ -1361,6 +1361,41 @@ _copyArray(from, to, alloc)
     newnode->arraylow = 	from->arraylow;
     newnode->arrayhigh = 	from->arrayhigh;
     newnode->arraylen = 	from->arraylen;
+
+    (*to) = newnode;
+    return true;
+}
+
+bool
+_copyArrayRef(from, to, alloc)
+    ArrayRef	from;
+    ArrayRef	*to;
+    char *	(*alloc)();
+
+{
+    ArrayRef	newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(ArrayRef);
+
+    /* ----------------
+     *	copy node superclass fields
+     * ----------------
+     */
+    CopyNodeFields(from, newnode, alloc);
+    CopyExprFields(from, newnode, alloc);
+
+    /* ----------------
+     *	copy remainder of node
+     * ----------------
+     */
+    newnode->refelemtype = 	from->refelemtype;
+    newnode->refelemlength = 	from->refelemlength;
+    newnode->refelembyval = 	from->refelembyval;
+    newnode->refindex = 	from->refindex;
+
+    (void) NodeCopy(from->refexpr, &(newnode->refexpr), alloc);
 
     (*to) = newnode;
     return true;

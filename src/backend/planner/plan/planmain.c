@@ -223,16 +223,8 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 /*    create subplans for lower levels of nesting.  Modify the target */
 /*    list and qualifications to reflect the new nesting level. */
 
-       if ( !(currentlevel == maxlevel ) ) {
-	    restplan = query_planner (command_type,
-				      new_level_tlist (level_tlist,
-						       subtlist,
-						       currentlevel),
-				      new_level_qual (qual,
-						      subtlist,
-						      currentlevel),
-				      currentlevel + 1,
-				      maxlevel);
+       if (currentlevel != maxlevel) {
+	    elog(WARN, "level mismatch -- should never happen with new nested dot parsing scheme!");
        }
 /*    Build a result node linking the plan for deeper nesting levels and */
 /*    the subplan for this level.  Note that a plan that has no right */

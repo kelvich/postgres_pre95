@@ -262,18 +262,12 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 		break;
 	    case classTag(Var): {
 		int this_varno = (int)get_varno ( (Var) this_node );
-		List vardots = get_vardotfields((Var) this_node);
 		char *name_to_look_for;
-		if (this_varno == rt_index &&
-		    get_varattno((Var) this_node) == attr_num) {
-		    if (vardots != LispNil) {
-			name_to_look_for = CString(CAR(vardots));
-		    }
-		    else {
+		if (this_varno != rt_index &&
+		    get_varattno((Var) this_node) != attr_num) {
 			if (get_vartype((Var) this_node) == 32) { /* HACK */
 			    n = (List) make_null(get_vartype((Var) this_node));
 			    CAR(i) = CAR(n);
-/*			    CDR(i) = CDR(n);*/
 			    *modified = TRUE;
 			    *badpostquel = TRUE;
 			    break;
@@ -289,13 +283,8 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 		    if (n == NULL)
 			n = (List) make_null(get_vartype((Var) this_node));
 		    CAR(i) = CAR(n);
-/*		    CDR(i) = CDR(n);*/
-		    if (NodeType(CAR(n)) == classTag(Var) && vardots) {
-			set_vardotfields((Var) CAR(n), lispCopy(CDR(vardots)));
-		    }			
 		    *modified = TRUE;
 		}
-	    }
 		break;
 	    default:
 		/* ignore the others */

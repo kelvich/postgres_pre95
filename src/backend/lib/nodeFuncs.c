@@ -52,7 +52,6 @@ single_node (node)
  *    	var_is_inner
  *    	var_is_mat
  *    	var_is_rel
- *      var_is_array
  *    
  *    	Returns t iff the var node corresponds to (respectively):
  *    	the outer relation in a join
@@ -103,57 +102,6 @@ var_is_rel (var)
 {
     return (bool)
 	! (var_is_inner (var) ||  var_is_outer (var));
-}
-
-bool
-var_is_array (var)
-	Var var;
-
-{
-	return((bool) (var->vararraylist != NULL));
-}
-
-/*  .. consider_vararraylist, nested-clause-p, new-level-tlist
- *  .. relation-sortkeys, replace-nestvar-refs, var_equal
- */
-bool
-var_is_nested (var)
-     Var var ;
-{
-    if ( get_vardotfields (var) != NULL)
-      return(true);
-    else
-      return(false);
-}
-
-/*  .. consider_vararraylist, numlevels
- */
-bool
-varid_indexes_into_array (var)
-     Var var ;
-{
-    return((bool)listp (last_element ((LispValue)(get_varid (var)))));
-}
-
-/*  .. add_tl_element, replace-nestvar-refs
- */
-List
-varid_array_index (var)
-     Var var ;
-{
-    return(CAR (last_element ((LispValue)(get_varid (var)))));
-}
-
-/*  .. add_tl_element, replace-nestvar-refs
- */
-bool
-consider_vararrayindex (var)
-     Var var ;
-{
-    if (!var_is_nested (var) && varid_indexes_into_array (var))
-      return(true);
-    else
-      return(false);
 }
 
 /*    	==========

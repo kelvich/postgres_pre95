@@ -104,53 +104,19 @@ pull_var_clause (clause)
 /*    
  *    	var_equal
  *    
- *    	Returns t iff two var nodes correspond to the same attribute (and
- *    	array element, if applicable), ignoring the dot fields (making
- *    	"foo.bar.baz" equivalent to "foo.ack.hodedo.baz") unless 'dots' is
- *    	set.
- *
- *      vartype will be different in the case of array vars on the same
- *      attribute, ie a.b[1][1] will be a different type than a.b[1].
- *
+ *    	Returns t iff two var nodes correspond to the same attribute.
  */
 bool
-var_equal (var1,var2,dots)
+var_equal (var1,var2)
      LispValue var1,var2;
-     bool dots;
 {
     if (IsA (var1,Var) && IsA (var2,Var) &&
 	(get_varno ((Var)var1) == get_varno ((Var)var2)) &&
 	(get_vartype ((Var)var1) == get_vartype ((Var)var2)) && 
 	(get_varattno ((Var)var1) == get_varattno ((Var)var2))) {
 
-/*   comment out for now since vararrayindex is always
-	     nil until we get procedures working.
-
-	if(dots != LispNil) {
-	    *    Check for nested-dot equality. *
-	    if (equal (get_vardotfields (var1),
-			   get_vardotfields (var2)) &&
-		equal (get_vararrayindex (var1),
-		       get_vararrayindex (var2)));
-	    return(true);
-	} else {
-			    
-	     *    The vararrayindex field should be 
-		  ignored unless 'var1' no 
-		  longer has any nestings. *
-	    if (var_is_nested (var1) ||
-		equal (get_vararrayindex (var1),
-			   get_vararrayindex (var2)));
-	    return(true);
-	}
-*/
-	  if (equal((Node)get_vararraylist((Var)var1),
-		    (Node)get_vararraylist((Var)var2)))
          return(true);
-	  else
-		 return(false);
-    }
-	else 
+    } else 
       return(false);
     
 } /* var_equal */
@@ -170,9 +136,5 @@ int
 numlevels (var)
      Var var;
 {
-	if(varid_indexes_into_array (var)) {
-		return ( length (CDR (get_varid (var))) - 1);
-	} else {
-		return(length (CDR ( get_varid (var))));
-	}
+    return(length (CDR ( get_varid (var))));
 }

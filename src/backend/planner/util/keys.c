@@ -94,15 +94,7 @@ equal_indexkey_var (index_key,var)
      LispValue index_key;
      Var var ;
 {
-/*    if ((consp (index_key) &&
- *	 equal (get_attribute_number (index_key), get_varattno (var)) &&
- *	 equal (get_array_index (index_key),get_vararraylist (var))) ||
- *
- *  trun this portion off for now since vararraryindex is always nil
- */
-
-    if (CInteger(index_key) == get_varattno (var) &&
-	null (get_vararraylist (var)))
+    if (CInteger(index_key) == get_varattno (var))
       return(true);
     else
       return(false);

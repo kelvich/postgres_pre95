@@ -68,6 +68,7 @@
 #define OutConstExists
 #define OutVarExists
 #define OutArrayExists
+#define OutArrayRefExists
 #define OutFjoinExists
 
 /* ----------------
@@ -82,6 +83,7 @@
 #define EqualConstExists
 #define EqualVarExists
 #define EqualArrayExists
+#define EqualArrayRefExists
 #define EqualFjoinExists
 
 /* ----------------
@@ -96,6 +98,7 @@
 #define CopyConstExists
 #define CopyVarExists
 #define CopyArrayExists
+#define CopyArrayRefExists
 #define CopyFjoinExists
 
 
@@ -178,8 +181,6 @@ class (Expr) public (Node) {
  *	varno 		- index of this var's relation in the range table
  *	varattno 	- attribute number of this var
  *	vartype 	- pg_type tuple oid for the type of this var
- *	vardotfields 	- always nil (don't know why --mao 6/92)
- *	vararraylist 	- XXX comment me.
  *	varid 		- cons cell containing (varno, (varattno))
  *	varslot 	- cached pointer to addr of expr cxt slot
  * ----------------
@@ -190,8 +191,6 @@ class (Var) public (Expr) {
 	Index			varno; 
 	AttributeNumber		varattno;
 	ObjectId		vartype;
-	List			vardotfields;
-	List			vararraylist;
 	List			varid;
 	Pointer			varslot;
  /* public: */
@@ -319,13 +318,17 @@ class (Func) public (Expr) {
 
 /* ----------------
  * Array
- *	arrayelemtype	- XXX comment me.
- *	arrayelemlength	- XXX comment me.
- *	arrayelembyval	- XXX comment me.
- *	arraylow	- XXX comment me.
- *	arrayhigh	- XXX comment me.
- *	arraylen	- XXX comment me.
+ *	arrayelemtype	- base type of the array's elements (homogenous!)
+ *	arrayelemlength	- length of that type
+ *	arrayelembyval	- can you pass this element by value?
+ *	arraylow	- base for array indexing
+ *	arrayhigh	- limit for array indexing
+ *	arraylen	- ((high - low) + 1) * elemlength, or -1
  * ----------------
+ *
+ *  memo from mao:  the array support we inherited from 3.1 is just
+ *  wrong.  when time exists, we should redesign this stuff to get
+ *  around a bunch of unfortunate implementation decisions made there.
  */
 class (Array) public (Expr) {
  /* private: */
@@ -337,5 +340,24 @@ class (Array) public (Expr) {
 	int			arrayhigh;
 	int			arraylen;
  /* public: */
+};
+
+/* ----------------
+ *  ArrayRef:
+ *	refelemtype	- type of the element referenced here
+ *	refelemlength	- length of that type
+ *	refelembyval	- can you pass this element type by value?
+ *	refindex	- index into array
+ *	refexpr		- the expression that evaluates to an array
+ * ----------------
+ */
+class (ArrayRef) public (Expr) {
+ /* private: */
+	inherits1(Expr);
+	ObjectId		refelemtype;
+	int			refelemlength;
+	bool			refelembyval;
+	int			refindex;
+	LispValue		refexpr;
 };
 #endif /* PrimNodesIncluded */

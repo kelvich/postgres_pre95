@@ -165,10 +165,6 @@ _equalVar(a, b)
 		return (false);
 	if (a->vartype != b->vartype)
 		return (false);
-	if (!_equalLispValue(a->vardotfields, b->vardotfields))
-		return (false);
-	if (!_equalLispValue(a->vararraylist, b->vararraylist))
-		return (false);
 	if (!_equalLispValue(a->varid, b->varid))
 		return (false);
 
@@ -192,6 +188,26 @@ _equalArray(a, b)
 	if (a->arraylen != b->arraylen)
 		return (false);
 	return(true);
+}
+
+bool
+_equalArrayRef(a, b)
+	register ArrayRef	a;
+	register ArrayRef	b;
+
+{
+	if (!_equalExpr((Expr)a, (Expr)b))
+		return (false);
+	if (a->refelemtype != b->refelemtype)
+		return (false);
+	if (a->refelemlength != b->refelemlength)
+		return (false);
+	if (a->refelembyval != b->refelembyval)
+		return (false);
+	if (a->refindex != b->refindex)
+		return (false);
+
+	return (_equalLispValue(a->refexpr, b->refexpr));
 }
 
 /*

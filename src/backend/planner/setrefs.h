@@ -2,9 +2,6 @@
 
 extern LispValue new_level_tlist ARGS((LispValue tlist, LispValue prevtlist, int prevlevel));
 extern LispValue new_level_qual ARGS((LispValue quals, LispValue prevtlist, int prevlevel));
-extern LispValue replace_clause_nestvar_refs ARGS((LispValue clause, LispValue prevtlist, int prevlevel));
-extern LispValue replace_subclause_nestvar_refs ARGS((LispValue clauses, LispValue prevtlist, int prevlevel));
-extern Var replace_nestvar_refs ARGS((Var var, List prevtlist, int prevlevel));
 extern LispValue new_result_tlist ARGS((LispValue tlist, LispValue ltlist, LispValue rtlist, int levelnum, bool sorted));
 extern LispValue new_result_qual ARGS((LispValue clauses, LispValue ltlist, LispValue rtlist, int levelnum));
 extern Expr replace_clause_resultvar_refs ARGS((Expr clause, List ltlist, List rtlist, int levelnum));

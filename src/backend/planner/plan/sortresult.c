@@ -82,7 +82,6 @@ LispValue tlist ;
 	
 	if (0 != get_reskey (resdom)) {
 	    if(!(IsA (expr,Var)) ||
-	       var_is_nested((Var)expr) || 
 	       (relid && relid != get_varno((Var)expr)))
 	      allsame = false;
 	    else 
@@ -99,26 +98,12 @@ LispValue tlist ;
 				  lispCons(lispCons((LispValue)expr,LispNil),
 					   LispNil)),
 			varkeys);
-		  if (get_vararraylist((Var)expr))
-		    push (lispCons(lispInteger(get_reskey (resdom)),
-		                   lispCons(lispCons (lispInteger
-						      (get_varattno((Var)expr)),
-				                      lispCons
-						   (get_vararraylist((Var)expr),
-						       LispNil
-						      )),
-					    LispNil)),
-			  keys);
-		  else 
-		    push (lispCons (lispInteger(get_reskey (resdom)),
-				    lispCons(lispInteger(get_varattno((Var)expr)),
-				             LispNil)),
+		  push (lispCons (lispInteger(get_reskey (resdom)),
+				  lispCons(lispInteger(get_varattno((Var)expr)),
+				           LispNil)),
 			  keys);
 	      } 
 	    numkeys++;
-	    /* XXX this is wrong.  reskeyop should be OperatorTupleForm.
-	    set_reskeyop(resdom,get_opcode(get_reskeyop(resdom)));
-	    */
 	}
     }
     

@@ -41,6 +41,8 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 
+#include "nodes/primnodes.h"
+
 extern ObjectId TypeShellMake();
 
 /*
@@ -77,62 +79,6 @@ CreateTemplateTupleDesc(natts)
     bzero((Pointer)desc, size);
 
     return (desc);
-}
-
-/* ----------------------------------------------------------------
- *	TupleDescHandleArray
- *
- *  If the type in typname is in the form <name>[len] or <name>[],
- *  it is an array.  TupleDescHandleArray gets len and returns it in
- *  arraydim, and handles the renaming of types.
- * ----------------------------------------------------------------
- */
-void
-TupleDescHandleArray(arraydim, typename)
-    int *arraydim;
-    char *typename;
-{
-    char *p, *q, *index();
-    char true_name[16];
-
-    if ((p = index(typename, '[')) != NULL) {
-    	*p = '\0';  /* get rid of '[' */
-    	p++;	    /* get past null */
-
-    	while (!isdigit(*p) && *p != ']')
-	    p++;
-
-    	if (*p == ']') /* att is a variable length array */
-    	{
-    	    *arraydim = -1;
-    	}
-    	else	/* fixed length array */
-    	{
-    	    q = index(p, ']');
-    	    if (q == NULL)
-    	    	elog(WARN, "TupleDescHandleArray: bad array declaration");
-    	    *q = '\0';
-    	    *arraydim = atoi(p);
-    	}
-
-	/*
-	 * the type of an array is proceeded by an underscore "_".  That is,
-	 * int4[4] is turned into _int4 with attarraysize equal to 4.
-	 *
-	 * We have to make sure we are not going to run off the end of the
-	 * char16 array here.
-	 */
-
-	if (strlen(typename) > 15) 
-	    elog(WARN, "TupleDescHandleArray: type name too long");
-
-	sprintf(true_name, "_%s", typename);
-	strcpy(typename, true_name);
-    }
-    else
-    {
-	*arraydim = 0;
-    }
 }
 
 /* ----------------------------------------------------------------
@@ -281,6 +227,7 @@ BuildDesc(schema)
     TupleDesc		desc;
     Name 		attname;
     Name 		typename;
+    Array		arry;
     int			attdim;
     
     /* ----------------
@@ -304,8 +251,26 @@ BuildDesc(schema)
 	entry = 	CAR(p);
 	attname = 	(Name) CString(CAR(entry));
 	typename = 	(Name) CString(CADR(entry));
+	arry =		(Array) CDR(CDR(entry));
 
-	TupleDescHandleArray(&attdim, typename);
+	/*
+	 *  Support for arrays is extremely limited in the current
+	 *  release.  We'd like to be able to have lower bounds
+	 *  other than 1, for example, but we don't, at present.
+	 *  The only interesting number in the Array node to us
+	 *  in the current implementation is the upper bound, which
+	 *  we treat as the array dimension.
+	 */
+
+	if (arry != (Array) NULL) {
+	    char buf[20];
+
+	    attdim = get_arrayhigh(arry);
+
+	    /* array of XXX is _XXX (inherited from release 3) */
+	    sprintf(buf, "_%s", typename);
+	    strcpy(typename, buf);
+	}
 
 	if (!TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
 	    /* ----------------
@@ -346,6 +311,7 @@ BuildDescForRelation(schema, relname)
     AttributeNumber	attnum;
     List		p;
     List		entry;
+    Array		arry;
     TupleDesc		desc;
     Name 		attname;
     Name 		typename;
@@ -373,9 +339,27 @@ BuildDescForRelation(schema, relname)
 	
 	entry = 	CAR(p);
 	attname = 	(Name) CString(CAR(entry));
-	typename = 	(Name) CString(CADR(entry));
+	typename = 	(Name) CString(CAR(CADR(entry)));
+	arry =		(Array) CDR(CADR(entry));
 
-	TupleDescHandleArray(&attdim, typename);
+	/*
+	 *  Support for arrays is extremely limited in the current
+	 *  release.  We'd like to be able to have lower bounds
+	 *  other than 1, for example, but we don't, at present.
+	 *  The only interesting number in the Array node to us
+	 *  in the current implementation is the upper bound, which
+	 *  we treat as the array dimension.
+	 */
+
+	if (arry != (Array) NULL) {
+	    char buf[20];
+
+	    attdim = get_arrayhigh(arry);
+
+	    /* array of XXX is _XXX (inherited from release 3) */
+	    sprintf(buf, "_%s", typename);
+	    strcpy(typename, buf);
+	}
 
 	if (! TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
 	    /* ----------------

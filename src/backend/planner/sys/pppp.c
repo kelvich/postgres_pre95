@@ -469,22 +469,6 @@ print_var(var)
 	} else {
 		printf ("%d %d", get_varno((Var)var), get_varattno((Var)var));
 	}
-
-	/* XXX foreach */
-	/*
-	 *  foreach (dot, get_vardotfields (var)) {
-	 * 	printf (" ", dot);
-	 * };
-	 */
-
-	/* XXX - is this what we want? */
-/* 	if (get_vararraylist(var) != NULL) {
-		List elem;
-	 	foreach (elem, get_vararraylist (var)) { 
-	 		printf ("(%d)", elem->arraylow); 
-	 	};
-	};
-*/
 	printf (")");
 }
 

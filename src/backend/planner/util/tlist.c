@@ -50,10 +50,8 @@ static TLE flatten_tlistentry();
 /*    
  *    	tlistentry-member
  *    
- * NOTES:    normally called with test = (*var_equal)()
- *
  * RETURNS:  the leftmost member of sequence "targetlist" that satisfies
- *           the predicate "test"
+ *           the predicate "var_equal"
  * MODIFIES: nothing
  * REQUIRES: test = function which can operate on a lispval union
  *           var = valid var-node
@@ -70,8 +68,7 @@ tlistentry_member (var,targetlist)
 	LispValue temp = LispNil;
 	foreach (temp,targetlist) {
 	    if ( var_equal((LispValue)var,
-		 (LispValue)get_expr(get_entry(CAR(temp))),
-		 false))
+		 (LispValue)get_expr(get_entry(CAR(temp)))))
 	      return(CAR(temp));
 	}
     }
@@ -81,7 +78,6 @@ tlistentry_member (var,targetlist)
 /*    
  * matching_tlvar
  *    
- * NOTES:    "test" should normally be var_equal()
  * RETURNS:  var node in a target list which is var_equal to 'var',
  *    	     if one exists.
  * REQUIRES: "test" operates on lispval unions,
@@ -138,8 +134,7 @@ add_tl_element (rel,var,joinlist)
 	LispValue tlist = get_targetlist(rel);
 	Var newvar = MakeVar (get_varno (var),
 			      get_varattno (var),
-			      get_vartype (var),LispNil,
-				  get_vararraylist(var),
+			      get_vartype (var),
 			      get_varid (var),0);
 
 	set_targetlist (rel,nappend1 (tlist,
@@ -254,8 +249,7 @@ tlist_member (var,tlist)
 	foreach (i,tlist) {
 	    temp_tle = (TLE)CAR(i);
 	    if (var_equal((LispValue)var,
-			  (LispValue)get_expr(temp_tle),
-			  false)) {
+			  (LispValue)get_expr(temp_tle))) {
 		tl_elt = temp_tle;
 		break;
 	    }
@@ -331,12 +325,8 @@ match_varid (test_var,tlist)
 	entry = CAR(i);
 	if (equal((Node)get_varid(get_expr(entry)), (Node)test_varid))
 	{
-	    if ((get_vartype(get_expr(entry)) == type_var) &&
-			(equal( (Node)get_vararraylist(get_expr(entry)),
-				(Node)get_vararraylist(test_var))))
-	    {
+	    if (get_vartype(get_expr(entry)) == type_var)
 	    	return(entry);
-	    }
 	}
     }
     return (LispNil);

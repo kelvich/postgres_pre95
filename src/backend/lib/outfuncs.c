@@ -647,23 +647,9 @@ _outVar(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :vartype %ld", node->vartype);
 	appendStringInfo(str,buf);
-
-	/* GK: This screws up parsing and is not necessary
-	sprintf(buf, " :vardotfields (");
-	appendStringInfo(str,buf);
-	_outLispValue(str, node->vardotfields);
-	sprintf(buf, ")");
-	appendStringInfo(str,buf);
-	 */
-
-	sprintf(buf, " :vardotfields ");
-	appendStringInfo(str,buf);
-	_outLispValue(str, node->vardotfields);
-	sprintf(buf, " :vararraylist "); 
-	appendStringInfo(str,buf);
-	_outLispValue(str, node->vararraylist);
 	sprintf(buf, " :varid ");
 	appendStringInfo(str,buf);
+
 	_outLispValue(str, node->varid);
 }
 
@@ -723,6 +709,34 @@ _outArray(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :arraylen %d", node->arraylen);
 	appendStringInfo(str, buf);
+}
+
+/*
+ *  ArrayRef is a subclass of Expr
+ */
+
+void
+_outArrayRef(str, node)
+	StringInfo str;
+	ArrayRef node;
+{
+	char *s;
+	char buf[500];
+
+	sprintf(buf, "arrayref");
+	appendStringInfo(str, buf);
+	sprintf(buf, " :refelemtype %d", node->refelemtype);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :refelemlength %d", node->refelemlength);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :refelembyval %c", (node->refelembyval) ? 't' : 'f');
+	appendStringInfo(str, buf);
+	sprintf(buf, " :refindex %d", node->refindex);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :refexpr ");
+	appendStringInfo(str, buf);
+	s = lispOut(node->refexpr);
+	appendStringInfo(str, s);
 }
 
 /*

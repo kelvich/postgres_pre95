@@ -105,8 +105,6 @@ TupleDescriptor innerTupleDesc;
 	    (Index) 0,		/* varno */
 	    innerAttrNo,	/* varattno */
 	    type,		/* vartype */
-	    LispNil,		/* vardotfields */
-	    LispNil,		/* vararraylist */
 	    varid,		/* varid */
 	    InvalidObjectId);	/* varelemtype */
     opr = MakeOper(

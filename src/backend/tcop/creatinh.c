@@ -218,9 +218,8 @@ DefineRelation(relname, parameters, schema)
 	    break;
 
 	default:
-	    elog(NOTICE, "Botched archive mode %d, ignoring",
+	    elog(WARN, "Botched archive mode %d, ignoring",
 		 LISPVALUE_INTEGER(CDR(arch)));
-	    archChar = 'n';
 	    break;
 	}
     }
@@ -234,7 +233,7 @@ DefineRelation(relname, parameters, schema)
 	heaploc = LISPVALUE_INTEGER(CDR(CAR(locargs)));
 
     /*
-     *  For now, any user-defined relation is hardwired to use the magnetic
+     *  For now, any user-defined relation defaults to the magnetic
      *  disk storgage manager.  --mao 2 july 91
      */
 

@@ -54,6 +54,7 @@ extern LispValue make_targetlist_expr();
 extern List MakeList();
 extern List FlattenRelationList();
 extern List ParseAgg();
+extern LispValue make_array_ref();
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
@@ -297,17 +298,7 @@ copy_type:
 	| BINARY				{ $$ = KW(binary); }
 	;
 
- /************************************************************
-	Create a relation:
-
-	QUERY :
-		create version <rel1> from <rel2>
-	TREE :
-		( CREATENEW <rel1> <rel2> )
-	QUERY :
-		create <relname> ( 
-  ************************************************************/
-
+/* create a relation */
 CreateStmt:
 	  CREATE relation_name '(' opt_var_defs ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
@@ -328,10 +319,11 @@ CreateStmt:
 		     
 		     $$ = nappend1 ( $$, $6 );
 		     temp = $$;
-		     while (temp != LispNil && CDR(temp) != LispNil) 
+
+		     while (CDR(temp) != LispNil) 
 		       temp = CDR(temp);
+
 		     CDR(temp) = $4;
-		     /* $$ = nappend1 ( $$, $4 ); */
 		}
 	| CREATE OptDeltaDirn NEWVERSION relation_name FROM 
           relation_name_version
@@ -341,10 +333,7 @@ CreateStmt:
 	;
 relation_name_version:
 	  relation_name
-	| relation_name '[' date ']'
-	  {
-             $$ = MakeList( $1, $3, -1);
-	  }
+	| relation_name '[' date ']'	{ $$ = MakeList( $1, $3, -1); }
 	;
 
 OptDeltaDirn:
@@ -1623,55 +1612,32 @@ record_qual:
 		{ NULLTREE }
 	;
 
-
- /* 
-  * (tuple) variable definition(s)
-  * normal tuple vars are defined as '(name type)
-  * array tuple vars are defined as '(name type size)
-  * if size = VARLENGTH = -1, then the array is of variable length
-  * otherwise, the size is an integer from 1 to MAXINT 
-  */
+/*
+ *  Array bounds -- support for arrays in the current system is poor.
+ *  We'd like to support multi-dimensional arrays, arrays with lower
+ *  bounds at values other than 1, ..., but we don't.  The only thing
+ *  that's real in the Array nodes we return below is arrayhigh,
+ *  which is the upper bound of the array.
+ */
 
 opt_array_bounds:
   	  '[' ']'
 		{ 
-#ifdef REAL_ARRAYS		    
-		    $$ = lispCons (lispInteger(-1),LispNil);
-#else
-		    $$ = (LispValue)"[]";
-#endif
+		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
+						-1, /* -1 means var length */
+				    0);
 		}
 	| '[' Iconst ']'
 		{
-		    /* someday, multidimensional arrays will work */
-#ifdef REAL_ARRAYS
-		    $$ = lispCons ($2, LispNil);
-#else
-		    char *bogus = (char *) palloc(20);
-		    int retval;
-		    retval = (int) sprintf (bogus, "[%d]", CInteger($2));
-		    $$ = (LispValue)bogus;
-#endif
+		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
+						LISPVALUE_INTEGER($2),
+				    		0);
 		}
-	| /* EMPTY */
-		{ NULLTREE }
+	| /* EMPTY */				{ NULLTREE }
 	;
 
 Typename:
-  	  name opt_array_bounds
-		{ 
-#ifdef REAL_ARRAYS
-		    $$ = lispCons($1,$2);
-#else
-		    char *bogus = (char *) palloc(40);
-		    int retval;
-		    if ($2 != (LispValue)NULL) {
-		      retval = (int) sprintf(bogus,"%s%s", CString($1), $2);
-		      $$ = lispString(bogus);
-		    } else
-		      $$ = $1;
-#endif
-		}
+  	  name opt_array_bounds			{ $$ = lispCons($1,$2); }
 	;
 
 var_def: 	
@@ -1700,19 +1666,17 @@ agg_where_clause:
   */
 
 a_expr:
-	  attr
+	  attr opt_indirection
            {
-	       List temp = NULL;
-	       temp = HandleNestedDots($1);
-	       $$ = (LispValue)temp;
+		List temp;
+
+		temp = HandleNestedDots($1);
+		if ($2 == LispNil)
+		    $$ = temp;
+		else
+		    $$ = make_array_ref(temp, LISPVALUE_INTEGER($2));
 	   }
 	| AexprConst		
-	| attr optional_indirection
-		{ 
-		     $$ = (List)make_array_ref_var ( CString(CAR($1)),
-						    CString(CADR($1)),
-						    $2);
-		}
 	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
 		  { $$ = make_op(lispString("-"), LispNil, $2, 'l');
@@ -1781,14 +1745,14 @@ a_expr:
 
 	;
 
-optional_indirection:
-	  '[' Iconst ']'
-		{ $$ = lispCons($2, LispNil);}
-	|  optional_indirection '[' Iconst ']'
-		{ $$ = nappend1($1, $3);}
+/* we support only single-dim arrays in the current system */
+opt_indirection:
+	  '[' Iconst ']'		{ $$ = $2;}
+	| /* EMPTY */			{ NULLTREE }
+	;
 
 expr_list:
-	|  a_expr				{ ELEMENT ; }
+	|  a_expr			{ ELEMENT ; }
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:
@@ -1914,13 +1878,16 @@ res_target_el:
 	  {
 		$$ = make_targetlist_expr ($1,$3);
 	   } 
-	| attr
+	| attr opt_indirection
              {
 		 LispValue varnode, temp;
 		 Resdom resnode;
 		 int type_id, type_len;
 
 		 temp = HandleNestedDots($1);
+
+		 if ($2 != LispNil)
+		     temp = make_array_ref(temp, LISPVALUE_INTEGER($2));
 
 		 type_id = CInteger(CAR(temp));
 		 type_len = tlen(get_id_type(type_id));
@@ -1930,43 +1897,8 @@ res_target_el:
 					(Index)0 , (OperatorTupleForm)0,
 					0 );
 		 varnode = CDR(temp);
-		 /* Obsolete, I think.  -- JMH  ??? 
-		 if ( IsA(varnode,Var))
-		 {
-		   set_vardotfields ( (Var)varnode , CDR(CDR($1)));
-		 }
-		 else if ( CDR(CDR($1)) != LispNil )
-		   elog(WARN,"cannot mix procedures with unions");
-                 */
-		  $$=lispCons((LispValue)resnode, lispCons(varnode,LispNil));
+		 $$=lispCons((LispValue)resnode, lispCons(varnode,LispNil));
 	    }
-	| attr optional_indirection
-		{
-		      LispValue varnode, temp;
-		      Resdom resnode;
-		      int type_id, type_len;
-
-		      temp = (LispValue) make_array_ref_var ( CString(CAR($1)),
-							      CString(CADR($1)),
-							      $2);
-		      type_id = CInteger(CAR(temp));
-		      type_len = tlen(get_id_type(type_id));
-		      resnode = MakeResdom ( p_last_resno++ ,
-						type_id, type_len, 
-						(Name)CString(CAR(last ($1) ))
-					    , 0 , 0 , 0 );
-		      varnode = CDR(temp);
-		      /* Obsolete, I think.  -- JMH  ??? 
-		      if ( IsA(varnode,Var))
-		      {
-			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
-		      }
-		      else if ( CDR(CDR($1)) != LispNil )
-			elog(WARN,"cannot mix procedures with unions");
-		      */
-
-		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
-		}
 	;		 
 
 opt_id:

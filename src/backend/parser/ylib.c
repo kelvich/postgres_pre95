@@ -382,7 +382,6 @@ ParseFunc ( funcname , fargs )
     List first_arg_type = NULL;
     Name relname, oldname;
     extern List p_rtable;
-    extern Var make_relation_var();
     Relation rd;
     ObjectId relid;
     int attnum;
@@ -410,9 +409,6 @@ ParseFunc ( funcname , fargs )
      {
 	 if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
 	  {
-	      /* arg is a relation, so set NumLevels */
-	      if (NumLevels < 1 ) NumLevels = 1;
-
 	      /* this is could be a projection */
 	      relname = (Name) CString(CDR(CAR(fargs)));
 	      if( RangeTablePosn ( relname ,LispNil ) == 0 )
@@ -465,13 +461,10 @@ ParseFunc ( funcname , fargs )
 	      else		/* drop through */;
 	  }
 	 else if (complexType(first_arg_type) &&
-		  IsA(CDR(CAR(fargs)),Param))
+		  IsA(CADR(CAR(fargs)),Param))
 	  {
-	      /* arg is a relation, so set NumLevels */
-	      if (NumLevels < 1 ) NumLevels = 1;
-
 	      /* If the Param is a complex type, this could be a projection */
-	      f = (Param)CDR(CAR(fargs));
+	      f = (Param)CADR(CAR(fargs));
 	      rd = heap_openr(tname(get_id_type(get_paramtype(f))));
 	      if (RelationIsValid(rd)) 
 	       {
@@ -518,25 +511,20 @@ ParseFunc ( funcname , fargs )
 	 
 	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
-	      /* get the range table entry for the var node */
+	      toid = typeid(type(CString(CDR(pair))));
+
 	      relname = (Name)CString(CDR(pair));
+	      rd = heap_openr(relname);
+	      relid = RelationGetRelationId(rd);
+	      heap_close(rd);
+
+	      /* get the range table entry for the var node */
 	      vnum = RangeTablePosn(relname, 0);
 	      if (vnum == 0) {
 		  p_rtable = nappend1(p_rtable ,
 				      MakeRangeTableEntry(relname, 0, relname));
 		  vnum = RangeTablePosn (relname, 0);
 	      }
-
-	      relname = VarnoGetRelname(RangeTablePosn(relname));
-	      toid = typeid(type(relname));
-
-	      if(complexType(lispInteger(toid)))
-		/* arg is a relation, so set NumLevels */
-		if (NumLevels < 1 ) NumLevels = 1;
-
-	      rd = heap_openr(relname);
-	      relid = RelationGetRelationId(rd);
-	      heap_close(rd);
 
 	      /*
 	       *  for func(relname), the param to the function
@@ -548,18 +536,12 @@ ParseFunc ( funcname , fargs )
 
 	      CAR(i) = (LispValue)
 		MakeVar(vnum, 0, relid,
-			LispNil /* vardotfields */,
-			LispNil /* vararraylist */,
 			lispCons(lispInteger(vnum),
 				 lispCons(lispInteger(0),LispNil)),
 			0 /* varslot */);
 	  }
 	 else
 	  {
-	      if (IsA(CDR(pair),Param) && complexType(CAR(pair)))
-		/* arg is a relation, so set NumLevels */
-		if (NumLevels < 1 ) NumLevels = 1;
-
 	      toid = CInteger(CAR(pair));
 	      CAR(i) = CDR(pair);
 	  }
@@ -757,37 +739,6 @@ MakeFromClause ( from_list, base_rel )
     return ( entry );
 }
 
-Var make_relation_var(relname)
-
-char *relname;
-
-{
-    Var varnode;
-    int vnum, attid = 1, vartype;
-    LispValue vardotfields;
-    extern LispValue p_rtable;
-    extern int p_last_resno;
-    Index vararrayindex = 0;
-    
-    vnum = RangeTablePosn ( relname,0) ;
-    if (vnum == 0) {
-	p_rtable = nappend1 (p_rtable ,
-			     MakeRangeTableEntry ( (Name)relname , 0 , (Name)relname) );
-		vnum = RangeTablePosn (relname,0);
-    }
-
-    vartype = RELATION;
-    vardotfields = LispNil;                          /* XXX - fix this */
-    
-    varnode = MakeVar ((Index)vnum , (AttributeNumber)attid ,
-		       (ObjectId)vartype , (List)vardotfields , (List)vararrayindex ,
-		       (List)lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)),
-		       (Pointer)0 );
-    
-    return ( varnode );
-}
-
 int is_postquel_func(parameters)
      List parameters;
 {
@@ -872,9 +823,9 @@ LispValue HandleNestedDots(dots)
     if (IsA(CAR(dots),Param))
       retval = 
 	ParseFunc(CString(CADR(dots)),
-		  lispCons(lispCons
+		  lispCons(MakeList
 			   (lispInteger(get_paramtype((Param)CAR(dots))),
-			    CAR(dots)),
+			    CAR(dots), -1),
 			   LispNil));
     else
       retval = ParseFunc(CString(CADR(dots)), 
@@ -912,8 +863,6 @@ LispValue setup_tlist(attname, relid)
 			 NULL	/* reskeyop */,
 			 0	/* resjunk  */);
     varnode = MakeVar(-1, attno, typeid,
-		      LispNil	/* vardotfields */,
-		      LispNil	/* vararraylist */,
 		      lispCons(lispInteger(-1),
 			       lispCons(lispInteger(attno),LispNil)),
 		      0		/* varslot */);

@@ -49,228 +49,6 @@
  *     
  */
 
-/*    
- *    	new-level-tlist
- *    
- *    	Creates a new target list for a new nesting level by removing those
- *    	var nodes that no longer have any dot fields and modifying those
- *    	that do to reflect the new level of processing.
- *    
- *    	'tlist' is the old target list
- *    	'prevtlist' is the target list from the previous nesting level
- *    	'prevlevel' is the previous nesting level
- *    
- *    	Returns the modified target list.
- *    
- */
-
-/*  .. query_planner    */
-
-LispValue
-new_level_tlist (tlist,prevtlist,prevlevel)
-     LispValue tlist,prevtlist;
-     int prevlevel ;
-{
-    LispValue new_tlist = LispNil;
-    int last_resdomno = 0;
-    LispValue xtl = LispNil;
-    TLE entry = (TLE)NULL;
-    
-    foreach (xtl, tlist) {
-	entry = CAR(xtl);
-	if ( var_is_nested (get_expr (entry))) {
-	    push (MakeTLE (MakeResdom (++last_resdomno,
-					  _UNION_TYPE_ID_,
-				       0,
-					  (Name)NULL,
-				       0,
-				       (OperatorTupleForm)NULL, 0),
-			   replace_nestvar_refs ((Var)get_expr (entry),
-						 prevtlist,
-						 prevlevel)),
-		  new_tlist);
-	}
-    }
-    return(nreverse(new_tlist));
-    
-}  /* function end  */
-
-/*    
- *    	new-level-qual
- *    
- *    	Creates new qualifications for a new nesting level by removing
- *    	those qualifications that no longer need to be considered.  A
- *    	qualification need not be considered any further if all vars within
- *    	a clause no longer have dot fields.  This indicates that the 
- *    	qualification has been considered at some previous nesting level.
- *    	Vars in qualifications that still need to be considered are modified
- *    	to reflect a new nesting level.
- *    
- *    	'quals' is the old list of qualifications
- *    	'prevtlist' is the target list from the previous nesting level
- *    	'prevlevel' is the previous nesting level
- *    
- *    	Returns the new qualification.
- *    
- */
-
-/*  .. query_planner	 */
-
-LispValue
-new_level_qual (quals,prevtlist,prevlevel)
-     LispValue quals,prevtlist;
-     int prevlevel ;
-{
-     LispValue temp = LispNil;
-     LispValue t_list = LispNil;
-     LispValue qual = LispNil;
-
-     foreach(qual,collect(nested_clause_p, quals)) {
-	  temp = replace_clause_nestvar_refs ( CAR(qual),prevtlist,prevlevel);
-	  t_list = nappend1(t_list,temp);
-     }
-     return(t_list);
-
-}  /* function end  */
-
-
-/*    
- *    	replace-clause-nestvar-refs
- *    	replace-subclause-nestvar-refs
- *    	replace-nestvar-refs
- *    
- *    	Modifies a qualification clause by modifying every variable to reflect
- *    	a new nesting level.  This is done by setting the varno to a reference
- *    	pair that indicates which attribute from the tuple at the previous
- *    	nesting level corresponds to the varno/varattno of this var node.
- *    	This reference pair looks like:
- *    			(levelnum resno)
- *    	where 'levelnum' is the number of the previous nesting level and
- *    	'resno' is the result domain number corresponding to the desired
- *    	attribute in the target list from the previous nesting level.
- *    	varattno is set to the car of dotfields and dotfields is set to the
- *    	cdr.  If a var is already a reference var with no further dotfields to
- *    	be considered, the old var is returned.
- *    
- *    	'clause' is the clause to be modified
- *    	'prevtlist' is the target list from the previous nesting level
- *    	'prevlevel' is the previous nesting level
- *    
- *    	Returns the new clause.
- *    
- */
-
-/*  .. new-level-qual, replace-clause-nestvar-refs
- *  .. replace-subclause-nestvar-refs
- */
-LispValue
-replace_clause_nestvar_refs (clause,prevtlist,prevlevel)
-     LispValue clause,prevtlist;
-     int prevlevel ;
-{
-     if(IsA (clause,Var))
-       return((LispValue)replace_nestvar_refs((Var)clause,prevtlist,prevlevel));
-     else 
-       if (single_node ((Node)clause)) 
-	 return(clause);
-       else 
-	 if (or_clause (clause)) 
-	   return (make_orclause (replace_subclause_nestvar_refs 
-				  (get_orclauseargs (clause),
-				   prevtlist,prevlevel)));
-	 else 
-	   if (is_funcclause (clause)) 
-	     return (make_funcclause (get_function (clause),
-				      replace_subclause_nestvar_refs 
-				      (get_funcargs (clause),
-				       prevtlist,prevlevel)));
-	   else 
-	     if (not_clause (clause)) 
-	       return (make_notclause (replace_clause_nestvar_refs 
-				       (get_notclausearg (clause),
-					prevtlist,prevlevel)));
-		else
-		  return(make_opclause((Oper)get_op (clause),
-					(Var)replace_clause_nestvar_refs 
-					((LispValue)get_leftop(clause),
-					 prevtlist,
-					 prevlevel),
-					(Var)replace_clause_nestvar_refs 
-					((LispValue)get_rightop(clause),
-					 prevtlist,
-					 prevlevel)));
-}  /* function end  */
-
-
-/*  .. replace-clause-nestvar-refs	 */
-
-LispValue
-replace_subclause_nestvar_refs (clauses,prevtlist,prevlevel)
-     LispValue clauses,prevtlist;
-     int prevlevel ;
-{
-     LispValue t_list = LispNil;
-     LispValue clause = LispNil;
-     LispValue temp = LispNil;
-
-     foreach(clause,clauses) {
-	  temp = replace_clause_nestvar_refs (CAR(clause),prevtlist,prevlevel);
-	  t_list = nappend1(t_list,temp);
-     }
-     return(t_list);
-
-}  /* function end  */
-
-
-/*  .. new-level-tlist, replace-clause-nestvar-refs   	 */
-
-Var
-replace_nestvar_refs (var,prevtlist,prevlevel)
-     Var var;
-     List prevtlist;
-     int prevlevel ;
-{
-    ObjectId var1 = -1;
-    List var2 = LispNil;
-
-    if((get_varattno(var) == 0) && ! (var_is_nested (var))) {
-	return (var);
-    } else {
-	/*    Nested vars are of UNION (unknown) type. */
-	if (var_is_nested (var)) 
-	  var1 = _UNION_TYPE_ID_;
-	else
-	  var1 = get_vartype(var);
-	
-	if (consider_vararrayindex (var))
-	  var2 = varid_array_index(var);
-	else
-	  var2 = get_varid(var);
-
-/* XXX This MakeVar call is bogus - it only has one argument!!
-   but I am not going to try to figure out what to do here!  -- Wei
-
-	return ((Var)MakeVar (lispCons (lispInteger(prevlevel - 1),
-					lispCons (get_resno 
-					 (tlist_member (var, 
-							prevtlist,
-							LispNil)),
-					 lispCons(CAR (get_vardotfields (var)),
-						  lispCons(var1,
-							   lispCons 
-							    (CDR
-							     (get_vardotfields 
-							      (var)),
-							     lispCons(var2,
-								      LispNil))
-							   )))),0)); 
-*/
-       return NULL;
-
-      }
-    
-}  /* function end  */
-
 /*     
  *     	RESULT REFERENCES
  *     
@@ -486,11 +264,9 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
 					  (match_varid (var, rtlist))),
 				   LispNil));
      
-     return (MakeVar ((Index)varno,  /* XXX casting a list to an int */
+     return (MakeVar ((Index)varno,
 		      0,
 		      get_vartype (var),
-		      LispNil,
-		      LispNil,
 		      get_varid (var), (Pointer)NULL));
      
  } /* function end */
@@ -851,8 +627,6 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 	 return (MakeVar (OUTER,
 			  get_resno (outer_resdom),
 			  get_vartype (var),
-			  LispNil,
-			  LispNil,
 			  get_varid (var),
 			  0));
      } 
@@ -863,8 +637,6 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 	    return (MakeVar (INNER,
 			     get_resno (inner_resdom),
 			     get_vartype (var),
-			     LispNil,
-			     LispNil,
 			     get_varid (var),
 				 0));
 	 } 
@@ -913,8 +685,6 @@ tlist_temp_references (tempid,tlist)
 			      MakeVar(tempid,
 				      get_resno((Resdom)tl_resdom (xtl)),
 				  get_restype ((Resdom)tl_resdom (xtl)),
-				      LispNil,
-				      LispNil,
 				      var1,
 					  0));
 	 
@@ -1007,7 +777,6 @@ List subplanTargetList;		/* target list of the subplan */
 	 */
 	set_varno((Var)clause,(Index) OUTER);
 	set_varattno((Var)clause, get_resno((Resdom)tl_resdom(subplanVar)));
-	set_vardotfields((Var)clause,LispNil);
     } else if (is_funcclause(clause)) {
 	/*
 	 * This is a function. Recursively call this routine
