@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <signal.h>
 
 #include "libpq/auth.h"
@@ -455,6 +456,7 @@ pq_getinserv(sin, host, serv)
 	pq_getinaddr(sin, host, ntohs(ss->s_port));
 }
 
+#ifdef FRONTEND
 /* ----------------------------------------
  * pq_connect  -- initiate a communication link between client and
  *	POSTGRES backend via postmaster.
@@ -535,7 +537,7 @@ short	portName;
 		      sizeof(startup), BLOCKING);
 
   /* authenticate as required */
-  if (pg_sendauth(msgtype, SendPort, hostName) != STATUS_OK) {
+  if (fe_sendauth(msgtype, SendPort, hostName) != STATUS_OK) {
 	  strcpy(PQerrormsg, "pq_connect: authentication failed\n");
 	  fprintf(stderr, PQerrormsg);
 	  return(STATUS_ERROR);
@@ -560,6 +562,7 @@ short	portName;
 
   return(STATUS_OK);
 }
+#endif /* FRONTEND */
 
 /* --------------------------------
  *	pq_accept - accept remote input / output connection
