@@ -369,8 +369,6 @@ DATA(insert OID = 743 (  text_ge           6 11 f t f 2  16 foo bar ));
 
 DATA(insert OID = 750 (  array_in          6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 751 (  array_out         6 11 f t f 2  23 foo bar ));
-DATA(insert OID = 752 (  string_in         6 11 f t f 2  23 foo bar ));
-DATA(insert OID = 753 (  string_out        6 11 f t f 2  23 foo bar ));
 
 /* ----------------
  *	old definition of struct proc
