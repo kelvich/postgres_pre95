@@ -112,8 +112,8 @@ SendFunctionResult ( fid, retval, rettype )
 
       default:
 	pq_putnchar("G",1);
-	pq_putint(VARSIZE(retval),4);
-	pq_putnchar(retval+4, VARSIZE(retval));
+	pq_putint(VARSIZE(retval)-4,4);
+	pq_putnchar(retval+4, VARSIZE(retval)-4);
     }
     pq_putnchar("0", 1);
     pq_flush();
@@ -211,9 +211,9 @@ HandleFunctionRequest()
 	} else if (arg_length[i] > 4)  {
 	    char *vl;
 /*	    elog(WARN,"arg_length of %dth argument too long",i);*/
-	    vl = palloc(arg_length[i]+4);
+	    vl = palloc(arg_length[i]);
 	    palloced |= (1 << i);
-	    VARSIZE(vl) = arg_length[i];
+	    VARSIZE(vl) = arg_length[i]+4;
 	    pq_getnchar(VARDATA(vl),0,arg_length[i]);
 	    arg[i] = (int)vl;
 	} else {
