@@ -921,8 +921,12 @@ extern String form();
  */
 
 #if defined(PORTNAME_hpux) 
-#include "port/hpux/fixade.h"	/* for 8.07 unaligned access fixup */
+#include "port/hpux/fixade.h"		/* for 8.07 unaligned access fixup */
 #endif /* PORTNAME_hpux */
+
+#if defined(PORTNAME_sparc_solaris) 
+#include "port/sparc_solaris/strings.h"	/* b{copy,zero,cmp} is pervasive */
+#endif /* PORTNAME_sparc_solaris */
 
 /* ----------------
  *	end of c.h
