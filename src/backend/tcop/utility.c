@@ -39,6 +39,8 @@
 
 #include "nodes/pg_lisp.h"
 
+#include "tmp/globals.h"
+
 /* ----------------
  *	CHECK_IF_ABORTED() is used to avoid doing unnecessary
  *	processing within an aborted transaction block.
@@ -231,6 +233,8 @@ ProcessUtility(command, args, commandString, dest)
 	     * discard '(FROM/TO "filename")
 	     */
 	    args = CDR(args);
+
+		if (pipe && IsUnderPostmaster) dest = CopyEnd;
 
 		DoCopy(relationName, isBinary, isFrom, pipe, fileName);
 	}

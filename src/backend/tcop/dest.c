@@ -100,10 +100,40 @@ EndCommand(commandTag, dest)
 
     case Local:
     case Debug:
+    case CopyEnd:
+    pq_putnchar("Z", 1);
+	pq_flush();
+	break;
     case None:
     default:
 	break;
     }
+}
+
+/*
+ * These are necessary to sync communications between fe/be processes doing
+ * COPY rel TO stdout
+ * 
+ * or 
+ *
+ * COPY rel FROM stdin
+ *
+ */
+
+void
+SendCopyBegin()
+{
+	pq_putnchar("B", 1);
+	pq_putint(0, 4);
+	pq_flush();
+}
+
+void
+ReceiveCopyBegin()
+{
+	pq_putnchar("D", 1);
+	pq_putint(0, 4);
+	pq_flush();
 }
 
 /* ----------------
