@@ -20,6 +20,7 @@
  *
  * prs2FreeLocks
  *
+ *-----------------------------------------------------------------------
  */
 void
 prs2FreeLocks(lock)
@@ -51,6 +52,7 @@ RuleLock lock;
  *
  * Create an empty prs2 locks, i.e. return a pointer to a 'Prs2LocksData'
  * with numberOfLocks = 0;
+ *-----------------------------------------------------------------------
  */
 RuleLock
 prs2MakeLocks()
@@ -75,6 +77,7 @@ prs2MakeLocks()
  * Add a new lock (filled in with the given data) to a 'prs2Locks'
  * Note that this frees the space occupied by 'prs2Locks' and reallocates
  * some other. So this routine should be used with caution!
+ *-----------------------------------------------------------------------
  */
 RuleLock
 prs2AddLock(oldLocks, ruleId, lockType, attributeNumber, planNumber)
@@ -131,6 +134,7 @@ Prs2PlanNumber	planNumber;
  *
  * Given a 'RuleLock' return a pointer to its Nth lock..
  * (the first locks is lock number 0).
+ *-----------------------------------------------------------------------
  */
 Prs2OneLock
 prs2GetOneLockFromLocks(lock, n)
@@ -192,6 +196,7 @@ TupleDescriptor tupleDescriptor;
  *
  * NOTE: the old locks are pfreed!!!!!!
  *
+ *-----------------------------------------------------------------------
  */
 
 void
@@ -213,6 +218,7 @@ RuleLock   newLocks;
  * prs2PrintLocks
  *
  * print the prs2 locks in stdout. Used for debugging...
+ *-----------------------------------------------------------------------
  */
 
 void
@@ -250,6 +256,7 @@ RuleLock   locks;
  * prs2CopyLocks
  *
  * Make a copy of a prs2 lock..
+ *-----------------------------------------------------------------------
  */
 RuleLock
 prs2CopyLocks(locks)
@@ -282,6 +289,7 @@ RuleLock locks;
  * This is a routine that removes one lock form a 'RuleLock'.
  * Note that the removal is done in place, i.e. no copy of the
  * original locks is made
+ *-----------------------------------------------------------------------
  */
 void
 prs2RemoveOneLockInPlace(locks, n)
@@ -301,19 +309,56 @@ int n;
 	n, locks->numberOfLocks);
     }
 
-    for (i=n+1; i<locks->numberOfLocks; i++) {
-	lock1 = prs2GetOneLockFromLocks(locks, i-1);
-	lock2 = prs2GetOneLockFromLocks(locks, i);
-	prs2OneLockSetRuleId(lock1, prs2OneLockGetRuleId(lock2));
-	prs2OneLockSetLockType(lock1, prs2OneLockGetLockType(lock2));
-	prs2OneLockSetAttributeNumber(lock1,
-		prs2OneLockGetAttributeNumber(lock2));
-	prs2OneLockSetPlanNumber(lock1, prs2OneLockGetPlanNumber(lock2));
-    }
+    /*
+     * Copy the last lock to the lock to be deleted
+     */
+    lock1 = prs2GetOneLockFromLocks(locks, n);
+    lock2 = prs2GetOneLockFromLocks(locks, prs2GetNumberOfLocks(locks)-1);
 
+    prs2OneLockSetRuleId(lock1, prs2OneLockGetRuleId(lock2));
+    prs2OneLockSetLockType(lock1, prs2OneLockGetLockType(lock2));
+    prs2OneLockSetAttributeNumber(lock1,
+	    prs2OneLockGetAttributeNumber(lock2));
+    prs2OneLockSetPlanNumber(lock1, prs2OneLockGetPlanNumber(lock2));
+
+    /*
+     * decrease the number of locks
+     */
     locks->numberOfLocks -= 1;
 }
 
+
+/*------------------------------------------------------------------
+ * prs2RemoveAllLocksOfRuleInPlace
+ *
+ * remove all the locks of the given rule, in place (i.e. no copies).
+ * Return true if there were locks actually removed, or false
+ * if no locks for this rule were found.
+ *-----------------------------------------------------------------------
+ */
+bool
+prs2RemoveAllLocksOfRuleInPlace(locks, ruleId)
+RuleLock locks;
+ObjectId ruleId;
+{
+    int i;
+    Prs2OneLock onelock;
+    bool result;
+
+    result = false;
+    i = 0;
+    while (i<prs2GetNumberOfLocks(locks)) {
+	onelock = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLockGetRuleId(onelock) == ruleId) {
+	    prs2RemoveOneLockInPlace(locks, i);
+	    result = true;
+	} else {
+	    i++;
+	}
+    }
+
+    return(result);
+}
 
 /*------------------------------------------------------------------
  *
@@ -323,6 +368,7 @@ int n;
  * the old `RuleLock' is destroyed and should never be
  * referenced again.
  * The new lock is returned.
+ *-----------------------------------------------------------------------
  */
 RuleLock
 prs2RemoveAllLocksOfRule(oldLocks, ruleId)
@@ -372,6 +418,7 @@ ObjectId ruleId;
  * Create the union of two locks.
  * NOTE: we make COPIES of the locks. The two original locks
  * are NOT modified.
+ *------------------------------------------------------------------
  */
 RuleLock
 prs2LockUnion(lock1, lock2)
@@ -399,3 +446,40 @@ RuleLock lock2;
     return(result);
 
 }
+
+/*------------------------------------------------------------------
+ * prs2FindLocksOfType
+ *
+ * return a copy of all the locks contained in 'locks' that
+ * match the given lock type.
+ *------------------------------------------------------------------
+ */
+RuleLock
+prs2FindLocksOfType(locks, lockType)
+RuleLock locks;
+Prs2LockType lockType;
+{
+    RuleLock result;
+    int nlocks;
+    Prs2OneLock oneLock;
+    int i;
+
+    result = prs2MakeLocks();
+
+    nlocks = prs2GetNumberOfLocks(locks);
+
+    for (i=0; i<nlocks; i++) {
+	oneLock = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLockGetLockType(oneLock) == lockType) {
+	    result = prs2AddLock(result,
+			    prs2OneLockGetRuleId(oneLock),
+			    prs2OneLockGetLockType(oneLock),
+			    prs2OneLockGetAttributeNumber(oneLock),
+			    prs2OneLockGetPlanNumber(oneLock));
+	}
+    }
+
+    return(result);
+
+}
+
