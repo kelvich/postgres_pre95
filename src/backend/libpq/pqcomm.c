@@ -205,8 +205,10 @@ PQputline(s)
 char *s;
 
 {
+    if (Pfout) {
 	(void) fputs(s, Pfout);
 	fflush(Pfout);
+    }
 }
 
 /* --------------------------------
@@ -267,8 +269,10 @@ void
 pq_putstr(s)
     char *s;
 {
-    fputs(s, Pfout);
-    fputc('\0', Pfout);
+    if (Pfout) {
+	fputs(s, Pfout);
+	fputc('\0', Pfout);
+    }
 }
 
 /* --------------------------------
@@ -279,8 +283,10 @@ void
 pq_putnchar(s, n)
     char *s;
 {
-    while (n--)
-	fputc(*s++, Pfout);
+    if (Pfout) {
+	while (n--)
+	    fputc(*s++, Pfout);
+    }
 }
 
 /* --------------------------------
@@ -294,9 +300,11 @@ pq_putint(i, b)
     if (b > 4)
 	b = 4;
     
-    while (b--) {
-	fputc(i & 0xff, Pfout);
-	i >>= 8;
+    if (Pfout) {
+	while (b--) {
+	    fputc(i & 0xff, Pfout);
+	    i >>= 8;
+	}
     }
 }
 
