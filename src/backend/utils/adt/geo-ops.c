@@ -683,14 +683,14 @@ path_in(str)
 	long	pathsize;
 
 	if (str == NULL)
-		return(NULL);
+		elog(WARN, "Bad (null) path string representation");
 
 	/* read the path header information */
 	for (i = 0, s = str; *s && i < 2 && *s != RDELIM; ++s)
 		if (*s == DELIM || (*s == LDELIM && !i))
 			field[i++] = atol(s + 1);
 	if (i < 1)
-		return(NULL);
+		elog(WARN, "Bad path string representation: %s", str);
 	pathsize = PATHALLOCSIZE(field[1]);
 	result = (PATH *)palloc(pathsize);
 	result->length = pathsize;
@@ -714,7 +714,7 @@ path_in(str)
 	}
 	if (i % 2 || i < --ct) {
 		PFREE(result);
-		return(NULL);
+		elog(WARN, "Bad path string representation: %s", str);
 	} 
 
 	return(result);
