@@ -15,5 +15,5 @@ HEADERS+= allpaths.h cfi.h clause.h clauseinfo.h clauses.h clausesel.h \
 	indxpath.h initsplan.h internal.h joininfo.h joinpath.h joinrels.h \
 	joinutils.h keys.h mergeutils.h ordering.h orindxpath.h paramutils.h \
 	 pathnode.h plancat.h planmain.h planner.h prepqual.h preptlist.h \
-	 prepunion.h prune.h recurplanner.h relnode.h semanopt.h setrefs.h \
+	 prepunion.h prune.h relnode.h semanopt.h setrefs.h \
 	 sortresult.h tlist.h var.h xfunc.h
