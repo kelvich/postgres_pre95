@@ -621,6 +621,12 @@ fastgetattr(tup, attnum, att, isnull)
 	    }
 	    else
 	    {
+	        switch(att[i]->attlen)
+	        {
+		    case sizeof(char) : break;
+		    case sizeof(short): off = SHORTALIGN(off); break;
+		    default           : off = LONGALIGN(off); break;
+	        }
 	        if (usecache) att[i]->attcacheoff = off;
 	    }
 
