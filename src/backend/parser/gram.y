@@ -118,7 +118,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT ARRAY
+		STDIN STDOUT 
 
 /* precedence */
 %nonassoc Op
@@ -1654,11 +1654,6 @@ a_expr:
 		{
 			extern List ParseFunc();
 			$$ = ParseFunc ( CString ( $1 ), $3 ); 
-			Typecast_ok = false; }
-	|  ARRAY TYPECAST Typename
-               {
-                        extern List ParseArrayList();
-                        $$ = ParseArrayList ( $1, $3 );  
 			Typecast_ok = false; }
 	;
 
