@@ -12,8 +12,13 @@ EPS=	manual-arch.eps \
 	manual-er.eps \
 	manual-files.eps
 
-.MAIN: manual.ps
+MANUAL=manual.ps
 
-manual.ps: ${SRCS} ${EPS}
+all: ${MANUAL}
+
+install: ${MANUAL}
+	${INSTALL} -m 444 ${MANUAL} ${POSTDOCDIR}/${MANUAL}
+
+${MANUAL}: ${SRCS} ${EPS}
 
 .include <postgres.prog.mk>
