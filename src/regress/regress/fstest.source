@@ -36,6 +36,7 @@ icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
 rm -f $THERE/.dept.data
 cp $HERE/../data/dept.data $THERE/.dept.data \
 	|| exit 1
+touch $THERE/.emptyfile
 icopy in -d $DATABASE -s $SMGR -R -a $THERE /data2 \
 	|| exit 1
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
@@ -107,5 +108,5 @@ echo "foo" | pcat -H $PGHOST -D $DATABASE .dept.data - /data2/.dept.data
 #
 prm -rf / \
 	|| exit 1
-rm -f $THERE/.dept.data
+rm -f $THERE/.dept.data $THERE/.emptyfile
 exit 0
