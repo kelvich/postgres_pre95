@@ -24,6 +24,7 @@
  */
 
 #include <math.h>
+#include <values.h>
 
 #include "tmp/c.h"
 
