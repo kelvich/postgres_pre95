@@ -819,10 +819,8 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
      Resdom 	resdom = (Resdom)NULL ;
      LispValue i = LispNil;
 
-     pathkeys = CAR(pathkeys);
-
      foreach(i,pathkeys) {
-	 keys = CAR(i);
+	 keys = CAR(CAR(i));
 	 resdom = tlist_member (keys,
 				tlist,
 				LispNil);
