@@ -23,6 +23,7 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "nodes/execnodes.h"
+#include "parser/parse.h"	/* for RETRIEVE, APPEND etc. */
 #include "utils/palloc.h"
 
 extern EState CreateExecutorState();
@@ -30,18 +31,30 @@ extern LispValue ExecMain();
 extern HeapTuple palloctup();
 
 /*-----------------------------------------------------------------------
- * prs2MakeScanStateRuleInfo(relation)
+ * prs2MakeRelationRuleInfo(relation)
  *
- * This routine is called by 'ExecInitSeqScan' and 'ExecInitIndexScan'
+ * This initializes some information about the rules affecting a
+ * relation.
+ *
+ * There are 2 places where this routine can be called:
+ *
+ * A) by 'ExecInitSeqScan' and 'ExecInitIndexScan'
  * when the 'ScanState' of a 'Scan' node is intialized.
+ * In this case `operation' must be RETRIEVE
+ *
+ * B) by InitPlan when we have an update plan (i.e. a delete, append
+ * or a replace command). In this case the 'operation' must be
+ * APPEND, DELETE or REPLaCE.
+ * 
  * This scan state contains among other things some information
  * needed by the rule manager. See commnets in the definition of the
- * 'ScanStateRuleInfo' struct for more details....
+ * 'RelationRuleInfo' struct for more details....
  *
  */
-ScanStateRuleInfo
-prs2MakeScanStateRuleInfo(relation)
+RelationRuleInfo
+prs2MakeRelationRuleInfo(relation, operation)
 Relation relation;
+int operation;
 {
     RuleLock locks;
     Name relationName;
@@ -53,7 +66,8 @@ Relation relation;
     long size;
     int nrules;
     Prs2RuleList  ruleList, ruleListItem;
-    ScanStateRuleInfo scanStateRuleInfo;
+    Prs2Stub stubs;
+    RelationRuleInfo relationRuleInfo;
 
 
     /*
@@ -67,44 +81,50 @@ Relation relation;
      * 'LockTypeRetrieveRelation'
      */
     ruleList = NULL;
-    nlocks = prs2GetNumberOfLocks(locks);
-    for (i=0; i<nlocks ; i++) {
-        oneLock = prs2GetOneLockFromLocks(locks, i);
-        lockType = prs2OneLockGetLockType(oneLock);
-        ruleId = prs2OneLockGetRuleId(oneLock);
-	planNo = prs2OneLockGetPlanNumber(oneLock);
-        if (lockType==LockTypeRetrieveRelation) {
-	    ruleListItem = (Prs2RuleList) palloc(sizeof(Prs2RuleListItem));
-	    if (ruleListItem == NULL) {
-		elog(WARN,"prs2MakeRuleList: Out of memory");
+    if (operation == RETRIEVE) {
+	nlocks = prs2GetNumberOfLocks(locks);
+	for (i=0; i<nlocks ; i++) {
+	    oneLock = prs2GetOneLockFromLocks(locks, i);
+	    lockType = prs2OneLockGetLockType(oneLock);
+	    ruleId = prs2OneLockGetRuleId(oneLock);
+	    planNo = prs2OneLockGetPlanNumber(oneLock);
+	    if (lockType==LockTypeRetrieveRelation) {
+		ruleListItem = (Prs2RuleList) palloc(sizeof(Prs2RuleListItem));
+		if (ruleListItem == NULL) {
+		    elog(WARN,"prs2MakeRuleList: Out of memory");
+		}
+		ruleListItem->type = PRS2_RULELIST_RULEID;
+		ruleListItem->data.ruleId.ruleId = ruleId;
+		ruleListItem->data.ruleId.planNumber = planNo;
+		ruleListItem->next = ruleList;
+		ruleList = ruleListItem;
 	    }
-	    ruleListItem->type = PRS2_RULELIST_RULEID;
-	    ruleListItem->data.ruleId.ruleId = ruleId;
-	    ruleListItem->data.ruleId.planNumber = planNo;
-	    ruleListItem->next = ruleList;
-	    ruleList = ruleListItem;
 	}
     }
 
     /*
-     * Create and return a 'ScanStateRuleInfo' structure..
+     * now find the relation level rule stubs.
      */
-    size = sizeof(ScanStateRuleInfoData);
-    scanStateRuleInfo = (ScanStateRuleInfo) palloc(size);
-    if (scanStateRuleInfo == NULL) {
+    stubs = prs2GetRelationStubs(RelationGetRelationId(relation));
+
+    /*
+     * Create and return a 'RelationRuleInfo' structure..
+     */
+    size = sizeof(RelationRuleInfoData);
+    relationRuleInfo = (RelationRuleInfo) palloc(size);
+    if (relationRuleInfo == NULL) {
 	elog(WARN,
-	    "prs2MakeScanStateRuleInfo: Out of memory! (%ld bytes requested)",
+	    "prs2MakeRelationRuleInfo: Out of memory! (%ld bytes requested)",
 	    size);
     }
 
-    scanStateRuleInfo->ruleList = ruleList;
-    scanStateRuleInfo->insteadRuleFound = false;
-    scanStateRuleInfo->relationLocks = locks;
-    scanStateRuleInfo->relationStubs =
-	prs2GetRelationStubs(RelationGetRelationId(relation));
-    scanStateRuleInfo->relationStubsHaveChanged = false;
+    relationRuleInfo->ruleList = ruleList;
+    relationRuleInfo->insteadViewRuleFound = false;
+    relationRuleInfo->relationLocks = locks;
+    relationRuleInfo->relationStubs = stubs;
+    relationRuleInfo->relationStubsHaveChanged = false;
 
-    return(scanStateRuleInfo);
+    return(relationRuleInfo);
 
 }
 
@@ -113,9 +133,9 @@ Relation relation;
  * prs2GetOneTupleFromViewRules
  */
 HeapTuple
-prs2GetOneTupleFromViewRules(scanStateRuleInfo, prs2EStateInfo, relation,
+prs2GetOneTupleFromViewRules(relationRuleInfo, prs2EStateInfo, relation,
 			    explainRel)
-ScanStateRuleInfo scanStateRuleInfo;
+RelationRuleInfo relationRuleInfo;
 Prs2EStateInfo prs2EStateInfo;
 Relation relation;
 Relation explainRel;
@@ -136,15 +156,15 @@ Relation explainRel;
      * until either the lsit becomes empty, or
      * a new tuple is created....
      */
-    while(scanStateRuleInfo->ruleList != NULL) {
-	switch (scanStateRuleInfo->ruleList->type) {
+    while(relationRuleInfo->ruleList != NULL) {
+	switch (relationRuleInfo->ruleList->type) {
 	    case PRS2_RULELIST_RULEID:
 		/*
 		 * Fetch the plan from Prs2PlansRelation.
 		 */
 		plan = prs2GetRulePlanFromCatalog(
-			    scanStateRuleInfo->ruleList->data.ruleId.ruleId,
-			    scanStateRuleInfo->ruleList->data.ruleId.planNumber,
+			    relationRuleInfo->ruleList->data.ruleId.ruleId,
+			    relationRuleInfo->ruleList->data.ruleId.planNumber,
 			    &paramList);
 		/*
 		 * It is possible that plan = nil (an obsolete rule?)
@@ -173,7 +193,7 @@ Relation explainRel;
 		 * in a linked list.
 		 */
 		if (prs2CheckQual(planQual, paramList, prs2EStateInfo)) {
-		    tempRuleList = scanStateRuleInfo->ruleList->next;
+		    tempRuleList = relationRuleInfo->ruleList->next;
 		    foreach(onePlan, planActions) {
 			size = sizeof(Prs2RuleListItem);
 			tempRuleListItem = (Prs2RuleList) palloc(size);
@@ -192,14 +212,14 @@ Relation explainRel;
 		     * the chain of Prs2RuleListItem(s) we have just
 		     * created.
 		     */
-		    tempRuleListItem = scanStateRuleInfo->ruleList;
-		    scanStateRuleInfo->ruleList = tempRuleList;
+		    tempRuleListItem = relationRuleInfo->ruleList;
+		    relationRuleInfo->ruleList = tempRuleList;
 		    pfree(tempRuleListItem);
 		    /*
 		     * check for 'instead' rules...
 		     */
 		    if (prs2IsRuleInsteadFromRuleInfo(ruleInfo)) {
-			scanStateRuleInfo->insteadRuleFound = true;
+			relationRuleInfo->insteadViewRuleFound = true;
 		    }
 		}
 		break;
@@ -210,7 +230,7 @@ Relation explainRel;
 		 * EXEC_START operation...
 		 */
 		queryDesc = prs2MakeQueryDescriptorFromPlan(
-			    scanStateRuleInfo->ruleList->data.rulePlan.plan);
+			    relationRuleInfo->ruleList->data.rulePlan.plan);
 		executorState = CreateExecutorState();
 		set_es_param_list_info(executorState, paramList);
 		set_es_prs2_info(executorState, prs2EStateInfo);
@@ -231,11 +251,10 @@ Relation explainRel;
 		 * `Prs2RuleList->data.queryDesc.estate' not as an `EState'
 		 * (which is the correct) but as a (struct *). Argh!
 		 */
-		tempRuleList->data.queryDesc.estate =
-			(struct EState *)executorState;
-		tempRuleList->next = scanStateRuleInfo->ruleList->next;
-		tempRuleListItem = scanStateRuleInfo->ruleList;
-		scanStateRuleInfo->ruleList = tempRuleList;
+		tempRuleList->data.queryDesc.estate = (Pointer) executorState;
+		tempRuleList->next = relationRuleInfo->ruleList->next;
+		tempRuleListItem = relationRuleInfo->ruleList;
+		relationRuleInfo->ruleList = tempRuleList;
 		pfree(tempRuleListItem);
 		break;
 	    case PRS2_RULELIST_QUERYDESC:
@@ -245,8 +264,8 @@ Relation explainRel;
 		 * Call exec main to retrieve a tuple...
 		 */
 		res = ExecMain(
-			scanStateRuleInfo->ruleList->data.queryDesc.queryDesc,
-			scanStateRuleInfo->ruleList->data.queryDesc.estate,
+			relationRuleInfo->ruleList->data.queryDesc.queryDesc,
+			relationRuleInfo->ruleList->data.queryDesc.estate,
 			lispCons(lispInteger(EXEC_RETONE), LispNil));
 		tuple = (HeapTuple) ExecFetchTuple((TupleTableSlot)res);
 		if (tuple != NULL) {
@@ -268,15 +287,15 @@ Relation explainRel;
 		}
 		/*
 		 * No more tuples! Remove this record from the
-		 * scanStateRuleInfo->ruleList.
+		 * relationRuleInfo->ruleList.
 		 * But before doing that, be nice and gracefully
 		 * let the executor release whatever it has to...
 		 */
-		ExecMain(scanStateRuleInfo->ruleList->data.queryDesc.queryDesc,
-			    scanStateRuleInfo->ruleList->data.queryDesc.estate,
+		ExecMain(relationRuleInfo->ruleList->data.queryDesc.queryDesc,
+			    relationRuleInfo->ruleList->data.queryDesc.estate,
 			    lispCons(lispInteger(EXEC_END), LispNil));
-		tempRuleList = scanStateRuleInfo->ruleList;
-		scanStateRuleInfo->ruleList = scanStateRuleInfo->ruleList->next;
+		tempRuleList = relationRuleInfo->ruleList;
+		relationRuleInfo->ruleList = relationRuleInfo->ruleList->next;
 		pfree(tempRuleList);
 		break;
 	} /* switch */
