@@ -382,6 +382,17 @@ DATA(insert OID = 357 (  btabstimecmp      6 11 f t f 2  23 "0" 0 100 100 10 100
 DATA(insert OID = 358 (  btcharcmp         6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 359 (  btchar16cmp       6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 360 (  bttextcmp         6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 361 (  lseg_distance 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 362 (  lseg_interpt 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 363 (  dist_ps 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 364 (  dist_pb 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 365 (  dist_sb 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 366 (  close_ps 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 367 (  close_pb 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 368 (  close_sb 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 369 (  on_ps 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 372 (  on_sb 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 373 (  inter_sb 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
 
 DATA(insert OID = 612 (  fbtreeinsert      6 11 f t f 4  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 613 (  fbtreedelete      6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
@@ -513,6 +524,33 @@ DATA(insert OID = 970 (  pftp_read           6 11 f t f 3  23 "25 23 26" 0 100 1
 DATA(insert OID = 971 (  pftp_write          6 11 f t f 2  26 "25 23" 0 100 100 10 100 100  foo bar ));
 
 DATA(insert OID = 972 (  RegprocToOid          6 11 f t t 1  26 "24" 0 100 100 10 100 100  foo bar ));
+
+DATA(insert OID = 973 (  path_inter           6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 974 (  box_copy 6 11 f t t 1 603 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 975 (  box_area 6 11 f t t 1 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 976 (  box_length 6 11 f t t 1 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 977 (  box_height 6 11 f t t 1 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 978 (  box_distance 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 980 (  box_intersect 6 11 f t t 2 603 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 981 (  box_diagonal 6 11 f t t 1 601 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 982 (  path_n_lt 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 983 (  path_n_gt 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 984 (  path_n_eq 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 985 (  path_n_le 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 986 (  path_n_ge 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 987 (  path_length 6 11 f t t 1 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 988 (  point_copy 6 11 f t t 1 600 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 989 (  point_vert 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 990 (  point_horiz 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 991 (  point_distance 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 992 (  point_slope 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 993 (  lseg_construct 6 11 f t t 2 601 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 994 (  lseg_intersect 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 995 (  lseg_parallel 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 996 (  lseg_perp 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 997 (  lseg_vertical 6 11 f t t 1 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 998 (  lseg_horizontal 6 11 f t t 1 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 999 (  lseg_eq 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
 
 /* ----------------
  *	old definition of struct proc
