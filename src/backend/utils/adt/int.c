@@ -128,7 +128,7 @@ int44in(input_string)
 	char	*input_string;
 
 {
-    int *foo = (int *)palloc(4*sizeof(int));
+    int32 *foo = (int32 *)palloc(4*sizeof(int32));
     register int i = 0;
 
     char *temp = input_string;

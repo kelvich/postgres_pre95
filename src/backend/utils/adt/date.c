@@ -1167,7 +1167,7 @@ isreltime(timestring, sign, quantity, unitnr)
 	char		direction[DIRMAXLEN];
 	int		localSign;
 	int		localUnitNumber;
-	int		localQuantity;
+	long		localQuantity;
 
 	if (!PointerIsValid(sign)) {
 		sign = &localSign;
