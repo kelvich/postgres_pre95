@@ -501,49 +501,31 @@ fastgetattr(tup, attnum, att, isnull)
     else /* there's a null somewhere in the tuple */
     {
 	bp = tup->t_bits;
-	slow = 0;
 	tp = (Pointer) tup + tup->t_hoff;
+	slow = 0;
+	attnum--;
 
         /* ----------------
          *	check to see if desired att is null
          * ----------------
          */
 
-	attnum--;
+	if (att_isnull(attnum, bp)) 
 	{
-	    if (att_isnull(attnum, bp)) 
-	    {
-		*isnull = true;
-		return NULL;
-	    }
+	    *isnull = true;
+	    return NULL;
 	}
         /* ----------------
 	 *      Now check to see if any preceeding bits are null...
          * ----------------
 	 */
+
 	{
 	    register int  i = 0; /* current offset in bp */
-	    register int  mask;	 /* bit in byte we're looking at */
-	    register char n;	 /* current byte in bp */
-	    register int byte, finalbit;
-	
-	    byte = attnum >> 3;
-	    finalbit = attnum & 0x07;
 
-	    for (; i <= byte; i++) {
-	        n = bp[i];
-	        if (i < byte) {
-		    /* check for nulls in any "earlier" bytes */
-		    if ((~n) != 0) {
-		        slow++;
-		        break;
-		    }
-	        } else {
-		    /* check for nulls "before" final bit of last byte*/
-		    mask = (finalbit << 1) - 1;
-		    if ((~n) & mask)
-		        slow++;
-	        }
+	    for (i = 0; i < attnum && !slow; i++)
+	    {
+		if (att_isnull(i, bp)) slow = 1;
 	    }
         }
     }
@@ -635,10 +617,12 @@ fastgetattr(tup, attnum, att, isnull)
 		{
 		    usecache = false;
 		}
-		else continue;
+	    }
+	    else
+	    {
+	        if (usecache) att[i]->attcacheoff = off;
 	    }
 
-	    if (usecache) att[i]->attcacheoff = off;
 	    switch(att[i]->attlen)
 	    {
 	        case sizeof(char):
