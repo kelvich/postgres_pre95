@@ -167,7 +167,12 @@ planner (parse)
     LispValue qual = parse_qualification (parse);
     LispValue rangetable = root_rangetable (root);
     LispValue commandType = root_command_type_atom (root);
+    LispValue uniqueflag = nth(6,root);
+    LispValue sortclause = nth(7,root);
+    LispValue sortkeys = LispNil;
+    LispValue sortops = LispNil;
     List special_plans = LispNil;
+    Plan regular_plans = (Plan) NULL;
     LispValue flag = LispNil;
     List plan_list = LispNil;
     bool isRecursiveQuery = false;
@@ -179,11 +184,12 @@ planner (parse)
       root = lispCons(CAR(root),
                       lispCons(commandType,
                                CDR(CDR(root))));
-	/* the following is a dangerous hack, solves tcop error ******** */
+	/* XXX the following is a dangerous hack, solves tcop error */
       rplaca(parse, root);
     }
-/* else, don't touch the command type list -- it is supposed to be there */
-/* JJJ - the star IS removed */
+/* else, don't touch the command type list -- it is supposed to be there 
+ * JJJ - the star IS removed 
+ */
 
 /*** JJJ ***/
     if ( isRecursiveQuery ) {
@@ -205,13 +211,95 @@ planner (parse)
 						    tlist,
 						    qual,rangetable);
     }
-    if (special_plans)
-      return((Plan)special_plans);
-    else 
 
-      return(init_query_planner (root,tlist,qual));
+    /*
+     *  For now, before we hand back the plan, check to see if there
+     *  is a user-specified sort that needs to be done.  Eventually, this 
+     *  will be moved into the guts of the planner s.t. user specified 
+     *  sorts will be considered as part of the planning process. 
+     *  Since we can only make use of user-specified sorts in
+     *  special cases, we can do the optimization step later.
+     *   
+     *  sortkeys:    a list of var nodes corresponding to the var. nodes in
+     *               the tlist that are to be sorted.
+     *  sortops:     a corresponding list of sort operators.               
+     */
 
+    if (uniqueflag || sortclause) {
+	sortkeys = CADR(sortclause);
+	sortops = CADDR(sortclause);
+    }
+
+    if (special_plans) {
+	if (uniqueflag) {
+	    Plan sortplan = make_sortplan(tlist,sortkeys,
+					  sortops,special_plans);
+	    return((Plan)make_unique(tlist,sortplan));
+	}
+	else 
+	  if (sortclause) 
+	      return(make_sortplan(tlist,sortkeys,sortops,special_plans));
+	  else 
+	    return((Plan)special_plans);
+    }
+    else {  
+	regular_plans = init_query_planner(root,tlist,qual);
+	
+	if (uniqueflag) {
+	    Plan sortplan = make_sortplan(tlist,sortkeys,
+					  sortops,regular_plans);
+	    return((Plan)make_unique(tlist,sortplan));
+	}
+	else
+	  if (sortclause)
+	    return(make_sortplan(tlist,sortkeys,sortops,regular_plans)); 
+	  else
+	    return(regular_plans);
+    }
+    
 } /* function end  */
+
+/*
+ *      make_sortplan
+ *   
+ *      Returns a sortplan which is basically a SORT node attached to the
+ *      top of the plan returned from the planner.  It also adds the 
+ *      cost of sorting into the plan.
+ */
+
+Plan
+make_sortplan(tlist,sortkeys,sortops,plannode)
+     List tlist;
+     List sortkeys;
+     List sortops;
+     List plannode;
+
+{
+  Plan sortplan = (Plan)NULL;
+  List temp_tlist = LispNil;
+
+  temp_tlist = set_temp_tlist_operators(new_unsorted_tlist(tlist),
+					     sortkeys,
+					     sortops);
+  sortplan = (Plan) make_sort(temp_tlist,
+			      _TEMP_RELATION_ID_,
+			      (Plan)plannode,
+			      length(sortkeys));
+
+  /*
+   *  XXX Assuming that an internal sort has no. cost. 
+   *      This is wrong, but given that at this point, we don't
+   *      know the no. of tuples returned, etc, we can't do
+   *      better than to add a constant cost.
+   *      This will be fixed once we move the sort further into the planner,
+   *      but for now ... functionality....
+   */
+
+  set_cost(sortplan, get_cost(plannode));
+  
+  return(sortplan);
+}
+
 
 /*    
  *    	init-query-planner
