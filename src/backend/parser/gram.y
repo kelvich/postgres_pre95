@@ -1664,7 +1664,11 @@ res_target_el:
 						CString(CAR(last ($1) ))
 					    , 0 , 0 );
 		      varnode = CDR(temp);
-		      set_vardotfields ( varnode , CDR(CDR($1)));
+		      if ( IsA(varnode,Var))
+			set_vardotfields ( varnode , CDR(CDR($1)));
+		      else if ( CDR(CDR($1)) != LispNil )
+			elog(WARN,"cannot mix procedures with unions");
+
 		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
 		}
 	;		 
