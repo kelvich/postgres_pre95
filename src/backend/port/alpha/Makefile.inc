@@ -1,12 +1,11 @@
 #
+# Alpha specific stuff
+#
 # $Header$
 #
 
-#
-# Alpha specific stuff
-#
+LDADD+= -lln
 
 HEADERS+= machine.h 
 
 SRCS+= dynloader.c
-

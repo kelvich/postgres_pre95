@@ -1,14 +1,14 @@
 #
+# Ultrix4.x specific stuff
+#
 # $Header$
 #
 
-#
-# Ultrix4.x specific stuff
-#
+LDADD+= -ldl -lln
+.if !defined(PROFILE)
+LDADD+= -N
+.endif
 
 HEADERS+= machine.h 
 
-LDADD+= -ldl
-
 SRCS+= dynloader.c
-
