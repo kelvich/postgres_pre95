@@ -74,7 +74,12 @@ RcsId("$Header$");
 
 #define	T_INTERVAL_INVAL   0	/* data represents no valid interval */
 #define	T_INTERVAL_VALID   1	/* data represents a valid interval */
-#define	T_INTERVAL_LEN     47	/* 2+20+1+1+1+20+2 : ['...' '...']  */
+/*
+ * ['Mon May 10 23:59:12 1943 PST' 'Sun Jan 14 03:14:21 1973 PST']
+ * 0        1         2         3         4         5         6
+ * 1234567890123456789012345678901234567890123456789012345678901234
+ */
+#define	T_INTERVAL_LEN     		64
 #define	INVALID_INTERVAL_STR		"Undefined Range"
 #define	INVALID_INTERVAL_STR_LEN	(sizeof(INVALID_INTERVAL_STR)-1)
 
