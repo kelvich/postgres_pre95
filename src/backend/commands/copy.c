@@ -5,12 +5,14 @@
 #include <stdio.h>
 
 #include "tmp/postgres.h"
+#include "tmp/globals.h"
 #include "tmp/align.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 
 #include "access/heapam.h"
 #include "access/htup.h"
+#include "access/itup.h"
 #include "access/relscan.h"
 #include "utils/rel.h"
 #include "utils/log.h"
@@ -26,6 +28,8 @@
 
 static bool reading_from_input = false;
 
+extern FILE *Pfout, *Pfin;
+
 void
 DoCopy(relname, binary, from, pipe, filename)
 
@@ -40,7 +44,14 @@ char *filename;
 
     if (from)
     {
-        fp = pipe ? stdin : fopen(filename, "r");
+        if (IsUnderPostmaster)
+        {
+            fp = pipe ? Pfin : fopen(filename, "r");
+        }
+        else
+        {
+            fp = pipe ? stdin : fopen(filename, "r");
+        }
         if (fp == NULL) 
         {
             elog(WARN, "COPY: file %s could not be open for reading", filename);
@@ -49,7 +60,14 @@ char *filename;
     }
     else
     {
-        fp = pipe ? stdout : fopen(filename, "w");
+        if (IsUnderPostmaster)
+        {
+            fp = pipe ? Pfout : fopen(filename, "w");
+        }
+        else
+        {
+            fp = pipe ? stdout : fopen(filename, "w");
+        }
         if (fp == NULL) 
         {
             elog(WARN, "COPY: file %s could not be open for writing", filename);
@@ -60,9 +78,9 @@ char *filename;
     {
         fclose(fp);
     }
-    else if (from)
+    else if (!from && !binary)
     {
-        fflush(stdin);
+        fputs(".\n", fp);
     }
 }
 
@@ -196,21 +214,26 @@ FILE *fp;
 
 {
     HeapTuple tuple, heap_formtuple();
+    IndexTuple ituple, index_formtuple();
     Relation rel, heap_openr();
     AttributeNumber attr_count;
     Attribute *attr;
     func_ptr *in_functions;
-    int i, dummy;
+    int i, j, k, dummy;
     oid in_func_oid;
-    Datum *values;
-    char *nulls;
+    Datum *values, *index_values;
+    char *nulls, *index_nulls;
     bool *byval;
     Boolean isnull;
+    bool has_index;
     int done = 0;
     char *string, *ptr, *CopyReadAttribute();
+    Relation *index_rels;
     int32 len, null_ct, null_id;
 
     Relation *index_relations;
+    int28 *index_atts;
+    int n_indices;
 
     rel = heap_openr(relname);
     if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
@@ -221,8 +244,14 @@ FILE *fp;
 
     if (rel->rd_rel->relhasindex)
     {
+        GetIndexRelations(rel->rd_id, &n_indices, &index_rels, &index_atts);
+        has_index = true;
     }
-    
+    else
+    {
+        has_index = false;
+    }
+
     if (!binary)
     {
         in_functions = (func_ptr *) palloc(attr_count * sizeof(func_ptr));
@@ -233,13 +262,16 @@ FILE *fp;
         }
     }
 
-    values = (Datum *) palloc(sizeof(Datum) * attr_count);
-    nulls = (char *) palloc(attr_count);
-    byval = (bool *) palloc(attr_count * sizeof(bool));
+    values       = (Datum *) palloc(sizeof(Datum) * attr_count);
+    index_values = (Datum *) palloc(sizeof(Datum) * attr_count);
+    nulls        = (char *) palloc(attr_count);
+    index_nulls  = (char *) palloc(attr_count);
+    byval        = (bool *) palloc(attr_count * sizeof(bool));
 
     for (i = 0; i < attr_count; i++) 
     {
         nulls[i] = ' ';
+        index_nulls[i] = ' ';
         byval[i] = (bool) IsTypeByVal(attr[i]->atttypid);
     }
 
@@ -336,6 +368,32 @@ FILE *fp;
         tuple = heap_formtuple(attr_count, attr, values, nulls);
         heap_insert(rel, tuple, NULL);
 
+        if (has_index)
+        {
+            for (i = 0; i < n_indices; i++)
+            {
+                j = 0;
+                while (index_atts[i].data[j] != 0)
+                {
+                    if (nulls[index_atts[i].data[j] - 1] == 'n')
+                    {
+                        index_nulls[j] = 'n';
+                    }
+                    else 
+                    {
+                        index_values[j] = values[index_atts[i].data[j] - 1];
+                    }
+                    j++;
+                }
+                ituple = index_formtuple(j, & index_rels[i]->rd_att, 
+                                         index_values, index_nulls);
+                ituple->t_tid = tuple->t_ctid;
+                (void) index_insert(index_rels[i], ituple, NULL, NULL);
+                pfree(ituple);
+                for (k = 0; k < j; k++) index_nulls[k] = ' ';
+            }
+        }
+
         if (binary) pfree(string);
            for (i = 0; i < attr_count; i++) 
            {
@@ -412,6 +470,92 @@ IsTypeByVal(type)
     return(InvalidObjectId);
 }
 
+/* 
+ * Given the OID of a relation, return an array of index relation descriptors
+ * and the number of index relations.  These relation descriptors are open
+ * using heap_open().
+ *
+ * Space for the array itself is palloc'ed.
+ */
+
+#define N_INDEXRELS = 5
+
+typedef struct rel_list
+{
+    ObjectId index_rel_oid;
+    int28 intlist;
+    struct rel_list *next;
+}
+RelationList;
+
+GetIndexRelations(main_relation_oid, n_indices, index_rels, index_atts)
+
+ObjectId main_relation_oid;
+int *n_indices;
+Relation **index_rels;
+int28 **index_atts;
+
+{
+    RelationList *head, *scan;
+    Relation pg_index_rel, heap_openr(), index_open();
+    HeapScanDesc scandesc, heap_beginscan();
+    ObjectId index_relation_oid;
+    HeapTuple tuple;
+    Attribute *attr;
+    int i;
+    int28 *datum;
+    Boolean isnull;
+
+    pg_index_rel = heap_openr("pg_index");
+    scandesc = heap_beginscan(pg_index_rel, 0, NULL, NULL, NULL);
+    attr = (Attribute *) &pg_index_rel->rd_att;
+
+    *n_indices = 0;
+
+    head = (RelationList *) palloc(sizeof(RelationList));
+    scan = head;
+    head->next = NULL;
+
+    for (tuple = heap_getnext(scandesc, NULL, NULL);
+         tuple != NULL; 
+         tuple = heap_getnext(scandesc, NULL, NULL))
+    {
+        index_relation_oid = (ObjectId)
+                         heap_getattr(tuple, InvalidBuffer, 2, attr, &isnull);
+        if (index_relation_oid == main_relation_oid)
+        {
+            scan->index_rel_oid = (ObjectId) 
+                heap_getattr(tuple, InvalidBuffer, 1, attr, &isnull);
+            datum = (int28 *)
+                heap_getattr(tuple, InvalidBuffer, 3, attr, &isnull);
+            bcopy(datum, &scan->intlist, sizeof(int28));
+            (*n_indices)++;
+            scan->next = (RelationList *) palloc(sizeof(RelationList));
+            scan = scan->next;
+        }
+    }
+
+    heap_endscan(scandesc);
+    heap_close(pg_index_rel);
+
+    *index_rels = (Relation *) palloc(*n_indices * sizeof(Relation));
+    *index_atts = (int28 *) palloc(*n_indices * sizeof(int28));
+
+    for (i = 0, scan = head; i < *n_indices; i++, scan = scan->next)
+    {
+        *index_rels[i] = index_open(scan->index_rel_oid);
+        bcopy(&scan->intlist, &(*index_atts[i]), sizeof(int28));
+    }
+
+    for (i = 0, scan = head; i < *n_indices + 1; i++)
+    {
+        scan = head->next;
+        pfree(head);
+        head = scan;
+    }
+}
+
+
 #define ATTLEN 2048 /* need to fix if attributes ever get very long */
 
 /*
@@ -446,12 +590,12 @@ Boolean *isnull;
     {
         c = getc(fp);
 
-    	if (feof(fp))
-    	{
-        	*isnull = (Boolean) false;
-        	return(NULL);
-    	}
-		else if (reading_from_input && attno == 0 && i == 0 && c == '.') 
+        if (feof(fp))
+        {
+            *isnull = (Boolean) false;
+            return(NULL);
+        }
+        else if (reading_from_input && attno == 0 && i == 0 && c == '.') 
         {
             attribute[0] = c;
             c = getc(fp);
