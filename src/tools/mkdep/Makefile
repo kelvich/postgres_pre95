@@ -13,7 +13,7 @@ SEDSCRIPT= -e 's/^cc /gcc -traditional /'
 .endif
 
 .if (${PORTNAME} == "sparc_solaris")
-SEDSCRIPT= -e 's/^cc /bsdcc /'
+SEDSCRIPT= -e 's/^cc /solcc /'
 .endif
 
 .if (${PORTNAME} == "aix")
