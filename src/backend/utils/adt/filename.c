@@ -17,7 +17,7 @@ filename_in(file)
 char *file;
 
 {
-    char *str;
+    char *str, *getenv();
     int ind;
 
     str = (char *) palloc(MAXPATHLEN * sizeof(*str));
@@ -63,7 +63,7 @@ char *file;
 	    }
 	}
     } else if (file[0] == '$') {  /* $POSTGRESHOME, etc.  expand it. */
-	char name[16], environment[80], *p;
+	char name[16], environment[80], *envirp, *p;
 	int len;
 
 	if ((p = (char *) index(file, '/')) == NULL) {
@@ -74,8 +74,14 @@ char *file;
 		strncpy(environment, file+1, len);
 		environment[len] = '\0';
 	}
-	strcpy(str, getenv(environment));
-	ind = len + 1;
+	envirp = getenv(environment);
+	if (envirp) {
+		strcpy(str, envirp);
+		ind = len + 1;
+	}
+	else {
+		elog(WARN,"Couldn't find %s in your environment", environment);
+	}
     } else {
 	ind = 0;
     }
