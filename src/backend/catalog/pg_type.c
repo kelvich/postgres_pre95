@@ -446,7 +446,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 						      (char *) NULL);
 		      }
 		      if (!HeapTupleIsValid(tup)) {
-			    func_error(procname, 1, argList);
+			    func_error("TypeDefine", procname, 1, argList);
 		      }
 		}
 
