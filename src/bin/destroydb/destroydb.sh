@@ -11,8 +11,6 @@
 # 	$Header$
 # ----------------------------------------------------------------
 
-progname=$0
-
 # ----------------
 #       Set paths from environment or default values.
 #       The _fUnKy_..._sTuFf_ gets set when the script is installed
@@ -31,6 +29,7 @@ dbname=$USER
 while [ -n "$1" ]
 do
 	case $1 in 
+		-a) AUTHSYS=$2; shift;;
 		-h) PGHOST=$2; shift;;
 		-p) PGPORT=$2; shift;;
 		 *) dbname=$1;;
@@ -38,11 +37,14 @@ do
 	shift;
 done
 
+AUTHOPT="-a $AUTHSYS"
+[ -z "$AUTHSYS" ] && AUTHOPT=""
+
 monitor -TN -h $PGHOST -p $PGPORT -c "destroydb $dbname" template1
 
 if [ $? -ne 0 ]
 then
-	echo "$progname: database destroy failed on $dbname."
+	echo "$0: database destroy failed on $dbname."
 	exit 1
 fi
 

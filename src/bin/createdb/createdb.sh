@@ -29,6 +29,7 @@ dbname=$USER
 while test -n "$1"
 do
     case $1 in
+	-a) AUTHSYS=$2; shift;;
         -h) PGHOST=$2; shift;;
         -p) PGPORT=$2; shift;;
          *) dbname=$1;;
@@ -36,8 +37,11 @@ do
     shift;
 done
 
-monitor -TN -h $PGHOST -p $PGPORT -c "createdb $dbname" template1 || {
-    echo "$progname: database creation failed on $dbname."
+AUTHOPT="-a $AUTHSYS"
+[ -z "$AUTHSYS" ] && AUTHOPT=""
+
+monitor -TN $AUTHOPT -h $PGHOST -p $PGPORT -c "createdb $dbname" template1 || {
+    echo "$0: database creation failed on $dbname."
     exit 1
 }
 
