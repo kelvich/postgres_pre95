@@ -82,7 +82,8 @@ PinBuffer(buf)
     NotInQueue(buf);
   }
 
-  buf->refcount++;
+  if (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0)
+      buf->refcount++;
   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
 }
 
@@ -92,10 +93,13 @@ PinBuffer(buf)
 UnpinBuffer(buf)
     BufferDesc *buf;
 {
+  int b;
   Assert (buf->refcount);
   Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
-  buf->refcount--;
-  PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]--;
+  b = BufferDescriptorGetBuffer(buf) - 1;
+  PrivateRefCount[b]--;
+  if (PrivateRefCount[b] == 0)
+      buf->refcount--;
   NotInQueue(buf);
 
   if (buf->refcount == 0) {

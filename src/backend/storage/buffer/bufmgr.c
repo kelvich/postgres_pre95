@@ -508,9 +508,16 @@ Buffer	buffer;
   }
   bufHdr = BufferGetBufferDescriptor(buffer);
 
-  SpinAcquire(BufMgrLock);
-  UnpinBuffer(bufHdr);
-  SpinRelease(BufMgrLock);
+  PrivateRefCount[buffer - 1]--;
+  if (PrivateRefCount[buffer - 1] == 0) {
+      SpinAcquire(BufMgrLock);
+      bufHdr->refcount--;
+      if (bufHdr->refcount == 0) {
+	  AddBufferToFreelist(bufHdr);
+	  bufHdr->flags |= BM_FREE;
+	}
+      SpinRelease(BufMgrLock);
+    }
 
   return(STATUS_OK);
 }
@@ -889,9 +896,6 @@ void
 IncrBufferRefCount(buffer)
 Buffer buffer;
 {
-    SpinAcquire(BufMgrLock);
-    BufferDescriptors[buffer - 1].refcount++;
-    SpinRelease(BufMgrLock);
     PrivateRefCount[buffer - 1]++;
 }
 
@@ -998,6 +1002,29 @@ RelationGetBuffer(relation, blockNumber, lockLevel)
      BufferLock  lockLevel;             /* lock level */
 
 {
+    return(ReadBuffer(relation,blockNumber));
+}
+
+/* ---------------------------------------------------
+ * RelationGetBufferWithBuffer
+ *	see if the given buffer is what we want
+ *	if yes, we don't need to bother the buffer manager
+ * ---------------------------------------------------
+ */
+Buffer
+RelationGetBufferWithBuffer(relation, blockNumber, buffer)
+Relation relation;
+BlockNumber blockNumber;
+Buffer buffer;
+{
+    BufferDesc *bufHdr;
+
+    if (BufferIsValid(buffer)) {
+        bufHdr = BufferGetBufferDescriptor(buffer);
+	if (bufHdr->tag.blockNum == blockNumber &&
+	    bufHdr->tag.relId.relId == relation->rd_id)
+	    return buffer;
+      }
     return(ReadBuffer(relation,blockNumber));
 }
 
@@ -1204,7 +1231,7 @@ BufferPoolBlowaway()
         if (BufferIsValid(i)) {
             while(BufferIsValid(i))
                 ReleaseBuffer(i);
-	    BufTableDelete(BufferGetBufferDescriptor(i));
         }
+        BufTableDelete(BufferGetBufferDescriptor(i));
     }
 }
