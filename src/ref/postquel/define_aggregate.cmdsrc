@@ -11,14 +11,15 @@ define aggregate \*- define a new aggregate
 agg-name [
 .b as
 ]
-.b (
-state-transition-function, final-calculation-function
+.b ( sfunc1 = state-transition-function1, sfunc2 = state-transition-func2,
+ finalfunc =  final-function, initcond1 = initial-condition1, 
+ initcond2 = initial-condition2
 .b )
 .uh DESCRIPTION
 .lp
-An aggregate consists of two functions, a
+An aggregate requires three functions, two
 .i "state transition"
-function, T:
+functions, T:
 .(l
 T( internal-state, next-data_item) ---> next-internal-state
 .)l
@@ -32,28 +33,33 @@ C(internal-state) ---> aggregate-value
 .lp
 These functions are required to have the following three properties:
 .np
-The output of state-transition-function and the input 
+The output of each state-transition-function and the input 
 of final-calculation-function must be the same type, S.
 .np
 The output of final-calculation-function can be of arbitrary type.
 .np
 The input to state-transition-function must include as its first 
 argument a value of type S.  The other arguments must match the 
-data types of the object being aggregated.
+data types of the object being aggregated.  Therefore, aggregates 
+also require two initial conditions, one for each transition 
+function.
 .uh EXAMPLE
 .lp
 The
 .i average
-aggregate could consist of a state
-transition function which uses as its state the sum computed so far
-and the number of values seen so far.
+aggregate would consist of two state
+transition functions, a summer and an incrementer.  These would
+hold the internal state of the aggregate through a 
+running sum and and the number of values seen so far.
 It might accept a new employee salary,
 increment the count, and add the new salary to
-produce the next state.  The state transition function must also
-be able to initialize correctly when passed a null current state.
-The final calculation function divides the sum by the count to produce the
-final answer.
+produce the next state.  The state transition functions must be
+passed correct initialization values.  The final calculation 
+then divides the sum by the count to produce the final
+answer.
 .lp
 /* Define an aggregate for average */
 .lp
-define aggregate avg as (add-new-value-function, divide-by-total-function)
+define aggregate avg ( sfunc1 = add-new-value-function,  sfunc2 =incrementer-function,
+finalfunc = divide-by-total-function, initcond1 =  initial-condition-for-sum,
+initcond2 = initial-condition-for-incrementer)
