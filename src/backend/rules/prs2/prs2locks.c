@@ -46,6 +46,7 @@ prs2MakeLocks()
     }
 
     t->numberOfLocks = 0;
+	return(t);
 }
 
 
