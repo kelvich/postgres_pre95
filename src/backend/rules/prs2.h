@@ -665,6 +665,7 @@ attributeValuesCreate ARGS((
 /*---------------------------------------------------------------------
  * attributeValuesFree
  *    Free a previously allocated 'AttributeValues' array.
+ */
 extern
 void
 attributeValuesFree ARGS((
@@ -804,7 +805,7 @@ prs2RuleStackFree ARGS((
 /*========================================================================
  * VARIOUS ROUTINES....
  *========================================================================
-
+ */
 /*
  * PlanToString
  *

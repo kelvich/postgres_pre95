@@ -57,7 +57,7 @@ typedef struct HeapTupleData {
 
 	/* this is six bytes long */
 
-	/* ItemPointerData	t_anchor;	/* anchor point TID */
+	/* ItemPointerData	t_anchor;*/	/* anchor point TID */
 
 	/* keep these chars here as padding */
 

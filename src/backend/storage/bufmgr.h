@@ -37,7 +37,7 @@
 #define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
 
 /* MOVED TO $OD/lib/H/installinfo.h */
-/* #define BLCKSZ	8192	/* static not to be >= 65536 */ /* > ??? */
+/* #define BLCKSZ	8192*/	/* static not to be >= 65536 */ /* > ??? */
 typedef struct BlockData {
 	char	data[BLCKSZ];
 } BlockData;

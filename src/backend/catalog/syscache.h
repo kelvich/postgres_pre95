@@ -9,7 +9,7 @@
 #ifndef	SysCacheIncluded
 #define SysCacheIncluded
 
-/*#define CACHEDEBUG 	/* turns DEBUG elogs on */
+/*#define CACHEDEBUG*/ 	/* turns DEBUG elogs on */
 
 #include "tmp/postgres.h"
 #include "access/htup.h"

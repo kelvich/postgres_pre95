@@ -33,7 +33,7 @@ typedef struct RelationData {
 	Pointer			lockInfo;	/* ptr. to misc. info. */
 	TupleDescriptorData	rd_att;		/* tuple desciptor */
 /* VARIABLE LENGTH ARRAY AT END OF STRUCT */
-/*	IndexStrategy		rd_is;		/* index strategy */
+/*	IndexStrategy		rd_is;	*/	/* index strategy */
 } RelationData;
 
 typedef RelationData	*Relation;
