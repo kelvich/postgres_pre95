@@ -1447,7 +1447,7 @@ relation_expr:
 	| relation_expr '|' relation_expr %prec '='
 		{ 
 		    /* union'ed relations */
-		    elog ( NOTICE, "now consing the union'ed relations");
+		    elog ( DEBUG, "now consing the union'ed relations");
 		    $$ = append ( $1, $3 );
 		}
 	| relation_name '*'
@@ -1465,7 +1465,7 @@ relation_expr:
 		}
 	| '(' relation_expr ')'
 		{ 
-		    elog( NOTICE, "now reducing by parentheses");
+		    elog( DEBUG, "now reducing by parentheses");
 		    $$ = $2; 
 		}
 	;
