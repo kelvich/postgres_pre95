@@ -128,12 +128,6 @@ slock_t *lock;
     S_UNLOCK(lock);
 }
 
-S_CLOCK(lock)
-slock_t *lock;
-{
-    return(tas(lock));
-}
-
 static
 tas_dummy()
 {
@@ -227,5 +221,40 @@ unsigned char *addr;
 }
 
 #endif /* sparc */
+
+/*
+ * Linux and friends
+ */
+
+#if defined(__i386__) && defined(__GNUC__)
+
+tas(lock)
+    slock_t *lock;
+{
+    slock_t res;
+    __asm__("xchgb %0,%1":"=q" (res),"=m" (*m):"0" (0x1));
+    return(res);
+}
+
+S_LOCK(lock)
+    slock_t *lock;
+{
+    while (tas(addr))
+	;
+}
+
+S_UNLOCK(lock)
+    slock_t *lock;
+{
+    *lock = 0;
+}
+
+S_INIT_LOCK(lock)
+    slock_t *lock;
+{
+    S_UNLOCK(lock);
+}
+
+#endif /* __i386__ && __GNUC__ */
 
 #endif /* HAS_TEST_AND_SET */
