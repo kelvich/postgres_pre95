@@ -47,7 +47,6 @@ static File		SJBlockVfd;	/* vfd for nblocks file */
 static SJCacheHeader	*SJHeader;	/* pointer to cache header in shmem */
 static HTAB		*SJCacheHT;	/* pointer to hash table in shmem */
 static SJCacheItem	*SJCache;	/* pointer to cache metadata in shmem */
-static SJNBlock		*SJNBlockList;	/* linked list of nblocks by relid */
 
 #ifndef	HAS_TEST_AND_SET
 
@@ -280,9 +279,6 @@ sjinit()
 	}
     }
 
-    /* haven't computed block counts for any relations yet */
-    SJNBlockList = (SJNBlock *) NULL;
-
     /*
      *  If it's our responsibility to initialize the shared-memory cache
      *  metadata, then go do that.  Sjcacheinit() will elog(FATAL, ...) if
@@ -383,7 +379,7 @@ _sjcacheinit()
     /* set up cache metadata header struct */
     SJHeader->sjh_nentries = 0;
     SJHeader->sjh_freehead = 0;
-    SJHeader->sjh_freetail = SJCACHESIZE;
+    SJHeader->sjh_freetail = SJCACHESIZE - 1;
     SJHeader->sjh_flags = SJH_INITED;
 }
 
@@ -695,7 +691,7 @@ _sjchoose(item)
     plmdata->ploffset = pgjb_offset(plname, plmdata->plid, plmdata->plextentsz);
 
     /* save platter name, id, offset in item */
-    bcopy(&(item->sjc_plname.data[0]), plname, sizeof(NameData));
+    bcopy(plname, &(item->sjc_plname.data[0]), sizeof(NameData));
     item->sjc_plid = plmdata->plid;
     item->sjc_jboffset = plmdata->ploffset;
 
@@ -807,7 +803,7 @@ _sjgetgrp()
     }
 
     /* if necessary, put the highest block in the relation on mag disk */
-    nblocks = sjnblocks(&(item->sjc_tag));
+    nblocks = _sjfindnblocks(&(item->sjc_tag));
 
     if ((item->sjc_tag.sjct_base + SJGRPSIZE) >= nblocks) {
 	grpoffset = (nblocks % SJGRPSIZE) - 1;
@@ -907,7 +903,7 @@ _sjfetchgrp(dbid, relid, blkno, grpno)
 	} else {
 
 	    /* okay, we need to read the extent from a platter */
-	    bcopy((char *) &(item->sjc_tag), (char *) &tag, sizeof(tag));
+	    bcopy((char *) &tag, (char *) &(item->sjc_tag), sizeof(tag));
 	    entry = _sjhashop(&tag, HASH_ENTER, &found);
 	    entry->sjhe_groupno = *grpno;
 
@@ -1215,14 +1211,6 @@ sjextend(reln, buffer)
     nblocks = sjnblocks(reln);
     base = (nblocks / SJGRPSIZE) * SJGRPSIZE;
 
-    if (reln->rd_rel->relisshared)
-	tag.sjct_dbid = (ObjectId) 0;
-    else
-	tag.sjct_dbid = MyDatabaseId;
-
-    tag.sjct_relid = reln->rd_id;
-    tag.sjct_base = base;
-
     SpinAcquire(SJCacheLock);
 
     /*
@@ -1232,9 +1220,18 @@ sjextend(reln, buffer)
      */
 
     if (((nblocks + 1) % SJGRPSIZE) == 0) {
+	base += SJGRPSIZE;
 	_sjnewextent(reln, base);
 	SpinAcquire(SJCacheLock);
     }
+
+    if (reln->rd_rel->relisshared)
+	tag.sjct_dbid = (ObjectId) 0;
+    else
+	tag.sjct_dbid = MyDatabaseId;
+
+    tag.sjct_relid = reln->rd_id;
+    tag.sjct_base = base;
 
     entry = _sjhashop(&tag, HASH_FIND, &found);
 
@@ -1469,6 +1466,7 @@ sjread(reln, blocknum, buffer)
 {
     SJCacheItem *item;
     ObjectId reldbid;
+    BlockNumber base;
     int offset;
     int grpno;
 
@@ -1477,7 +1475,9 @@ sjread(reln, blocknum, buffer)
     else
 	reldbid = MyDatabaseId;
 
-    item = _sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+    base = (blocknum / SJGRPSIZE) * SJGRPSIZE;
+
+    item = _sjfetchgrp(reldbid, reln->rd_id, base, &grpno);
 
     /* shd expand _sjfetchgrp() inline to avoid extra semop()s */
     SpinAcquire(SJCacheLock);
@@ -1506,6 +1506,7 @@ sjwrite(reln, blocknum, buffer)
 {
     SJCacheItem *item;
     ObjectId reldbid;
+    BlockNumber base;
     int offset;
     int grpno;
     int which;
@@ -1515,7 +1516,9 @@ sjwrite(reln, blocknum, buffer)
     else
 	reldbid = MyDatabaseId;
 
-    item = _sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+    base = (blocknum / SJGRPSIZE) * SJGRPSIZE;
+
+    item = _sjfetchgrp(reldbid, reln->rd_id, base, &grpno);
 
     /* shd expand _sjfetchgrp() inline to avoid extra semop()s */
     SpinAcquire(SJCacheLock);
@@ -1609,21 +1612,9 @@ static int
 _sjfindnblocks(tag)
     SJCacheTag *tag;
 {
-    SJNBlock *l;
     int nbytes;
     SJCacheTag mytag;
 
-    /* see if we already computed the block count */
-    l = SJNBlockList;
-
-    while (l != (SJNBlock *) NULL) {
-	if (l->sjnb_relid == tag->sjct_relid && l->sjnb_dbid == tag->sjct_dbid)
-	    return (l->sjnb_nblocks);
-
-	l = l->sjnb_next;
-    }
-
-    /* nope, need to do some work */
     if (FileSeek(SJBlockVfd, 0L, L_SET) != 0) {
 	elog(FATAL, "_sjfindnblocks: cannot seek to zero on block count file");
     }
@@ -1649,31 +1640,7 @@ _sjregnblocks(tag)
     SJCacheTag *tag;
 {
     int loc;
-    SJNBlock *l;
     SJCacheTag mytag;
-
-    l = SJNBlockList;
-
-    /* overwrite old value, if one exists */
-    while (l != (SJNBlock *) NULL) {
-
-	if (l->sjnb_relid == tag->sjct_relid
-	    && l->sjnb_dbid == tag->sjct_dbid) {
-	    l->sjnb_nblocks = (int) tag->sjct_base;
-	    break;
-	}
-	l = l->sjnb_next;
-    }
-
-    /* otherwise, allocate new slot and write new value */
-    if (l == (SJNBlock *) NULL) {
-	l = (SJNBlock *) palloc(sizeof(SJNBlock));
-	l->sjnb_relid = tag->sjct_relid;
-	l->sjnb_dbid = tag->sjct_dbid;
-	l->sjnb_nblocks = (int) tag->sjct_base;
-	l->sjnb_next = SJNBlockList;
-	SJNBlockList = l;
-    }
 
     /* update block count file */
     if (FileSeek(SJBlockVfd, 0L, L_SET) < 0) {
@@ -1689,7 +1656,7 @@ _sjregnblocks(tag)
 	    && mytag.sjct_relid == tag->sjct_relid) {
 	    if (FileSeek(SJBlockVfd, (loc * sizeof(SJCacheTag)), L_SET) < 0)
 		elog(FATAL, "_sjregnblocks: cannot seek to loc");
-	    if (FileWrite(SJBlockVfd, (char *) &mytag, sizeof(mytag)) < 0)
+	    if (FileWrite(SJBlockVfd, (char *) tag, sizeof(*tag)) < 0)
 		elog(FATAL, "_sjregnblocks: cannot write nblocks");
 	    return;
 	}
@@ -1697,17 +1664,15 @@ _sjregnblocks(tag)
     }
 
     /* new relation -- write at end of file */
-    mytag.sjct_dbid = tag->sjct_dbid;
-    mytag.sjct_relid = tag->sjct_relid;
-
-    if (FileWrite(SJBlockVfd, (char *) &mytag, sizeof(mytag)) < 0)
+    if (FileWrite(SJBlockVfd, (char *) tag, sizeof(*tag)) < 0)
 	elog(FATAL, "_sjregnblocks: cannot write nblocks for new reln");
 }
 int
 sjcommit()
 {
-    /* XXX should free the list, but it's in the wrong mcxt */
-    SJNBlockList = (SJNBlock *) NULL;
+    FileSync(SJMetaVfd);
+    FileSync(SJCacheVfd);
+    FileSync(SJBlockVfd);
 
     return (SM_SUCCESS);
 }
@@ -1715,9 +1680,6 @@ sjcommit()
 int
 sjabort()
 {
-    /* XXX should free the list, but it's in the wrong mcxt */
-    SJNBlockList = (SJNBlock *) NULL;
-
     return (SM_SUCCESS);
 }
 
