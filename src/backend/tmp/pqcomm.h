@@ -52,6 +52,7 @@ typedef struct StartupPacket {
   char		user[USER_NAMESIZE];	/* user name */
   char		options[ARGV_SIZE];	/* possible additional args */
   char		execFile[ARGV_SIZE];	/*  possible backend to use */
+  char		tty[PATH_SIZE];		/*  possible tty for debug output */
 } StartupPacket;
 
 /* amount of available data in a packet buffer */
