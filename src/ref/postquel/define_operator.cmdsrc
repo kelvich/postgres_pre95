@@ -229,5 +229,9 @@ remove operator(commands).
 Operator names cannot be composed of alphabetic characters in Version
 \*(PV.
 .PP
-Operator precedence and associativity are not implemented in Version
-\*(PV.
+Operator precedence is not implemented in Version \*(PV.
+.PP
+If an operator is defined before its commuting operator has been defined
+(a case specifically warned against above), a dummy operator with invalid
+fields will be placed in the system catalogs.  This may interfere with
+the definition of later operators.
