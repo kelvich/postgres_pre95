@@ -1,0 +1,67 @@
+# $Header$
+#
+# Makefile for Justin Smith's C++/POSTGRES interface package.
+#
+
+.include <postgres.global.mk>
+
+NOMAN=
+
+LDFLAGS= -g
+
+CFLAGS= -g
+
+#
+# set POSTGRESDIR to the top directory of postgres (one above src/).
+#	spog will be installed in BINDIR.
+#	HEADERDIR and LIBDIR should point to the install libpq.
+#
+#POSTGRESDIR=${.CURDIR}/../../..
+#POSTGRESDIR= /private/devel/postgres
+POSTGRESDIR= /private/aoki/postgres
+BINDIR= ${POSTGRESDIR}/bin
+HEADERDIR= ${POSTGRESDIR}/include
+LIBDIR= ${POSTGRESDIR}/lib
+CFLAGS+= -I${HEADERDIR}
+LDADD+= -L${LIBDIR}
+
+#
+# seems to work with both C++ compilers...
+#
+#CC= CC
+CC= g++
+
+#
+# additional stuff required for C++
+#
+
+# location of C++ library, if required
+#LDADD+= -L/usr/sww/lib
+
+# location of C++ include files, if required
+#CFLAGS+= -I/usr/sww/lib/g++-include
+
+# jsmith added these flags for CC (cfront).
+.if ${CC} == "CC"
+CFLAGS+= -DNO_ALLOCA -DNO_DMINUS -DMATH_H_EXTERNS
+.endif
+
+# CenterLine CC wouldn't work without this.  don't know why.
+.if ${CC} == "CC"
+CFLAGS+= -D__STDLIB_H
+.endif
+
+SRCS= pgtest.c
+
+HEADERS= pg.h
+
+LDADD+= -lpq
+
+.MAIN: ${PROG}
+
+PROG= pgtest
+
+runtest: pgtest
+	./pgtest
+
+.include <postgres.prog.mk>

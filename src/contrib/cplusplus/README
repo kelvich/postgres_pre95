@@ -1,0 +1,36 @@
+$Header$
+
+Therg are two sections to this file:
+	- Justin Smith's original README file.
+	- Comments added by people in the POSTGRES group.
+
+----------------------------------------------------------------------------
+Justin Smith's original README file
+----------------------------------------------------------------------------
+This is a MINIMAL package for accessing Postgres databases
+from C++
+
+The relevant class is in the file pg.h.  tst.c is a sample program
+that uses this class to access a database named 'jsmith'.
+
+You must modify the Makefile so that SD points to the directory that
+contains the modified header files (this is the directory that
+contains tst.c, after you uncompress and untar this stuff).
+----------------------------------------------------------------------------
+POSTGRES group comments
+----------------------------------------------------------------------------
+This library has been successfully tested on 
+	DEC MIPS machines running Ultrix 4.2 
+	Sun SPARC machines running SunOS 4.1.3
+using cfront 1.1.0 (CenterLine r1.0)/GNU g++ 2.3.3 and POSTGRES 4.1.
+
+I hacked on Justin's code quite a bit so that (1) it would compile
+more cleanly and (2) we could use the existing POSTGRES header files
+without modification.  The 'extern "C"' hack seems to work ok for
+both of the C++ compilers that I tried.  Your mileage may vary.
+
+Using CC, expect to see something like
+	cpp: warning tmp/c.h:263: signed redefined
+	cpp: warning tmp/c.h:678: offsetof redefined
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 06/09/93

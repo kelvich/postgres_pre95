@@ -1,0 +1,55 @@
+Sending
+	retrieve (pg_class.all) where pg_class.relname ~ "pg_"
+to the backend server.
+Retrieving 1 tuple group(s).
+Group 0 has 48 tuple(s).
+Each tuple contains 16 attribute(s), called:
+ relname relowner relam relpages reltuples relexpires relpreserved relhasindex relisshared relkind relarch relnatts relsmgr relkey relkeyop relacl
+ (0) pg_type (strlen=7): HEAP
+ (1) pg_database (strlen=11): HEAP
+ (2) pg_demon (strlen=8): HEAP
+ (3) pg_proc (strlen=7): HEAP
+ (4) pg_server (strlen=9): HEAP
+ (5) pg_user (strlen=7): HEAP
+ (6) pg_attribute (strlen=12): HEAP
+ (7) pg_class (strlen=8): HEAP
+ (8) pg_magic (strlen=8): HEAP
+ (9) pg_defaults (strlen=11): HEAP
+ (10) pg_variable (strlen=11): HEAP
+ (11) pg_log (strlen=6): HEAP
+ (12) pg_time (strlen=7): HEAP
+ (13) pg_group (strlen=8): HEAP
+ (14) pg_inherits (strlen=11): HEAP
+ (15) pg_index (strlen=8): HEAP
+ (16) pg_version (strlen=10): HEAP
+ (17) pg_statistic (strlen=12): HEAP
+ (18) pg_operator (strlen=11): HEAP
+ (19) pg_opclass (strlen=10): HEAP
+ (20) pg_am (strlen=5): HEAP
+ (21) pg_amop (strlen=7): HEAP
+ (22) pg_amproc (strlen=9): HEAP
+ (23) pg_language (strlen=11): HEAP
+ (24) pg_parg (strlen=7): HEAP
+ (25) pg_aggregate (strlen=12): HEAP
+ (26) pg_ipl (strlen=6): HEAP
+ (27) pg_inheritproc (strlen=14): HEAP
+ (28) pg_platter (strlen=10): HEAP
+ (29) pg_plmap (strlen=8): HEAP
+ (30) pg_prs2rule (strlen=11): HEAP
+ (31) pg_prs2plans (strlen=12): HEAP
+ (32) pg_prs2stub (strlen=11): HEAP
+ (33) pg_rewrite (strlen=10): HEAP
+ (34) pg_listener (strlen=11): HEAP
+ (35) pg_naming (strlen=9): HEAP
+ (36) pg_large_object (strlen=15): HEAP
+ (37) pg_attnameind (strlen=13): INDEX (type=403)
+ (38) pg_attnumind (strlen=12): INDEX (type=403)
+ (39) pg_attrelidind (strlen=14): INDEX (type=403)
+ (40) pg_procidind (strlen=12): INDEX (type=403)
+ (41) pg_procnameind (strlen=14): INDEX (type=403)
+ (42) pg_typeidind (strlen=12): INDEX (type=403)
+ (43) pg_typenameind (strlen=14): INDEX (type=403)
+ (44) pg_namingind (strlen=12): INDEX (type=403)
+ (45) pg_namparind (strlen=12): INDEX (type=403)
+ (46) pg_classnameind (strlen=15): INDEX (type=403)
+ (47) pg_classoidind (strlen=14): INDEX (type=403)
