@@ -708,22 +708,22 @@ ExecEvalFuncArgs(fcache, econtext, argList, argV, argIsDone)
 	 *   here.
 	 * ----------------
 	 */
-	 argV[i] = (Datum)
+	argV[i] = (Datum)
 	    ExecEvalExpr((Node) CAR(arg),
 		     	econtext,
 		     	&argIsNull,
 		     	argIsDone);
-	    if (! (*argIsDone))
-	    {
-		Assert(i == 0);
-		fcache->setArg = (char *)argV[0];
-		fcache->hasSetArg = true;
-	    }
-	    if (argIsNull)
-		nullVect[i] = true;
-	    else
-		nullVect[i] = false;
-	    i++;
+	if (! (*argIsDone))
+	{
+	    Assert(i == 0);
+	    fcache->setArg = (char *)argV[0];
+	    fcache->hasSetArg = true;
+	}
+	if (argIsNull)
+	    nullVect[i] = true;
+	else
+	    nullVect[i] = false;
+	i++;
     }
 }
 
@@ -1586,11 +1586,15 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
 	 *
 	 *      It could also happen in queries like:
 	 *	    retrieve (foo.all) where bar.a = 3
+	 *
+	 *      is this a new phenomenon? it might cause bogus behavior
+	 *      if we try to free this tuple later!! I put a hook in
+	 *      ExecProject to watch out for this case -mer 24 Aug 1992
 	 * ----------------
 	 */
 	CXT1_printf("ExecTargetList: context is %d\n", CurrentMemoryContext);
 	*isDone = true;
-	return (HeapTuple) palloc(1);
+	return (HeapTuple) true;
     }
 
     /* ----------------
@@ -1786,11 +1790,16 @@ ExecProject(projInfo, isDone)
 
     /* ----------------
      *	store the tuple in the projection slot and return the slot.
+     *
+     *  If there's no projection target list we don't want to pfree
+     *  the bogus tuple that ExecTargetList passes back to us.
+     *       -mer 24 Aug 1992
      * ----------------
      */
     return (TupleTableSlot)
 	ExecStoreTuple((Pointer) newTuple, /* tuple to store */
 		       (Pointer) slot,     /* slot to store in */
 		       InvalidBuffer, 	   /* tuple has no buffer */
-		       true);         	   /* ok to pfree this tuple */
+					   /* ok to pfree this tuple */
+		       get_pi_targetlist(projInfo) ? true : false);
 }
