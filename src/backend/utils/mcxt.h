@@ -11,7 +11,6 @@
 
 #include "c.h"
 
-#include "mmgr.h"
 #include "mnodes.h"
 #include "tnodes.h"
 
