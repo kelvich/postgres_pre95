@@ -5,8 +5,6 @@
 /* bad extern:PrintParallelDebugInfoARGS((void)); */
 /* bad extern:ResetParallelDebugInfoARGS((void)); */
 /* bad extern:void DisplayTupleCountARGS((void)); */
-/* bad extern:void ExecSMCleanARGS((void)); */
-/* bad extern:void ExecSMInitARGS((void)); */
 /* bad extern:void ExecXHideTreeARGS((void)); */
 /* bad extern:void ExecXInitializeARGS((void)); */
 /* bad extern:void ExecXNewTreeARGS((void)); */
@@ -163,8 +161,6 @@ extern TupleTableSlot ExecReplace ARGS((TupleTableSlot slot, ItemPointer tupleid
 extern void ExecRestrPos ARGS((Plan node));
 extern TupleTableSlot ExecResult ARGS((Result node));
 extern TupleTableSlot ExecRetrieve ARGS((TupleTableSlot slot, int printfunc, Relation intoRelationDesc));
-extern Pointer ExecSMAlloc ARGS((int size));
-extern Pointer ExecSMHighAlloc ARGS((int size));
 extern TupleTableSlot ExecScan ARGS((Plan node, int accessMtd));
 extern HeapTuple ExecScanHashBucket ARGS((HashJoinState hjstate, HashBucket bucket, HeapTuple curtuple, List hjclauses, ExprContext econtext));
 extern TupleTableSlot ExecScanTemps ARGS((ScanTemps node));
@@ -231,5 +227,3 @@ extern void x_post_init ARGS((Plan node, BaseNode state));
 extern void x_post_proc ARGS((Plan node, BaseNode state));
 extern void x_pre_end ARGS((Plan node, BaseNode state));
 extern void x_pre_proc ARGS((Plan node, BaseNode state));
-
-
