@@ -131,11 +131,11 @@ clause_subclauses (type,clause)
 
 /*  .. fix-indxqual-references
  */
-LispValue
+bool
 is_opclause (clause)
      LispValue clause ;
 {
-     return(oper_p (clause_head (clause)));
+     return((bool)oper_p (clause_head (clause)));
 }
 
 /*    
@@ -168,7 +168,7 @@ make_opclause (op,leftop,rightop)
 
 LispValue
 get_opargs (clause)
-LispValue clause ;
+     LispValue clause ;
 {
      return(CDR (clause));
 }
@@ -233,11 +233,11 @@ get_rightop (clause)
  *  .. replace-clause-resultvar-refs
  */
 
-LispValue
+bool
 is_funcclause (clause)
-LispValue clause ;
+     LispValue clause ;
 {
-     return(func_p (clause_head (clause)));
+     return((bool)func_p (clause_head (clause)));
 }
 
 /*    
@@ -312,12 +312,14 @@ get_funcargs (func)
  *  .. push-nots, relation-level-clause-p, remove-ands
  *  .. replace-clause-joinvar-refs, replace-clause-nestvar-refs
  *  .. replace-clause-resultvar-refs, valid-or-clause
+ * XXX - should be called or_clause_p instead
  */
-LispValue
+
+bool
 or_clause (clause)
-LispValue clause ;
+     LispValue clause ;
 {
-     equal ("OR",clause_head (clause));
+     return(equal ("OR",clause_head (clause)));
 }
 
 /*    
@@ -375,7 +377,7 @@ get_orclauseargs (orclause)
  *  .. remove-ands, replace-clause-joinvar-refs, replace-clause-nestvar-refs
  *  .. replace-clause-resultvar-refs
  */
-LispValue
+bool
 not_clause (clause)
      LispValue clause ;
 {
@@ -433,9 +435,9 @@ get_notclausearg (notclause)
 /*  .. cleanup, cnfify, find-nots, normalize, pull-ands, pull-args
  *  .. push-nots, remove-ands
  */
-LispValue
+bool
 and_clause (clause)
-LispValue clause ;
+     LispValue clause ;
 {
      return(equal ("AND",clause_head (clause)));
 }
