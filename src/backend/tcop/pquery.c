@@ -55,6 +55,8 @@ RcsId("$Header$");
 
 #include "executor/x_execmain.h"
 
+extern List MakeList();
+
 /* ----------------------------------------------------------------
  *	MakeQueryDesc is a utility used by ProcessQuery and
  *	the rule manager to build a query descriptor..
@@ -69,16 +71,15 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
     List  	feature;
     CommandDest dest;
 {
-#define CONS lispCons   
-    
-    return (List)
-	CONS(operation,				      	/* operation */
-	     CONS(parsetree, 			      	/* parse tree */
-		  CONS(plantree, 		      	/* plan */
-		       CONS(state, 	      		/* state */
-			    CONS(feature, 		/* feature */
-				 CONS(lispInteger(dest), /* output dest */
-				      LispNil))))));
+    return
+	MakeList(operation,  	    /* operation */
+		 parsetree, 	    /* parse tree */
+		 plantree, 	    /* plan */
+		 state, 	    /* state */
+		 feature, 	    /* feature */
+		 lispInteger(dest), /* output dest */
+		 -1);
+
 }
 
 /* ----------------------------------------------------------------
@@ -272,7 +273,9 @@ ProcessQueryDesc(queryDesc)
     int		operation;
     String	tag;
     EState 	state;
-    List 	feature;
+    List 	feature_start;
+    List 	feature_run;
+    List 	feature_end;
     List 	attinfo;
     
     List	parseRoot;
@@ -338,12 +341,19 @@ ProcessQueryDesc(queryDesc)
     state = CreateExecutorState();
 
     /* ----------------
+     *	create the executor "features"
+     * ----------------
+     */
+    feature_start = MakeList(lispInteger(EXEC_START), -1);
+    feature_run =   MakeList(lispInteger(EXEC_RUN), -1);
+    feature_end =   MakeList(lispInteger(EXEC_END), -1);
+    
+    /* ----------------
      *	call ExecMain with EXEC_START to
      *  prepare the plan for execution
      * ----------------
      */
-    feature = lispCons(lispInteger(EXEC_START), LispNil);
-    attinfo = ExecMain(queryDesc, state, feature);
+    attinfo = ExecMain(queryDesc, state, feature_start);
     
     /* ----------------
      *  Named portals do not do a "fetch all" initially, so now
@@ -380,23 +390,21 @@ ProcessQueryDesc(queryDesc)
      *   we're dealing with.
      * ----------------
      */
-    BeginCommand("blank", attinfo, operation, isIntoRelation, dest);
+    BeginCommand(NULL, attinfo, operation, isIntoRelation, dest);
     
     /* ----------------
      *   Now we get to the important call to ExecMain() where we
      *   actually run the plan..
      * ----------------
      */
-    feature = lispCons(lispInteger(EXEC_RUN), LispNil);
-    (void) ExecMain(queryDesc, state, feature);
+    (void) ExecMain(queryDesc, state, feature_run);
 
     /* ----------------
      *   final call to ExecMain.. we close down all the scans
      *   and free allocated resources...
      * ----------------
      */
-    feature = lispCons(lispInteger(EXEC_END), LispNil);
-    (void) ExecMain(queryDesc, state, feature);
+    (void) ExecMain(queryDesc, state, feature_end);
 
 #ifdef EXEC_TUPLECOUNT	    
     /* ----------------
