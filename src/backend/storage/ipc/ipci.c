@@ -83,7 +83,15 @@ CreateSharedMemoryAndSemaphores(key)
 	ExecCreateExecutorSharedMemory(PrivateIPCKey);
 	ExecAttachExecutorSharedMemory();
     }
-    
+
+#ifdef SONY_JUKEBOX
+    /* ----------------
+     *	create and initialize the sony jukebox shared semaphore
+     * ----------------
+     */
+    SJInitSemaphore(key);
+#endif
+
     /* ----------------
      *	do the lock table stuff
      * ----------------
@@ -137,6 +145,14 @@ AttachSharedMemoryAndSemaphores(key)
 	ExecCreateExecutorSharedMemory(PrivateIPCKey);
 	ExecAttachExecutorSharedMemory();
     }
+
+#ifdef SONY_JUKEBOX
+    /* ----------------
+     *	create and initialize the sony jukebox shared semaphore
+     * ----------------
+     */
+    SJInitSemaphore(key);
+#endif
 
     /* ----------------
      *	initialize lock table stuff
