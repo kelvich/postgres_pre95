@@ -205,7 +205,7 @@ long *size;
 finish_up:
 	fclose(temp_file);
 	unlink(temp_file_name);
-	*start_address = load_address;
+	*start_addr = load_address;
 	*size = true_image_size;
 	return retval;
 }
