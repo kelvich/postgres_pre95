@@ -78,7 +78,7 @@ class (EState) public (Node) {
 /* ----------------------------------------------------------------
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -89,7 +89,7 @@ class (EState) public (Node) {
 class (StateNode) public (Node) {
 #define StateNodeDefs \
       inherits(Node); \
-      List 	   LeftTuple; \
+      List 	   OuterTuple; \
       AttributePtr TupType; \
       Pointer 	   TupValue; \
       int	   Level; \
@@ -106,7 +106,7 @@ class (StateNode) public (Node) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -129,7 +129,7 @@ class (ResultState) public (StateNode) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -169,7 +169,7 @@ class (CommonState) public (StateNode) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -201,7 +201,7 @@ class (ScanState) public (CommonState) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -234,7 +234,7 @@ class (NestLoopState) public (CommonState) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
@@ -297,7 +297,7 @@ class (AppendState) public (Node) {
  *
  *   StateNode information
  *
- *	LeftTuple	points to the current left tuple
+ *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
  *   	Level      	level of the left subplan
