@@ -68,7 +68,7 @@ ExecAgg(node)
 	ObjectId		xfn1_oid, xfn2_oid, finalfn_oid;
 	func_ptr		xfn1_ptr, xfn2_ptr, finalfn_ptr;
 	int			xfn1_nargs, xfn2_nargs, finalfn_nargs;
-	bool			isNull1 = 0, isNull2 = 0;
+	bool			isNull = 0, isNull1 = 0, isNull2 = 0;
 	char	 		*theNewVal;
 	char			*args[2];
 	long			nTuplesAgged = 0;
@@ -169,6 +169,7 @@ ExecAgg(node)
 	}
 	
 	for (;;) {
+		isNull = isNull1 = isNull2 = 0;
 		outerslot = ExecProcNode(outerNode);
 		outerTuple = (HeapTuple)
 			ExecFetchTuple((Pointer) outerslot);
@@ -176,16 +177,17 @@ ExecAgg(node)
 			break;
 		outerTupDesc = (TupleDescriptor)
 			SlotTupleDescriptor(outerslot);
-		theNewVal = fastgetattr(outerTuple, 1, outerTupDesc, &isNull1);
+		theNewVal = fastgetattr(outerTuple, 1, outerTupDesc, &isNull);
 		
-		if (!isNull1 && ObjectIdIsValid(xfn1_oid)) {
+		if (!isNull && ObjectIdIsValid(xfn1_oid)) {
 			args[0] = xfn1_val;
 			args[1] = theNewVal;
 			xfn1_val = fmgr_c(xfn1_ptr, xfn1_oid,
 					  xfn1_nargs, args, &isNull1);
 			Assert(!isNull1);
 		}
-		if (ObjectIdIsValid(xfn2_oid)) {
+		if (ObjectIdIsValid(xfn2_oid) &&
+		    !(isNull && ObjectIdIsValid(xfn1_oid))) {
 			xfn2_val = fmgr_c(xfn2_ptr, xfn2_oid,
 					  xfn2_nargs, &xfn2_val,
 					  &isNull2);
