@@ -78,6 +78,7 @@ YYSTYPE	       p_rtable,
 static int p_numlevels,p_last_resno;
 Relation parser_current_rel = NULL;
 static bool QueryIsRule = false;
+static int parser_current_query;
 
 bool Input_is_string = false;
 bool Input_is_integer = false;
@@ -1152,7 +1153,7 @@ AppendStmt:
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil)) == 0)
-		     ADD_TO_RT( MakeRangeTableEntry((Name)CString($5),
+		     		ADD_TO_RT( MakeRangeTableEntry((Name)CString($5),
 						    LispNil,
 						    (Name)CString($5)));
                   if (x==0)
@@ -1161,6 +1162,7 @@ AppendStmt:
                   if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
                   ResdomNoIsAttrNo = true;
+				  parser_current_query = APPEND;
                 }
           '(' res_target_list ')'
           where_clause
@@ -1281,7 +1283,7 @@ ReplaceStmt:
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil) ) == 0 )
-		     ADD_TO_RT( MakeRangeTableEntry ((Name)CString($5),
+		     		ADD_TO_RT( MakeRangeTableEntry ((Name)CString($5),
 						     LispNil,
 						     (Name)CString($5)));
                   if (x==0)
@@ -1289,7 +1291,9 @@ ReplaceStmt:
                   parser_current_rel = heap_openr(VarnoGetRelname(x));
                   if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
-                  ResdomNoIsAttrNo = true; }
+                  ResdomNoIsAttrNo = true; 
+				  parser_current_query = REPLACE;
+				}
         '(' res_target_list ')' where_clause
                 {
                     LispValue root;
@@ -1628,28 +1632,46 @@ record_qual:
 	/*EMPTY*/
 		{ NULLTREE }
 	;
-
-/*
- *  Array bounds -- support for arrays in the current system is poor.
- *  We'd like to support multi-dimensional arrays, arrays with lower
- *  bounds at values other than 1, ..., but we don't.  The only thing
- *  that's real in the Array nodes we return below is arrayhigh,
- *  which is the upper bound of the array.
- */
-
 opt_array_bounds:
-  	  '[' ']'
+  	  '[' ']' nest_array_bounds
 		{ 
-		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
-						-1, /* -1 means var length */
-				    0);
+			int ndim = 0;
+			IntArray dim_upper, dim_lower;
+			List elt, list;
+			
+			list = lispCons(lispInteger(-1), $3);
+			foreach (elt, list) {
+				dim_upper.indx[ndim] = CInteger(CAR(elt));
+				dim_lower.indx[ndim++] = 0;
+			}	
+				
+		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, ndim, 
+					dim_lower, dim_upper, 0);
 		}
-	| '[' Iconst ']'
-		{
-		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
-						CInteger($2), 0);
+	| '[' Iconst ']' nest_array_bounds
+		{ 
+			int ndim = 0;
+			IntArray dim_upper, dim_lower;
+			List elt, list;
+			
+			list = lispCons($2, $4);
+			foreach (elt, list) {
+				dim_upper.indx[ndim] = CInteger(CAR(elt));
+				dim_lower.indx[ndim++] = 0;
+			}	
+				
+		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, ndim, 
+					dim_lower, dim_upper, 0);
 		}
 	| /* EMPTY */				{ NULLTREE }
+	;
+
+nest_array_bounds:
+		'[' ']' nest_array_bounds
+		{	$$ = lispCons(lispInteger(-1), $3); }
+	| 	'[' Iconst ']' nest_array_bounds 
+			{$$ = lispCons($2, $4); }
+	|							{ NULLTREE }
 	;
 
 Typename:
@@ -1707,7 +1729,7 @@ a_expr:
 		if ($2 == LispNil)
 		    $$ = temp;
 		else
-		    $$ = make_array_ref(temp, $2);
+		    $$ = make_array_ref(temp, CDR($2), CAR($2));
 		Typecast_ok = false;
 	   }
 	| AexprConst		
@@ -1834,10 +1856,22 @@ a_expr:
 
 /* we support only single-dim arrays in the current system */
 opt_indirection:
-	  '[' a_expr ']'		{
+	  '[' a_expr ']' opt_indirection 
+		{
 		if (CInteger(CAR($2)) != INT4OID)
 		    elog(WARN, "array index expressions must be int4's");
-		$$ = $2;
+		if ($4 != LispNil)
+			$$ = lispCons(LispNil, lispCons(CDR($2), CDR($4)));
+		else $$ = lispCons(LispNil, lispCons(CDR($2), LispNil));
+	    }
+	| '['a_expr ':' a_expr ']' opt_indirection 
+		{
+		if ((CInteger(CAR($2)) != INT4OID)||(CInteger(CAR($4)) != INT4OID))
+		    elog(WARN, "array index expressions must be int4's");
+		if ($6 != LispNil)
+		$$ = lispCons(lispCons(CDR($2), CAR($6)), lispCons(CDR($4), CDR($6)));
+		else 
+		$$ = lispCons(lispCons(CDR($2), LispNil), lispCons(CDR($4), LispNil));
 	    }
 	| /* EMPTY */			{ NULLTREE }
 	;
@@ -1847,7 +1881,7 @@ expr_list: a_expr			{ ELEMENT ; }
 	;
 attr:
           relation_name '.' attrs
-                {
+        {
 		    INC_NUM_LEVELS(1);
 		    $$ = lispCons($1,$3);
 		}
@@ -1954,13 +1988,13 @@ res_target_list:
 	;
 
 res_target_el:
-		Id '=' agg
+		Id opt_indirection '=' agg
 	{
 	     int type_id;
 	     int resdomno,  type_len;
 	     List temp = LispNil;
 
-	     type_id = CInteger(CAR($3));
+	     type_id = CInteger(CAR($4));
 
 	     if (ISCOMPLEX(type_id))
 		elog(WARN,
@@ -1975,15 +2009,56 @@ res_target_el:
 					 (Size)type_len,
 					 (Name)CString($1),
 					 (Index)0, (OperatorTupleForm)0, 0) 
-			      , lispCons(CDR($3), LispNil) );
+			      , lispCons(CDR($4), LispNil) );
 		$$ = temp;
 	}
 
-	| Id '=' a_expr
+	| Id opt_indirection '=' a_expr
 	  {
-		if ($3 != LispNil && ISCOMPLEX(CInteger(CAR($3))))
+		if ($4 != LispNil && ISCOMPLEX(CInteger(CAR($4))))
 		    elog(WARN, "Cannot assign complex type to variable %s in target list", CString($1));
-		$$ = make_targetlist_expr ($1,$3);
+		if ((parser_current_query == APPEND) && ($2 != LispNil)) {
+			char * val;
+			char *str, *save_str;
+			LispValue elt;
+			int i = 0, ndims, j = 0;
+			int lindx[MAXDIM], uindx[MAXDIM];
+    		int resdomno;
+    		Relation rd;
+
+            val = (char *) textout((struct varlena *)
+							get_constvalue((Const)CDR($4)));
+			str = save_str = palloc(strlen(val) + MAXDIM*25);
+			foreach(elt, CDR($2)) {
+				if (!IsA(CAR(elt),Const)) 
+					elog(WARN, "Array Index for Append should be a constant");
+				uindx[i++] = get_constvalue((Const)CAR(elt));
+			}
+			if (CAR($2) != LispNil) {
+				foreach(elt, CAR($2)) {
+				if (!IsA(CAR(elt),Const)) 
+					elog(WARN, "Array Index for Append should be a constant");
+				lindx[j++] = get_constvalue((Const)CAR(elt));
+				}
+				if (i != j) elog(WARN, "yyparse: dimension mismatch");
+			} else for (j = 0; j < i; lindx[j++] = 1);
+			for (j = 0; j < i; j++) {
+				if (lindx[j] > uindx[j]) 
+				  elog(WARN, "yyparse: lower index cannot be greater than upper index");
+				sprintf(str, "[%d:%d]", lindx[j], uindx[j]);
+				str += strlen(str);
+			}
+			sprintf(str, "=%s", val);
+			rd = parser_current_rel;
+			Assert(rd != NULL);
+			resdomno = varattno(rd,CString($1));
+			ndims = att_attnelems(rd,resdomno);
+			if (i != ndims) elog(WARN, "yyparse: array dimensions do not match");
+			$$ = make_targetlist_expr ($1, make_const(lispString(save_str)), LispNil);
+			pfree(save_str);
+		}
+		else
+		$$ = make_targetlist_expr ($1,$4, $2);
 	   } 
 	| attr opt_indirection
              {
@@ -1994,7 +2069,7 @@ res_target_el:
 		 temp = HandleNestedDots($1);
 
 		 if ($2 != LispNil)
-		     temp = make_array_ref(temp, $2);
+		     temp = make_array_ref(temp, CDR($2), CAR($2)); 
 
 		 type_id = CInteger(CAR(temp));
 		 if (ISCOMPLEX(type_id))
@@ -2151,9 +2226,10 @@ parser_init(typev, nargs)
 
 
 LispValue
-make_targetlist_expr ( name , expr )
+make_targetlist_expr ( name , expr, arrayRef )
      LispValue name;
      LispValue expr;
+     LispValue arrayRef;
 {
     extern bool ResdomNoIsAttrNo;
     extern Relation parser_current_rel;
@@ -2201,8 +2277,9 @@ make_targetlist_expr ( name , expr )
 	Assert(rd != NULL);
 	resdomno = varattno(rd,CString(name));
 	attrtype = att_typeid(rd,resdomno);
+	if ((arrayRef != LispNil) && (CAR(arrayRef) == LispNil))
+		attrtype = GetArrayElementType(attrtype);
 	attrlen = tlen(get_id_type(attrtype)); 
-
 	if(Input_is_string && Typecast_ok){
               Datum val;
               if (CInteger(CAR(expr)) == typeid(type("unknown"))){
@@ -2223,12 +2300,20 @@ make_targetlist_expr ( name , expr )
 	Input_is_integer = false;
         Typecast_ok = true;
 
-	if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
-	   != -1 ) {
+	if( lispAssoc( lispInteger(resdomno),p_target_resnos) != -1 ) {
 	    elog(WARN,"two or more occurence of same attr");
 	} else {
 	    p_target_resnos = lispCons( lispInteger(resdomno),
 				       p_target_resnos);
+	}
+	if (arrayRef != LispNil) {
+		LispValue target_expr;
+		target_expr = HandleNestedDots (lispCons(
+				lispString(RelationGetRelationName(rd)), 
+				lispCons(name, LispNil)));
+		expr = (LispValue) make_array_set(target_expr, CDR(arrayRef), CAR(arrayRef), expr);	
+		attrtype = att_typeid(rd,resdomno);
+		attrlen = tlen(get_id_type(attrtype)); 
 	}
     } else {
 	resdomno = p_last_resno++;
