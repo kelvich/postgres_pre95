@@ -17,7 +17,7 @@
 #include "postgres.h"
 #include "syscache.h"
 #include "log.h"
-#include "prs2.h"
+/* #include "prs2.h" */
 #include "executor.h"		/* for EState */
 
 extern EState CreateExecutorState();
@@ -253,29 +253,11 @@ ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
 int operation;
 {
-    EState executorState;
     LispValue queryDescriptor;
     LispValue res1, res2, res3, result;
-    LispValue parseTree;
-    LispValue plan;
-    LispValue command;
+    EState executorState;
 
-
-    /*
-     * the actionPlan must be a list containing the parsetree & the
-     * plan that has to be executed.
-     */
-    parseTree = prs2GetParseTreeFromOneActionPlan(actionPlan);
-    plan = prs2GetPlanFromOneActionPlan(actionPlan);
-
-    command = root_command_type_atom(parse_root(parseTree));
-
-    queryDescriptor = MakeQueryDesc(
-			    command,
-			    parseTree,
-			    plan,
-			    LispNil,
-			    LispNil);
+    queryDescriptor = prs2MakeQueryDescriptorFromPlan(actionPlan);
 
     executorState = CreateExecutorState();
     set_es_param_list_info(executorState, paramList);
@@ -367,3 +349,40 @@ LispValue ruleInfo;
     return(n);
 }
 
+
+/*------------------------------------------------------------------
+ *
+ * prs2MakeQueryDescriptorFromPlan
+ *
+ * Given the actionPlan, the paramList and the prs2EStateInfo,
+ * create a query descriptor
+ */
+
+LispValue
+prs2MakeQueryDescriptorFromPlan(actionPlan)
+LispValue actionPlan;
+{
+    LispValue queryDescriptor;
+    LispValue parseTree;
+    LispValue plan;
+    LispValue command;
+
+
+    /*
+     * the actionPlan must be a list containing the parsetree & the
+     * plan that has to be executed.
+     */
+    parseTree = prs2GetParseTreeFromOneActionPlan(actionPlan);
+    plan = prs2GetPlanFromOneActionPlan(actionPlan);
+
+    command = root_command_type_atom(parse_root(parseTree));
+
+    queryDescriptor = MakeQueryDesc(
+			    command,
+			    parseTree,
+			    plan,
+			    LispNil,
+			    LispNil);
+
+    return(queryDescriptor);
+}
