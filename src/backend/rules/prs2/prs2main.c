@@ -125,6 +125,8 @@ Relation relation;
 HeapTuple oldTuple;
 Buffer oldBuffer;
 HeapTuple newTuple;
+Buffer rawBuffer;
+HeapTuple rawTuple;
 Buffer newBuffer;
 AttributeNumberPtr attributeArray;
 int numberOfAttributes;
