@@ -39,8 +39,9 @@
 #include <netinet/in.h>
 #include <signal.h>
 
-#include "tmp/pqcomm.h"
+#include "libpq/auth.h"
 #include "tmp/c.h"
+#include "tmp/pqcomm.h"
 #include "utils/log.h"
 
 RcsId ("$Header$");
@@ -488,9 +489,8 @@ short	portName;
   Connection		*MyConn = NULL;
   Port			*SendPort = NULL; /* This is a TCP or UDP socket */
   StartupPacket		startup;
-  int			sock;
-  Addr			addr;
   int			status;
+  MsgType		msgtype;
 
   /*
    * Initialize the startup packet.  Packet fields defined in comm.h
@@ -524,24 +524,27 @@ short	portName;
   /*
    * Open a connection to postmaster/backend.
    */
-  status = StreamOpen(hostName,portName,&sock);
+  SendPort = (Port *) malloc(sizeof(Port));
+  bzero((char *) SendPort, sizeof(Port));
+  status = StreamOpen(hostName, portName, SendPort);
   if (status != STATUS_OK)
     return(STATUS_ERROR);
 
-  /*
-   * Save communication port state.
-   */
-  SendPort = (Port *) malloc(sizeof(Port));
-  bzero(SendPort, sizeof(Port));
-  SendPort->sock =  sock;
-
   /* initialize */
-  status = PacketSend(SendPort, MyConn, 
-		      &startup, STARTUP_MSG, sizeof(startup), BLOCKING);
+  msgtype = fe_getauthsvc();
+  status = PacketSend(SendPort, MyConn, &startup, msgtype,
+		      sizeof(startup), BLOCKING);
+
+  /* authenticate as required */
+  if (pg_sendauth(msgtype, SendPort, hostName) != STATUS_OK) {
+	  strcpy(PQerrormsg, "pq_connect: authentication failed\n");
+	  fprintf(stderr, PQerrormsg);
+	  return(STATUS_ERROR);
+  }
 
   /* set up streams over which communic. will flow */
-  Pfout = fdopen(sock, "w");
-  Pfin = fdopen(dup(sock), "r");
+  Pfout = fdopen(SendPort->sock, "w");
+  Pfin = fdopen(dup(SendPort->sock), "r");
   if (!Pfout && !Pfin)
   {
       strcpy(PQerrormsg, "Couldn't fdopen the socket descriptor\n");
@@ -653,17 +656,6 @@ int	*fdP;
 
   bzero((char *)&sin, sizeof sin);
 
-#ifdef NOTDEF
-  if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
-    bcopy(hp->h_addr, (char *)&(sin.sin_addr), hp->h_length);
-  else {
-    fprintf(stderr, 
-        "StreamServerPort: cannot find hostname '%s' for stream port\n", 
-        hostName);
-    return(STATUS_ERROR);
-  }
-#endif
-
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       strcpy(PQerrormsg,"StreamServerPort: cannot make socket descriptor for port\n");
     fprintf(stderr,PQerrormsg);
@@ -697,39 +689,49 @@ int	*fdP;
  * StreamConnection -- create a new connection with client using
  *	server port.
  *
- * This one should be non-blocking.  The client could send us
- * part of a message.  Would not do at all to have the server
- * block waiting for the message to complete.  Not neccesary
- * to return the address, but it could conceivably be used
- * for protection checking.
+ * This one should be non-blocking.
  * 
  * RETURNS: STATUS_OK or STATUS_ERROR
  */
-StreamConnection(server_fd,new_fdP,addrP)
-int 			server_fd;
-int			*new_fdP;
-struct sockaddr_in	*addrP;
+StreamConnection(server_fd, port)
+	int	server_fd;
+	Port	*port;
 {
-  long 			len = sizeof (struct sockaddr_in);
+	int	addrlen;
 
-  if ((*new_fdP = accept(server_fd, (char *)addrP, &len)) < 0) {
-    strcpy(PQerrormsg,"StreamConnection: accept failed\n");
-    fprintf(stderr,PQerrormsg);
-    return(STATUS_ERROR);
-  }
-  /* reset to non-blocking */
-  fcntl(*new_fdP, F_SETFL, 1);	
-
-  return(STATUS_OK);
+	/* accept connection (and fill in the client (remote) address) */
+	addrlen = sizeof(struct sockaddr_in);
+	if ((port->sock = accept(server_fd,
+				 (struct sockaddr *) port->raddr,
+				 &addrlen)) < 0) {
+		elog(WARN, "postmaster: StreamConnection: accept: %m");
+		return(STATUS_ERROR);
+	}
+	
+	/* fill in the server (local) address */
+	addrlen = sizeof(struct sockaddr_in);
+	if (getsockname(port->sock, (struct sockaddr *) &port->laddr,
+			&addrlen) < 0) {
+		elog(WARN, "postmaster: StreamConnection: getsockname: %m");
+		return(STATUS_ERROR);
+	}
+	
+	port->sock = port->sock;
+	port->mask = 1 << port->sock;
+	
+	/* reset to non-blocking */
+	fcntl(port->sock, F_SETFL, 1);	
+	
+	return(STATUS_OK);
 }
 
 /* 
  * StreamClose -- close a client/backend connection
  */
 StreamClose(sock)
-int	sock;
+	int	sock;
 {
-  close(sock); 
+	close(sock); 
 }
 
 /* ---------------------------
@@ -741,47 +743,54 @@ int	sock;
  * NOTE: connection is NOT established just because this
  *	routine exits.  Local state is ok, but we haven't
  *	spoken to the postmaster yet.
- *
- * ASSUME that the client doesn't need the net address of the
- *	server after this routine exits.
  * ---------------------------
  */
-StreamOpen(hostName,portName,sockP)
-char	*hostName;
-short	portName;
-int	*sockP;
+StreamOpen(hostName, portName, port)
+	char	*hostName;
+	short	portName;
+	Port	*port;
 {
-  struct sockaddr_in	addr;
-  struct hostent	*hp;
-  int			sock;
+	struct hostent	*hp;
+	int		laddrlen = sizeof(struct sockaddr_in);
 
-  if (! hostName)
-    hostName = "localhost";
+	if (!hostName)
+		hostName = "localhost";
+	
+	/* set up the server (remote) address */
+	if (!(hp = gethostbyname(hostName)) || hp->h_addrtype != AF_INET) {
+		sprintf(PQerrormsg, "StreamOpen: unknown hostname '%s'\n",
+			hostName);
+		fprintf(stderr,PQerrormsg);
+		return(STATUS_ERROR);
+	}
+	bzero((char *) &port->raddr, sizeof(port->raddr));
+	bcopy((char *) hp->h_addr, (char *) &(port->raddr.sin_addr),
+	      hp->h_length);
+	port->raddr.sin_family = AF_INET;
+	port->raddr.sin_port = htons(portName);
+	
+	/* connect to the server */
+	if ((port->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		sprintf(PQerrormsg, "StreamOpen: socket: errno=%d\n",
+			errno);
+		fprintf(stderr, PQerrormsg);
+		return(STATUS_ERROR);
+	}
+	if (connect(port->sock, &port->raddr, sizeof(port->raddr)) < 0) {
+		sprintf(PQerrormsg, "StreamOpen: connect: errno=%d\n",
+			errno);
+		fprintf(stderr, PQerrormsg);
+		return(STATUS_ERROR);
+	}
 
-  bzero((char *)&addr, sizeof addr);
-
-  if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
-    bcopy(hp->h_addr, (char *)&(addr.sin_addr), hp->h_length);
-  else {
-    sprintf(PQerrormsg,
-	"StreamPort: cannot find hostname '%s' for stream port\n",
-	hostName);
-    fprintf(stderr,PQerrormsg);
-    return(STATUS_ERROR);
-  }
-
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-      strcpy(PQerrormsg,"StreamPort: cannot make socket descriptor for port\n");
-    fprintf(stderr,PQerrormsg);
-    return(STATUS_ERROR);
-  }
-
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(portName);
-
-  *sockP = sock;
-  if (! connect(sock, &addr, sizeof(addr)))
-    return(STATUS_OK);
-  else
-    return(STATUS_ERROR);
+	/* fill in the client address */
+	if (getsockname(port->sock, (struct sockaddr *) &port->laddr,
+			&laddrlen) < 0) {
+		sprintf(PQerrormsg, "StreamOpen: getsockname: errno=%d\n",
+			errno);
+		fprintf(stderr,PQerrormsg);
+		return(STATUS_ERROR);
+	}
+	
+	return(STATUS_OK);
 }

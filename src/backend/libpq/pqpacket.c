@@ -30,6 +30,16 @@
  *
  * NOTE: assume htonl() is sufficient for all header structs.  If
  *	header structs become longs, must switch to htonl().
+ * XXX say what??
+ *
+ * XXX this fake-o UDP shit has got to go.  none of these routines are
+ * called more than once, anywhere.
+ *
+ * XXX i can't believe no one has noticed that there aren't any ntohl's in
+ * this code -- just htonl's.  (it just happens to work because no one can
+ * ever actually run libpq between byte-swapped machines -- the fact that
+ * we send raw host-order integers everywhere would kill you.)  but if we
+ * fix this code, then startup packets from old binaries become invalid.  feh.
  */
 #include <stdio.h>
 #include <sys/types.h>
@@ -50,6 +60,8 @@ extern char PQerrormsg[];
  *
  * RETURNS: connection id of the packet sender, if one
  * is available.
+ *
+ * XXX this code is called in exactly one place
  */
 PacketReceive(port, buf, nonBlocking, connIdP)
 Port		*port;	/* receive port */
@@ -81,10 +93,13 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
    */
   tmp = ((Addr)buf) + port->nBytes;
   if (port->nBytes >= sizeof(PacketHdr)) {
+#if 0
     packetLen = htonl(hdr->len) + sizeof(PacketHdr);
+#endif
+    packetLen = htonl(hdr->len) - port->nBytes;
   } else {
     cc = recvfrom(port->sock, tmp, sizeof(PacketHdr), flag, 
-		  &(port->addr), &addrLen);
+		  &(port->raddr), &addrLen);
     if ( cc < sizeof(PacketHdr)) {
       /* if cc is negative, the system call failed */
       if (cc < 0) {
@@ -130,7 +145,7 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
    */
   while (packetLen) { 
     cc = recvfrom(port->sock, tmp, packetLen, NULL, 
-		  &(port->addr), &addrLen);
+		  &(port->raddr), &addrLen);
     if (cc < 0)
       return(STATUS_ERROR);
 
@@ -165,6 +180,8 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
  * SIDE_EFFECTS: may block.
  * NOTES: Non-blocking writes would significantly complicate 
  *	buffer management.  For now, we're not going to do it.
+ *
+ * XXX this code is called in exactly one place
  */
 PacketSend(port, conn, buf, type, len, nonBlocking)
 Port		*port;
@@ -190,7 +207,7 @@ Boolean		nonBlocking;
   hdr->len = htonl(len);
 
   len = sendto(port->sock, (Addr) buf, totalLen, /* flags */ 0,
-	       &(port->addr), addrLen);
+	       &(port->raddr), addrLen);
 
   if (len < totalLen) {
       strcpy(PQerrormsg,"PacketSend: couldn't send complete packet\n");
@@ -209,6 +226,7 @@ Boolean		nonBlocking;
  *
  * NOTE: seqnoP is an IN/OUT parameter.  The others are out only.
  *
+ * XXX this code is called in exactly one place
  */
 PacketData(buf, dataP, bufSizeP, msgTypeP, seqnoP)
 Addr		buf;
@@ -238,6 +256,8 @@ SeqNo		*seqnoP;
  *
  * Assume that the header is already initialized.  We're
  * just going to resend the same message.
+ *
+ * XXX dead code
  */
 PacketRetransmit(buf,port,addr)
 Addr		buf;
@@ -269,6 +289,8 @@ Addr		addr;
  * NOTE: not sure this is necessary.  Some clients are going
  *	to have to know how big the thing is in order to do
  *	memory allocation.
+ *
+ * XXX dead code
  */
 PacketBufInit(bufP, bufSizeP)
 Addr 		*bufP;
