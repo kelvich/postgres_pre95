@@ -134,6 +134,8 @@ class (Resdom) public (Node) {
 
 /* -------------
  * Fjoin
+ *      initialized	- true if the Fjoin has already been initialized for
+ *                        the current target list evaluation
  *	nNodes		- The number of Iter nodes returning sets that the
  *			  node will flatten
  *	outerList	- 1 or more Iter nodes
@@ -144,12 +146,16 @@ class (Resdom) public (Node) {
  *			  been exhausted, we get the next outer result vector
  *			  and reset the inner.
  *	results		- The complete (flattened) result vector
+ *      alwaysNull	- a null vector to indicate sets with a cardinality of
+ *			  0, we treat them as the set {NULL}.
  */
 class (Fjoin) public (Node) {
 	inherits0(Node);
-	int			nNodes;
-	List			innerNode;
-	DatumPtr		results;
+	bool			fj_initialized;
+	int			fj_nNodes;
+	List			fj_innerNode;
+	DatumPtr		fj_results;
+	BoolPtr			fj_alwaysDone;
 };
 
 /* ----------------
