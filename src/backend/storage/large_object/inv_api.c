@@ -554,6 +554,18 @@ inv_fetchtup(obj_desc, bufP)
 	|| obj_desc->ofs.i_fs.offset < obj_desc->ofs.i_fs.lowbyte
 	|| !ItemPointerIsValid(&(obj_desc->ofs.i_fs.htid))) {
 
+	/* initialize scan key if not done */
+	if (obj_desc->ofs.i_fs.iscan==(IndexScanDesc)NULL) {
+	    ScanKeyEntryData skey[1];
+
+	    ScanKeyEntryInitialize(&skey[0], 0x0, 1, Int4GEProcedure,
+				   Int32GetDatum(0));
+	    obj_desc->ofs.i_fs.iscan = 
+		index_beginscan(obj_desc->ofs.i_fs.index_r,
+				(Boolean) 0, (uint16) 1,
+				(ScanKey) &skey[0]);
+	}
+
 	do {
 	    res = index_getnext(obj_desc->ofs.i_fs.iscan, ForwardScanDirection);
 
