@@ -2,6 +2,11 @@
 .\" $Header$
 .SS INTRODUCTION 5/02/90
 .XA 0 "Section 1 \*- Introduction"
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 1 \*- INTRODUCTION"
+.sp 3
 .uh OVERVIEW
 .lp
 This document is the reference for the \*(PP database system
@@ -34,8 +39,8 @@ this is
 software.
 .uh "POSTGRES DISTRIBUTION"
 .sp
-This reference describes Version 3.1 of POSTGRES.  The POSTGRES software is
-about 190,000 lines of C code, and is available for SUN 3 and
+This reference describes Version \*(PV of POSTGRES.  The POSTGRES software is
+about 190,000 lines of C code, and is available for 
 SUN 4 class machines, for DECstation 3100 and 5000 machines and for
 the SEQUENT Symmetry machine.
 Information on obtaining the source code for these computers is
@@ -49,7 +54,7 @@ Berkeley, Ca. 94720
 (510) 642-4662
 .)l
 .sp
-Version 3.1 has been tuned modestly.  Hence on the Wisconsin benchmark,
+Version \*(PV has been tuned modestly.  Hence on the Wisconsin benchmark,
 one should expect performance about twice that of the public domain,
 University of
 California Version of \*(II, a relational prototype
@@ -58,18 +63,14 @@ from the late 1970s.
 .uh "POSTGRES DOCUMENTATION"
 .lp
 This
-reference describes the functionality of Version 3.1
+reference describes the functionality of Version \*(PV
 and contains
 notations where appropriate to indicate which features are not implemented in
-Version 3.1.
+Version \*(PV.
 Application developers should note that
 this reference contains only the specification for
 the low-level call-oriented application program interface,
 LIBPQ.
-In addition, a companion project directed by Professor Rowe is
-building a collection of powerful development tools called
-.b \*(OF ,
-which is the subject of a separate manual.
 .lp
 The remainder of this reference is structured as follows.
 In Section 2,
@@ -101,30 +102,35 @@ for files used by \*(PP.
 .lp
 \*(PP has been constructed by a team of undergraduate, graduate, and
 staff programmers.
-The Version 3 contributors (in alphabetical order) consisted of 
+The contributors (in alphabetical order) consisted of
 James Bell,
 Jennifer Caetta,
+Jolly Chen,
 Ron Choi,
 Adam Glass,
 Jeffrey Goh,
+Joey Hellerstein,
 Wei Hong,
 Anant Jhingran,
 Greg Kemnitz,
+Case Larsen
 Jeff Meredith,
 Michael Olson,
 Lay-Peng Ong,
 Spyros Potamianos,
+Sunita Sarawagi,
 and Cimarron Taylor.
 .sp
 .lp
-Greg Kemnitz served as chief programmer and was responsible for
+For Version 4.0, Jeff Meredith served as chief programmer and was
+responsible for
 overall coordination of the project and for individually implementing the
-.q "everything else"
+"everything else"
 portion of the system.
 .lp
 This reference was collectively written by
 the above implementation team,
-assisted by Michael Stonebraker and Claire Mosher.
+assisted by Michael Stonebraker, Chandra Ghosh and Claire Mosher.
 .uh FOOTNOTES
 .lp
 \*(UU is a trademark of
