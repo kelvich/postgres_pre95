@@ -1,0 +1,276 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SS "LARGE OBJECTS" 6/14/90
+.XA 0 "Section 7 \*- Large Objects"
+.uh NAME
+.lp
+Large Object Backend Interface \*- interface to \*(PP large objects
+.uh DESCRIPTION
+.lp
+In addition to LIBPQ, the \*(PP Backend provides several functions that
+can be used by dynamically loaded functions to manipulate large objects
+and ADT's in general.  This interface is provided as a means of "market
+research" for a much more sophisticated large object implementation which
+will be used for Version 4.
+.lp
+Large objects in \*(PP are implemented as "filename as an abstract data
+type".  That is, users can "nominate" an external file to be a \*(PP large
+object and perform operations on it from outside of \*(PP, ie, the documents
+in a document retrieval system can be edited using normal text processors
+independent of \*(PP.  However, unlike simply storing a filename as a
+text string in a relation, the \*(PP "file as an ADT" implementation allows
+operators, functions, and, in Version 4, functional indices (values derived
+from functions, stored in a \*(PP secondary index, used in function and
+operator evaluation) to be used in Postquel queries.
+.lp
+The "filename as an ADT" implementation of large objects does not support
+historical queries, transaction semantics, or crash recovery.  Further
+large object storage options, which will be available in Version 4, will
+support these necessary features.
+.lp
+The large object interface will eventually be promoted to a LIBPQ interface
+and be available to both front-end user applications and backend user
+functions.
+.lp
+The \*(PP large object interface is modeled after the Unix file system
+interface, with analogs of open(), read(), write(), lseek(), etc.
+However, the (almost) atomic unit of interaction is a "block" rather than
+a "byte", for several reasons: in future large object storage options, a
+block-oriented differencing scheme may be used, and the maximum unsigned
+integer quantity on 32 bit hardware may not be sufficiently large to hold
+a very large object.
+.lp
+.uh "QUERY LANGUAGE LARGE OBJECT INTERFACE"
+.lp
+The below functions are \*(PP registered functions, meaning they can
+be used directly in Postquel queries as well as from dynamically loaded C
+functions.  If you are defining a "simple" large object ADT, these functions
+can be used as your "input" and "output" functions (see 
+.b define
+.b type
+and the tutorial on ADT's for details).
+.(1
+
+lo_filein(filename) \*- Nominates a user file as a \*(PP large object.
+
+char * lo_filein(filename)
+
+	char *filename;
+
+lo_fileout(filename) \*- Prints the file name associated with a large object.
+
+char * lo_fileout (object)
+
+	LargeObject *object;
+
+.)1
+.uh "LARGE OBJECT INCLUDE FILE"
+.lp
+The include file
+.lp
+~postgres/src/lib/H/utils/large_object.h
+.lp
+defines constants and types which are used by the large object interface.
+User-defined functions using this interface should be sure to include this
+file.
+.lp
+.uh "INTERNAL LARGE OBJECT INTERFACE"
+.lp
+The following functions define the \*(PP internal large object interface.
+These functions should be used by any dynamically loaded routine which is
+operating on a large object.
+.lp
+.uh "Internal structures"
+.lp
+.i LargeObject
+.lp
+LargeObject is the structure that is actually stored in \*(PP instances.
+It is what should be returned by any user function generating a large object,
+and it is what will be passed to a user function expecting a large object
+as a argument.
+.lp
+.i LargeObjectDesc
+.lp
+LargeObjectDesc is the structure that is used for manipulating an open
+large object.  It is analogous to (but not equal to) the Unix notion of a
+file descriptor.
+.lp
+The constant
+.lp
+.i LARGE_OBJECT_BLOCK
+.lp
+is defined in large_object.h and is useful for determining how many bytes
+to pass to the block-oriented interface.
+.lp
+.uh "Internal function interface"
+.lp
+.(1
+
+LOCreate \*- Creates a new large object (owned by \*(PP)
+
+LargeObjectDesc * LOCreate(open_mode)
+
+	int open_mode;
+
+LOOpen \*- Opens an existing large object. 
+
+LargeObjectDesc * LOOpen (object, open_mode)
+
+	LargeObject *object;
+.lp
+	int open_mode;
+
+.)1
+.lp
+LOStat is useful for determining the present size of a large object.
+In bytes, this would be calculated as
+.lp
+nblocks * LARGE_OBJECT_BLOCK + byte_offset
+.lp
+.(1
+
+LOStat \*- Returns useful info about a \*(PP large object.
+
+void LOStat(obj_desc, nblocks, byte_offset) 
+
+	LargeObjectDesc *obj_desc;
+.lp
+	unsigned int *nblocks, *byte_offset;
+
+.)1
+.lp
+LOBlockRead reads nblocks blocks into buf.  It returns the number of bytes
+read in the last block.  If this number is less that LARGE_OBJECT_BLOCK, an
+incomplete block has been read, indicating that end of file has been
+encountered.
+.lp
+.(1
+
+LOBlockRead \*- Reads nblocks blocks
+
+int LOBlockRead(obj_desc, buf, nblocks)
+
+	LargeObjectDesc *obj_desc;
+.lp
+	char *buf;
+.lp
+	unsigned long nblocks;
+.)1
+.lp
+LOBlockWrite writes n_whole_blocks into the large object.  So that an
+incomplete block may be written, the "bytes_at_end" argument is be used to
+indicate the number of "valid" bytes to be written into an incomplete block.
+The incomplete block does not count in the number of blocks written with
+n_whole_blocks.  In other words, the number of bytes written
+to the object is computed by the following formula:
+.lp
+n_whole_blocks * LARGE_OBJECT_BLOCK + bytes_at_end
+.lp
+.(1
+
+LOBlockWrite \*- Writes buffer to large object.
+
+int LOBlockWrite (obj_desc, buf, n_whole_blocks, bytes_at_end)
+
+	LargeObjectDesc *obj_desc;
+.lp
+	char *buf;
+.lp
+	unsigned long n_whole_blocks, bytes_at_end;
+
+.)1
+.lp
+LOBlockSeek's arguments and return value are as in lseek(), except that
+they are in blocks instead of bytes.  (Note that LOStat() should be used to
+determine the size of a large object.)
+.lp
+.(1
+
+LOBlockSeek \*- seeks to a position in large object; similar to lseek()
+
+unsigned long LOBlockSeek (obj_desc, offset, whence)
+
+	LargeObjectDesc *obj_desc;
+.lp
+	unsigned long offset,
+.lp
+	int whence;
+
+.)1
+.lp
+LODescToObject gets the large object structure out of the large object
+descriptor.  It must be called BEFORE calling LOClose or LODestroy (see below)
+since LOClose frees memory associated with the large object descriptor.
+.lp
+Also, functions which create and return a large object will need to use
+LODescToObject to fetch the proper stored large object structure.
+.lp
+Note that LODescToObject does NOT close the object.
+.lp
+.(1
+
+LODescToObject \*- Gets a LargeObject structure from a LargeObjectDescriptor
+
+LargeObject * LODescToObject (obj_desc)
+
+	LargeObjectDesc *obj_desc;
+
+LOClose \*- closes a large object.
+
+void
+LOClose (obj_desc)
+
+	LargeObjectDesc *obj_desc;
+
+.)1
+.lp
+LODestroy deletes a large object and frees the memory associated with a
+LargeObject structure.  It is especially useful for "temporary files".
+.lp
+.(1
+
+LODestroy \*- destroys a large object
+
+void LODestroy (object)
+
+	LargeObject *object;
+.)1
+.lp
+.uh "\*(PP memory allocator"
+.lp
+All dynamically loaded user functions should use the \*(PP "palloc/pfree"
+memory managers.  Attempts to use other memory allocators such as malloc()
+will lead to bizarre behavior and a likely backend failure.
+.lp
+.(1
+
+palloc \*- \*(PP memory allocator
+
+char * palloc (nbytes)
+
+	unsigned long nbytes;
+
+pfree \*- Free memory allocated with palloc
+
+void pfree(memory)
+
+	char *memory;
+
+.)1
+.lp
+.uh "BUGS"
+.lp
+The 3.0 implementation of large objects is purely a backend interface; it
+will be extended in Version 4 to include a LIBPQ interface so that large
+objects can be manipulated by application programs as well as user functions.
+.lp
+The 3.0 implementation of large objects does not support transaction
+semantics or crash recovery.
+.lp
+"Dead" large objects will be left on disk following a crash or user
+carelessness.  DBA's may need to occasionally purge dead large objects to
+avoid disk wastage.
+.lp
+Users should be aware of this and 
+.lp
+
