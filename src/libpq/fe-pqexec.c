@@ -1024,9 +1024,9 @@ PQendcopy()
 	case 'Z': /* backend finished the copy */
 	    return(1);
 	default:
-	    (void) strcpy(PQerrormsg, 
-			  "FATAL: PQendcopy: protocol error: id=%x\n",
-			  id);
+	    (void) sprintf(PQerrormsg, 
+			   "FATAL: PQendcopy: protocol error: id=%x\n",
+			   id);
 	    fputs(PQerrormsg, stderr);
 	    pqdebug("%s", PQerrormsg);
 	    PQreset();
