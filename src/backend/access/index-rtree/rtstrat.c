@@ -5,6 +5,10 @@
 
 #include "utils/rel.h"
 
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "storage/page.h"
+
 #include "access/isop.h"
 #include "access/istrat.h"
 #include "access/rtree.h"
@@ -15,8 +19,8 @@ RcsId("$Header$");
  *  Note:  negate, commute, and negatecommute all assume that operators are
  *	   ordered as follows in the strategy map:
  *
- *	contained-by, intersects, disjoint, contains, not-contained-by,
- *	not-contains, equal
+ *	left, left-or-overlap, overlap, right-or-overlap, right, same,
+ *	contains, contained-by
  *
  *  The negate, commute, and negatecommute arrays are used by the planner
  *  to plan indexed scans over data that appears in the qualificiation in
@@ -39,35 +43,38 @@ RcsId("$Header$");
  */
 
 /* if a op b, what operator tells us if (not a op b)? */
-static StrategyNumber	RTNegate[7] = {
-	RTNotCBStrategyNumber,		/* !contained-by */
-	RTDisjointStrategyNumber,	/* !intersects */
-	RTIntersectsStrategyNumber,	/* !disjoint */
-	RTNotCStrategyNumber,		/* !contains */
-	RTContainedByStrategyNumber,	/* !not-contained-by */
-	RTContainsStrategyNumber,	/* !not-contains */
-	InvalidStrategy			/* don't know how to negate = */
+static StrategyNumber	RTNegate[RTNStrategies] = {
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy
 };
 
 /* if a op_1 b, what is the operator op_2 such that b op_2 a? */
-static StrategyNumber	RTCommute[7] = {
-	RTContainsStrategyNumber,	/* commute contained-by */
-	InvalidStrategy,		/* intersects commutes itself */
-	InvalidStrategy,		/* disjoint commutes itself */
-	RTContainedByStrategyNumber,	/* commute contains */
-	RTNotCStrategyNumber,		/* commute not-contained-by */
-	RTNotCBStrategyNumber,		/* commute not-contains */
-	InvalidStrategy			/* equal commutes itself */
+static StrategyNumber	RTCommute[RTNStrategies] = {
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy
 };
 
 /* if a op_1 b, what is the operator op_2 such that (b !op_2 a)? */
-static StrategyNumber	RTNegateCommute[7] = {
-	RTNotCStrategyNumber,
-	RTDisjointStrategyNumber,
-	RTIntersectsStrategyNumber,
-	RTNotCBStrategyNumber,
-	RTContainsStrategyNumber,
-	RTContainedByStrategyNumber,
+static StrategyNumber	RTNegateCommute[RTNStrategies] = {
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
+	InvalidStrategy,
 	InvalidStrategy
 };
 
@@ -121,30 +128,10 @@ static uint16 RTContainsTermData[] = {
 	CommuteArguments			/* swapping a and b */
 };
 
-/* if you only have "not-contained-by", how do you determine equality? */
-static uint16 RTNotCBTermData[] = {
-	2,					/* make two comparisons */
-	RTNotCBStrategyNumber,			/* "a not-contained-by b" ... */
-	NegateResult,				/* ... with result negated, */
-	RTNotCBStrategyNumber,			/* then the same thing */
-	NegateResult|CommuteArguments		/* with a and b swapped */
-};
-
-/* if you only have "not-contains", how do you determine equality? */
-static uint16 RTNotCTermData[] = {
-	2,					/* make two comparisons */
-	RTNotCStrategyNumber,			/* "a not-contains b" ... */
-	NegateResult,				/* ... with result negated, */
-	RTNotCStrategyNumber,			/* then the same thing */
-	NegateResult|CommuteArguments		/* with a and b swapped */
-};
-
 /* now put all that together in one place for the planner */
 static StrategyTerm RTEqualExpressionData[] = {
 	(StrategyTerm) RTContainedByTermData,
 	(StrategyTerm) RTContainsTermData,
-	(StrategyTerm) RTNotCBTermData,
-	(StrategyTerm) RTNotCTermData,
 	NULL
 };
 
@@ -165,17 +152,41 @@ static StrategyTerm RTEqualExpressionData[] = {
  */
 
 static StrategyEvaluationData RTEvaluationData = {
-	7,					/* # of strategies */
+	RTNStrategies,				/* # of strategies */
 	(StrategyTransformMap) RTNegate,	/* how to do (not qual) */
 	(StrategyTransformMap) RTCommute,	/* how to swap operands */
 	(StrategyTransformMap) RTNegateCommute,	/* how to do both */
-	NULL,					/* express contained-by */
-	NULL,					/* express intersects */
-	NULL,					/* express disjoint */
+	NULL,					/* express left */
+	NULL,					/* express overleft */
+	NULL,					/* express over */
+	NULL,					/* express overright */
+	NULL,					/* express right */
+	(StrategyExpression) RTEqualExpressionData,	/* express same */
 	NULL,					/* express contains */
-	NULL,					/* express not-contained-by */
-	NULL,					/* express not-contains */
-	(StrategyExpression) RTEqualExpressionData	/* express equal */
+	NULL					/* express contained-by */
+};
+
+/*
+ *  Okay, now something peculiar to rtrees that doesn't apply to most other
+ *  indexing structures:  When we're searching a tree for a given value, we
+ *  can't do the same sorts of comparisons on internal node entries as we
+ *  do at leaves.  The reason is that if we're looking for (say) all boxes
+ *  that are the same as (0,0,10,10), then we need to find all leaf pages
+ *  that overlap that region.  So internally we search for overlap, and at
+ *  the leaf we search for equality.
+ *
+ *  This array maps leaf search operators to the internal search operators.
+ *  We assume the normal ordering on operators.
+ */
+static StrategyNumber RTOperMap[RTNStrategies] = {
+	RTOverLeftStrategyNumber,
+	RTOverLeftStrategyNumber,
+	RTOverlapStrategyNumber,
+	RTOverRightStrategyNumber,
+	RTOverRightStrategyNumber,
+	RTOverlapStrategyNumber,
+	RTContainsStrategyNumber,
+	RTContainedByStrategyNumber
 };
 
 StrategyNumber
@@ -197,4 +208,22 @@ RelationInvokeRTStrategy(r, attnum, s, left, right)
 {
 	return (RelationInvokeStrategy(r, &RTEvaluationData, attnum, s,
 				       left, right));
+}
+
+RegProcedure
+RTMapOperator(r, attnum, proc)
+	Relation r;
+	AttributeNumber attnum;
+	RegProcedure proc;
+{
+	StrategyNumber procstrat;
+	RegProcedure newproc;
+	StrategyMap strategyMap;
+
+	procstrat = RelationGetRTStrategy(r, attnum, proc);
+	strategyMap = IndexStrategyGetStrategyMap(RelationGetIndexStrategy(r),
+						  RTNStrategies,
+						  attnum);
+
+	return (strategyMap->entry[RTOperMap[procstrat]].procedure);
 }
