@@ -124,7 +124,8 @@ IndexSupportInitialize ARGS((
 	ObjectId	indexObjectId,
 	ObjectId	accessMethodObjectId,
 	StrategyNumber	maxStrategyNumber,
-	StrategyNumber	maxSupportNumber
+	StrategyNumber	maxSupportNumber,
+	AttributeNumber maxAttributeNumber
 ));
 
 #endif	/* !defined(IStratIncluded) */

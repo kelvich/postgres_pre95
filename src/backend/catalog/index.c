@@ -865,7 +865,7 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
 
     IndexSupportInitialize(strategy, support,
 			    attrelid, accessMethodObjectId,
-			    amstrategies, amsupport);
+			    amstrategies, amsupport, numatts);
 
     setheapoverride(0);
 

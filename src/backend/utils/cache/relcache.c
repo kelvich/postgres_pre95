@@ -679,7 +679,7 @@ IndexedAccessMethodInitialize(relation)
     IndexSupportInitialize(strategy, support,
     			    relation->rd_att.data[0]->attrelid,
     			    relation->rd_rel->relam,
-			    relamstrategies, relamsupport);
+			    relamstrategies, relamsupport, natts);
 
     RelationSetIndexSupport(relation, strategy, support);
 }
