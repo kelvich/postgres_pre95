@@ -125,7 +125,7 @@ ProcessUtility(command, args, commandString, dest)
 		    break;
 		}
 	    }
-	    PerformPortalFetch(portalName, forward, count, dest);
+	    PerformPortalFetch(portalName, forward, count, commandTag, dest);
 	}
 	break;
 	
