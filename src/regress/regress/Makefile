@@ -1,7 +1,5 @@
 #
-#
-#  To run the regression tests type 'bmake runtest'
-#
+# $Header$
 #
 
 .include <postgres.global.mk>
@@ -36,14 +34,43 @@ SRCS= iportal.c
 
 .include <postgres.prog.mk>
 
+#
+# build dynamically-loaded object files
+#
 DLOBJS= regress.o ufp1.o ufp2.o ufp3.o
+
+#
+# ... plus test query inputs
+#
 CREATEFILES= ${DLOBJS} \
 	create.pq queries.pq errors.pq destroy.pq \
 	fstest.sh
-.if (${SLSUFF} != ".o")
-SLOBJS= ${DLOBJS:S/.o/${SLSUFF}/g}
-CREATEFILES+= ${SLOBJS}
+
+#
+# ... plus exports files
+#
+.if defined(EXPSUFF)
+CREATEFILES+= ${DLOBJS:S/.o/${EXPSUFF}/g}
+.  if (${PORTNAME} == "aix")
+UFP: .USE
+	${LD} -H512 -T512 -o ${.TARGET} -e _nostart \
+		-bI:${LIBDIR}/pg_ufp.exp -bE:$*${EXPSUFF} $*.o \
+		-lm -lc 2>/dev/null
+ufp1.so: $*.o $*.exp UFP
+ufp2.so: $*.o $*.exp UFP
+ufp3.so: $*.o $*.exp UFP
+.  endif
 .endif
+
+#
+# ... plus shared libraries
+#
+.if defined(SLSUFF)
+.  if (${SLSUFF} != ".o")
+CREATEFILES+= ${DLOBJS:S/.o/${SLSUFF}/g}
+.  endif
+.endif
+
 OUTFILES= stud_emp.data onek.data regress.out
 CLEANFILES+= ${CREATEFILES} ${OUTFILES}
 
@@ -51,7 +78,13 @@ ${OUTFILES}: ${CREATEFILES} ${PROG}
 	${SHCMD} ${.CURDIR}/regress.sh 2>&1 | tee regress.out
 	@echo "RESULTS OF REGRESSION ARE SAVED IN ${MAKEOBJDIR}/regress.out"
 
+#
+# prepare to run the test (including clean-up after the last run)
+#
 all: ${CREATEFILES} ${PROG}
 	rm -f ${OUTFILES}
 
+#
+# run the test
+#
 runtest: ${OUTFILES}
