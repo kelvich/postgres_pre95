@@ -5,6 +5,8 @@
 
 #include "c.h"
 
+RcsId("$Header$");
+
 #include "att.h"
 #include "attnum.h"
 #include "htup.h"
@@ -13,10 +15,9 @@
 #include "relcache.h"
 #include "relscan.h"
 #include "skey.h"
+#include "tqual.h"
 
 #include "heapam.h"
-
-RcsId("$Header$");
 
 /*
  * XXX Note that longer function names are preferred when called
@@ -101,13 +102,13 @@ RelationCloseHeapRelation(relation)
 }
 
 HeapTuple
-RelationGetHeapTupleByItemPointer(relation, range, heapItem, bufferOutP)
+RelationGetHeapTupleByItemPointer(relation, qual, heapItem, bufferOutP)
 	Relation	relation;
-	TimeRange	range;
+	TimeQual	qual;
 	ItemPointer	heapItem;
 	Buffer		*bufferOutP;
 {
-	return (amgetunique(relation, range, heapItem, bufferOutP));
+	return (amgetunique(relation, qual, heapItem, bufferOutP));
 }
 
 RuleLock
@@ -150,7 +151,7 @@ RelationPhysicallyDeleteHeapTuple(relation, heapItem)
 	}
 	dp = (PageHeader)BufferSimpleGetPage(b);
 	lp = PageGetItemId(dp, ItemPointerSimpleGetOffsetIndex(heapItem));
-	if (!ItemIdHasValidHeapTupleForQualification(lp, b, DefaultTimeRange,
+	if (!ItemIdHasValidHeapTupleForQualification(lp, b, NowTimeRange,
 			0, (ScanKey)NULL)) {
 */
 		/* XXX call something else */
@@ -202,15 +203,14 @@ HeapTupleGetAttributeValue(tuple, buffer, attributeNumber, tupleDescriptor,
 }
 
 HeapScanDesc
-RelationBeginHeapScan(relation, startScanAtEnd, timer, numberOfKeys, key)
+RelationBeginHeapScan(relation, startScanAtEnd, qual, numberOfKeys, key)
 	Relation	relation;
 	Boolean		startScanAtEnd;
-	TimeRange	timer;
+	TimeQual	qual;
 	uint16		numberOfKeys;
 	ScanKey		key;
 {
-	return (ambeginscan(relation, startScanAtEnd, timer, numberOfKeys,
-		key));
+	return (ambeginscan(relation, startScanAtEnd, qual, numberOfKeys, key));
 }
 
 void
@@ -254,4 +254,7 @@ HeapScanGetNextTuple(scan, backwards, bufferOutP)
 
 /*
  * XXX probably do not need a free tuple routine for heaps.
+ * Huh?  Free tuple is not necessary for tuples returned by scans, but
+ * is necessary for tuples which are returned by RelationGetTupleByItemPointer.
+ * -hirohama
  */
