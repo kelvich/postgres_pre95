@@ -37,11 +37,15 @@
 #include "parse_query.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "params.h"
 
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
 extern Relation amopenr();
+
+bool CurrentWasUsed = false;
+bool NewWasUsed = false;
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
@@ -158,6 +162,7 @@ stmt :
 	| TransactionStmt
   	| ViewStmt
 	;
+
 
  /**********************************************************************
 
@@ -728,7 +733,7 @@ event:
   	RETRIEVE | REPLACE | DELETE | APPEND ;
 
 opt_qual:
-					{ NULLTREE }
+	where_clause
 	;
 
 opt_instead:
@@ -1399,7 +1404,30 @@ array_attribute:
 a_expr:
 	  attr
 		{
-		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)));
+		    Var temp = (Var)NULL;
+		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
+					    CString(CDR($1)) ));
+
+		    $$ = temp;
+		    /*
+		    if (CurrentWasUsed) {
+			$$ = (LispValue)MakeParam ( PARAM_OLD , 
+						   get_varattno((Var)temp), 
+						   CString(CDR($1)),
+						   get_vartype((Var)temp));
+			CurrentWasUsed = false;
+		    }
+		    */
+                    if (NewWasUsed) {
+			$$ = (LispValue)MakeParam ( PARAM_NEW , 
+						   get_varattno((Var)temp), 
+						   CString(CDR($1)),
+						   get_vartype((Var)temp));
+			NewWasUsed = false;
+		    }
+
+		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
+				    $$ );
 		}
 	| attr '[' Iconst ']'
 		{ 
@@ -1442,10 +1470,27 @@ a_expr:
 	| name '(' expr_list ')'
 		{ 
 		    extern Func MakeFunc();
-		    /* Type funcrettype = get_id_type ( 95 ); */
+		    extern OID funcname_get_rettype();
+		    extern OID funcname_get_funcid();
+		    char *funcname = CString($1);
+		    OID rettype = (OID)0;
+		    OID funcid = (OID)0;
+		    Func funcnode = (Func)NULL;
+		    LispValue i = LispNil;
 
-		    $$ = lispCons ( lispInteger (23),
-				    MakeFunc ( 0 , 0 , false ));
+		    funcid = funcname_get_funcid ( funcname );
+		    rettype = funcname_get_rettype ( funcname );
+
+		    if ( funcid != (OID)0 && rettype != (OID)0 ) {
+			funcnode = MakeFunc ( funcid , rettype , false );
+		    } else
+		      elog (WARN,"function %s does not exist",funcname);
+
+		    foreach ( i , $3 ) {
+			CAR(i) = CDR(CAR(i));
+		    }
+		    $$ = lispCons (lispInteger(rettype) ,
+				   lispCons ( funcnode , $3 ));
 		}
 	;
 
@@ -1584,17 +1629,20 @@ Id:
 SpecialRuleRelation:
 	CURRENT
 		{ 
-		    if (QueryIsRule) 
+		    if (QueryIsRule) {
 		      $$ = CAR ( NewOrCurrentIsReally );
-		    else 
+		      CurrentWasUsed = true;
+		    } else 
 		      yyerror("\"current\" used in non-rule query");
 		}
 	| NEW
 		{ 
-		    if (QueryIsRule) 
+		    if (QueryIsRule) {
 		      $$ = CAR ( NewOrCurrentIsReally );
-		    else 
+		      NewWasUsed = true;
+		    } else 
 		      elog(WARN,"NEW used in non-rule query"); 
+		    
 		}
 	;
 
