@@ -15,6 +15,7 @@
 #include "access/htup.h"
 #include "access/itup.h"
 #include "access/relscan.h"
+#include "access/funcindex.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/daemon.h"
@@ -224,7 +225,6 @@ FILE *fp;
 }
 
 CopyFrom(rel, binary, fp)
-
 Relation rel;
 bool binary;
 FILE *fp;
@@ -238,7 +238,7 @@ FILE *fp;
     func_ptr *in_functions;
     int i, j, k, dummy;
     oid in_func_oid;
-    Datum *values, *index_values;
+    Datum *values;
     char *nulls, *index_nulls;
     bool *byval;
     Boolean isnull;
@@ -250,23 +250,59 @@ FILE *fp;
     int32 ntuples, tuples_read = 0;
     bool reading_to_eof = true;
     ObjectId *elements;
-
     Relation *index_relations;
-    int28 *index_atts;
+    FuncIndexInfo *finfo, **finfoP;
+    TupleDescriptor *itupdesc;
+    HeapTuple pgIndexTup;
+    Form_pg_index *pgIndexP;
+    int *indexNatts;
+    int natts;
+    AttributeNumber *attnumP;
+    Datum idatum;
     int n_indices;
 
     attr = (Attribute *) &rel->rd_att;
 
     attr_count = rel->rd_rel->relnatts;
 
-    if (rel->rd_rel->relhasindex)
-    {
-        GetIndexRelations(rel->rd_id, &n_indices, &index_rels, &index_atts);
-        has_index = true;
-    }
-    else
-    {
-        has_index = false;
+    has_index = false;
+
+    /*
+     *  This may be a scalar or a functional index.  We initialize all
+     *  kinds of arrays here to avoid doing extra work at every tuple
+     *  copy.
+     */
+
+    if (rel->rd_rel->relhasindex) {
+        GetIndexRelations(rel->rd_id, &n_indices, &index_rels);
+	if (n_indices > 0) {
+	    has_index = true;
+	    itupdesc = (TupleDescriptor *) palloc(n_indices * sizeof(TupleDescriptor));
+	    pgIndexP = (Form_pg_index *) palloc(n_indices * sizeof(Form_pg_index));
+	    indexNatts = (int *) palloc(n_indices * sizeof(int));
+	    finfo = (FuncIndexInfo *) palloc(n_indices * sizeof(FuncIndexInfo));
+	    finfoP = (FuncIndexInfo **) palloc(n_indices * sizeof(FuncIndexInfo *));
+	    for (i = 0; i < n_indices; i++) {
+		itupdesc[i] = RelationGetTupleDescriptor(index_rels[i]);
+		pgIndexTup = (HeapTuple)SearchSysCacheTuple(INDEXRELID,
+							index_rels[i]->rd_id,
+							NULL, NULL, NULL);
+		Assert(pgIndexTup);
+		pgIndexP[i] = (Form_pg_index)GETSTRUCT(pgIndexTup);
+		for (attnumP = &(pgIndexP[i]->indkey.data[0]), natts = 0;
+		     *attnumP != InvalidAttributeNumber;
+		     attnumP++, natts++);
+		if (pgIndexP[i]->indproc != InvalidObjectId) {
+		    FIgetnArgs(&finfo[i]) = natts;
+		    natts = 1;
+		    FIgetProcOid(&finfo[i]) = pgIndexP[i]->indproc;
+		    *(FIgetname(&finfo[i])) = '\0';
+		    finfoP[i] = &finfo[i];
+		} else
+		    finfoP[i] = (FuncIndexInfo *) NULL;
+		indexNatts[i] = natts;
+	    }
+	}
     }
 
     if (!binary)
@@ -287,7 +323,6 @@ FILE *fp;
     }
 
     values       = (Datum *) palloc(sizeof(Datum) * attr_count);
-    index_values = (Datum *) palloc(sizeof(Datum) * attr_count);
     nulls        = (char *) palloc(attr_count);
     index_nulls  = (char *) palloc(attr_count);
     byval        = (bool *) palloc(attr_count * sizeof(bool));
@@ -406,27 +441,19 @@ FILE *fp;
 
         if (has_index)
         {
-            for (i = 0; i < n_indices; i++)
-            {
-                j = 0;
-                while (index_atts[i].data[j] != 0)
-                {
-                    if (nulls[index_atts[i].data[j] - 1] == 'n')
-                    {
-                        index_nulls[j] = 'n';
-                    }
-                    else 
-                    {
-                        index_values[j] = values[index_atts[i].data[j] - 1];
-                    }
-                    j++;
-                }
-                ituple = index_formtuple(j, &(index_rels[i]->rd_att.data[0]), 
-                                         index_values, index_nulls);
+            for (i = 0; i < n_indices; i++) {
+		FormIndexDatum(indexNatts[i],
+			    (AttributeNumber *)&(pgIndexP[i]->indkey.data[0]),
+			    tuple,
+			    attr,
+			    InvalidBuffer,
+			    &idatum,
+			    index_nulls,
+			    finfoP[i]);
+                ituple = index_formtuple(1, itupdesc[i], &idatum, index_nulls);
                 ituple->t_tid = tuple->t_ctid;
                 (void) index_insert(index_rels[i], ituple, NULL, NULL);
                 pfree(ituple);
-                for (k = 0; k < j; k++) index_nulls[k] = ' ';
             }
         }
 
@@ -540,22 +567,18 @@ IsTypeByVal(type)
  * Space for the array itself is palloc'ed.
  */
 
-#define N_INDEXRELS = 5
-
 typedef struct rel_list
 {
     ObjectId index_rel_oid;
-    int28 intlist;
     struct rel_list *next;
 }
 RelationList;
 
-GetIndexRelations(main_relation_oid, n_indices, index_rels, index_atts)
+GetIndexRelations(main_relation_oid, n_indices, index_rels)
 
 ObjectId main_relation_oid;
 int *n_indices;
 Relation **index_rels;
-int28 **index_atts;
 
 {
     RelationList *head, *scan;
@@ -592,13 +615,6 @@ int28 **index_atts;
 			     Anum_pg_index_indexrelid,
 			     attr,
 			     &isnull);
-            datum = (int28 *)
-                heap_getattr(tuple,
-			     InvalidBuffer,
-			     Anum_pg_index_indkey,
-			     attr,
-			     &isnull);
-            bcopy(datum, &scan->intlist, sizeof(int28));
             (*n_indices)++;
             scan->next = (RelationList *) palloc(sizeof(RelationList));
             scan = scan->next;
@@ -609,12 +625,10 @@ int28 **index_atts;
     heap_close(pg_index_rel);
 
     *index_rels = (Relation *) palloc(*n_indices * sizeof(Relation));
-    *index_atts = (int28 *) palloc(*n_indices * sizeof(int28));
 
     for (i = 0, scan = head; i < *n_indices; i++, scan = scan->next)
     {
         (*index_rels)[i] = index_open(scan->index_rel_oid);
-        bcopy(&scan->intlist, &((*index_atts)[i]), sizeof(int28));
     }
 
     for (i = 0, scan = head; i < *n_indices + 1; i++)
