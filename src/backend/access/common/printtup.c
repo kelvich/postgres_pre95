@@ -219,3 +219,100 @@ debugtup(tuple, typeinfo)
     printf("\t----\n");
 }
 
+
+/* ----------------
+ *	printtup_internal
+ *      Protocol expects either T, D, C, E, or N.
+ *      We use a different data prefix, e.g. 'B' instead of 'D' to
+ *      indicate a tuple in internal (binary) form.
+ *
+ *      This is same as printtup, except we don't use the typout func.
+ * ----------------
+ */
+void
+printtup_internal(tuple, typeinfo)
+    HeapTuple		tuple;
+    struct attribute 	*typeinfo[];
+{
+    int		i, j, k;
+    char	*outputstr, *attr;
+    Boolean	isnull;
+    ObjectId	typoutput;
+#if 0
+    FILE *f = fopen("/dev/ttyp0","w");
+#endif
+    
+    /* ----------------
+     *	tell the frontend to expect new tuple data
+     * ----------------
+     */
+    pq_putnchar("B", 1);
+    
+    /* ----------------
+     *	send a bitmap of which attributes are null
+     * ----------------
+     */
+    j = 0;
+    k = 1 << 7;
+    for (i = 0; i < tuple->t_natts; ) {
+	attr = heap_getattr(tuple, InvalidBuffer, ++i, typeinfo, &isnull);
+	if (!isnull)
+	  j |= k;
+	k >>= 1;
+	if (!(i & 7)) {
+	    pq_putint(j, 1);
+	    j = 0;
+	    k = 1 << 7;
+	}
+    }
+    if (i & 7)
+      pq_putint(j, 1);
+    
+    /* ----------------
+     *	send the attributes of this tuple
+     * ----------------
+     */
+    for (i = 0; i < tuple->t_natts; ++i) {
+	int len;
+
+	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
+	len = typeinfo[i]->attlen;
+	if (!isnull) {
+	    /* # of bytes, and opaque data */
+	    switch (len) {
+	      case -1: {
+		  /* variable length, assume a varlena structure */
+		  int l = VARSIZE(PointerGetDatum(attr));
+		  pq_putint(l,4);
+		  pq_putnchar(VARDATA(PointerGetDatum(attr)),l);
+#if 0
+		  {
+		  char *d = VARDATA(PointerGetDatum(attr));
+		  fprintf(f,"length %d data %x%x%x%x\n",l,*d,*(d+1),*(d+2),*(d+3));
+		  }
+#endif
+	      }   
+		break;
+
+	      default:		/* fixed size */
+	       if (typeinfo[i]->attbyval) {
+		  pq_putint(len,4);
+		  pq_putnchar(&attr,len);
+#if 0
+	          fprintf(f,"byval length %d data %d\n",len,attr);
+#endif
+	       } else {
+		  pq_putint(len,4);
+		  pq_putnchar(attr,len);
+#if 0
+		  fprintf(f,"byref length %d data %x\n",len,attr);
+#endif
+	       }
+	        break;
+	    }
+	}
+    }
+#if 0
+    fclose(f);
+#endif
+}
