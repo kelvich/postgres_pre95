@@ -232,6 +232,7 @@ sjinit()
 	bzero((char *) cachesave, metasize);
 	SJHeader->sjh_flags = SJH_INITING;
 #ifdef HAS_TEST_AND_SET
+	S_INIT_LOCK(&(SJHeader->sjh_initlock));
 	S_LOCK(&(SJHeader->sjh_initlock));
 #else /* HAS_TEST_AND_SET */
 	IpcSemaphoreLock(SJWaitSemId, 0, 1);
