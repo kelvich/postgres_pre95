@@ -25,6 +25,7 @@
 #include "tim.h"
 #include "xid.h"
 #include "prs2locks.h"
+#include "prs2stub.h"
 
 #ifdef FMGR_ADT
 #include "geo-decls.h"
@@ -279,5 +280,9 @@ extern bool oidnotin();
 extern RuleLock		StringToRuleLock();
 extern char		*RuleLockToString();
 extern Datum GetAttribute();
+
+/* rule stub records */
+extern char * stubout();
+extern Prs2RawStub stubin();
 
 #endif !BuiltinsIncluded
