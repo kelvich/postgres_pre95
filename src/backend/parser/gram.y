@@ -60,7 +60,8 @@ YYSTYPE p_target,
         p_priority,
         p_ruleinfo;
 YYSTYPE	       p_trange,
-	       p_rtable;
+	       p_rtable,
+               p_target_resnos;
 
 static int p_numlevels,p_last_resno;
 static Relation CurrentRelationPtr = NULL;
@@ -1217,6 +1218,10 @@ res_target_list:
 	| res_target_list ',' relation_name '.' All
 		{
 			LispValue temp = p_target;
+			if (ResdomNoIsAttrNo) {
+			  elog(WARN,"all doesn't make any sense here");
+			  return(1);
+			}
 			INC_NUM_LEVELS(1);
 			if(temp == LispNil )
 			  p_target = ExpandAll($3, &p_last_resno);
@@ -1238,7 +1243,9 @@ res_target_el:
 		    type_id = CInteger(CAR($3));
 		    type_len = tlen(get_id_type(type_id));
 
-		    if (ResdomNoIsAttrNo) {
+		    if (ResdomNoIsAttrNo) { /* append or replace query */
+			/* append, replace work only on one relation,
+			   so multiple occurence of same resdomno is bogus */
 			rd = CurrentRelationPtr;
 			Assert(rd != NULL);
 			resdomno = varattno(rd,CString($1));
@@ -1246,6 +1253,13 @@ res_target_el:
 			attrlen = tlen(get_id_type(attrtype)); 
 			if (attrtype != type_id)
 				elog(WARN, "unequal type in tlist\n");
+			if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
+			   == -1 ) {
+			    elog(WARN,"two or more occurence of same attr");
+			} else {
+			    p_target_resnos = lispCons( lispInteger(resdomno),
+						        p_target_resnos);
+			}
 		    } else {
 			resdomno = p_last_resno++;
 			attrtype = type_id;
@@ -1433,6 +1447,7 @@ parser_init()
 	p_trange = lispInteger(0);
 	p_last_resno = 1;
 	p_numlevels = 0;
+	p_target_resnos = LispNil;
 	ResdomNoIsAttrNo = 0;
 }
 
@@ -1487,3 +1502,20 @@ new_filestr ( filename )
   return (lispString (expand_file_name (CString(filename))));
 }
 
+int
+lispAssoc ( element, list)
+     LispValue element, list;
+{
+    LispValue temp = list;
+    int i = 0;
+    /* if (list == LispNil) 
+      return -1; */
+    while (! lispNullp (temp)) {
+	if(CInteger(CAR(temp)) == CInteger(element))
+	  return i;
+	temp = CDR(temp);
+	i ++;
+    }
+	   
+    return -1;
+}
