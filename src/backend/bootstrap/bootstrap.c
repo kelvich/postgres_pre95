@@ -564,7 +564,7 @@ showtup(tuple, buffer, relation)
     Buffer	buffer;
     Relation	relation;
 {
-    char	*value, *fmgr(), *abstimeout();
+    char	*value, *fmgr();
     Boolean	isnull;
     struct	typmap	**app;
     int		i, typeindex;
@@ -695,8 +695,6 @@ void
 showtime(time)
     Time time;
 {
-    extern char	*abstimeout();
-
     Assert(TimeIsValid(time));
     printf("{%d=%s}", time, abstimeout(time));
 }
