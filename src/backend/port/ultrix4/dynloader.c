@@ -15,6 +15,7 @@
 
 #include <sys/exec.h>
 #include <reloc.h>
+#include <sym.h>
 #include <syms.h>
 #include <symconst.h>
 
