@@ -1,6 +1,8 @@
 /* $Header$ */
 extern void set_ii_NumKeyAttributes ARGS((IndexInfo node, int value));
 extern int get_ii_NumKeyAttributes ARGS((IndexInfo node));
+extern void set_ii_FuncIndexInfo ARGS((IndexInfo node, FuncIndexInfoPtr finfo));
+extern FuncIndexInfoPtr get_ii_FuncIndexInfo ARGS((IndexInfo node));
 extern void set_ii_KeyAttributeNumbers ARGS((IndexInfo node, AttributeNumberPtr value));
 extern AttributeNumberPtr get_ii_KeyAttributeNumbers ARGS((IndexInfo node));
 extern void set_ri_RangeTableIndex ARGS((RelationInfo node, Index value));
