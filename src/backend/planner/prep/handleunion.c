@@ -175,33 +175,63 @@ SplitTlistQual(root,rangetable,tlist, qual)
 /*
  *  The assumption here is that both the tl_list and the qual_list, 
  *  must be of the same length, if not, something funky has happened.
+ *
+ *  XXX I think this is not true in the case of 'DELETEs' ! sp.
+ *  XXX In this case, 'tl_list' is nil.
  */
   
-  if (length (tl_list) != length(qual_list))
-    elog (WARN, "UNION:  tlist with missing qual, or vice versa");
+  if (CAtom(root_command_type_atom(root)) != DELETE)
+      if (length (tl_list) != length(qual_list))
+	elog (WARN, "UNION:  tlist with missing qual, or vice versa");
 
-  foreach(i, tl_list) {
-    temp = CAR(i);
+    if(null(tl_list)) {
+      /*
+       * this is a special case, where tl_list is null (i.e. this
+       * is a DELETE command.
+       * DISCLAIMER: I don't know what this code is doing, I don't
+       * know what it is supposed to do, all I know is that before it
+       * didn't work in queries like:
+       * "delete foobar from f in (foo | bar) where foobar.a = 1"
+       * and now it works (provided that you made a couple of prayers
+       * and/or sacrifices to the gods....).
+       * sp._
+       */
+      temp = NULL;
+      varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
+      is_redundent = LispNil;
+      mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list),&is_redundent,1);
+      if (is_redundent != LispTrue) {
+        mod_qual = SemantOpt2(rangetable,mod_qual,mod_qual,temp);
+        tqlist = nappend1(tqlist,
+      		    lispCons(temp, 
+      			     lispCons(mod_qual,
+      				      LispNil)));
+      }
+      qual_list = CDR(qual_list);
+    } else {
+      foreach(i, tl_list) {
+	temp = CAR(i);
 
-  /*
-   *  Varlist contains the list of varnos of relations that participate
-   *  in the current query.  It is used to detect existential clauses.
-   *  Initially, varlist contains the list of target relations (varnos).
-   *  This should only be done once for each query.
-   */
+	/*
+	 *  Varlist contains the list of varnos of relations that participate
+	 *  in the current query.  It is used to detect existential clauses.
+	 *  Initially, varlist contains the list of target relations (varnos).
+	 *  This should only be done once for each query.
+	 */
 
-    varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
-    is_redundent = LispNil;
-    mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list),&is_redundent,1);
-    if (is_redundent != LispTrue) {
-      mod_qual = SemantOpt2(rangetable,mod_qual,mod_qual,temp);
-      tqlist = nappend1(tqlist,
-			lispCons(temp, 
-				 lispCons(mod_qual,
-					  LispNil)));
+	varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
+	is_redundent = LispNil;
+	mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list),&is_redundent,1);
+	if (is_redundent != LispTrue) {
+	  mod_qual = SemantOpt2(rangetable,mod_qual,mod_qual,temp);
+	  tqlist = nappend1(tqlist,
+			    lispCons(temp, 
+				     lispCons(mod_qual,
+					      LispNil)));
+	}
+      qual_list = CDR(qual_list);
+      }
     }
-  qual_list = CDR(qual_list);
-  }
 
   return (tqlist);
 
