@@ -39,7 +39,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	HeapTuple	tuple;
 	uint16		parameterCount;
 	Datum		*parameterA = NULL;
-	String		*nextP;
+	Datum		*nextP;
 	FuncIndexInfo	fInfo;
 
 	AssertArg(NameIsValid(heapRelationName));
