@@ -3,6 +3,8 @@
  */
 
 #include <stdio.h>
+#include <sys/types.h>	/* for mode_t */
+#include <sys/stat.h>	/* for umask(2) prototype */
 
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
@@ -58,6 +60,8 @@ char *filename;
 
     if (from)
     {
+	mode_t oumask = umask(0);
+
         if (pipe && IsUnderPostmaster) ReceiveCopyBegin();
         if (IsUnderPostmaster)
         {
@@ -67,6 +71,7 @@ char *filename;
         {
             fp = pipe ? stdin : fopen(filename, "r");
         }
+	(void) umask(oumask);
         if (fp == NULL) 
         {
             elog(WARN, "COPY: file %s could not be open for reading", filename);
