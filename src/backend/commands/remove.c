@@ -210,6 +210,7 @@ RemoveType(typeName)
 	Assert(NameIsValid(typeName));
 	
 	typeKey[0].argument = NameGetDatum(typeName);
+	fmgr_info(typeKey[0].procedure, &typeKey[0].func, &typeKey[0].nargs);
 	relation = RelationNameOpenHeapRelation(TypeRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
@@ -260,16 +261,19 @@ RemoveFunction(functionName)
 	ObjectId         oid;
 #endif
 	ItemPointerData  itemPointerData;
-	static ScanKeyEntryData functionKey[3] = {
+	static ScanKeyEntryData key[3] = {
 		{ 0, ProcedureNameAttributeNumber, NameEqualRegProcedure }
 	};
 	
 	Assert(NameIsValid(functionName));
 
-	functionKey[0].argument = NameGetDatum(functionName);
+	key[0].argument = NameGetDatum(functionName);
+
+	fmgr_info(key[0].procedure, &key[0].func, &key[0].nargs);
+
 	relation = RelationNameOpenHeapRelation(ProcedureRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1,
-		(ScanKey)functionKey);
+		(ScanKey)key);
 	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
 	if (!HeapTupleIsValid(tup)) {	
 		HeapScanEnd(scan);
@@ -292,7 +296,7 @@ RemoveFunction(functionName)
 #ifdef USEPARGS
 	ScanKeyEntryInitialize(&typeKey, 0, 1, ObjectIdEqualRegProcedure,
 						   ObjectIdGetDatum(oid));
-	functionKey[0].argument = NameGetDatum(functionName);
+	key[0].argument = NameGetDatum(functionName);
 	relation = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
@@ -301,7 +305,7 @@ RemoveFunction(functionName)
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 		tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
-	}                
+	}
 	HeapScanEnd(scan);
 	RelationCloseHeapRelation(relation);
 #endif
