@@ -411,7 +411,7 @@ _equalEState(a, b)
 	if (!_equalRelation(a->relation_relation_descriptor,
 			    b->relation_relation_descriptor))
 		return (false);
-	if (a->result_relation != b->result_relation)
+	if (a->result_relation_oid != b->result_relation_oid)
 		return (false);
 	if (!_equalRelation(a->result_relation_descriptor,
 			    b->result_relation_descriptor))
