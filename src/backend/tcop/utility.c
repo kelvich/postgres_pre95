@@ -383,6 +383,9 @@ ProcessUtility(command, args, commandString, dest)
 	case P_TYPE:
 	    RemoveType(CString(CADR(args)));
 	    break;
+	case VIEW:
+	    RemoveView(CString(CADR(args)));
+	    break;
 	}
 	break;
 	
