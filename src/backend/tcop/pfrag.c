@@ -25,6 +25,7 @@
 #include "executor/execmisc.h"
 #include "executor/x_execinit.h"
 #include "executor/x_hash.h"
+#include "tcop/dest.h"
 
  RcsId("$Header$");
 
@@ -69,6 +70,7 @@ Fragment rootFragment;
     int			hashTableMemorySize;
     IpcMemoryKey	hashTableMemoryKey;
     IpcMemoryKey	getNextHashTableMemoryKey();
+    CommandDest		dest;
     
     /* ----------------
      *	execute the query appropriately if we are running one or
@@ -101,6 +103,7 @@ Fragment rootFragment;
 	   nparallel = get_frag_parallel(fragment);
 	   plan = get_frag_root(fragment);
 	   parseTree = QdGetParseTree(queryDesc);
+	   dest = QdGetDest(queryDesc);
 	   finalResultRelation = parse_tree_result_relation(parseTree);
 	   if (ExecIsHash(plan))  {
 	      hashTableMemoryKey = getNextHashTableMemoryKey();
@@ -113,8 +116,9 @@ Fragment rootFragment;
 	   else if (fragment != rootFragment || nparallel > 1) {
 	      parse_tree_result_relation(parseTree) =
 		  lispCons(lispAtom("intotemp"), LispNil);
+	      dest = None;
 	     }
-	   fragQueryDesc = CreateQueryDesc(parseTree, plan);
+	   fragQueryDesc = CreateQueryDesc(parseTree, plan, dest);
 
 	/* ----------------
 	 *	place fragments in shared memory here.  
