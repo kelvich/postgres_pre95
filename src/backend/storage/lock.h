@@ -177,18 +177,6 @@ typedef struct Lock {
 #define LockLockTable() SpinAcquire(LockMgrLock);
 #define UnlockLockTable() SpinRelease(LockMgrLock);
 
-#define LOCK_PRINT(where,tag,type)
-
-/*
-#define LOCK_PRINT(where,tag,type)\
-  elog(DEBUG, "%s: rel (%d) dbid (%d) tid (%d,%d) type (%d)\n",where, \
-	 tag->relId, tag->dbId, \
-	 ( (tag->tupleId.blockData.data[0] >= 0) ? \
-		BlockIdGetBlockNumber(&tag->tupleId.blockData) : -1 ), \
-	 tag->tupleId.positionData, \
-	 type);
-*/
-
 /*
  * function prototypes
  */
