@@ -132,7 +132,7 @@ bool
 RelationContainsUsableBlock(relation, blockIndex, size, numberOfFailures)
 	Relation	relation;
 	BlockNumber	blockIndex;
-	TupleSize	size;
+	Size		size;
 	Index		numberOfFailures;
 {
 	BlockNumber	numberOfBlocks;
