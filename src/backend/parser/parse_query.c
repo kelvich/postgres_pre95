@@ -372,6 +372,23 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 	return(lispInteger((int)qual));
 }
 
+void
+disallow_setop(op, optype, operand)
+    LispValue op;
+    Type optype;
+    LispValue operand;
+{
+    if (lispNullp(operand))
+	return;
+
+    if (IsA(operand,Iter)) {
+	elog(NOTICE, "An operand to the '%s' operator returns a set of %s,",
+		     LISPVALUE_STRING(op), tname(optype));
+	elog(WARN, "but '%s' takes single values, not sets.",
+		     LISPVALUE_STRING(op));
+    }
+}
+
 LispValue 
 make_op(op,ltree,rtree, optype)
      LispValue op,ltree,rtree;
@@ -387,54 +404,62 @@ make_op(op,ltree,rtree, optype)
 
 	if ( optype == 'r' ) {
 	/* right operator */
-		if (lispNullp(ltree))
-		elog(WARN, "NULL not allowed with this operator type");
-		left = CDR(ltree);
-		right = LispNil;
-		if (! lispNullp(left))
+	    if (lispNullp(ltree))
+	    elog(WARN, "NULL not allowed with this operator type");
+	    left = CDR(ltree);
+	    right = LispNil;
+	    if (! lispNullp(left)) {
 		ltype = get_id_type ( CInteger ( CAR(ltree) ));
-		temp = right_oper( CString( op ), typeid(ltype));
+		disallow_setop(op, ltype, left);
+	    }
+	    temp = right_oper( CString( op ), typeid(ltype));
 	 } else if (optype == 'l') {
-	/* left operator */
-		if (lispNullp(rtree))
+	    /* left operator */
+	    if (lispNullp(rtree))
 		elog(WARN, "NULL not allowed with this operator type");
-		 right = CDR(rtree);
-		 left = right;
-		 if (! lispNullp(right))
-		 rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-		 temp = left_oper( CString( op ), typeid(rtype) );
-		 right = LispNil;
+	    right = CDR(rtree);
+	    left = right;
+	    if (! lispNullp(right)) {
+		rtype = get_id_type ( CInteger ( CAR(rtree) ) );
+		disallow_setop(op, rtype, right);
+	    }
+	    temp = left_oper( CString( op ), typeid(rtype) );
+	    right = LispNil;
 	} else {
-		/* binary operator */
-		if (lispNullp(ltree)) {
+	    /* binary operator */
+	    if (lispNullp(ltree)) {
 		elog(WARN, "NULL not allowed with this operator type");
-		} else {
+	    } else {
 		left = CDR(ltree);
 		ltype = get_id_type ( CInteger ( CAR(ltree) ));
+
+		disallow_setop(op, ltype, left);
+
 		if (! lispNullp(rtree)) {
-		right = CDR(rtree);
-		rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-		if (typeid(rtype) == typeid(type("unknown")))
-		{
-		    /* trying to find default type for the right arg... */
-		temp = (Operator) oper_default(CString(op),typeid(ltype));
-		/* now, we have the default type, typecast */
-		if(temp){
-		Datum val;
-		val = textout((struct varlena *)get_constvalue((Const)right));
-		optemp = (OperatorTupleForm) GETSTRUCT(temp);
-		right = (LispValue) MakeConst(optemp->oprright,
-				tlen(get_id_type(optemp->oprright)),
-			(Datum)fmgr(typeid_get_retinfunc(optemp->oprright),val),
-				false, true /*XXX was omitted */);
-		} else
-				op_error(CString(op), typeid(ltype), typeid(rtype));
-				
-		}
-		else
-		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
+		    right = CDR(rtree);
+		    rtype = get_id_type ( CInteger ( CAR(rtree) ) );
+		    disallow_setop(op, rtype, right);
+		    if (typeid(rtype) == typeid(type("unknown"))) {
+			/* trying to find default type for the right arg... */
+			temp = (Operator) oper_default(CString(op),
+							typeid(ltype));
+			/* now, we have the default type, typecast */
+			if(temp){
+			Datum val;
+			val = textout((struct varlena *)
+				       get_constvalue((Const)right));
+			optemp = (OperatorTupleForm) GETSTRUCT(temp);
+			right = (LispValue) MakeConst(optemp->oprright,
+					tlen(get_id_type(optemp->oprright)),
+					(Datum)fmgr(typeid_get_retinfunc(optemp->oprright),val),
+					false, true /*XXX was omitted */);
+			} else
+			    op_error(CString(op), typeid(ltype), typeid(rtype));
+			    
+		    } else
+			temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
 		} else {
-		/* Right Operator is NULL */
+		    /* Right Operator is NULL */
                     temp = (Operator) oper_default(CString(op),typeid(ltype));
                     if(temp){
                         optemp = (OperatorTupleForm) GETSTRUCT(temp);
@@ -444,7 +469,7 @@ make_op(op,ltree,rtree, optype)
                      } else 
 			op_error(CString(op), typeid(ltype), typeid(rtype));
 		}
-		}
+	    }
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
 
