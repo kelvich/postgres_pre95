@@ -36,9 +36,9 @@ typedef RTreePageOpaqueData	*RTreePageOpaque;
  */
 
 typedef struct RTSTACK {
-	struct RTSTACK *rts_parent;
-	OffsetNumber   rts_child;
-	BlockNumber    rts_blk;
+	struct RTSTACK	*rts_parent;
+	OffsetIndex	rts_child;
+	BlockNumber	rts_blk;
 } RTSTACK;
 
 /*
@@ -62,5 +62,17 @@ typedef RTreeScanOpaqueData	*RTreeScanOpaque;
 
 /* root page of an rtree */
 #define P_ROOT		0
+
+/*
+ *  When we update a relation on which we're doing a scan, we need to
+ *  check the scan and fix it if the update affected any of the pages it
+ *  touches.  Otherwise, we can miss records that we should see.  The only
+ *  times we need to do this are for deletions and splits.  See the code in
+ *  rtscan.c for how the scan is fixed.  These two contants tell us what sort
+ *  of operation changed the index.
+ */
+
+#define	RTOP_DEL	0
+#define	RTOP_SPLIT	1
 
 #endif /* RTreeHIncluded */
