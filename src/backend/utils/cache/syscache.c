@@ -236,9 +236,9 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(FormData_pg_rewrite),
       NULL },
     { &Prs2StubRelationName,			/* PRS2STUB */
-	  1,
+	  2,
 	  { Anum_pg_prs2stub_prs2relid,
-		0,
+	    Anum_pg_prs2stub_prs2no,
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena),
