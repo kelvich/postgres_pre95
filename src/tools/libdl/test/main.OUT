@@ -1,0 +1,10 @@
+loading foo.o
+dl: "foo.o" has undefined symbols
+loading bar.o
+dl: "foo.o" has undefined symbols
+dl: "foo.o" has undefined symbols
+loading baz.o
+hello world!
+hi from bar
+hi from baz 123
+hello world!

@@ -1,0 +1,46 @@
+*** TRIGO ***
+Hello
+Alpha = 2.094395
+sin = 0.866025 cos = -0.500000 tan = -1.732051
+Goodbye
+*** TESTANOTHERBUG ***
+about to copy array
+the string is now This is a test..
+*** TESTSTATICBUG ***
+about to reference ptrtyp
+ptrtyp[0] = ""
+ptrtyp[1] = "!"
+ptrtyp[2] = "@"
+ptrtyp[3] = "~"
+ptrtyp[4] = "*"
+ptrtyp[5] = "&"
+ptrtyp[6] = "#m"
+ptrtyp[7] = "#s"
+ptrtyp[8] = "#p"
+ptrtyp[9] = "%m"
+ptrtyp[10] = "%s"
+ptrtyp[11] = "%p"
+ptrtyp[12] = "%"
+ptrtyp[13] = "#"
+ptrtyp[14] = ">"
+ptrtyp[15] = ""
+ptrtyp[16] = "^"
+ptrtyp[17] = "\"
+ptrtyp[18] = ""
+ptrtyp[19] = ""
+ptrtyp[20] = "+"
+ptrtyp[21] = ""
+ptrtyp[22] = ""
+ptrtyp[23] = ""
+ptrtyp[24] = ""
+*** TESTSWITCHBUG ***
+about to reference ptrtyp
+ptrtyp[3] = "~"
+about to reference ptrtyp
+ptrtyp[2] = "@"
+about to reference ptrtyp
+ptrtyp[1] = "!"
+about to reference ptrtyp
+ptrtyp[0] = ""
+*** DBL ***
+2.0/3: 0.666667

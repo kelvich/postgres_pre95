@@ -1,0 +1,5 @@
+A> a references b; x = 4321
+B> b references c; x = 133
+C> c references a; x = 12
+A> x = 0
+C> from a: a's string

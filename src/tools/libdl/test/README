@@ -1,0 +1,23 @@
+This directory contains test suites for the Ultrix 4.x Dynamic Loader Library
+Package. 
+
+The tests are:
+
+(1) main 
+    uses foo.o, bar.o and baz.o. Tests lazy symbol resolution.
+
+(2) call_mf
+    uses mathfunc.o and /usr/lib/libm_G0.a. Tests searching of the math
+    library.
+
+(3) abc
+    uses libabc.a (containing a.o, b.o and c.o). Tests loading in of a
+    library.
+
+(4) jumbo
+    uses jumboobj.o. Miscellaneous tests.
+
+Expected results of the four tests are in *.OUT.
+
+Good Luck!
+
