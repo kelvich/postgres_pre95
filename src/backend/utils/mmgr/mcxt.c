@@ -365,11 +365,13 @@ CreateGlobalMemory(name)
 	String	name;	/* XXX MemoryContextName */
 {
 	GlobalMemory	context;
+	MemoryContext	savecxt;
 
 	AssertState(MemoryContextEnabled);
-	AssertState(CurrentMemoryContext == TopMemoryContext);
 	AssertArg(StringIsValid(name));	/* XXX MemoryContextName */
 
+	savecxt = MemoryContextSwitchTo(TopMemoryContext);
+	
 	context = CreateNode(GlobalMemory);
 	context->method = &GlobalContextMethodsData;
 	context->name = name;		/* assumes name is static */
@@ -378,6 +380,7 @@ CreateGlobalMemory(name)
 	/* link the context */
 	OrderedElemPushInto(&context->elemData, ActiveGlobalMemorySet);
 
+	MemoryContextSwitchTo(savecxt);
 	return (context);
 }
 
@@ -386,14 +389,9 @@ GlobalMemoryDestroy(context)
 	GlobalMemory	context;
 {
 	AssertState(MemoryContextEnabled);
-	AssertState(CurrentMemoryContext == TopMemoryContext);
 	AssertArg(IsA(context,GlobalMemory));
 	AssertArg(context != &TopGlobalMemoryData);
 
-	/* step through remaining allocations and log */
-	/* AllocSetItterate(...); */
-
-	/* cleanup by deallocating whatever is left */
 	AllocSetReset(&context->setData);
 
 	/* unlink and delete the context */
