@@ -74,6 +74,7 @@ bool		DebugPrintPlan = false;
 bool		DebugPrintParse = false;
 bool		DebugPrintRewrittenParsetree = false;
 static bool	EnableRewrite = true;
+CommandDest whereToSendOutput;
 
 #ifdef	EBUG
 int		ShowLock = 0;
@@ -408,8 +409,24 @@ char ReadCommand(inBuf)
 extern int _exec_repeat_;
 GlobalMemory ParserPlannerContext;
 
+/*
+ * pg_eval now officially takes one argument.
+ */
+
 void
-pg_eval(query_string, dest)
+pg_eval(query_string)
+
+String query_string;
+
+{
+    extern CommandDest whereToSendOutput;
+	extern void pg_eval_dest();
+
+    pg_eval_dest(query_string, whereToSendOutput);
+}
+
+void
+pg_eval_dest(query_string, dest)
     String	query_string;	/* string to execute */
     CommandDest dest;		/* where results should go */
 {
@@ -1201,6 +1218,15 @@ PostgresMain(argc, argv)
 	pq_init(Portfd);
     }
     
+    if (IsUnderPostmaster)
+    {
+	whereToSendOutput = Remote;
+    }
+    else 
+    {
+	whereToSendOutput = Debug;
+    }
+
     /* ----------------
      *	set processing mode appropriately depending on weather or
      *  not we want the transaction system running.  When the
@@ -1344,10 +1370,7 @@ PostgresMain(argc, argv)
 		if (ShowStats)
 		    ResetUsage();
 
-		if (IsUnderPostmaster)
-		    pg_eval(parser_input, Remote);
-		else
-		    pg_eval(parser_input, Debug);
+		pg_eval(parser_input);
 
 		if (ShowStats)
 		    ShowUsage();
