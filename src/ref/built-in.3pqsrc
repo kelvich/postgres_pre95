@@ -188,6 +188,36 @@ right unary operators have the operator follow the operand.
 .el \{
 .so obj/left_unary.nr
 \}
+.XA 2 "Aggregate Functions"
+.SH "AGGREGATE FUNCTIONS"
+The table below gives the aggregate functions that are normally
+registered in the system catalogs.  None of them are required for
+\*(PG to operate.
+.PP
+.if n .ta 5 +15
+.if t .ta 0.5i +1.5i
+.in 0
+.nf
+	\fBName\fP	\fBOperation\fP	
+	int2ave	int2 average
+	int4ave	int4 average
+	float4ave	float4 average
+	float8ave	float8 average
+	int2sum	int2 sum (total)
+	int4sum	int4 sum (total)
+	float4sum	float4 sum (total)
+	float8sum	float8 sum (total)
+	int2max	int2 maximum (high value)
+	int4max	int4 maximum (high value)
+	float4max	float4 maximum (high value)
+	float8max	float8 maximum (high value)
+	int2min	int2 minimum (low value)
+	int4min	int4 minimum (low value)
+	float4min	float4 minimum (low value)
+	float8min	float8 minimum (low value)
+	count	int4 count
+.fi
+.in
 .SH "SEE ALSO"
 For examples on specifying literals of built-in types, see
 .IR postquel (commands).
