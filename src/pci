@@ -62,18 +62,18 @@ fi
 
 # extract the pathname relative to the postgres root directory from curdir
 curdir=`pwd`
-subtree=`echo $curdir | sed -e "s%.\*/src/%%"`
+subtree=`echo $curdir | sed -e "s%.*/postgres/%%"`
 
 if [ $verbose -ne 0 ]
 then
-	echo cd $master/src/$subdir
+	echo cd $master/$subtree
 fi
 
 # go to the master tree
-cd $master/src/$subdir
+cd $master/$subtree
 if [ $? -ne 0 ]
 then
-	echo cannot chdir to $master/src/$subdir
+	echo cannot chdir to $master/$subtree
 	echo checkout of $files in master tree failed
 	echo please do the checkout manually
 	exit 1
