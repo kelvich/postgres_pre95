@@ -10,42 +10,35 @@
 #define LOCKDEBUG	1
 #endif	/* defined(LOCKDEBUGALL) */
 
-#include "c.h"
+#include "tmp/postgres.h"
 
-#include "anum.h"	/* XXX for VariableRelationId */
-#include "block.h"
-#include "buf.h"
-#include "catname.h"
-#include "heapam.h"
-#include "datum.h"
-#include "log.h"
-#include "ipci.h"	/* XXX for PageLockTableId and MultiLevelLockTableId */
-#include "itemptr.h"
-#include "part.h"
-#include "pagenum.h"
-#include "pladt.h"
-#include "plm.h"	/* XXX for L_DONE, etc. */
-#include "rel.h"
-#include "relscan.h"
-#include "rproc.h"
-#include "skey.h"
-#include "tqual.h"
-#include "htup.h"
-#include "xid.h"
-#include "xact.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"
+#include "access/xact.h"
 
-#include "lmgr.h"
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/ipci.h"	/* PageLockTableId and MultiLevelLockTableId */
+#include "storage/itemptr.h"
+#include "utils/lmgr.h"
+#include "storage/pagenum.h"
+#include "storage/part.h"
+#include "storage/pladt.h"
+#include "storage/plm.h"	/* L_DONE, etc. */
+
+#include "utils/log.h"
+#include "utils/rel.h"
+
+#include "catalog/catname.h"
+#include "catalog/pg_relation.h"
 
 RcsId("$Header$");
 
 #define MaxRetries	10	/* XXX about a minute--a hack */
 
-typedef struct LockInfoData {
-	bool			initialized;
-	LRelId			lRelId;
-	TransactionIdData	transactionIdData;
-	uint16			flags;
-} LockInfoData;
 
 #define IntentReadRelationLock	0x0100
 #define ReadRelationLock	0x0200
@@ -57,8 +50,6 @@ typedef struct LockInfoData {
 #define TupleLevelLockCountMask	0x000f
 
 #define TupleLevelLockLimit	10
-
-typedef LockInfoData	*LockInfo;
 
 extern bool	TransactionInitWasProcessed;	/* XXX style */
 extern ObjectId	MyDatabaseId;
@@ -295,6 +286,14 @@ RelationSetLockForRead(relation)
 }
 
 void
+RelationUnsetLockForRead(relation)
+	Relation relation;
+{
+	/* XXX mao will implement this function asap */
+	return;
+}
+
+void
 RelationSetLockForWrite(relation)
 	Relation	relation;
 {
@@ -343,6 +342,14 @@ RelationSetLockForWrite(relation)
 			GetCurrentTransactionId(),
 			MultiLevelLockRequest_WriteRelation);
 	}
+}
+
+void
+RelationUnsetLockForWrite(relation)
+	Relation relation;
+{
+	/* XXX mao will implement this function asap */
+	return;
 }
 
 void
