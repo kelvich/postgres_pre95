@@ -144,8 +144,12 @@
 #define true	((char) 1)
 typedef bool	*BoolPtr;
 
+#ifndef TRUE
 #define TRUE	1
+#endif /* TRUE */
+#ifndef FALSE
 #define FALSE	0
+#endif /* FALSE */
 
 /* ----------------------------------------------------------------
  *		Section 3: __STDC__, non-ansi C definitions:
@@ -162,6 +166,7 @@ typedef bool	*BoolPtr;
 #if ! defined(PORTNAME_bsd44) && ! defined(PORTNAME_alpha)
 #define PROTOTYPES
 #endif
+
 /*
  * Pointer --
  *	Variable holding address of any memory resident object.
@@ -229,21 +234,12 @@ typedef char	*Pointer;
  * CppConcat --
  *	Concatenate two arguments together, using the C preprocessor.
  */
-#ifdef sprite
-#define CppConcat(x, y)         x/**/y
-#define CppConcat0(x, y)        x/**/y
-#define CppConcat1(x, y)        x/**/y
-#define CppConcat2(x, y)        x/**/y
-#define CppConcat3(x, y)        x/**/y
-#define CppConcat4(x, y)        x/**/y
-#else
 #define CppConcat(x, y)		_priv_CppIdentity(x)y
 #define CppConcat0(x, y)	_priv_CppIdentity(x)y
 #define CppConcat1(x, y)	_priv_CppIdentity(x)y
 #define CppConcat2(x, y)	_priv_CppIdentity(x)y
 #define CppConcat3(x, y)	_priv_CppIdentity(x)y
 #define CppConcat4(x, y)	_priv_CppIdentity(x)y
-#endif /* sprite */
 
 /*
  * const --
@@ -477,11 +473,13 @@ free_debug ARGS((
         char    *p
 ));
 #else /* PALLOC_DEBUG */
+
 #if defined(PORTNAME_ultrix4) || \
     defined(PORTNAME_hpux) || \
     defined(PORTNAME_sparc) || \
     defined(PORTNAME_bsd44) || \
-    defined(PORTNAME_alpha)
+    defined(PORTNAME_alpha) || \
+    defined(__STDC__)
 /*
  * All of our target machines have <stdlib.h>
  * (mind you, they sometimes aren't very "std"...)
@@ -499,6 +497,7 @@ free ARGS((
         char    *p
 ));
 #endif /* stdlib */
+
 #endif /* PALLOC_DEBUG */
 
 /*
@@ -673,6 +672,9 @@ free ARGS((
  * offsetof --
  *	Offset of a structure/union field within that structure/union.
  */
+#ifdef offsetof
+#undef offsetof
+#endif /* offsetof */
 #define offsetof(type, field)	((long) &((type *)0)->field)
 
 /*
