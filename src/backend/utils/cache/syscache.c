@@ -70,6 +70,7 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
 
 #include "catalog/syscache.h"
+#include "catalog/indexing.h"
     
 /* ----------------
  *	Warning:  cacheinfo[] below is changed, then be sure and
@@ -87,7 +88,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct amop),
-      NULL },
+      NULL,
+      NULL  },
     { &AccessMethodOperatorRelationName,	/* AMOPSTRATEGY */
 	  3,
 	  { AccessMethodOperatorAccessMethodIdAttributeNumber,
@@ -95,7 +97,8 @@ static struct cachedesc cacheinfo[] = {
 		AccessMethodOperatorStrategyAttributeNumber,
 		0 },
 	  sizeof(struct amop),
-      NULL },
+      NULL,
+      NULL  },
     { &AttributeRelationName,			/* ATTNAME */
 	  2,
 	  { AttributeRelationIdAttributeNumber,
@@ -103,7 +106,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct attribute),
-      NULL },
+      &AttributeNameIndex,
+      AttributeNameIndexScan  },
     { &AttributeRelationName,			/* ATTNUM */
 	  2,
 	  { AttributeRelationIdAttributeNumber,
@@ -111,7 +115,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct attribute),
-      NULL },
+      &AttributeNumIndex,
+      AttributeNumIndexScan  },
     { &IndexRelationName,			/* INDEXRELID */
 	  1,
 	  { IndexRelationIdAttributeNumber,
@@ -119,7 +124,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct index),
-      NULL },
+      NULL,
+      NULL  },
     { &LanguageRelationName,			/* LANNAME */
 	  1,
 	  { LanguageNameAttributeNumber,
@@ -127,7 +133,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct language) - sizeof(struct varlena),
-      NULL },
+      NULL,
+      NULL  },
     { &OperatorRelationName,			/* OPRNAME */
 	  4,
 	  { OperatorNameAttributeNumber,
@@ -135,7 +142,8 @@ static struct cachedesc cacheinfo[] = {
 		OperatorRightAttributeNumber,
 		OperatorKindAttributeNumber },
 	  sizeof(struct operator),
-      NULL },
+      NULL,
+      NULL  },
     { &OperatorRelationName,			/* OPROID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -143,7 +151,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct operator),
-      NULL },
+      NULL,
+      NULL  },
     { &ProcedureRelationName,			/* PRONAME */
 	  1,
 	  { ProcedureNameAttributeNumber,
@@ -151,7 +160,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct proc),
-      NULL },
+      &ProcedureNameIndex,
+      ProcedureNameIndexScan  },
     { &ProcedureRelationName,			/* PROOID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -159,7 +169,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct proc),
-      NULL },
+      &ProcedureOidIndex,
+      ProcedureOidIndexScan  },
     { &RelationRelationName,			/* RELNAME */
 	  1,
 	  { RelationNameAttributeNumber,
@@ -167,7 +178,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct relation),
-      NULL },
+      NULL,
+      NULL  },
     { &RelationRelationName,			/* RELOID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -175,7 +187,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct relation),
-      NULL },
+      NULL,
+      NULL  },
     { &TypeRelationName,			/* TYPNAME */
 	  1,
 	  { TypeNameAttributeNumber,
@@ -183,7 +196,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
-      NULL },
+      &TypeNameIndex,
+      TypeNameIndexScan  },
     { &TypeRelationName,			/* TYPOID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -191,7 +205,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0},
 	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
-      NULL },
+      &TypeOidIndex,
+      TypeOidIndexScan  },
     { &AccessMethodRelationName,		/* AMNAME */
 	  1,
 	  { AccessMethodNameAttributeNumber,
@@ -199,7 +214,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0},
 	  sizeof(IndexTupleFormData),
-      NULL },
+      NULL,
+      NULL  },
     { &OperatorClassRelationName,		/* CLANAME */
 	  1,
 	  { OperatorClassNameAttributeNumber,
@@ -207,7 +223,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0},
 	  sizeof(IndexTupleFormData),
-      NULL },
+      NULL,
+      NULL  },
     { &IndexRelationName,			/* INDRELIDKEY */
 	  2,
 	  { IndexHeapRelationIdAttributeNumber,
@@ -215,7 +232,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0},
 	  sizeof(IndexTupleFormData),
-      NULL },
+      NULL,
+      NULL  },
     { &InheritsRelationName,			/* INHRELID */
 	  2,
 	  { InheritsRelationIdAttributeNumber,
@@ -223,7 +241,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0},
 	  sizeof(InheritsTupleFormD),
-      NULL },
+      NULL,
+      NULL  },
     { &Prs2PlansRelationName,			/* PRS2PLANCODE */
 	  2,
 	  { Prs2PlansRuleIdAttributeNumber,
@@ -231,7 +250,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct prs2plans) - sizeof(struct varlena),
-      NULL },
+      NULL,
+      NULL  },
     { &RewriteRelationName,			/* RULOID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -239,7 +259,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_rewrite),
-      NULL },
+      NULL,
+      NULL  },
     { &Prs2StubRelationName,			/* PRS2STUB */
 	  2,
 	  { Anum_pg_prs2stub_prs2relid,
@@ -247,7 +268,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena),
-      NULL },
+      NULL,
+      NULL  },
     { &Prs2RuleRelationName,			/* PRS2RULEID	*/
 	  1,
 	  { Anum_pg_prs2rule_prs2name,
@@ -255,7 +277,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2rule),
-      NULL },
+      NULL,
+      NULL  },
     { &Prs2RuleRelationName,			/* PRS2EVENTREL	*/
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -263,7 +286,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2rule),
-      NULL },
+      NULL,
+      NULL  },
     { &AggregateRelationName,			/*AGGNAME*/
 	  1,
 	  { AggregateNameAttributeNumber,
@@ -271,7 +295,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	   sizeof(FormData_pg_aggregate),
-       NULL },    
+       NULL,
+       NULL  },    
     { &NamingRelationName,                      /*NAMEREL */
         2,
         { Anum_pg_naming_parent_oid,/*NamingParentOIDAttributeNumber,*/
@@ -279,7 +304,8 @@ static struct cachedesc cacheinfo[] = {
             0,
             0 },
         sizeof(FormData_pg_naming),
-        NULL },
+        NULL,
+	NULL  },
     { &LargeObjectAssocRelationName,           /*LOBJREL */
         1,
         { Anum_pg_large_object_oid,/*LargeObjectOIDAttributeNumber,*/
@@ -287,7 +313,8 @@ static struct cachedesc cacheinfo[] = {
             0,
             0 },
         sizeof (FormData_pg_large_object),
-        NULL },
+        NULL,
+	NULL  },
     { &ListenerRelationName,                  /* LISTENREL */
 	2,
 	{  Anum_pg_listener_relname,
@@ -295,7 +322,8 @@ static struct cachedesc cacheinfo[] = {
 	     0,
 	     0 },
 	sizeof(FormData_pg_listener),
-	NULL }
+	NULL,
+	NULL  }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
@@ -330,8 +358,10 @@ InitCatalogCache()
 	    
 	    SysCache[cacheId] =
 		InitSysCache((*cacheinfo[cacheId].name)->data, 
+			     cacheinfo[cacheId].indname,
 			     cacheinfo[cacheId].nkeys,
-			     cacheinfo[cacheId].key);
+			     cacheinfo[cacheId].key,
+			     cacheinfo[cacheId].iScanFunc);
 	    if (!PointerIsValid((char *)SysCache[cacheId])) {
 		elog(WARN,
 		     "InitCatalogCache: Can't init cache %.16s(%d)",
@@ -381,8 +411,10 @@ SearchSysCacheTuple(cacheId, key1, key2, key3, key4)
 	if (!PointerIsValid(SysCache[cacheId])) {
 	    SysCache[cacheId] =
 		InitSysCache((*cacheinfo[cacheId].name)->data, 
+			     cacheinfo[cacheId].indname,
 			     cacheinfo[cacheId].nkeys,
-			     cacheinfo[cacheId].key);
+			     cacheinfo[cacheId].key,
+			     cacheinfo[cacheId].iScanFunc);
 	    if (!PointerIsValid(SysCache[cacheId])) {
 		elog(WARN,
 		     "InitCatalogCache: Can't init cache %.16s(%d)",

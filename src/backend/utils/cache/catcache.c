@@ -13,8 +13,7 @@
 RcsId("$Header$");
 
 #include "access/heapam.h"
-#include "access/htup.h"
-#include "access/skey.h"
+#include "access/genam.h"
 #include "access/tqual.h"
 #include "storage/bufpage.h"
 #include "access/valid.h"
@@ -22,7 +21,6 @@ RcsId("$Header$");
 #include "tmp/portal.h"
 #include "utils/catcache.h"
 #include "utils/fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
-/*#include "storage/lmgr.h"*/
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"
@@ -223,10 +221,23 @@ CatalogCacheInitializeCache(cache, relation)
      *  should only be done once per cache.
      * ----------------
      */
-    if (cache->cc_indname != NULL && cache->indexId == InvalidObjectId) {
-	relation = (Relation) index_openr(cache->cc_indname);
-	cache->indexId = RelationGetRelationId(relation);
-	index_close(relation);
+    if (cache->cc_indname != NULL && cache->indexId == InvalidObjectId)
+    {
+	if (RelationGetRelationTupleForm(relation)->relhasindex)
+	{
+	    NameData nd;
+
+	    strncpy(&nd.data[0], cache->cc_indname, 16);
+	    /*
+	     * If the index doesn't exist we are in trouble.
+	     */
+	    relation = (Relation) index_openr(&nd);
+	    Assert(relation);
+	    cache->indexId = RelationGetRelationId(relation);
+	    index_close(relation);
+        }
+	else
+	    cache->cc_indname = NULL;
     }
     
     /* ----------------
@@ -621,11 +632,12 @@ ResetSystemCache()
  *           SearchSysCacheTuple
  ****/
 struct catcache *
-InitIndexedSysCache(relname, indname, nkeys, key)
+InitIndexedSysCache(relname, indname, nkeys, key, iScanfuncP)
     char	*relname;
     char	*indname;
     int		nkeys;
     int		key[];
+    HeapTuple   (*iScanfuncP)();
 {
     struct catcache     *cp;
     register int        i;
@@ -681,6 +693,7 @@ InitIndexedSysCache(relname, indname, nkeys, key)
     cp->cc_maxtup = 	MAXTUP;
     cp->cc_size = 	NCCBUCK;
     cp->cc_nkeys = 	nkeys;
+    cp->cc_iscanfunc = 	iScanfuncP;
     
     /* ----------------
      *	initialize the cache's key information
@@ -730,13 +743,21 @@ InitIndexedSysCache(relname, indname, nkeys, key)
 }
 
 struct catcache *
-InitSysCache(relname, nkeys, key)
+InitSysCache(relname, indname, nkeys, key, iScanfuncP)
     char	*relname;
+    Name	*indname;
     int		nkeys;
     int		key[];
+    HeapTuple   (*iScanfuncP)();
 {
-    return
-	InitIndexedSysCache(relname, NULL, nkeys, key);
+    char *iname;
+
+    /*
+     * Doing the POSTGRES name dance.
+     */
+    iname = (indname) ? &((*indname)->data[0]) : NULL;
+
+    return InitIndexedSysCache(relname, iname, nkeys, key, iScanfuncP);
 }
 
 
@@ -760,7 +781,6 @@ SearchSysCache(cache, v1, v2, v3, v4)
     HeapTuple		ntp;
     Buffer		buffer;
     struct catctup	*nct;
-    HeapScanDesc	sd;
     Relation		relation;
     MemoryContext	oldcxt;
     
@@ -864,17 +884,33 @@ SearchSysCache(cache, v1, v2, v3, v4)
     CACHE2_elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
 		heapisoverride());
     
-    sd =  heap_beginscan(relation, 0, NowTimeQual,
-			 cache->cc_nkeys, cache->cc_skey);
-    
-    ntp = heap_getnext(sd, 0, &buffer);
-    
-    if (HeapTupleIsValid(ntp)) {
-	CACHE1_elog(DEBUG, "SearchSysCache: found tuple");
-	ntp = palloctup(ntp, buffer, relation);
+    if ((RelationGetRelationTupleForm(relation))->relhasindex)
+    {
+	Assert(cache->cc_iscanfunc);
+	switch(cache->cc_nkeys)
+	{
+	    case 4: ntp = cache->cc_iscanfunc(relation,v1,v2,v3,v4); break;
+	    case 3: ntp = cache->cc_iscanfunc(relation,v1,v2,v3); break;
+	    case 2: ntp = cache->cc_iscanfunc(relation,v1,v2); break;
+	    case 1: ntp = cache->cc_iscanfunc(relation,v1); break;
+	}
     }
+    else
+    {
+	HeapScanDesc	sd;
+
+	sd =  heap_beginscan(relation, 0, NowTimeQual,
+			     cache->cc_nkeys, cache->cc_skey);
     
-    heap_endscan(sd);
+	ntp = heap_getnext(sd, 0, &buffer);
+    
+	if (HeapTupleIsValid(ntp)) {
+	    CACHE1_elog(DEBUG, "SearchSysCache: found tuple");
+	    ntp = palloctup(ntp, buffer, relation);
+	}
+
+	heap_endscan(sd);
+    }
        
     DisableCache = 0;
     
