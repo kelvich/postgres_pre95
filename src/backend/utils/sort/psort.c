@@ -36,18 +36,7 @@ RcsId("$Header$");
 #include "utils/psort.h"
 #include "utils/lselect.h"
 
-#ifdef sprite
-#include "sprite_file.h"
-#else
 #include "storage/fd.h"
-#endif /* sprite */
-
-struct	tape {
-	int		tp_dummy;		/* (D) */
-	int		tp_fib;			/* (A) */
-	FILE		*tp_file;		/* (TAPE) */
-	struct	tape	*tp_prev;
-};
 
 #define	TEMPDIR	"./"
 
