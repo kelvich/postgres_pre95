@@ -29,6 +29,8 @@
 #include "executor/x_hash.h"
 #include "tcop/dest.h"
 #include "parser/parsetree.h"
+#include "utils/lmgr.h"
+#include "catalog/pg_relation.h"
 
  RcsId("$Header$");
 
@@ -285,6 +287,29 @@ getNextHashTableMemoryKey()
     return (nextHashTableMemoryKey++ + MINHASHTABLEMEMORYKEY + MasterPid);
 }
 
+static int
+sizeofTmpRelDesc(plan)
+Plan plan;
+{
+    List targetList;
+    int natts;
+    int size;
+
+    targetList = get_qptargetlist(plan);
+    natts = length(targetList);
+    /* ------------------
+     * see CopyRelDescUsing() in lib/C/copyfuncs.c if you want to know
+     * how size if derived.
+     * ------------------
+     */
+    size = sizeof(RelationData) + (natts - 1) * sizeof(TupleDescriptorData) +
+	   sizeof(RuleLock) + sizeof(RelationTupleFormD) +
+	   sizeof(LockInfoData) + 
+	   natts * (sizeof(AttributeTupleFormData) + sizeof(RuleLock)) +
+	   12; /* some extra for possible LONGALIGN() */
+    return size;
+}
+
 /* ----------------------------------------------------------------
  *	OptimizeAndExecuteFragments
  *
@@ -376,8 +401,16 @@ CommandDest	destination;
 	   groupid = getFreeProcGroup(nparallel);
 	   ProcGroupLocalInfoP[groupid].fragment = fragment;
 	   ProcGroupInfoP[groupid].status = WORKING;
+	   ProcGroupSMBeginAlloc(groupid);
 	   ProcGroupInfoP[groupid].queryDesc = (List)
-			CopyObjectUsing(fragQueryDesc, ExecSMAlloc);
+			CopyObjectUsing(fragQueryDesc, ProcGroupSMAlloc);
+	   for (p = ProcGroupLocalInfoP[groupid].memberProc;
+		p != NULL;
+		p = p->next) {
+	       SlaveInfoP[p->pid].resultTmpRelDesc = 
+		 (Relation)ProcGroupSMAlloc(sizeofTmpRelDesc(plan));
+	      }
+	   ProcGroupSMEndAlloc();
 	   ProcGroupInfoP[groupid].countdown = nparallel;
 	   wakeupProcGroup(groupid);
 	   /* ---------------
@@ -495,15 +528,11 @@ CommandDest	destination;
 	   }
          }
        /* -----------------
+	*  free shared memory
 	*  free the finished processed group
 	* -----------------
 	*/
+       ProcGroupSMClean(groupid);
        freeProcGroup(groupid);
      }
-	    
-	/* ----------------
-	 *	Clean Shared Memory used during the query
-	 * ----------------
-	 */
-	ExecSMClean();
 }
