@@ -19,7 +19,6 @@
 #include "block.h"
 #include "oid.h"
 #include "rel.h"
-#include "tupsiz.h"
 
 typedef BlockNumber	*BlockIndexList;
 
@@ -102,7 +101,7 @@ bool
 RelationContainsUsableBlock ARGS((
 	Relation	relation,
 	BlockNumber	blockIndex,
-	TupleSize	size,
+	Size		size,
 	Index		numberOfFailures
 ));
 

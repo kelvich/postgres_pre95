@@ -55,7 +55,7 @@
 #endif
 
 typedef struct HeapTupleData {
-	TupleSize	t_len;		/* length of entire tuple */
+	Size		t_len;		/* length of entire tuple */
 	ItemPointerData	t_ctid;		/* current TID of this tuple */
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
