@@ -6,25 +6,25 @@
 .SH NAME
 icopy \- copy files between Unix and Inversion file systems
 .SH SYNOPSIS
-.B icopy
+.BR icopy
 .I direction
-.IR "\-d"
+.BR "\-d"
 dbname
-.IR "\-s"
+.BR "\-s"
 smgr
 .in +5n
 [\c
-.IR "\-R" ]
+.BR "\-R" ]
 [\c
-.IR "\-a" ]
+.BR "\-a" ]
 [\c
-.IR "\-h"
+.BR "\-h"
 host]
 [\c
-.IR "\-p"
+.BR "\-p"
 portnum]
 [\c
-.IR "\-v" ]
+.BR "\-v" ]
 .IR srcfile
 .IR destfile
 .in -5n
