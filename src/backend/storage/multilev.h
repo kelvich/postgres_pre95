@@ -5,6 +5,8 @@
  *
  * for single.c and multi.c and their clients
  */
+#ifndef _INC_MULTILEV_
+#define _INC_MULTILEV_
 
 #include "storage/lock.h"
 
@@ -35,4 +37,29 @@ typedef int LOCK_LEVEL;
 
 /* multi.c */
 
-TableId InitMultiLevelLockm();
+/*
+ * function prototypes
+ */
+LockTableId InitMultiLevelLockm();
+bool MultiLockReln ARGS((LockInfo linfo, LOCKT lockt));
+bool MultiLockTuple ARGS((LockInfo linfo, ItemPointer tidPtr, LOCKT lockt));
+bool MultiLockPage ARGS((LockInfo linfo, ItemPointer tidPtr, LOCKT lockt));
+bool MultiReleaseReln ARGS((LockInfo linfo, LOCKT lockt));
+bool MultiReleasePage ARGS((LockInfo linfo, ItemPointer tidPtr, LOCKT lockt));
+
+bool MultiAcquire ARGS((
+	TableId tableId, 
+	LOCKTAG *tag, 
+	LOCK_LEVEL level, 
+	LOCKT lockt
+));
+
+bool MultiRelease ARGS((
+	TableId tableId, 
+	LOCKTAG *tag, 
+	LOCK_LEVEL level, 
+	LOCKT lockt
+));
+
+
+#endif _INC_MULTILEV_

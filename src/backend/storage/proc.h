@@ -78,6 +78,28 @@ extern PROC *MyProc;
 #define MAX_PRIO	50
 #define MIN_PRIO	(-1)
 
-PROC_QUEUE *ProcQueueAlloc();
+/*
+ * Function Prototypes
+ */
+PROC_QUEUE *ProcQueueAlloc ARGS((char *name));
+void ProcQueueInit ARGS((PROC_QUEUE *queue));
+void InitProcess ARGS((IPCKey key));
+void ProcReleaseLocks();
+void ProcWakeup ARGS((PROC *proc, int errType));
+void ProcAddLock ARGS((SHM_QUEUE *elem));
+void ProcReleaseSpins ARGS((PROC *proc));
+bool ProcSemaphoreKill ARGS((int pid));
+bool ProcKill ARGS((int exitStatus, int pid));
+int ProcGetId();
+int ProcLockWakeup ARGS((PROC_QUEUE *queue, Address ltable, Address lock));
+int HandleDeadLock();
+int ProcSleep ARGS((
+	PROC_QUEUE *queue, 
+	SPINLOCK spinlock, 
+	int token, 
+	int prio, 
+	LOCK *lock
+));
+
 
 #endif _PROC_H_

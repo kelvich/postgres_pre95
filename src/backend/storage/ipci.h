@@ -18,7 +18,6 @@
 #include "tmp/c.h"
 
 #include "storage/ipc.h"
-#include "storage/pladt.h"
 
 typedef uint32	IPCKey;
 
@@ -75,9 +74,6 @@ typedef uint32	IPCKey;
  */
 #define IPCGetProcessSemaphoreInitKey(key) \
 	((key == PrivateIPCKey) ? key : 14 + (key))
-
-extern LockTableId	PageLockTableId;
-extern LockTableId	MultiLevelLockTableId;
 
 /*
  * SystemPortAddressCreateMemoryKey --

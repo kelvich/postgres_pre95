@@ -30,7 +30,7 @@ extern SPINLOCK LockMgrLock;
 
 typedef int LOCK_TYPE;
 typedef int LOCKT;
-typedef int TableId;
+typedef int LockTableId;
 
 /* MAX_LOCKTYPES cannot be larger than the bits in MASK */
 #define MAX_LOCKTYPES 6
@@ -76,7 +76,7 @@ typedef struct ltag {
  *
  */
 typedef struct lockctl {
-  TableId	tableId;
+  LockTableId	tableId;
   int		nLockTypes;
   int		conflictTab[MAX_LOCKTYPES];
   int		prio[MAX_LOCKTYPES];
@@ -187,4 +187,40 @@ typedef struct Lock {
 	 tag->tupleId.positionData, \
 	 type);
 */
+
+/*
+ * function prototypes
+ */
+void InitLocks();
+void GrantLock ARGS((LOCK *lock, LOCKT lockt));
+void LockDisable ARGS((int status));
+bool LockAcquire ARGS((TableId tableId, LOCKTAG *lockName, LOCKT lockt));
+bool LockRelease ARGS((TableId tableId, LOCKTAG *lockName, LOCKT lockt));
+bool LockReleaseAll ARGS((TableId tableId, SHM_QUEUE *lockQueue));
+bool LockingDisabled();
+LockTableId LockTabRename ARGS((TableId tableId));
+int LockShmemSize();
+
+int WaitOnLock ARGS((
+	LOCKTAB *ltable, 
+	LOCK *lock, 
+	TableId tableId, 
+	LOCKT lockt
+));
+
+int LockResolveConflicts ARGS((
+	LOCKTAB *ltable,
+	LOCK *lock,
+	LOCKT lockt,
+	TransactionId xid,
+	int pid
+));
+
+LockTableId LockTabInit ARGS((
+	char *tabName, 
+	MASK *conflictsP, 
+	int *prioP, 
+	int ntypes
+));
+
 #endif /* ndef _LOCK_H_ */

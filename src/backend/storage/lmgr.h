@@ -13,9 +13,17 @@
 
 #include "storage/itemptr.h"
 #include "storage/part.h"
-#include "storage/pladt.h"
 #include "storage/lock.h"
 #include "utils/rel.h"
+
+/* 
+ * This was moved from pladt.h for the new lock manager.  Want to obsolete
+ * all of the old code.
+ */
+typedef struct LRelId {
+    ObjectId	 relId;     /* a relation identifier */
+    ObjectId     dbId;      /* a database identifier */
+} LRelId;
 
 typedef struct LockInfoData  {
         bool                    initialized;
@@ -204,6 +212,13 @@ RelationUnsetLockForWritePage ARGS((
 	Relation	relation,
 	PagePartition	partition,
 	ItemPointer	itemPointer
+));
+
+void
+LRelIdAssign ARGS((
+	LRelId		*lRelId,
+	ObjectId	dbId,
+	ObjectId	relId
 ));
 
 #endif	/* !defined(LMgrIncluded) */
