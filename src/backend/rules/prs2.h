@@ -313,13 +313,13 @@ prs2InsertRulePlanInCatalog ARGS((
 ));
 
 /*
- * prs2PutLocksInRelation
+ * prs2PutRelationLevelLocks
  *    Put all the appropriate locks in the RelationRelation
  *    (relation level locking...).
  */
 extern
 void
-prs2PutLocksInRelation ARGS((
+prs2PutRelationLevelLocks ARGS((
     ObjectId		ruleId,		/* the OID of the rule */
     Prs2LockType	lockType	/* the type of lock */
     ObjectId		eventRelationOid; /* the OID of the locked relation */
@@ -327,13 +327,13 @@ prs2PutLocksInRelation ARGS((
 ));
 
 /*
- * prs2RemoveLocks
- *    Remove the lock put by 'prs2PutLocks'
- *    For the time being only relation level locking is implemented.
+ * prs2RemoveRelationLevelLocks
+ *    Remove the lock put by 'prs2PutRelationLevelLocks'
+ *    (relation level locks)
  */
 extern
 void
-prs2RemoveLocks ARGS((
+prs2RemoveRelationLevelLocks ARGS((
     ObjectId	ruleId,			/* the OID of the rule */
     ObjectId	eventRelationOid	/* OID of the locked relation */
 ));
@@ -635,7 +635,6 @@ extern Prs2Status prs2Delete();
 extern Prs2Status prs2Replace();
 extern EventType prs2FindEventTypeFromParse();
 extern ActionType prs2FindActionTypeFromParse();
-extern void Prs2PutLocks();
 
 /*
  * These are functions in prs2plans.c
