@@ -13,6 +13,8 @@
  *		-d level sets the detail level:  0 is just page summaries,
  *			1 is page summaries plus line pointer summaries,
  *			and 2 is 1 plus tuples.
+ *		-s pno is the starting page number; -n count is the number
+ *			of pages to show.  default is entire file.
  *
  *	-h and -d0 are the defaults.
  */
@@ -117,6 +119,9 @@ typedef struct RTreePageOpaqueData {
 #define BTREE	1
 #define RTREE	2
 
+unsigned int	StartPage	= 0;
+int		PageCount	= -1;
+
 extern void		pagedoc();
 extern char		*readpage();
 extern void		heappage();
@@ -143,8 +148,14 @@ main(argc, argv)
     level = 0;
     reltype = HEAP;
 
-    while ((c = getopt(argc, argv, "hbrd:")) != EOF) {
+    while ((c = getopt(argc, argv, "hbrd:s:n:")) != EOF) {
 	switch (c) {
+	    case 's':
+		StartPage = atoi(optarg);
+		break;
+	    case 'n':
+		PageCount = atoi(optarg);
+		break;
 	    case 'h':
 		reltype = HEAP;
 		break;
@@ -200,10 +211,20 @@ pagedoc(fd, level, reltype)
     int reltype;
 {
     int i;
+    long loc;
     char *buf;
 
-    i = 0;
-    while ((buf = readpage(fd)) != (char *) NULL) {
+    i = StartPage;
+    loc = (long) (StartPage * 8192);
+    if (lseek(fd, loc, L_SET) != loc) {
+	fprintf(stderr, "cannot seek to page %d\n", StartPage);
+	fflush(stderr);
+	exit (1);
+    }
+
+    while (PageCount != 0 && (buf = readpage(fd)) != (char *) NULL) {
+	if (PageCount > 0)
+	    PageCount--;
 	switch (reltype) {
 	    case HEAP:
 		heappage(i, buf, level);
@@ -284,6 +305,7 @@ heappage(pgno, buf, level)
 
     for (i = 0, linp = &(phdr->pd_linp[0]); i < nlinps; linp++, i++) {
 	showlinp(i, linp);
+
 	/* level > 1 means show everything */
 	if (level > 1) {
 	    htup = (HeapTupleData *) &(buf[linp->lp_off]);
