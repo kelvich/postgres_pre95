@@ -362,7 +362,16 @@ static struct cachedesc cacheinfo[] = {
 			0 },
 	      sizeof(FormData_pg_rewrite) - (2 * sizeof(text)),
 	      NULL,
-	      NULL  }
+	      NULL  },
+    { &ProcedureRelationName,                   /* PROSRC */
+	   1,
+           { Anum_pg_proc_prosrc,
+		  0,
+		  0,
+		  0 },
+	   sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
+      &ProcedureSrcIndex,
+      ProcedureSrcIndexScan  }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
