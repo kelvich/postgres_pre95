@@ -61,6 +61,8 @@ find_relation_indices (rel)
     } else {
 	return (LispNil);
     }
+
+    return (LispNil);
 }
 
 /*    

@@ -100,6 +100,8 @@ matching_tlvar (var,targetlist)
     tlentry = tlistentry_member (var,targetlist);
     if ( tlentry ) 
       return((Expr)get_expr (get_entry (tlentry)) );
+
+    return((Expr) NULL);
 }
 
 /*    

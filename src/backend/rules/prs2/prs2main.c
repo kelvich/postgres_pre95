@@ -361,6 +361,12 @@ int operation;
 		operation);
 
     } /* switch */
+
+    /*
+     * keep lint happy 
+     */
+
+    return(false);
 }
 
 /*========================== SHOW STATS ==========================*/
