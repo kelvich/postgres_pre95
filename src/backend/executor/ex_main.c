@@ -467,7 +467,7 @@ InitPlan(operation, parseTree, plan, estate)
 	    }
 	}
     }
-    
+
     set_es_into_relation_descriptor(estate, intoRelationDesc);
     
     /* ----------------
@@ -635,7 +635,8 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	 *	Execute the plan and obtain a tuple
 	 * ----------------
 	 */
-	slot = ExecProcNode(plan);
+	 if (operation != NOTIFY)
+		slot = ExecProcNode(plan);
 	
 	/* ----------------
 	 *	For append nodes the plan can change during ExecProcNode()
@@ -664,7 +665,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	 *	we just return null...
 	 * ----------------
 	 */
-	if (TupIsNull((Pointer) slot)) {
+	if (TupIsNull((Pointer) slot) && operation != NOTIFY) {
 	    result = NULL;
 	    break;
 	}
@@ -809,6 +810,8 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	    Relation rDesc = get_ri_RelationDesc(rInfo);
 	    Async_Notify(&rDesc->rd_rel->relname);
 	    result = NULL;
+	    current_tuple_count = 0;
+	    numberTuples = 1;
 	    elog(DEBUG, "ExecNotify %s",&rDesc->rd_rel->relname);
 	}
 	    break;
