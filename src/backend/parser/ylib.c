@@ -609,30 +609,47 @@ ParseAgg(aggname, query, tlist)
     List query;
     List tlist;
 {
-    int fintype;
-    OID AggId = (OID)0;
+    ObjectId fintype;
+    ObjectId basetype;
+    ObjectId vartype;
+    ObjectId xfn1;
+    Form_pg_aggregate aggform;
     List list = LispNil;
     char *keyword = "agg";
     HeapTuple theAggTuple;
     tlist = CADR(tlist);
-    if(!query)
+
+    if (!query) {
 	elog(WARN,"aggregate %s called without arguments", aggname);
-    theAggTuple = SearchSysCacheTuple(AGGNAME, aggname, 0, 0, 0); 
-    AggId = (theAggTuple ? theAggTuple->t_oid : (OID)0);
-
-    if(AggId == (OID)0) {
-       elog(WARN, "aggregate %s does not exist", aggname);
     }
-    fintype = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
-		Anum_pg_aggregate_aggfinaltype, aggname, 0, 0, 0));
+    theAggTuple = SearchSysCacheTuple(AGGNAME, aggname, 0, 0, 0); 
+    if (!HeapTupleIsValid(theAggTuple)) {
+        elog(WARN, "aggregate %s does not exist", aggname);
+    }
 
-    if(fintype != 0 ) {
-       list = (LispValue)
-	 MakeList(lispInteger(fintype),lispName(keyword),lispName(aggname),
-		  query,tlist,-1);
-    } else
-	elog(WARN, "aggregate %s does not exist", aggname);
+    aggform = (Form_pg_aggregate) GETSTRUCT(theAggTuple);
+    fintype = aggform->aggfinaltype;
+    xfn1 = aggform->aggtransfn1;
 
+    /* only aggregates with transfn1 need a base type */
+    if (ObjectIdIsValid(xfn1)) {	
+	basetype = aggform->aggbasetype;
+	vartype = get_vartype((Var)tlist);
+	if (basetype != vartype) {
+	    Type tp, get_id_type();
+	    char p1[16], p2[16];
+
+	    tp = get_id_type(basetype);
+	    strncpy(p1, tname(tp), 16);
+	    tp = get_id_type(vartype);
+	    strncpy(p1, tname(tp), 16);
+	    elog(NOTICE, "Aggregate type mismatch:");
+	    elog(WARN, "%s works on %s, not %s", aggname, p1, p2);
+        }
+    }
+
+    list = (LispValue)MakeList(lispInteger(fintype), lispName(keyword),
+			       lispName(aggname), query, tlist, -1);
     return (list);
 }
 
