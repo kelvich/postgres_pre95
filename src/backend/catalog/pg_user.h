@@ -64,16 +64,7 @@ typedef FormData_pg_user	*Form_pg_user;
  * ----------------
  */
 DATA(insert OID =    6 ( postgres 6 t t t t ));
-DATA(insert OID =  234 ( anton 234 t t t t ));
-DATA(insert OID = 2360 ( aoki 2360 t t t t ));
-DATA(insert OID = 2007 ( chinheng 2007 t t t t ));
-DATA(insert OID =  348 ( grady 348 t t t t ));
-DATA(insert OID =  313 ( hirohama 313 t t t t ));
 DATA(insert OID =  799 ( mike 799 t t t t ));
-DATA(insert OID = 2216 ( philip 2216 t t t t ));
-DATA(insert OID =  249 ( raj 249 t t t t ));
-DATA(insert OID =  997 ( serge 997 t t t t ));
-DATA(insert OID = 1604 ( wensel 1604 t t t t ));
 DATA(insert OID = 1511 ( sp 1511 t t t t ));
 DATA(insert OID =  943 ( jhingran 943 t t t t ));
 DATA(insert OID = 2359 ( cimarron 2359 t t t t ));
