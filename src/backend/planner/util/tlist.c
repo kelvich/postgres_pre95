@@ -447,28 +447,33 @@ flatten_tlist (tlist)
     int last_resdomno = 0;
     List new_tlist = LispNil;
     LispValue tlist_vars = LispNil;
-    LispValue tlist_aggs = LispNil;
+    List tlist_aggs = LispNil;
     LispValue temp;
     LispValue var;
     LispValue tlist_thing = LispNil;
-    LispValue tlist_rest = tlist;
+    LispValue tlist_rest = LispNil;
+    LispValue temp_entry = LispNil;
+    TLE  full_agg_entry;
+    Resdom agg_resdom;
     extern List MakeList();
     extern List nset_difference();
 
     foreach(temp,tlist)  {
-      tlist_thing = pull_var_clause (get_expr(CAR(temp)));
-      if(tlist_thing != LispNil) {
-         tlist_vars = nconc(tlist_vars, tlist_thing);
-      }
-      else {
-	 tlist_thing = pull_agg_clause(get_expr(CAR(temp)));
-	 if(tlist_thing != LispNil) {
-	     tlist_aggs = nconc(tlist_aggs, tlist_thing);
-	     tlist_rest = nset_difference(temp, tlist_rest);
-	 }
-      }
-    }
-    
+       temp_entry = CAR(temp);
+       tlist_thing = pull_agg_clause(CADR(temp_entry));
+       if(tlist_thing != LispNil) {
+	 agg_resdom = get_resdom(temp_entry);
+	 full_agg_entry = MakeTLE(agg_resdom, tlist_thing);
+	 tlist_aggs = (LispValue)nappend1(tlist_aggs, full_agg_entry);
+	}
+	else {
+	   tlist_thing = pull_var_clause (get_expr(temp_entry));
+	   if(tlist_thing != LispNil) {
+	       tlist_vars = nconc(tlist_vars, tlist_thing);
+	    }
+	    tlist_rest = nappend1(tlist_rest, temp_entry);
+	}
+     }
     /* XXX - This used to use the function push and nreverse.  */
     foreach (var,tlist_vars ) {
 	if ( !(tlist_member (CAR(var),new_tlist,1 ))) {
@@ -485,7 +490,6 @@ flatten_tlist (tlist)
 	    
 	}
     }
-    
     new_tlist = MakeList( new_tlist, tlist_aggs, tlist_rest, -1); /*jc */
     return(new_tlist);
     
