@@ -288,8 +288,6 @@ reltimein(timestring)
 #endif	/* !DATEDEBUG */
 
 	if (error != 1) {
-		if (error != 2)
-			(void) printf("\n\tSyntax error.");
 		timeinsec = INVALID_RELTIME;  /*invalid time representation */
 	} else {
 		/* this check is necessary, while no control on overflow */
@@ -975,9 +973,12 @@ isreltime(timestring, sign, quantity, unitnr)
 				*sign = 1;
 				break;  /* no direction specified */
 			}
-			if ((c == ' ' || c == '\0') && i != 0
-			    && correct_dir(direction, sign))
-				break;	  /* correct direction found */
+			if ((c == ' ' || c == '\0') && i != 0)
+			{
+			    direction[i] = '\0';
+			    correct_dir(direction, sign);
+			    break;	  /* correct direction found */
+			}
 			else
 				return(0); 	/* syntax error*/
 		}
@@ -1010,7 +1011,7 @@ correct_unit(unit, unptr)
 }
 
 /*
- *	correct_dir	- returns 1, iff direction is a corecct identifier
+ *	correct_dir	- returns 1, iff direction is a correct identifier
  *
  *	output parameter:
  *		signptr: points to -1 if dir corresponds to past tense
@@ -1022,7 +1023,8 @@ correct_dir(direction,signptr)
 	int	*signptr;
 {	
 	*signptr = 1;
-	if (strncmp(RELTIME_PAST, direction, strlen(RELTIME_PAST) + 1 )) {
+	if (strncmp(RELTIME_PAST, direction, strlen(RELTIME_PAST)+1) == 0)
+	{
 		*signptr = -1;
 		return(1);
 	} else
