@@ -425,18 +425,19 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
     HeapScanDesc pg_attribute_scan;
     ScanKeyData	 key;
     int		 i;
+    int		 need;
 
     /* ----------------
      *	form a scan key
      * ----------------
      */
-	ScanKeyEntryInitialize(&key.data[0], 0, 
+    ScanKeyEntryInitialize(&key.data[0], 0, 
                            AttributeRelationIdAttributeNumber,
                            ObjectIdEqualRegProcedure,
                            ObjectIdGetDatum(relation->rd_id));
     
     /* ----------------
-     *	open pg_relation and begin a scan
+     *	open pg_attribute and begin a scan
      * ----------------
      */
     pg_attribute_desc = heap_openr(AttributeRelationName);
@@ -444,53 +445,42 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
 	heap_beginscan(pg_attribute_desc, 0, NowTimeQual, 1, &key);
     
     /* ----------------
-     *	for each tuple scanned, add attribute data to relation->rd_att
+     *	add attribute data to relation->rd_att
      * ----------------
      */
-    while (pg_attribute_tuple =
-	   heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL),
-	   HeapTupleIsValid(pg_attribute_tuple)) {
-	    
+    need = natts;
+    pg_attribute_tuple = heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL);
+    while (HeapTupleIsValid(pg_attribute_tuple) && need > 0) {
+
 	attp = (AttributeTupleForm)
 	    HeapTupleGetForm(pg_attribute_tuple);
-		    
-	if (!AttributeNumberIsValid(attp->attnum))
-	    elog(WARN, "RelationBuildTupleDesc: %s bad attribute number %d",
-		 BuildDescInfoError(buildinfo), attp->attnum);
-    
-	if (AttributeNumberIsForUserDefinedAttribute(attp->attnum)) {
-	    if (AttributeIsValid(relation->rd_att.data[attp->attnum - 1]))
-		elog(WARN, "RelationBuildTupleDesc: %s bad attribute %d",
-		     BuildDescInfoError(buildinfo), attp->attnum - 1);
-	
+
+	if (attp->attnum > 0) {
+
 	    relation->rd_att.data[attp->attnum - 1] = (Attribute)
 		palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
-	
+
 	    bcopy((char *) attp,
 		  (char *) relation->rd_att.data[attp->attnum - 1],
 		  sizeof *relation->rd_att.data[0]);
+
+	    need--;
 	}
+	pg_attribute_tuple = heap_getnext(pg_attribute_scan,
+					  0, (Buffer *) NULL);
     }
-    
+
+    if (need > 0)
+	elog(WARN, "catalog is missing %d attribute%s for relid %d",
+		natts - need, ((natts - need) == 1 ? "" : "s"),
+		relation->rd_id);
+
     /* ----------------
      *	end the scan and close the attribute relation
      * ----------------
      */
     heap_endscan(pg_attribute_scan);
     heap_close(pg_attribute_desc);
-    
-    /* ----------------
-     *	check that all attributes are valid because it's possible that
-     *  some tuples in the pg_attribute relation are missing so rd_att.data
-     *  might have zeros in it someplace.
-     * ----------------
-     */
-    for(i = --natts; i>=0; i--) {
-	if (! AttributeIsValid(relation->rd_att.data[i]))
-	    elog(WARN,
-		 "RelationBuildTupleDesc: %s attribute %d invalid",
-		    RelationGetRelationName(relation), i);
-    }
 }
 
 /* --------------------------------
