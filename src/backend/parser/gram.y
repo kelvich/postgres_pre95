@@ -166,7 +166,7 @@ stmt :
 
   **********************************************************************/
 AttributeAddStmt:
-	  Addattr '(' dom_list ')' TO relation_name
+	  Addattr '(' var_defs ')' TO relation_name
 		{
 		     $6 = lispCons( $6 , $3);
 		     $$ = lispCons( $1 , $6);
@@ -196,6 +196,7 @@ ClosePortalStmt:
   **********************************************************************/
 ClusterStmt:
 	  Cluster Relation On index_name OptUseOp
+  		{ elog(WARN,"cluster statement unimplemented in version 2"); }
 	;
 
  /**********************************************************************
@@ -218,21 +219,21 @@ CopyStmt:
 	  relation_name '(' copy_list ')' copy_dirn file_name copy_map
 	
 		{
-		  LispValue temp;
-			$$ = lispCons($1,LispNil);
-			$4 = lispCons($4,LispNil);
-			$4 = nappend1($4,$2);
-			$4 = nappend1($4,$3);
-			$$ = nappend1($$,$4);
-			$$ = nappend1($$,lispCons ($8,lispCons($9,LispNil)));
-			if(! lispNullp($10))
-			  $10 = lispCons($10,LispNil);
-			$$ = nappend1($$, lispCons(KW(using), $10));
-			temp = $$;
-			while(temp != LispNil && CDR(temp) != LispNil )
-			  temp = CDR(temp);
-		        CDR(temp) = $6;
-			/* $$ = nappend1 ($$ , $6 ); /* copy_list */
+		    LispValue temp;
+		    $$ = lispCons($1,LispNil);
+		    $4 = lispCons($4,LispNil);
+		    $4 = nappend1($4,$2);
+		    $4 = nappend1($4,$3);
+		    $$ = nappend1($$,$4);
+		    $$ = nappend1($$,lispCons ($8,lispCons($9,LispNil)));
+		    if(! lispNullp($10))
+		      $10 = lispCons($10,LispNil);
+		    $$ = nappend1($$, lispCons(KW(using), $10));
+		    temp = $$;
+		    while(temp != LispNil && CDR(temp) != LispNil )
+		      temp = CDR(temp);
+		    CDR(temp) = $6;
+		    /* $$ = nappend1 ($$ , $6 ); /* copy_list */
 		}
 	;
 
@@ -299,7 +300,7 @@ copy_char:
   ************************************************************/
 
 CreateStmt:
-	  Create relation_name '(' opt_dom_list ')' 
+	  Create relation_name '(' opt_var_defs ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
 		{
 			LispValue temp = LispNil;
@@ -365,7 +366,7 @@ key_list:
 	;
 
 key:
-	  dom_name OptUseOp
+	  attribute OptUseOp
 		{
 		  $$ = lispCons($1,lispCons($2,LispNil)) ;
 		}
@@ -441,6 +442,7 @@ def_list:
 		( DESTROY "relname1" ["relname2" .. "relnameN"] )
 
   **********************************************************************/
+
 DestroyStmt:
 	  Destroy relation_name_list		{ $$ = lispCons($1,$2) ; }
 	;
@@ -454,7 +456,7 @@ DestroyStmt:
 
   **********************************************************************/
 FetchStmt:
-	  Fetch OptFetchDirn OptFetchNum OptFetchPname
+	  Fetch opt_direction fetch_how_many opt_portal_name
 		{
 		    $3 = lispCons ( $3 , LispNil );
 		    $2 = lispCons ( $2 , $3 );
@@ -463,16 +465,7 @@ FetchStmt:
 	        }
 	;
 
-OptFetchDirn:
-	  /*EMPTY, default is forward*/
-		{ $$ = KW(forward); }
-	| BACKWARD
-		{ $$ = KW(backward); }
-	| FORWARD
-		{ $$ = KW(forward); }
-	;
-
-OptFetchNum:
+fetch_how_many:
 	/*EMPTY, default is all*/
 		{ $$ = KW(all) ; }
 	| NumConst
@@ -480,10 +473,46 @@ OptFetchNum:
 		{ $$ = KW(all) ; }
 	;
 
-OptFetchPname:
-	/*EMPTY*/				{ NULLTREE }
-	| In name	 			{ $$ = $2; }
+ /**********************************************************************
+	QUERY:
+		move [<dirn>] [<whereto>] [<portalname>]
+	TREE:
+		( MOVE ["portalname"] <dirn> (TO <whereto> |
+  **********************************************************************/
+
+MoveStmt:
+	  Move opt_direction opt_move_where opt_portal_name
+		{ 
+		    $3 = lispCons ( $3 , LispNil );
+		    $2 = lispCons ( $2 , $3 );
+		    $4 = lispCons ( $4 , $2 );
+		    $$ = lispCons ( $1 , $4 );
+		}
 	;
+
+opt_direction:
+	/*EMPTY, by default forward */		{ $$ = KW(forward); }
+	| FORWARD
+		{ $$ = KW(forward); }
+	| BACKWARD
+		{ $$ = KW(backward); }
+	;
+
+opt_move_where: 
+	/*EMPTY*/				{ NULLTREE }
+	| NumConst				/* $$ = $1 */
+	| TO NumConst				
+		{ $$ = lispCons ( KW(to) , lispCons( $2, LispNil )); }
+	| TO record_qual			
+		{ $$ = lispString("record quals unimplemented") ; }
+	;
+
+opt_portal_name:
+	/*EMPTY*/				{ NULLTREE }
+	| IN name				{ $$ = $2;}
+	;
+
+
 
  /************************************************************
 
@@ -500,6 +529,9 @@ IndexStmt:
 	  Define opt_archive Index index_name On relation_name
 	    Using access_method '(' index_list ')' with_clause
 		{
+		    /* should check that access_method is valid,
+		       etc ... but doesn't */
+
 		    $12 = lispCons($12,LispNil);
 		    $10 = lispCons($10,$12);
 		    $8  = lispCons($8,$10);
@@ -527,45 +559,6 @@ MergeStmt:
 		                  lispCons($2,lispCons($4,LispNil))) ;
 		}
 	;
-
- /**********************************************************************
-	QUERY:
-		move [<dirn>] [<whereto>] [<portalname>]
-	TREE:
-		( MOVE ["portalname"] <dirn> (TO <whereto> |
-  **********************************************************************/
-MoveStmt:
-	  Move opt_move_dirn opt_move_where opt_move_pname
-		{ 
-		    $3 = lispCons ( $3 , LispNil );
-		    $2 = lispCons ( $2 , $3 );
-		    $4 = lispCons ( $4 , $2 );
-		    $$ = lispCons ( $1 , $4 );
-		}
-	;
-
-opt_move_dirn:
-	/*EMPTY, by default forward */		{ $$ = KW(forward); }
-	| FORWARD
-		{ $$ = KW(forward); }
-	| BACKWARD
-		{ $$ = KW(backward); }
-	;
-
-opt_move_where: 
-	/*EMPTY*/				{ NULLTREE }
-	| NumConst				/* $$ = $1 */
-	| TO NumConst				
-		{ $$ = lispCons ( KW(to) , lispCons( $2, LispNil )); }
-	| TO record_qual			
-		{ $$ = lispString("record quals unimplemented") ; }
-	;
-
-opt_move_pname:
-	/*EMPTY*/				{ NULLTREE }
-	| In name				{ $$ = $2;}
-	;
-
 
  /**********************************************************************
 
@@ -659,7 +652,7 @@ remove_operator:
   **********************************************************************/
 
 RenameStmt :
-	  RENAME att_name In relation_name TO att_name
+	  RENAME attribute IN relation_name TO attribute
 		{ 
 		    $2 = lispCons ($2 , lispCons ($6, LispNil ));
 		    $4 = lispCons ($4 , $2);
@@ -680,48 +673,24 @@ RenameStmt :
   */
 
 RuleStmt:
-          Define Rule name opt_priority
-          Is rule_tag
-                { p_ruleinfo = lispCons(lispInteger(0),$6); p_priority = $4; }
-          OptimizableStmt
-                {
-                  $3 = lispCons($3,LispNil);    /* name */
-                  $2 = lispCons($2,$3);         /* rule */
-                  $$ = lispCons($1,$2);         /* define */
-                  $$ = nappend1($$,$8 );        /* rule query */
-                }
-	| Define newruleTag Rule name Is 
+	Define newruleTag Rule name Is 
 		{
 		    p_ruleinfo = lispCons(lispInteger(0),LispNil);
 		    p_priority = lispInteger(0) ;
 		}
 	RuleBody
 		{
-	 	    $$ = lispCons ( $3, $6 );	/* CADR(args) = 
-						   CADDR(tree) = name */
-		    $$ = lispCons ( $2, $$ );	/* tag = CADR(tree) = 'rule */
-		    $$ = lispCons ( $1, $$ );	/* CAR(tree) = 'define */
+	 	    $3 = lispCons ( $3, $7 );	
+		    $2 = lispCons ( $2, $3 );	
+		    $$ = lispCons ( $1, $2 );	
 		}
 	;
-
-rule_tag:
-        ALWAYS
-                { $$ = KW(always); }
-        | ONCE
-                { $$ = KW(once); }
-        | NEVER
-                { $$ = KW(never); }
-        ;
-
-opt_priority:
-          /*EMPTY*/                             { $$ = lispInteger(0); }
-        | PRIORITY Iconst                       { $$ = $2 ; }
-        ;
-
 
 newruleTag: P_TUPLE 
 		{ $$ = KW(tuple); }
 	| REWRITE 
+		{ $$ = KW(rewrite); }
+	| /* EMPTY */
 		{ $$ = KW(rewrite); }
 	;
 
@@ -742,7 +711,7 @@ RuleBody:
 	;
 
 event_object: 
-	relation_name '.' att_name
+	relation_name '.' attribute
 		{ $$ = lispCons ( $1, lispCons ( $3, LispNil)) ; }
 	| relation_name
 		{ $$ = lispCons ( $1, LispNil ); }
@@ -1111,7 +1080,7 @@ index_list:
 	;
 
 index_elem:
-	  dom_name opt_class
+	  attribute opt_class
 		{ $$ = nappend1(LispNil,$1); nappend1($$,$2);}
 	;
 opt_class:
@@ -1180,7 +1149,7 @@ from_list:
 	;
 
 from_val:
-	  var_list In from_rel_name
+	  var_list IN from_rel_name
 		{
 			/* Convert "p, p1 in proc" to 
 			   "p in proc, p1 in proc" */
@@ -1328,20 +1297,47 @@ record_qual:
 		{ NULLTREE }
 	;
 
-opt_dom_list: dom_list | {NULLTREE} ;
 
-dom_list:
-	  dom_list ',' dom		{ INC_LIST ;  }
-	| dom				{ ELEMENT ; }
-	;
+ /* 
+  * (tuple) variable definition(s)
+  * normal tuple vars are defined as '(name type)
+  * array tuple vars are defined as '(name type size)
+  * if size = VARLENGTH = -1, then the array is of variable length
+  * otherwise, the size is an integer from 1 to MAXINT 
+  */
 
-dom: 	
-	  dom_name '=' adt
+var_def: 	
+	  Id '=' typename
 		{ 
 		    $3 = lispCons($3,LispNil); 
 		    $$ = lispCons($1,$3);
 		}
+	| Id '=' typename '[' ']'
+		{
+		    $3 = lispCons($3,lispCons(lispInteger(-1),LispNil));
+		    $$ = lispCons($1,$3);
+		}
+	| Id '=' typename '[' Iconst ']'
+		{
+		    $3 = lispCons($3,lispCons($5,LispNil));
+		    $$ = lispCons($1,$3);
+		}
 	;
+
+var_defs:
+	  var_defs ',' var_def		{ INC_LIST ;  }
+	| var_def			{ ELEMENT ; }
+	;
+
+opt_var_defs: 
+	  var_defs
+	| {NULLTREE} ;
+
+
+ /* 
+  * expression grammar, still needs some cleanup
+  */
+
 b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info 
 				     XXX - check that it is boolean */
 a_expr:
@@ -1357,7 +1353,6 @@ a_expr:
 		     $$ = (LispValue)MakeArrayRef( temp , $3 );
 		}
 	| AexprConst		
-	/* | AexprConst ':' ':' adt_name */
 	| spec 
 	| '-' a_expr %prec UMINUS
   		{ $$ = make_op(lispString("-"),$2, LispNil); }
@@ -1406,6 +1401,7 @@ a_expr:
 					const_string = 
 					DatumGetPointer(
 					   get_constvalue(CDR($1)) );
+					break;
 				default:
 					elog(WARN,"unknown type%d ",
 					     CInteger(CAR($1)) );
@@ -1455,7 +1451,7 @@ a_expr:
 	;
 
 attr:
-	  relation_name '.' att_name
+	  relation_name '.' attribute
 		{    
 		    INC_NUM_LEVELS(1);		
 		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
@@ -1571,16 +1567,15 @@ relation_name:
 
 access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
-att_name: 		Id		/*$$=$1*/;
+attribute: 		Id		/*$$=$1*/;
 class: 			Id		/*$$=$1*/;
 col_name:		Id		/*$$=$1*/;
-dom_name: 		Id 		/*$$=$1*/;
 index_name: 		Id		/*$$=$1*/;
 map_rel_name:		Id		/*$$=$1*/;
 var_name:		Id		/*$$=$1*/;
 name:			Id		/*$$-$1*/;
 string: 		Id		/*$$=$1 Sconst ?*/;
-adt:			Id		/*$$=$1*/;
+typename:		Id		/*$$=$1*/
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
@@ -1640,7 +1635,6 @@ Destroy:		DESTROY		{ $$ = yylval ; } ;
 End:			END_TRANS	{ $$ = yylval ; } ;
 Fetch:			FETCH		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
-In:			IN		{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
 Inherits:		INHERITS	{ $$ = yylval ; } ;
