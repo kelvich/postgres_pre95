@@ -563,6 +563,9 @@ _outResdom(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :restype %ld", node->restype);
 	appendStringInfo(str,buf);
+	sprintf(buf, " :rescomplex %s", 
+		(node->rescomplex ? "true" : "nil"));
+	appendStringInfo(str,buf);
 	sprintf(buf, " :reslen %d", node->reslen);
 	appendStringInfo(str,buf);
 	sprintf(buf, " :resname \"%s\"",
@@ -764,6 +767,9 @@ _outFunc(str, node)
 	appendStringInfo(str,buf);
 	appendStringInfo(str, " :func_tlist ");
 	s = lispOut(node->func_tlist);
+	appendStringInfo(str, s);
+	appendStringInfo(str, " :func_planlist ");
+	s = lispOut(node->func_planlist);
 	appendStringInfo(str, s);
 	pfree(s);
 }

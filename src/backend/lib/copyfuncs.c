@@ -1170,6 +1170,7 @@ _copyResdom(from, to, alloc)
      */
     newnode->resno   = 	from->resno;
     newnode->restype = 	from->restype;
+    newnode->rescomplex = from->rescomplex;
     newnode->reslen  = 	from->reslen;
 
     if (from->resname != NULL)
@@ -1638,6 +1639,7 @@ _copyFunc(from, to, alloc)
     newnode->funcsize = 	from->funcsize;
     newnode->func_fcache = 	from->func_fcache;
     Node_Copy(from, newnode, alloc, func_tlist);
+    Node_Copy(from, newnode, alloc, func_planlist);
     
     (*to) = newnode;
     return true;

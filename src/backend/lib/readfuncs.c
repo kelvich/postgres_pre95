@@ -722,6 +722,18 @@ _readResdom()
 
 	local_node->restype = atol(token);
 
+	token = lsptok(NULL, &length);    		/* eat :rescomplex */
+	token = lsptok(NULL, &length);    		/* get rescomplex */
+
+	if (!strncmp(token, "true", 4))
+	{
+		local_node->rescomplex = true;
+	}
+	else
+	{
+		local_node->rescomplex = false;
+	}
+
 	token = lsptok(NULL, &length);    		/* eat :reslen */
 	token = lsptok(NULL, &length);    		/* get reslen */
 
@@ -1011,8 +1023,12 @@ _readFunc()
 		local_node->funcisindex = false;
 	}
 	local_node->func_fcache = (FunctionCache *) NULL;
+
 	token = lsptok(NULL, &length);            /* get :func_tlist */
 	local_node->func_tlist = lispRead(true);  /* now read it */
+
+	token = lsptok(NULL, &length);              /* get :func_planlist */
+	local_node->func_planlist = lispRead(true); /* now read it */
 	
 	return(local_node);
 }

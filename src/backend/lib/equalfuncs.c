@@ -49,6 +49,8 @@ _equalResdom(a, b)
 		return (false);
 	if (a->restype != b->restype)
 		return (false);
+	if (a->rescomplex != b->rescomplex)
+	        return(false);
 	if (a->reslen != b->reslen)
 		return (false);
 	if (strcmp(a->resname, b->resname) != 0)
@@ -330,6 +332,8 @@ _equalFunc(a, b)
 	if (a->funcsize != b->funcsize)
 		return (false);
 	if (!equal(a->func_tlist, b->func_tlist))
+		return (false);
+	if (!equal(a->func_planlist, b->func_planlist))
 		return (false);
 
 	return (true);
