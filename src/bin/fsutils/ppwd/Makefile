@@ -1,7 +1,7 @@
 .include <postgres.global.mk>
-PROG= pwd
+PROG= ppwd
 
-SRCS= pwd.c simplelists.c
+SRCS= ppwd.c simplelists.c
 
 #
 # should simplelists.o just be in libpq?
