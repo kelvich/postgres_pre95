@@ -74,8 +74,6 @@ typedef void	*Pointer;
 
 #else	/* !defined(__STDC__) */ /* NOT ANSI C */
 
-#ifndef	__SABER__	/* Saber requires ANSI for the following */
-
 /*
  * CppAsString --
  *	Convert the argument to a string, using the C preprocessor.
@@ -87,13 +85,6 @@ typedef void	*Pointer;
  *	Concatenate two arguments together, using the C preprocessor.
  */
 #define CppConcat(x, y)		CppIdentity(x)y
-
-#else	/* defined(__SABER__) */
-
-#define CppAsString(identifier)	#identifier
-#define CppConcat(x, y)		x##y
-
-#endif	/* defined(__SABER__) */
 
 /*
  * const --
@@ -618,10 +609,6 @@ form ARGS((
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
 
-/*
- *  Force a syntax error during compilation
- */
-
-#define CauseCompilerError()	{ a b; }
+#define ALLOCATE(foo) (foo)palloc(sizeof(struct CppConcat(_,foo)))
 
 #endif	/* !defined(CIncluded) */
