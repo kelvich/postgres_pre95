@@ -49,6 +49,18 @@ extern void	PrintMergeOrder();
 extern void	PrintCInfo();
 extern void	PrintJInfo();
 
+extern bool	EqualSortKey();
+extern bool	EqualPath();
+extern bool	EqualIndexPath();
+extern bool	EqualJoinPath();
+extern bool	EqualMergePath();
+extern bool	EqualHashPath();
+extern bool	EqualOrderKey();
+extern bool	EqualJoinKey();
+extern bool	EqualMergeOrder();
+extern bool	EqualCInfo();
+extern bool	EqualJInfo();
+
 /*
  * Relid
  *	List of relation identifiers (indexes into the rangetable).
@@ -128,10 +140,11 @@ class (Rel) public (Node) {
 
 #define TLE LispValue
 #define TL LispValue
-#define get_expr(foo) CADR((TLE)foo)
-#define get_resdom(foo) CAR((TLE)foo)
-#define get_entry(foo) CAR((TL)foo)
-#define get_joinlist(foo) CADR((TL)foo)
+
+extern Var get_expr ARGS(( TLE foo));
+extern Resdom get_resdom ARGS(( TLE foo));
+extern TLE get_entry  ARGS(( TL foo));
+extern List get_joinlist ARGS(( TL foo));
 
 class (SortKey) public (Node) {
 	inherits(Node);
