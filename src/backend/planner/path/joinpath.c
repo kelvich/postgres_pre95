@@ -91,7 +91,7 @@ find_all_join_paths (joinrels,previous_level_rels,nest_level)
 	  LispValue innerrelid = 	  /*   grow left-only plan trees */
 	    last_element (get_relids (joinrel));
 	  Rel innerrel = get_rel (innerrelid);
-	  Rel outerrel = rel_member (remove 
+	  Rel outerrel = rel_member (LispRemove 
 					   (innerrelid,
 					    get_relids (joinrel)),
 					   previous_level_rels);
