@@ -11,7 +11,15 @@
 
 #include "tmp/c.h"
 
-#if defined(sequent) || defined(sparc) || defined(sun3)
+#if defined(sequent) || defined(sparc) || defined(m68k) || defined(mc68020)
+#define HAS_TEST_AND_SET
+#endif
+
+/*
+ * for these, use the mc68020 tas instruction
+ */
+
+#if defined(mc68030) || defined(mc68040) || defined(amiga)
 #define HAS_TEST_AND_SET
 #endif
 
