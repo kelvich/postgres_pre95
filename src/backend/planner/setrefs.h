@@ -22,3 +22,4 @@ extern Var replace_joinvar_refs ARGS((Var var, List outer_tlist, List inner_tlis
 extern List tlist_temp_references ARGS((ObjectId tempid, List tlist));
 extern void replace_result_clause ARGS((List clause, List subplanTargetList));
 extern void set_result_tlist_references ARGS((Result resultNode));
+extern bool OperandIsInner ARGS((LispValue opnd, int inner_relid));
