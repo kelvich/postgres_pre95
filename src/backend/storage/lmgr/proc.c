@@ -35,14 +35,15 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#include "storage/proc.h"
-#include "storage/procq.h"
+#include "utils/hsearch.h"
+#include "utils/log.h"
+
+#include "storage/buf.h"	
+#include "storage/lock.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
-#include "storage/lock.h"
-#include "utils/hsearch.h"
-#include "storage/buf.h"	
-#include "utils/log.h"
+#include "storage/proc.h"
+#include "storage/procq.h"
 
 extern int MyPid;	/* for parallel backends w/same xid */
 
@@ -70,6 +71,7 @@ PROC 		*MyProc = NULL;
  * used by the lock manager on semaphore queues.
  * ------------------------
  */
+void
 InitProcess(key)
 IPCKey key;
 {
@@ -77,8 +79,6 @@ IPCKey key;
   int pid;
   int semstat;
   unsigned int location, myOffset;
-  int HandleDeadLock();
-  int ProcKill();
 
   /* ------------------
    * Routine called if deadlock timer goes off. See ProcSleep()
@@ -197,11 +197,13 @@ IPCKey key;
  * ProcReleaseLocks() -- release all locks associated with this process
  *
  */
+void
 ProcReleaseLocks()
 {
   LockReleaseAll(1,&MyProc->lockQueue);
 }
 
+bool
 ProcSemaphoreKill(pid)
 int pid;
 {
@@ -223,6 +225,7 @@ int pid;
  * ProcKill() -- Destroy the per-proc data structure for
  *	this process. Release any of its held spin locks.
  */
+bool
 ProcKill(exitStatus, pid)
 int exitStatus;
 int pid;
@@ -327,6 +330,7 @@ char *name;
 /*
  * ProcQueueInit -- initialize a shared memory process queue
  */
+void
 ProcQueueInit(queue)
 PROC_QUEUE *queue;
 {
@@ -348,6 +352,7 @@ PROC_QUEUE *queue;
  *
  * NOTES: The process queue is now a priority queue for locking.
  */
+int
 ProcSleep(queue, spinlock, token, prio, lock)
 PROC_QUEUE	*queue;
 SPINLOCK 	spinlock;
@@ -436,6 +441,7 @@ LOCK *		lock;
 /*
  * ProcWakeup -- wake up a process by releasing its private semaphore.
  */
+void
 ProcWakeup(proc, errType)
 PROC	*proc;
 int	errType;
@@ -453,6 +459,7 @@ int	errType;
 /*
  * ProcGetId --
  */
+int
 ProcGetId()
 {
   return( MyProc->procId );
@@ -462,6 +469,7 @@ ProcGetId()
  * ProcLockWakeup -- routine for waking up processes when a lock is
  * 	released.
  */
+int
 ProcLockWakeup( queue, ltable, lock)
 PROC_QUEUE	*queue;
 Address		ltable;
@@ -506,6 +514,7 @@ Address		lock;
     return(STATUS_NOT_FOUND);
 }
 
+void
 ProcAddLock(elem)
 SHM_QUEUE	*elem;
 {

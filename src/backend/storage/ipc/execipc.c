@@ -60,9 +60,7 @@
 
 #include "storage/ipc.h"
 #include "storage/ipci.h"
-#include "storage/pladt.h"
 #include "storage/sinval.h"
-#include "storage/plparam.h"
 
 #include "tcop/slaves.h"
 #include "utils/mcxt.h"
@@ -180,12 +178,12 @@ ExecImmediateReleaseSemaphore()
     IpcSemaphoreId semid;
 
     for (i=0; i<ExecutorSemaphoreArraySize; i++) {
-	if (i < NMAXSEM) {
+	if (i < IPC_NMAXSEM) {
 	    semno = i;
 	    semid = ExecutorSemaphoreId;
 	  }
 	else {
-	    semno = i - NMAXSEM;
+	    semno = i - IPC_NMAXSEM;
 	    semid = ExecutorSemaphoreId1;
 	  }
 	cnt = ExecutorSemaphoreLockCount[i];
@@ -209,12 +207,12 @@ Exec_I(semno, value)
     int i;
     IpcSemaphoreId semid;
 
-    if (semno < NMAXSEM) {
+    if (semno < IPC_NMAXSEM) {
 	i = semno;
 	semid = ExecutorSemaphoreId;
       }
     else {
-       i = semno - NMAXSEM;
+       i = semno - IPC_NMAXSEM;
        semid = ExecutorSemaphoreId1;
       }
     IpcSemaphoreSet(semid, i, value);
@@ -235,12 +233,12 @@ Exec_P(semno, nlocks)
     int i;
     IpcSemaphoreId semid;
 
-    if (semno < NMAXSEM) {
+    if (semno < IPC_NMAXSEM) {
 	i = semno;
 	semid = ExecutorSemaphoreId;
       }
     else {
-       i = semno - NMAXSEM;
+       i = semno - IPC_NMAXSEM;
        semid = ExecutorSemaphoreId1;
       }
     IpcSemaphoreLock(semid, i, -nlocks);
@@ -261,12 +259,12 @@ Exec_V(semno, nlocks)
     int i;
     IpcSemaphoreId semid;
 
-    if (semno < NMAXSEM) {
+    if (semno < IPC_NMAXSEM) {
 	i = semno;
 	semid = ExecutorSemaphoreId;
       }
     else {
-       i = semno - NMAXSEM;
+       i = semno - IPC_NMAXSEM;
        semid = ExecutorSemaphoreId1;
       }
     IpcSemaphoreUnlock(semid, i, -nlocks);
@@ -556,7 +554,7 @@ ExecInitExecutorSemaphore(key)
      *  the master backend should register the on_exit procedure.
      * ----------------
      */
-    if (ExecutorSemaphoreArraySize <= NMAXSEM) {
+    if (ExecutorSemaphoreArraySize <= IPC_NMAXSEM) {
     ExecutorSemaphoreId =
 	IpcSemaphoreCreateWithoutOnExit(key,
 					ExecutorSemaphoreArraySize,
@@ -567,13 +565,13 @@ ExecInitExecutorSemaphore(key)
     else {
     ExecutorSemaphoreId =
 	IpcSemaphoreCreateWithoutOnExit(key,
-					NMAXSEM,
+					IPC_NMAXSEM,
 					IPCProtection,
 					0,
 					&status);
     ExecutorSemaphoreId1 =
 	IpcSemaphoreCreateWithoutOnExit(key,
-					ExecutorSemaphoreArraySize - NMAXSEM,
+					ExecutorSemaphoreArraySize - IPC_NMAXSEM,
 					IPCProtection,
 					0,
 					&status);
@@ -624,7 +622,7 @@ ExecSemaphoreOnExit(procedure)
     void (*procedure)();
 {
     on_exitpg(procedure, ExecutorSemaphoreId);
-    if (ExecutorSemaphoreArraySize > NMAXSEM)
+    if (ExecutorSemaphoreArraySize > IPC_NMAXSEM)
         on_exitpg(procedure, ExecutorSemaphoreId1);
 }
 

@@ -33,7 +33,6 @@
 
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
 #include "storage/ipc.h"
-#include "storage/plparam.h"
 #include "tmp/align.h"
 #include "utils/log.h"
 #include "tcop/slaves.h"
@@ -250,12 +249,12 @@ IpcSemaphoreCreate(semKey, semNum, permission, semStartValue, status)
     int		i;
     int		errStatus;
     int		semId;
-    ushort	array[NMAXSEM];
+    ushort	array[IPC_NMAXSEM];
     union semun	semun;
     
     /* get a semaphore if non-existent */
     /* check arguments	*/
-    if (semNum > NMAXSEM || semNum <= 0)  {
+    if (semNum > IPC_NMAXSEM || semNum <= 0)  {
 	*status = IpcInvalidArgument;
 	return(2);	/* returns the number of the invalid argument	*/
     }
@@ -329,12 +328,12 @@ IpcSemaphoreCreateWithoutOnExit(semKey,
     int		i;
     int		errStatus;
     int		semId;
-    ushort	array[NMAXSEM];
+    ushort	array[IPC_NMAXSEM];
     union semun	semun;
     
     /* get a semaphore if non-existent */
     /* check arguments	*/
-    if (semNum > NMAXSEM || semNum <= 0)  {
+    if (semNum > IPC_NMAXSEM || semNum <= 0)  {
 	*status = IpcInvalidArgument;
 	return(2);	/* returns the number of the invalid argument	*/
     }

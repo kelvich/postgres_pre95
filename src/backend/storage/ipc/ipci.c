@@ -7,7 +7,6 @@
 
 #include "storage/ipc.h"
 #include "utils/log.h"
-#include "storage/pladt.h"
 #include "storage/sinval.h"
 #include "storage/ipci.h"
 #include "storage/bufmgr.h"
@@ -15,9 +14,6 @@
 #include "tcop/slaves.h"
 
 RcsId("$Header$");
-
-LockTableId	PageLockTableId;
-LockTableId	MultiLevelLockTableId;
 
 IPCKey
 SystemPortAddressCreateIPCKey(address)

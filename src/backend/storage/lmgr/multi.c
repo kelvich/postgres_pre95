@@ -18,9 +18,9 @@
  * $Header$
  */
 #include <stdio.h>
-#include "storage/multilev.h"
-#include "storage/lock.h"
 #include "storage/lmgr.h"
+#include "storage/multilev.h"
+
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/miscadmin.h"		/* MyDatabaseId */
@@ -66,14 +66,14 @@ int MultiPrios[] = {
  * Lock table identifier for this lock table.  The multi-level
  * lock table is ONE lock table, not three.
  */
-TableId MultiTableId = NULL;
-TableId ShortTermTableId = NULL;
+LockTableId MultiTableId = NULL;
+LockTableId ShortTermTableId = NULL;
 
 /*
  * Create the lock table described by MultiConflicts and Multiprio.
  */
 
-TableId
+LockTableId
 InitMultiLevelLockm()
 {
   int tableId;
@@ -107,6 +107,7 @@ InitMultiLevelLockm()
  *
  * Returns: TRUE if the lock can be set, FALSE otherwise.
  */
+bool
 MultiLockReln(linfo, lockt)
 LockInfo	linfo;
 LOCKT		lockt;
@@ -131,6 +132,7 @@ LOCKT		lockt;
  * Side Effects: causes intention level locks to be set
  * 	at the page and relation level.
  */
+bool
 MultiLockTuple(linfo, tidPtr, lockt)
 LockInfo	linfo;
 ItemPointer	tidPtr;
@@ -155,6 +157,7 @@ LOCKT		lockt;
 /*
  * same as above at page level
  */
+bool
 MultiLockPage(linfo, tidPtr, lockt)
 LockInfo	linfo;
 ItemPointer	tidPtr;
@@ -190,8 +193,9 @@ LOCKT		lockt;
  * Returns: TRUE if lock is set, FALSE if not
  * Side Effects:
  */
+bool
 MultiAcquire(tableId, tag, lockt, level)
-TableId		tableId;
+LockTableId		tableId;
 LOCKTAG		*tag;
 LOCK_LEVEL  	level;
 LOCKT		lockt;
@@ -292,6 +296,7 @@ LOCKT		lockt;
  * Release a page in the multi-level lock table
  * ------------------
  */
+bool
 MultiReleasePage(linfo, tidPtr, lockt)
 LockInfo	linfo;
 ItemPointer	tidPtr;
@@ -318,6 +323,7 @@ LOCKT		lockt;
  * Release a relation in the multi-level lock table
  * ------------------
  */
+bool
 MultiReleaseReln(linfo, lockt)
 LockInfo	linfo;
 LOCKT		lockt;		
@@ -342,8 +348,9 @@ LOCKT		lockt;
  *
  * Returns: TRUE if successful, FALSE otherwise.
  */
+bool
 MultiRelease(tableId, tag, lockt, level)
-TableId		tableId;
+LockTableId		tableId;
 LOCKTAG		*tag;
 LOCK_LEVEL  	level;
 LOCKT		lockt;

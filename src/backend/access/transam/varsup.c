@@ -37,7 +37,6 @@
 #include "storage/buf.h"
 #include "storage/bufmgr.h"
 #ifdef sequent
-#include "storage/pladt.h"	/* for LockId */
 #include "storage/ipc.h"	/* for OIDGENLOCKID */
 #endif
 
@@ -476,7 +475,7 @@ UpdateLastCommittedXid(xid)
  * ----------------
  */
 #ifdef sequent
-static LockId OidGenLockId = OIDGENLOCKID;
+static SPINLOCK OidGenLockId = OIDGENLOCKID;
 #endif
 
 void
@@ -499,7 +498,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
     if (RelationIsValid(VariableRelation))
         RelationSetLockForRead(VariableRelation);
 #ifdef sequent
-    ExclusiveLock(OidGenLockId);
+    SpinAcquire(OidGenLockId);
 #endif
 	
     /* ----------------
@@ -525,7 +524,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      * ----------------
      */
 #ifdef sequent
-    ExclusiveUnlock(OidGenLockId);
+    SpinRelease(OidGenLockId);
 #endif
     if (RelationIsValid(VariableRelation))
         RelationUnsetLockForRead(VariableRelation);

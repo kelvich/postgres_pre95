@@ -9,11 +9,9 @@
 
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
-#include "storage/plm.h"
 #include "storage/spin.h"
 #include "utils/log.h"
 
-#define USE_SINVAL
 
 RcsId("$Header$");
 
@@ -99,7 +97,6 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     Index   	hashIndex;
     ItemPointer	pointer;
 {
-#ifdef USE_SINVAL
     SharedInvalid   newInvalid;
     int	    	    status;
 
@@ -147,7 +144,6 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     	(void) SISetDataEntry(shmInvalBuffer, *newInvalid);
     }
     SpinRelease(SInvalLock);
-#endif USE_SINVAL
 }
 /****************************************************************************/
 /*  InvalidateSharedInvalid(invalFunction, resetFunction)    	    	    */
@@ -160,7 +156,6 @@ InvalidateSharedInvalid(invalFunction, resetFunction)
     void    	(*invalFunction)();
     void    	(*resetFunction)();
 {
-#ifdef USE_SINVAL
     SharedInvalid   temporaryInvalid;
     int	    	    status;
     
@@ -170,5 +165,4 @@ InvalidateSharedInvalid(invalFunction, resetFunction)
     	    	     
     SIDelExpiredDataEntries(shmInvalBuffer);
     SpinRelease(SInvalLock);
-#endif USE_SINVAL
 }

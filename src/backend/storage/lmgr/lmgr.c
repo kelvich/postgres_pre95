@@ -35,13 +35,10 @@
 
 #include "storage/block.h"
 #include "storage/buf.h"
-#include "storage/ipci.h"	/* PageLockTableId and MultiLevelLockTableId */
 #include "storage/itemptr.h"
 #include "storage/bufpage.h"
 #include "storage/pagenum.h"
 #include "storage/part.h"
-#include "storage/pladt.h"
-/*#include "storage/plm.h"	L_DONE, etc. */
 #include "storage/multilev.h"
 #include "storage/lmgr.h"
 
@@ -187,7 +184,6 @@ RelationInitLockInfo(relation)
     ObjectId		relationid;
     bool		processingVariable;
     extern ObjectId	MyDatabaseId;		/* XXX use include */
-    extern LRelId	LtCreateRelId();	/* XXX ditto */
     
     /* ----------------
      *	sanity checks
@@ -233,9 +229,9 @@ RelationInitLockInfo(relation)
      * ----------------
      */
     if (NameIsSharedSystemRelationName(relname))
-	info->lRelId = LtCreateRelId(InvalidObjectId, relationid);
+	LRelIdAssign(&info->lRelId, InvalidObjectId, relationid);
     else
-	info->lRelId = LtCreateRelId(MyDatabaseId, relationid);
+	LRelIdAssign(&info->lRelId, MyDatabaseId, relationid);
     
     /* ----------------
      *	store the transaction id in the lockInfo field
@@ -781,4 +777,17 @@ RelationUnsetLockForExtend(relation)
 	RelationInitLockInfo(relation);
 
     MultiReleaseReln(relation->lockInfo, EXTEND_LOCK);
+}
+
+/* 
+ * Create an LRelid --- Why not just pass in a pointer to the storage?
+ */
+void
+LRelIdAssign(lRelId, dbId, relId)
+     LRelId	*lRelId;
+     ObjectId 	dbId;
+     ObjectId 	relId;
+{   
+    lRelId->dbId = dbId;
+    lRelId->relId = relId;
 }

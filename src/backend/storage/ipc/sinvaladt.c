@@ -23,10 +23,8 @@
 
 #include "storage/ipci.h"
 #include "storage/ipc.h"
-#include "storage/pladt.h"
-#include "storage/pldebug.h"
-#include "storage/plm.h"
 #include "storage/sinvaladt.h"
+#include "storage/lmgr.h"
 #include "utils/log.h"
 
 /* ----------------
@@ -49,8 +47,6 @@
  *	SIXidData	 /
  *	SIXid		/
  *
- *	SILockTableId
- * 		lock table holding buffer locks
  * ----------------
  */
 #ifdef HAS_TEST_AND_SET
@@ -66,7 +62,6 @@ LRelId  	SIRelId;
 OID 		SIDummyOid = InvalidObjectId;
 TransactionIdData SIXidData;	    
 TransactionId	SIXid = &SIXidData; 
-LockTableId 	SILockTableId;
 
 /* ----------------
  *	declarations
@@ -123,7 +118,6 @@ SIBackendInit(segInOutP)
 {
     LRelId  	    	    LtCreateRelId();
     TransactionId           LMITransactionIdCopy();
-    LockTableId	    	    LMLockTableCreate();
     
     Assert(MyBackendTag > 0);
 
@@ -875,7 +869,7 @@ SISegmentAttach(shmid)
     shmInvalBuffer = (struct SISeg *) IpcMemoryAttach(shmid);
     if (shmInvalBuffer == IpcMemAttachFailed) {   
 	/* XXX use validity function */
-	Note("SISegmentAttach: Could not attach segment",DEBERR);
+	elog(NOTICE, "SISegmentAttach: Could not attach segment");
 	elog(FATAL, "SISegmentAttach: %m");
     }
 }
@@ -1011,9 +1005,13 @@ SIWriteUnlock()
 
 
 
-#ifdef DEBUG
+#ifdef _FOO_BAR_BAZ_
 /************************************************************************
 * debug routines
+*
+* This code tries to use the old lmgr setup and should not be called 
+* unless you are willing to set up a spin lock for it as was done above
+* to handle shared invaladation processing.
 *************************************************************************/
 void
 SIBufferImage()
@@ -1076,7 +1074,7 @@ SIBufferImage()
     	    elog(FATAL, "InvalidateSharedInvalid: Could not unlock buffer segment");
     }
 }
-#endif DEBUG
+#endif _FOO_BAR_BAZ_
 
 /****************************************************************************/
 /*  Invalidation functions for testing cache invalidation   	    	    */

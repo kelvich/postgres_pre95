@@ -22,16 +22,22 @@
  *
  * $Header$
  */
-#include "storage/lock.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "storage/proc.h"
+#include "storage/lock.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
 #include "access/xact.h"
 
-extern int MyPid;		/* For parallel backends w/same xid */
+void LockTypeInit ARGS((
+	LOCKTAB *ltable, 
+	MASK *conflictsP, 
+	int *prioP, 
+	int ntypes
+));
 
+extern int MyPid;		/* For parallel backends w/same xid */
 SPINLOCK LockMgrLock;		/* in Shmem or created in CreateSpinlocks() */
 
 typedef int MASK;
@@ -75,6 +81,7 @@ int	NumTables = 1;
  *	structure for constructing conflict masks.
  * -------------------
  */
+void
 InitLocks()
 {
   int i;
@@ -96,6 +103,7 @@ InitLocks()
  * LockDisable -- sets LockingIsDisabled flag to TRUE or FALSE.
  * ------------------
  */
+void
 LockDisable(status)
 int status;
 {
@@ -293,11 +301,11 @@ int 	ntypes;
  *	client to use different tableIds when acquiring/releasing
  *	short term and long term locks.
  */
-TableId
+LockTableId
 LockTabRename(tableId)
-TableId	tableId;
+LockTableId	tableId;
 {
-  TableId	newTableId;
+  LockTableId	newTableId;
 
   if (NumTables >= MAX_TABLES)
   {
@@ -326,8 +334,9 @@ TableId	tableId;
  *	a lock acquisition other than aborting the transaction.
  *	Lock is recorded in the lkchain.
  */
+bool
 LockAcquire(tableId, lockName, lockt)
-TableId		tableId;
+LockTableId		tableId;
 LOCKTAG		*lockName;
 LOCKT		lockt;
 {
@@ -585,10 +594,11 @@ int pid;
   return(STATUS_FOUND);
 }
 
+int
 WaitOnLock(ltable, tableId, lock,lockt)
 LOCKTAB		*ltable;
 LOCK 		*lock;
-TableId		tableId;
+LockTableId		tableId;
 LOCKT		lockt;
 {
   PROC_QUEUE *waitQueue = &(lock->waitProcs);
@@ -640,8 +650,9 @@ LOCKT		lockt;
  *	race between the waking process and any new process to
  *	come along and request the lock).
  */
+bool
 LockRelease(tableId, lockName, lockt)
-TableId	tableId;
+LockTableId	tableId;
 LOCKTAG	*lockName;
 LOCKT	lockt;
 {
@@ -657,7 +668,7 @@ LOCKT	lockt;
   ltable = AllTables[tableId];
   if (!ltable) {
     elog(NOTICE, "ltable is null in LockRelease");
-    return (NULL);
+    return (FALSE);
   }
 
   if (LockingIsDisabled)
@@ -683,14 +694,14 @@ LOCKT	lockt;
   {
     SpinRelease(masterLock);
     elog(NOTICE,"LockRelease: locktable corrupted");
-    return(NULL);
+    return(FALSE);
   }
 
   if (! found)
   {
     SpinRelease(masterLock);
     elog(NOTICE,"LockRelease: locktable lookup failed, no lock");
-    return(NULL);
+    return(FALSE);
   }
 
   Assert(lock->nHolding > 0);
@@ -797,6 +808,7 @@ LOCKT	lockt;
  * GrantLock -- udpate the lock data structure to show
  *	the new lock holder.
  */
+void
 GrantLock(lock, lockt)
 LOCK 	*lock;
 LOCKT	lockt;
@@ -806,31 +818,9 @@ LOCKT	lockt;
   lock->mask |= BITS_ON[lockt];
 }
 
-#ifdef NOTUSED
-LockCompare( l1, l2)
-LOCKTAG	*l1,*l2;
-{
-  char 	*res1,*res2;
-  int	c1,c2;
-  int	i;
-
-  if (l2->tupleId.positionData != (unsigned short) (-10)) return;
-
-  res1 = (char *) l1;
-  res2 = (char *) l2;
-  for (i=0;i<12;i++)
-  {
-    c1 = res1[i];
-    c2 = res2[i];
-
-    printf( "(%d,%d)",c1,c2);
-  }
-  printf("\n");
-}
-#endif NOTUSED
-
+bool
 LockReleaseAll(tableId,lockQueue)
-TableId		tableId;
+LockTableId		tableId;
 SHM_QUEUE	*lockQueue;
 {
   PROC_QUEUE 	*waitQueue;
@@ -852,7 +842,7 @@ SHM_QUEUE	*lockQueue;
   masterLock = ltable->ctl->masterLock;
 
   if (SHMQueueEmpty(lockQueue))
-    return;
+    return TRUE;
 
   SHMQueueFirst(lockQueue,&xidLook,&xidLook->queue);
 
@@ -945,6 +935,7 @@ SHM_QUEUE	*lockQueue;
   }
   SpinRelease(masterLock);
   SHMQueueInit(lockQueue);
+  return TRUE;
 }
 
 int
