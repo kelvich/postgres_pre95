@@ -1,3 +1,8 @@
+/*------------------------------------------------------------------
+ * Identification:
+ *     $Header$
+ */
+
 extern LispValue match_pathkeys_joinkeys ARGS((LispValue pathkeys, LispValue joinkeys, LispValue joinclauses, LispValue which_subkey));
 extern int match_pathkey_joinkeys ARGS((LispValue pathkey, LispValue joinkeys, LispValue which_subkey));
 extern Path match_paths_joinkeys ARGS((LispValue joinkeys, LispValue ordering, LispValue paths, LispValue which_subkey));

@@ -1,3 +1,8 @@
+/*------------------------------------------------------------------
+ * Identification:
+ *     $Header$
+ */
+
 extern LispValue find_join_rels ARGS((LispValue outer_rels));
 extern LispValue find_clause_joins ARGS((LispValue outer_rel, LispValue joininfo_list));
 extern LispValue find_clauseless_joins ARGS((LispValue outer_rel, LispValue inner_rels));

@@ -1,3 +1,8 @@
+/*------------------------------------------------------------------
+ * Identification:
+ *     $Header$
+ */
+
 extern void find_all_join_paths ARGS((LispValue joinrels, LispValue previous_level_rels, LispValue nest_level));
 extern Path best_innerjoin ARGS((LispValue join_paths, LispValue outer_relid));
 extern LispValue sort_inner_and_outer ARGS((LispValue joinrel, LispValue outerrel, LispValue innerrel, LispValue mergeinfo_list));
