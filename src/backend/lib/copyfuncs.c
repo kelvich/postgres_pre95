@@ -1688,6 +1688,11 @@ _copyFunc(from, to, alloc)
  *	_copyRel
  * ----------------
  */
+/*
+** when you change this, also make sure to fix up xfunc_copyRel in 
+** planner/path/xfunc.c accordingly!!!
+**         -- JMH, 8/2/93
+*/
 bool
 _copyRel(from, to, alloc)
     Rel	from;
