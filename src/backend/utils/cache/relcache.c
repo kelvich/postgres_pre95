@@ -27,7 +27,7 @@
  */
 #include <errno.h>
 #include <sys/file.h>
-#include <strings.h>
+#include <string.h>
  
 /* XXX check above includes */
  
@@ -91,6 +91,7 @@ RcsId("$Header$");
  * ----------------
  */
 extern bool	AMI_OVERRIDE;	/* XXX style */
+extern GlobalMemory CacheCxt;	/* from utils/cache/catcache.c */
 
 /* ----------------
  *	hardcoded tuple descriptors.  see lib/H/catalog/pg_attribute.h
@@ -278,7 +279,7 @@ BuildDescInfoError(buildinfo)
 {
     static char errBuf[64];
 
-    bzero(errBuf, sizeof(errBuf));
+    bzero(errBuf, (int) sizeof(errBuf));
     switch(buildinfo.infotype) {
     case INFO_RELID:
 	sprintf(errBuf, "(relation id %d)", buildinfo.i.info_id);
@@ -348,14 +349,14 @@ scan_pg_rel_seq(buildinfo)
     default:
 	elog(WARN, "ScanPgRelation: bad buildinfo");
 	return NULL;
-	break;
+	/*NOTREACHED*/
     }
     
     /* ----------------
      *	open pg_relation and fetch a tuple
      * ----------------
      */
-    pg_relation_desc =  heap_openr(RelationRelationName);
+    pg_relation_desc =  heap_openr(Name_pg_relation);
     if (!IsInitProcessingMode())
 	RelationSetLockForRead(pg_relation_desc);
     pg_relation_scan =
@@ -376,8 +377,9 @@ scan_pg_rel_seq(buildinfo)
 	 *  this bug is discovered and killed by wei on 9/27/91.
 	 * -------------------
 	 */
-	return_tuple = (HeapTuple) palloc(pg_relation_tuple->t_len);
-	bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
+	return_tuple = (HeapTuple) palloc((Size) pg_relation_tuple->t_len);
+	bcopy((char *) pg_relation_tuple, (char *) return_tuple,
+	      (int) pg_relation_tuple->t_len);
 	ReleaseBuffer(buf);
     }
 
@@ -436,7 +438,7 @@ AllocateRelationDesc(natts, relp)
     RelationTupleForm	relp;
 {
     Relation 		relation;
-    int			len;
+    Size		len;
     RelationTupleForm   relationTupleForm;
     
     /* ----------------
@@ -444,9 +446,9 @@ AllocateRelationDesc(natts, relp)
      * ----------------
      */
     relationTupleForm = (RelationTupleForm)
-	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
+	palloc((Size) (sizeof(RuleLock) + sizeof(*relation->rd_rel)));
     
-    bcopy((char *)relp, (char *)relationTupleForm, sizeof *relp);
+    bcopy((char *) relp, (char *) relationTupleForm, (int) sizeof(*relp));
     
     /* ----------------
      *	allocate space for new relation descriptor, including
@@ -464,7 +466,7 @@ AllocateRelationDesc(natts, relp)
      *	clear new reldesc and initialize relation tuple form
      * ----------------
      */
-    bzero((char *)relation, len);
+    bzero((char *) relation, (int) len);
     relation->rd_rel = relationTupleForm;
 
     return relation;
@@ -523,7 +525,7 @@ build_tupdesc_seq(buildinfo, relation, attp, natts)
      *	open pg_attribute and begin a scan
      * ----------------
      */
-    pg_attribute_desc = heap_openr(AttributeRelationName);
+    pg_attribute_desc = heap_openr(Name_pg_attribute);
     pg_attribute_scan =
 	heap_beginscan(pg_attribute_desc, 0, NowTimeQual, 1, &key);
     
@@ -539,7 +541,8 @@ build_tupdesc_seq(buildinfo, relation, attp, natts)
 
 	if (attp->attnum > 0) {
 	    char *newattp =
-		palloc(sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
+		palloc((Size) (sizeof(RuleLock) +
+			       sizeof(*relation->rd_att.data[0])));
 
 	    bzero(newattp,	/* XXX PURIFY */
 		  sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
@@ -590,7 +593,8 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
 	attp = (AttributeTupleForm) HeapTupleGetForm(atttup);
 
 	relation->rd_att.data[i - 1] = (Attribute)
-	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+	    palloc((Size) (sizeof(RuleLock) +
+			   sizeof(*relation->rd_att.data[0])));
 
 	bcopy((char *) attp,
 	      (char *) relation->rd_att.data[i - 1],
@@ -636,7 +640,6 @@ RelationBuildDesc(buildinfo)
     AttributeTupleForm	attp = NULL;
     ObjectId		attrioid; /* attribute relation index relation oid */
 
-    extern GlobalMemory CacheCxt;
     MemoryContext	oldcxt;
     
     HeapTuple		pg_relation_tuple;
@@ -752,7 +755,7 @@ RelationBuildDesc(buildinfo)
      *  free the memory allocated for pg_relation_tuple
      * -------------------
      */
-    pfree(pg_relation_tuple);
+    pfree((Pointer) pg_relation_tuple);
 
     MemoryContextSwitchTo(oldcxt);
     
@@ -765,8 +768,8 @@ IndexedAccessMethodInitialize(relation)
     IndexStrategy 	strategy;
     RegProcedure	*support;
     int			natts;
-    int 		stratSize;
-    int			supportSize;
+    Size 		stratSize;
+    Size		supportSize;
     uint16 		relamstrategies;
     uint16		relamsupport;
     
@@ -809,7 +812,7 @@ formrdesc(relationName, natts, att)
 {
     Relation	relation;
     int		fd;
-    int		len;
+    Size	len;
     int		i;
     char	*relpath();
     Relation	publicCopy;
@@ -839,7 +842,7 @@ formrdesc(relationName, natts, att)
      * ----------------
      */
     relation->rd_rel = (RelationTupleForm)
-	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
+	palloc((Size) (sizeof(RuleLock) + sizeof(*relation->rd_rel)));
 
     bzero(relation->rd_rel, sizeof(struct RelationTupleFormD));
 
@@ -874,7 +877,8 @@ formrdesc(relationName, natts, att)
      */
     for (i = 0; i < natts; i++) {
 	relation->rd_att.data[i] = (Attribute)
-	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+	    palloc((Size) (sizeof(RuleLock) +
+			   sizeof(*relation->rd_att.data[0])));
 	
 	bzero((char *)relation->rd_att.data[i], sizeof (RuleLock) +
 	      sizeof *relation->rd_att.data[0]);
@@ -1123,12 +1127,12 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	i = relation->rd_rel->relnatts - 1;
 	p = &relation->rd_att.data[i];
 	while ((i -= 1) >= 0) {
-	    pfree((char *)*p--);
+	    pfree((Pointer) *p--);
 	}
 	
-	pfree((char *)RelationGetLockInfo(relation));
-	pfree((char *)RelationGetRelationTupleForm(relation));
-	pfree((char *)relation);
+	pfree((Pointer) RelationGetLockInfo(relation));
+	pfree((Pointer) RelationGetRelationTupleForm(relation));
+	pfree((Pointer) relation);
 	
 	MemoryContextSwitchTo(oldcxt);
     }
@@ -1237,7 +1241,6 @@ void
 RelationRegisterRelation(relation)
     Relation	relation;
 {
-    extern GlobalMemory CacheCxt;
     MemoryContext   	oldcxt;
     
     oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
@@ -1266,7 +1269,6 @@ void
 RelationRegisterTempRel(temprel)
     Relation temprel;
 {
-    extern GlobalMemory CacheCxt;
     MemoryContext   	oldcxt;
     Relation 		rd;
     
@@ -1304,7 +1306,6 @@ RelationRegisterTempRel(temprel)
 void 
 RelationInitialize()
 {
-    extern GlobalMemory		CacheCxt;
     MemoryContext		oldcxt;
     HASHCTL			ctl;
 
@@ -1321,7 +1322,7 @@ RelationInitialize()
      *	create global caches
      * ----------------
      */
-    bzero(&ctl, sizeof(ctl));
+    bzero(&ctl, (int) sizeof(ctl));
     ctl.keysize = sizeof(NameData);
     ctl.datasize = sizeof(Relation);
     RelationNameCache = hash_create(INITRELCACHESIZE, &ctl, HASH_ELEM);
@@ -1397,7 +1398,7 @@ RelationInitialize()
 void
 init_irels()
 {
-    int len;
+    Size len;
     int nread;
     File fd;
     Relation irel[Num_indices_bootstrap];
@@ -1592,52 +1593,59 @@ write_irels()
 	      + ((relform->relnatts - 1) * sizeof(ird->rd_att));
 	len += sizeof(IndexStrategy) + sizeof(RegProcedure *);
 
-	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+	    != sizeof(int))
 	    elog(FATAL, "cannot write init file -- descriptor length");
 
-	if ((nwritten = FileWrite(fd, ird, len)) != len)
+	if ((nwritten = FileWrite(fd, (String) ird, len)) != len)
 	    elog(FATAL, "cannot write init file -- reldesc");
 
 	/* next write the access method tuple form */
 	len = sizeof(AccessMethodTupleFormD);
-	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+	    != sizeof(int))
 	    elog(FATAL, "cannot write init file -- am tuple form length");
 
-	if ((nwritten = FileWrite(fd, am, len)) != len)
+	if ((nwritten = FileWrite(fd, (String) am, len)) != len)
 	    elog(FATAL, "cannot write init file -- am tuple form");
 
 	/* next write the relation tuple form */
 	len = sizeof(RelationTupleFormD);
-	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+	    != sizeof(int))
 	    elog(FATAL, "cannot write init file -- relation tuple form length");
 
-	if ((nwritten = FileWrite(fd, relform, len)) != len)
+	if ((nwritten = FileWrite(fd, (String) relform, len)) != len)
 	    elog(FATAL, "cannot write init file -- relation tuple form");
 
 	/* next, do all the attribute tuple form data entries */
 	len = sizeof(RuleLock) + sizeof(*ird->rd_att.data[0]);
 	for (i = 0; i < relform->relnatts; i++) {
-	    if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+		!= sizeof(int))
 		elog(FATAL, "cannot write init file -- length of attdesc %d", i);
-	    if ((nwritten = FileWrite(fd, ird->rd_att.data[i], len)) != len)
+	    if ((nwritten = FileWrite(fd, (String) ird->rd_att.data[i], len))
+		!= len)
 		elog(FATAL, "cannot write init file -- attdesc %d", i);
 	}
 
 	/* next write the index strategy map */
 	len = AttributeNumberGetIndexStrategySize(relform->relnatts,
 						  am->amstrategies);
-	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+	    != sizeof(int))
 	    elog(FATAL, "cannot write init file -- strategy map length");
 
-	if ((nwritten = FileWrite(fd, *strat, len)) != len)
+	if ((nwritten = FileWrite(fd, (String) *strat, len)) != len)
 	    elog(FATAL, "cannot write init file -- stragegy map");
 
 	/* finally, write the vector of support procedures */
 	len = relform->relnatts * (am->amstrategies * sizeof(RegProcedure));
-	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	if ((nwritten = FileWrite(fd, (String) &len, sizeof(int)))
+	    != sizeof(int))
 	    elog(FATAL, "cannot write init file -- support vector length");
 
-	if ((nwritten = FileWrite(fd, *support, len)) != len)
+	if ((nwritten = FileWrite(fd, (String) *support, len)) != len)
 	    elog(FATAL, "cannot write init file -- support vector");
 
 	/* restore volatile fields */
