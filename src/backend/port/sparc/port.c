@@ -5,7 +5,7 @@
  *  A do-nothing routine?
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 

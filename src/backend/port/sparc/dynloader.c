@@ -17,11 +17,10 @@
 
 #include <stdio.h>
 #include <fcntl.h>
-#ifndef CIncluded
-#include "c.h"
-#endif
-#include "log.h"
-#include "dynamic_loader.h"
+
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "utils/dynamic_loader.h"
 
 #include <a.out.h>
 #include <alloca.h>
