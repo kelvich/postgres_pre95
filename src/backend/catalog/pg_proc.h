@@ -347,6 +347,8 @@ DATA(insert OID = 722 (  byteasetbyte	   6 11 f t f 3  17 foo bar ));
 DATA(insert OID = 723 (  byteagetbit	   6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 724 (  byteasetbit	   6 11 f t f 3  17 foo bar ));
     
+DATA(insert OID = 730 (  pqtest            6 11 f t f 1  23 foo bar ));
+    
 /* ----------------
  *	old definition of struct proc
  * ----------------
