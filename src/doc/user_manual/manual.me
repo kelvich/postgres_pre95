@@ -1315,7 +1315,7 @@ but instead
 write a test program
 that does a
 .(C
-printf("size is %d\n", sizeof (MYTYPE));
+printf("size is %d\en", sizeof (MYTYPE));
 .)C
 on your type.
 .lp
@@ -1393,7 +1393,7 @@ and run some queries against it:
 * append tutorial (a = "(0.0, 1.8, 10.0)"::circle) \\g
 
 * retrieve (tutorial.all)
-      where tutorial.a = "(0.0, 0.0, 10.0)"::circle
+      where tutorial.a = "(0.0, 0.0, 10.0)"::circle \\g
 .)C
 which returns:
 .(T
@@ -1728,7 +1728,8 @@ can be declared:
 long quarterly[4];
 .)C
 For the variable-length array
-.cW "stats", the situation is a little more
+.cW stats ,
+the situation is a little more
 complicated.
 Because \*(PP will not know in advance how big the array is,
 \*(PP will expect the length of the array (in bytes) to be encoded in the
