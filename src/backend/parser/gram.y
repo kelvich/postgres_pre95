@@ -927,7 +927,7 @@ RetrieveStmt:
 
 	Retrieve result:
 	into <relname>
-		(RELATION "relname");
+		(INTO "relname");
 	portal <portname>
 		(PORTAL "portname")
 	NULL
@@ -939,7 +939,7 @@ result:
 		{
 			$2=lispCons($2 , LispNil );
 			/* should check for archive level */
-			$$=lispCons(KW(relation), $2);
+			$$=lispCons(KW(into), $2);
 		}
 	| opt_portal
 		/* takes care of the null case too */
