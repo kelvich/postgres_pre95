@@ -34,8 +34,19 @@ fi
 
 progname=$0
 
-port=4321
-host=localhost
+if (test -n "$PGPORT")
+then
+    port=$PGPORT
+else
+    port=4321
+fi
+
+if (test -n "$PGHOST")
+then
+    host=$PGHOST
+else
+    host=localhost
+fi
 
 while (test -n "$1")
 do
