@@ -1,4 +1,16 @@
-/* $Header$ */
+/* ----------------------------------------------------------------
+ *   FILE
+ *	libpq-fs.h
+ *
+ *   DESCRIPTION
+ *	definitions for using Inversion file system routines
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 
 #ifndef libpq_fs_H
 #define libpq_fs_H
@@ -22,7 +34,10 @@ struct pgdirent {
 
 /* for lseek(2) */
 #ifndef SEEK_SET
+/* these normally come from <stdio.h> or <unistd.h> */
 #define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 #endif /* SEEK_SET */
 
 /* for stat(2) */
@@ -112,24 +127,34 @@ typedef struct PDIR_ {
 #define PENOTEMPTY       66              /* Directory not empty */
 #define PEPGIO           99              /* postgres backend had problems */
 
-int p_open ARGS((char *fname , int mode ));
-int p_close ARGS((int fd ));
-int p_read ARGS((int fd , char *buf , int len ));
-int p_write ARGS((int fd , char *buf , int len ));
-int p_lseek ARGS((int fd , int offset , int whence ));
-int p_creat ARGS((char *path , int mode, int objtype ));
-int p_tell ARGS((int fd ));
-int p_mkdir ARGS((char *path , int mode ));
-int p_unlink ARGS((char *path ));
-int p_rmdir ARGS((char *path ));
-int p_ferror ARGS((int fd ));
-int p_rename ARGS((char *path , char *pathnew ));
-int p_stat ARGS((char *path , struct pgstat *statbuf ));
-PDIR *p_opendir ARGS((char *path ));
-struct pgdirent *p_readdir ARGS((PDIR *dirp ));
-void p_rewinddir ARGS((PDIR *dirp ));
-int p_closedir ARGS((PDIR *dirp ));
-int p_chdir ARGS((char *path ));
-char *p_getwd ARGS((char *path ));
+/*
+ * prototypes for fe-pqufs.c.
+ * Automatically generated using mkproto
+ */
+extern int p_open ARGS((char *fname, int mode));
+extern int p_close ARGS((int fd));
+extern int p_read ARGS((int fd, char *buf, int len));
+extern int p_write ARGS((int fd, char *buf, int len));
+extern int p_lseek ARGS((int fd, int offset, int whence));
+extern int p_creat ARGS((char *path, int mode, int objtype));
+extern int p_tell ARGS((int fd));
+extern int p_mkdir ARGS((char *path, int mode));
+extern int p_unlink ARGS((char *path));
+extern int p_rmdir ARGS((char *path));
+extern int p_ferror ARGS((int fd));
+extern int p_rename ARGS((char *path, char *pathnew));
+extern int p_stat ARGS((char *path, struct pgstat *statbuf));
+extern PDIR *p_opendir ARGS((char *path));
+extern struct pgdirent *p_readdir ARGS((PDIR *dirp));
+extern void p_rewinddir ARGS((PDIR *dirp));
+extern int p_telldir ARGS((PDIR *dirp));
+extern void p_seekdir ARGS((PDIR *dirp, int pos));
+extern int p_closedir ARGS((PDIR *dirp));
+extern void p_closedir_free ARGS((PDIR *dirp));
+extern int p_chdir ARGS((char *path));
+extern char *p_getwd ARGS((char *path));
+extern void p_dirflush ARGS((char *path));
+extern void p_dirflushparent ARGS((char *path));
+extern void PQufs_init ARGS((void));
 
 #endif /* libpq_fs_H */
