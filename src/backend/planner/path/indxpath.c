@@ -416,7 +416,7 @@ match_clauses_to_indexkey (rel,index,indexkey,xclass,clauses,join)
 			    || function_index_clause_p(clause,rel,index)));
 		
 	temp2 = (bool) (join_op && op_class(join_op,CInteger(xclass)) &&
-			!zerop(join_op) && join_clause_p(clause));
+			join_clause_p(clause));
 	  
 	if (temp1 || temp2) 
 	  return(clauseinfo);
@@ -465,7 +465,7 @@ indexable_joinclauses (rel,index,joininfo_list)
 				     LispTrue);
 		
 	if ( consp (clausegroups)) {
-	    set_joinid (CAAR(clausegroups),
+	    set_cinfojoinid (CAAR(clausegroups),
 			get_otherrels(joininfo));
 	}
 	cg_list = nconc(cg_list,clausegroups);
@@ -502,20 +502,20 @@ index_innerjoin (rel,clausegroup_list,index)
      LispValue i = LispNil;
      LispValue relattvals = LispNil;
      List pagesel = LispNil;
-     Path pathnode = (Path)NULL;
+     IndexPath pathnode = (IndexPath)NULL;
      Cost  	temp_selec;
      Count	temp_pages;
 
      foreach(i,clausegroup_list) {
 	 clausegroup = CAR(i);
-	 pathnode = CreateNode(Path);
+	 pathnode = CreateNode(IndexPath);
 	 relattvals =                
 	   get_joinvars (CAR(get_relids(rel)),clausegroup);
 	 pagesel = 
 	   index_selectivity (CAR((LispValue)get_relids (index)),
 			      get_classlist (index),
 			      get_opnos (clausegroup),
-			      getrelid (get_relid (rel),
+			      getrelid (CInteger(CAR(get_relids (rel))),
 					_query_range_table_),
 			      CAR (relattvals),
 			      CADR (relattvals),
@@ -526,12 +526,12 @@ index_innerjoin (rel,clausegroup_list,index)
 	 set_parent (pathnode,rel);
 	 set_indexid (pathnode,get_relids (index));
 	 set_indexqual (pathnode,clausegroup);
-	 set_joinid (pathnode,get_joinid (CAR (clausegroup)));
+	 set_joinid (pathnode,get_cinfojoinid (CAR (clausegroup)));
 
 	 temp_pages = (int)CDouble(CAR(pagesel));
 	 temp_selec = CDouble(CADR(pagesel));
 
-	 set_cost (pathnode,cost_index (CInteger(CAR(get_relids (index))),
+	 set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids (index))),
 					temp_pages,
 					temp_selec,
 					get_pages (rel),
