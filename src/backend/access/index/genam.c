@@ -470,7 +470,7 @@ AMbeginscan(relation, scanFromEnd, numberOfKeys, key)
     ScanKey	key;
 {
     return (IndexScanDesc)
-	index_beginscan();
+	index_beginscan(relation, scanFromEnd, numberOfKeys, key);
 }
 
 void
