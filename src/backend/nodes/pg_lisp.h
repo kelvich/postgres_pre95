@@ -264,7 +264,7 @@ extern LispValue nconc();
 extern LispValue nreverse();
 
 extern int length();
-extern LispValue remove();
+extern LispValue LispRemove();
 extern LispValue remove_duplicates();
 extern LispValue setf();
 extern bool equal();
