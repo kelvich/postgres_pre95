@@ -1,13 +1,14 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH REPLACE COMMANDS 01/23/93
+.TH REPLACE COMMANDS 06/13/93
 .XA 2 Replace
 .SH NAME
 replace \(em replace values of attributes in a class
 .SH SYNOPSIS
 .(l M
-\fBreplace\fR instance_variable \fB(\fR att_name1 \fB=\fR expression1 {\fB,\fR att_name-i \fB=\fR expression-i } \fB)\fR
+\fBreplace\fR instance_variable \fB(\fR att_name-1 \fB=\fR expression-1
+                         {\fB,\fR att_name-i \fB=\fR expression-i } \fB)\fR
     [ \fBfrom\fR from_list ]
     [ \fBwhere\fR qual ]
 .)l
@@ -17,14 +18,19 @@ changes the values of the attributes specified in
 .IR target_list 
 for all instances which satisfy the qualification,
 .IR qual .
-Only attributes which are to be modified need appear in
+Only the attributes to be modified need appear in
 .IR target_list .
 .PP
+Array references use the same syntax found in 
+.IR retrieve (commands).
+That is, either single array elements, a range of array elements or
+the entire array may be replaced with a single query.
+.PP
 You must have write access to the class in order to modify it, as well
-as read access to any class whose values are read in the target list
+as read access to any class whose values are mentioned in the target list
 or qualification (see
 .IR "change acl" (commands).
-.SH EXAMPLE
+.SH EXAMPLES
 .(C
 /*
  * Give all employees who work for Smith a 10% raise
@@ -32,3 +38,34 @@ or qualification (see
 replace emp(sal = 1.1 * emp.sal)
     where emp.mgr = "Smith"
 .)C
+.(C
+/*
+ * Replace the middle element of a 3x3
+ * noughts-and-crosses board with an O.
+ */
+replace tictactoe (board[2][2] = "O")
+    where tictactoe.game = 1
+.)C
+.(C
+/*
+ * Replace the entire middle row of a 3x3
+ * noughts-and-crosses board with Os.
+ */
+replace tictactoe (board[2:2][1:3] = "{O,O,O}")
+    where tictactoe.game = 2
+.)C
+.(C
+/*
+ * Replace the entire 3x3 noughts-and-crosses 
+ * board from game 2 with that of game 4
+ */
+replace tictactoe (board = ttt.board)
+    frmo ttt in tictactoe
+    where tictactoe.game = 2 and
+          ttt.game = 4
+.)C
+.SH "SEE ALSO"
+postquel(commands),
+create(commands),
+replace(commands),
+retrieve(commands).

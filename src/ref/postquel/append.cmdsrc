@@ -1,41 +1,98 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH APPEND COMMANDS 01/23/93
+.TH APPEND COMMANDS 06/13/93
 .XA 2 Append
 .SH NAME
 append \(em append tuples to a relation
 .SH SYNOPSIS
 .(l M
 \fBappend\fR classname
-	\fB(\fR att_name1 \fB=\fR expression1 {\fB,\fR att_name-i \fB=\fR expression-i} \fB)\fR
+	\fB(\fR att_expr-1 \fB=\fR expression1 {\fB,\fR att_expr-i \fB=\fR expression-i} \fB)\fR
     [ \fBfrom\fR from_list ] [ \fBwhere\fR qual ]
 .)l
 .SH DESCRIPTION
 .BR Append 
-adds instances which satisfy the qualification,
+adds instances that satisfy the qualification,
 .IR qual ,
-to 
+to
 .IR classname .
 .IR Classname 
 must be the name of an existing class.  The target list specifies the
 values of the fields to be appended to
 .IR classname .
-The fields may be listed in any order.  Fields of the result class
-which do not appear in the target list are default a null value.  If
-the expression for each field is not of the correct data type,
-automatic type coercion will be attempted.
+That is, each 
+.IR att_expr
+specifies a field (either an attribute name or an attribute name plus
+an array specification) to which the corresponding 
+.IR expression
+should be assigned.  The fields in the target list may be listed in
+any order.  Fields of the result class which do not appear in the
+target list default to NULL.  If the expression for each field is not
+of the correct data type, automatic type coercion will be attempted.
+.PP
+An array initialization may take exactly one of the following forms:
+.(C
+/*
+ * Specify a lower and upper index for each dimension 
+ */
+att_name[lIndex-1:uIndex-1]..[lIndex-i:uIndex-i] = array_str
+
+/*
+ * Specify only the upper index for each dimension
+ * (each lower index defaults to 1)
+ */
+att_name[uIndex-1]..[uIndex-i] = array_str
+
+/*
+ * Use the upper index bounds as specified within array_str
+ * (each lower index defaults to 1)
+ */
+att_name = array_str
+.)C
+where each
+.IR lIndex
+or
+.IR uIndex
+is an integer constant and
+.IR array_str
+is an array constant (see
+.IR introduction (commands)).
+.PP
+The total number of array dimensions specified in
+.IR att_expr
+and
+.IR array_str
+must match.  They must also match the number of dimensions specified
+when the class was defined (see
+.IR create (commands)).
+In other words, the correct number of square brackets and curly
+brackets must always be specified, and \*(PG will signal an error if
+the element counts along each dimension of
+.IR array_str
+are not consistent or do not agree with the class definition.
+There are only two exceptions:
+.IP
+If the user does not specify any array bounds (as in the third form)
+then \*(PG will attempt to deduce the actual array bounds from the
+contents of
+.IR array_str .
+.IP
+If the user does specify explicit array bounds (as in the first and
+second forms) then the array may be initialized with the empty array
+(\*(lq{}\*(rq).  However, the uninitialized array elements will
+contain garbage.
 .PP
 The keyword
 .BR all
-can be used when it is desired
-to append all domains of a class to another class.
+can be used when it is desired to append all fields of a class to
+another class.
 .PP
 You must have write or append access to a class in order to append to
 it, as well as read access on any class whose values are read in the
 target list or qualification (see
 .IR "change acl" (commands)).
-.SH EXAMPLE
+.SH EXAMPLES
 .(C
 /*
  * Make a new employee Jones work for Smith
@@ -46,7 +103,7 @@ append emp (newemp.name, newemp.salary, mgr = "Smith",
 .)C
 .(C
 /*
- * same command using the from list clause
+ * Same command using the from list clause
  */
 append emp (n.name, n.salary, mgr = "Smith",
             bdate = 1990 - n.age)
@@ -59,8 +116,52 @@ append emp (n.name, n.salary, mgr = "Smith",
  */
 append newemp (newemp1.all)
 .)C
+.(C
+/*
+ * Create an empty 3x3 gameboard for noughts-and-crosses
+ * (all of these queries create the same board attribute)
+ */
+append tictactoe (game = 1, board[1:3][1:3] =
+ "{{"","",""},{"","",""},{"","",""}}")
+append tictactoe (game = 2, board[3][3] =
+ "{}")
+append tictactoe (game = 3, board =
+ "{{,,},{,,},{,,}}")
+.)C
+.(C
+/*
+ * Create a 3x3 noughts-and-crosses board that is
+ * completely filled-in
+ */
+append tictactoe (game = 4, board = 
+ "{{X,O,X},{O,X,O},{X,X,X}}")
+.)C
+.(C
+/*
+ * Create a tuple containing a large-object array.
+ * The Inversion file "/large/tictactoe/board" will be
+ * created if it does not already exist.
+ */
+append tictactoe (board[3][3] = 
+ "/large/tictactoe/board")
+.)C
 .SH "SEE ALSO"
 postquel(commands),
+create(commands),
 define type(commands),
-retrieve(commands).
-
+replace(commands),
+retrieve(commands)
+introduction(large objects).
+.SH "BUGS"
+Once an array is created by an 
+.BR append
+query, its size (in bytes) cannot be changed.  This has several
+implications.
+.IP
+First, there is no longer any notion of a \*(lqvariable-length
+array.\*(lq In fact, since variable-length arrays were not actually
+supported in previous versions of \*(PG, this is not much of a change.
+.IP
+Second, arrays of variable-length types (e.g., text) cannot be
+updated.  Since the array cannot grow, replacement of individual array
+elements cannot be supported in general.

@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION COMMANDS 01/23/93
+.TH INTRODUCTION COMMANDS 06/13/93
 .XA 0 "Section 4 \(em \*(PQ Commands (COMMANDS)"
 .BH "SECTION 4 \(em \*(PQ COMMANDS (COMMANDS)"
 .XA 1 "General Information"
@@ -21,14 +21,13 @@ is an arbitrary sequence of characters bounded on the left by
 .SH "Names"
 .IR Names
 in \*(PQ are sequences of not more than 16 alphanumeric characters,
-starting with an alphabetic.  The underscore character (\*(lq_\*(rq)
-is considered an alphabetic.
+starting with an alphabetic character.  Underscore (\*(lq_\*(rq) is
+considered an alphabetic character.
 .SH "Keywords"
 The following identifiers are reserved for use as
 .IR keywords
 and may not be used otherwise:
 .PP
-.\" .s3
 .so obj/keyword.nr
 .PP
 In addition, all \*(PG classes have several predefined attributes used
@@ -76,7 +75,7 @@ to be double-precision quantities with a range of approximately
 .if t \(mi10\x'-0.2v'\u\s-3\&38\s0\d to 10\u\x'-0.2v'\s-3\&38\s0\d
 and a precision of 17 decimal digits.  This will vary depending on the
 operating system and host machine.
-.SH "Constants of \*(PG User Defined Types"
+.SH "Constants of \*(PG User-Defined Types"
 A constant of an
 .IR arbitrary
 type can be entered using the notation:
@@ -94,16 +93,34 @@ following:
 .(C
 "{<val1><delim><val2><delim>}"
 .)C
-An example of an array constant is
+Where
+.IR "<delim>"
+is the delimiter for the type stored in the \*(lqpg_type\*(rq class.
+(For built-in types, this is the comma character, \*(lq,\*(rq.)  An
+example of an array constant is
 .(C
-"{{1,2,3},{4,5},{6,7,8,9}}"
+"{{1,2,3},{4,5,6},{7,8,9}}"
 .)C
-This constant is an array consisting of three sub-arrays of integers.
+This constant is a two-dimensional, 3 by 3 array consisting of three
+sub-arrays of integers.
 .PP
-Individual array elements can and should be placed between quotation marks 
-whenever possible to avoid ambiguity problems with respect to leading white 
-space.  Elements of single-element arrays (e.g., \*(lq{"1"}\*(rq) must be 
-quoted.
+Individual array elements can and should be placed between quotation
+marks whenever possible to avoid ambiguity problems with respect to
+leading white space.
+.\"  Elements of single-element arrays (e.g.,
+.\" \*(lq{"1"}\*(rq) must be quoted.
+.PP
+Arrays of fixed-length types may also be stored as \*(PG large objects
+(see 
+.IR introduction "(large objects))."
+The syntax for an array constant of this form is simply
+.(C
+"/my/large/object"
+.)C
+That is, any array constant that does not begin and end in curly
+braces is assumed to be an Inversion file system filename that
+contains the appropriate array data.  The Inversion file will be
+created if it does not already exist.
 .XA 1 "Fields and Attributes"
 .SH "Fields"
 A 
@@ -175,12 +192,10 @@ designator indicates a specific element in the array.  If no number is
 indicated, then all array elements are returned.
 .XA 1 "Operators"
 .SH "Operators"
-Any built-in system, or user defined operator may be used in \*(PQ.
+Any built-in system, or user-defined operator may be used in \*(PQ.
 For the list of built-in and system operators consult
-.BR "built-in types" (commands)
-and
-.BR "system types" (commands).
-For a list of user defined operators consult your system administrator
+.BR "introduction" "(built-ins)."
+For a list of user-defined operators consult your system administrator
 or run a query on the pg_operator class.  Parentheses may be used for
 arbitrary grouping of operators.
 .XA 1 "Expressions"
@@ -267,11 +282,10 @@ are the same if
 evaluates to true.
 .PP
 In the case that all instance variables used in the aggregate
-expression are defined in the 
+expression are defined in the
 .IR from 
-list, a simple aggregate has been
-defined.  For example, to sum employee salaries whose age is greater
-than 30, one would write:
+list, a simple aggregate has been defined.  For example, to sum
+employee salaries whose age is greater than 30, one would write:
 .(C
 retrieve (total = sum {e.salary from e in emp
                                 where e.age > 30} )
@@ -293,18 +307,18 @@ list, e.g:
 .(C
 avg {emp.salary where emp.age = e.age}
 .)C
-then this aggregate function has a value for each possible value taken on by
-\*(lqe.age\*(rq.  For example, the following complete query finds the
-average salary of each possible employee age over 18:
+then this aggregate function has a value for each possible value taken
+on by \*(lqe.age\*(rq.  For example, the following complete query
+finds the average salary of each possible employee age over 18:
 .(C
-retrieve (e.age, avg {emp.salary where emp.age = e.age})
+retrieve (e.age, eavg = avg {emp.salary where emp.age = e.age})
 	from e in emp 
 	where e.age > 18
 .)C
 Aggregate functions are not supported in Version \*(PV.
 .PP
-In general, the following aggregates
-(i.e., the expression within the braces) will not work:
+In general, the following aggregates (i.e., the expression within the
+braces) will not work:
 .IP
 Aggregate functions of any kind.
 .IP
@@ -313,7 +327,7 @@ Aggregates containing more than one range variable.
 Aggregates that refer to range variables
 that use class inheritance (e.g., \*(lqe from emp*\*(rq).
 .IP
-Aggregate containing clauses other than
+Aggregates containing clauses other than
 .IR a_expr
 and
 .IR where -qualification
@@ -321,7 +335,13 @@ clauses.  (In other words,
 .IR from
 clauses within aggregates are not supported.)
 .PP
-Therefore, of the three example queries given, only the second is 
+In addition, aggregate expressions may only appear within the target
+list of a query \(em that is, no aggregate expression may appear in a
+query qualification (or
+.IR where
+clause).
+.PP
+Therefore, of the three example queries given, only the second is
 actually supported.
 .SH "Set Expressions"
 .BR "Set expressions are not supported in Version \*(PV."

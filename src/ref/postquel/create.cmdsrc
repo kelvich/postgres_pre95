@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH CREATE COMMANDS 01/23/93
+.TH CREATE COMMANDS 06/13/93
 .XA 2 Create
 .SH NAME
 create \(em create a new class
@@ -27,6 +27,18 @@ The
 .IR i th
 attribute is created with the type specified by
 .IR type "-i."
+Each type may be a simple type, a complex type (set) or an array type.
+.PP
+Each array attribute stores arrays that must have the same number of
+dimensions but may have different sizes and array index bounds.  An
+array of dimension
+.IR n
+is specified by appending 
+.IR n
+pairs of square brackets:
+.(C
+att_name = type[][]..[]
+.)C
 .PP
 The optional
 .BR key
@@ -101,10 +113,10 @@ may be one of:
 .TP 10n
 .IR none
 No historical access is supported.
-.TP
+.TP 10n
 .IR light
 Historical access is allowed and optimized for light update activity.
-.TP
+.TP 10n
 .IR heavy
 Historical access is allowed and optimized for heavy update activity.
 .PP
@@ -127,10 +139,17 @@ create permemp (plan = char16) inherits (emp)
 .)C
 .(C
 /*
- * Create a class foo on mag disk and archive historical data
+ * Create class foo on magnetic disk and archive historical data
  */
 create foo (bar = int4) archive = heavy
     store = "magnetic disk"
+.)C
+.(C
+/*
+ * Create class tictactoe to store noughts-and-crosses
+ * boards as a 2-dimensional array
+ */
+create tictactoe (game = int4, board = char[][])
 .)C
 .SH "SEE ALSO"
 destroy(commands).
@@ -139,7 +158,10 @@ The
 .BR key
 clause is not implemented in Version \*(PV.
 .PP
-Optional specifications (\c
-.BR inherits ", " archive ", " store )
+Optional specifications (i.e.,
+.BR inherits ,
+.BR archive
+and 
+.BR store )
 must be supplied in the order given above, if they are supplied at
 all.
