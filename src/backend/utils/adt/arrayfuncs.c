@@ -865,8 +865,9 @@ int reftype, elmlen, arraylen;
         VARSIZE (v) = elmlen + 4;
         ArrayCastAndSet(dataPtr, (bool) reftype, elmlen, VARDATA(v));
         n =  LOwrite(fd, v);
-        if (n < VARSIZE(v) - 4) 
+        /* if (n < VARSIZE(v) - 4) 
             RETURN_NULL;
+	*/
         pfree(v);
         (void) LOclose(fd);
         return((char *)array);
@@ -1193,7 +1194,7 @@ bool *isNull;
     st_pos = tuple2linear(n, st, prod);
     offset = st_pos*bsize;
     if (LOlseek(srcfd, offset, L_SET) < 0) 
-        RETURN_NULL;
+        return;
     get_range(n, span, st, endp);
     get_offset_values(n, dist, prod, span);
     for (i=0; i < n; indx[i++]=0);
@@ -1204,10 +1205,10 @@ bool *isNull;
     do {
         offset += (dist[j]*bsize);
         if (LOlseek(srcfd,  offset, L_SET) < 0) 
-            RETURN_NULL;
+            return;
         tmp = _LOtransfer(&srcfd, inc, 1, &destfd, isSrcLO, 1);
         if ( tmp < inc )
-             RETURN_NULL;
+             return;
         offset += inc;
     } while ((j = next_tuple(i+1, indx, span)) != -1);
 }
