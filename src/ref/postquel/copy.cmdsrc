@@ -11,8 +11,6 @@ copy \*- copy data to or from a class from or to a \*(UU file.
 [
 .b binary
 ] classname
-.b (
-.b )
 direction "filename" | stdin | stdout
 .uh DESCRIPTION
 .lp
@@ -72,11 +70,11 @@ to "12\19\88".  The actual format for each instance is
 If 
 .b copy
 is sending its output to standard output instead of a file, it will send a
-period (.) followed immediately by a newline (\n), on a line by themselves,
-when it is done.  Similarly, if
+period (.) followed immediately by a newline, on a line by themselves, when
+it is done.  Similarly, if
 .b copy
 is reading from standard input, it will expect a period (.) followed by a
-newline (\n), as the first two characters on a line, to denote end-of-file.
+newline, as the first two characters on a line, to denote end-of-file.
 However,
 .b copy
 will terminate (followed by the backend itself) if a true EOF is encountered.
@@ -98,7 +96,7 @@ command will read until end of file is encountered.  Otherwise, it will
 .i stop
 reading when this number of instances has been read.  Remaining data in the
 file will be ignored.
-.pp
+.lp
 The format for each instance in the file is as follows.  Note that this format
 must be followed
 .i EXACTLY.
@@ -106,13 +104,19 @@ Unsigned four byte integer quantities are called uint32 in the below
 description.
 .lp
 uint32 totallength (not including itself),
+.lp
 uint32 number of null attributes
+.lp
 [uint32 attribute number of first null attribute
+.lp
 ...
+.lp
 uint32 attribute number of nth null attribute],
+.lp
 <data>
 .lp
-.i Alignment of binary data
+.i "Alignment of binary data"
+.lp
 On Sun 3's, 2 byte attributes are aligned on two-byte boundaries, and all
 larger attributes are aligned on four-byte boundaries.  Character attributes
 are aligned on single-byte boundaries.  On other machines, all attributes
@@ -128,7 +132,11 @@ libpq(commands).
 .uh BUGS
 .lp
 .A Files 
-used as arguments to the copy command must reside on the database server.
+used as arguments to the
+.b copy
+command must reside on or be accessable to the
+the database server machine by being either on local disks or a networked
+file system.
 .lp
 .b Copy
 stops operation at the first error.
@@ -137,7 +145,8 @@ in the event of a
 copy \fBfrom\fR,
 but the target relation will, of course, be partially modified
 in a
-.b copy \fBto\fR.
+.b copy \fBto\fR.  The ``vacuum'' query can be used to clean up after a
+failed copy.
 .lp
 Because \*(PP operates out of a different directory 
 than the user's working directory at the time \*(PP is invoked,
@@ -147,6 +156,7 @@ the result of copying to a file
 may yield unexpected results for the naive user.
 The full pathname should be used when specifying files to be copied.
 .lp
-b Copy
+.b Copy
 has virtually no error checking, and a malformed input file will likely cause
-the backend to crash.
+the backend to crash.  Humans should avoid using copy for input whenever
+possible.
