@@ -18,8 +18,7 @@
 #include "access/ftup.h"
 #include "access/skey.h"
 #include "access/sdir.h"
-
-#include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
+#include "access/nbtree.h"
 
 RcsId("$Header$");
 

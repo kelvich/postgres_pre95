@@ -14,8 +14,7 @@
 
 #include "access/genam.h"
 #include "access/isop.h"
-
-#include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
+#include "access/nbtree.h"
 
 RcsId("$Header$");
 

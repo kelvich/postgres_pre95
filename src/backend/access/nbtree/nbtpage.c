@@ -22,8 +22,7 @@
 
 #include "access/genam.h"
 #include "access/ftup.h"
-
-#include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
+#include "access/nbtree.h"
 
 #define BTREE_METAPAGE	0
 #define BTREE_MAGIC	0x053162
