@@ -493,7 +493,7 @@ PerformAddAttribute(relationName, schema)
 		Array array;
 
 		array = (Array) CDR(CADR(CAR(element)));
-		attnelems = get_arrayhigh(array) - get_arraylow(array);
+		attnelems = get_arrayndim(array);
 		sprintf(r, "_%s", p);
 		p = &r[0];
 	}
