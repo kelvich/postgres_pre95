@@ -64,10 +64,7 @@ TOOLSLIBDIR= /usr/local/lib
 #	does not take effect (for .if purposes) until after this file is
 #	processed!
 #
-#PORTNAME=	sparc
-PORTNAME=	ultrix4
-#PORTNAME=	alpha
-#PORTNAME=	hpux
+PORTNAME?=	ultrix4
 
 #
 # POSTGRESLOGIN is the login name of the user who gets special
