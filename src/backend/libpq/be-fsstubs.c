@@ -297,6 +297,27 @@ int LOwrite(fd,wbuf)
     return totalwritten;
 }
 
+
+/*
+ *  We assume the large object supports byte oriented reads and seeks so
+ *  that our work is easier.
+ */
+int 
+LO_read(buf, len, fd)
+     int fd;
+     int len;
+	 char *buf;
+{
+    return LOprocs[lotype[fd]].LOread(cookies[fd],buf,len);
+}
+
+int LO_write(wbuf, len, fd)
+     int fd, len;
+     char *wbuf;
+{
+    return LOprocs[lotype[fd]].LOwrite(cookies[fd],wbuf,len);
+}
+
 int
 LOlseek(fd,offset,whence)
      int fd,offset,whence;
