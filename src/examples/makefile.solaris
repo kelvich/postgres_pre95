@@ -3,13 +3,15 @@ PG_INCLUDE=../backend
 all: int4_abs.so circle.so
 
 int4_abs.o: int4_abs.c
-	cc -c -g -PIC -I$(PG_INCLUDE) int4_abs.c
+#	gcc -c -g -fPIC -I$(PG_INCLUDE) int4_abs.c
+	cc -c -g -K PIC -I$(PG_INCLUDE) int4_abs.c
 
 circle.o: circle.c
-	cc -c -g -PIC -I$(PG_INCLUDE) circle.c
+#	gcc -c -g -fPIC -I$(PG_INCLUDE) circle.c
+	cc -c -g -K PIC -I$(PG_INCLUDE) circle.c
 
 int4_abs.so: int4_abs.o
-	ld -dc -dp -Bdynamic -o int4_abs.so int4_abs.o
+	ld -G -Bdynamic -o int4_abs.so int4_abs.o
 
 circle.so: circle.o
-	ld -dc -dp -Bdynamic -o circle.so circle.o
+	ld -G -Bdynamic -o circle.so circle.o
