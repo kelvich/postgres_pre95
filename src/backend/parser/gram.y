@@ -775,7 +775,6 @@ OptStmtList:
 		{ 
 		  if ( ! strcmp(CString($1),"nothing") ) {
 			$$ = LispNil;
-			StripRangeTable();
 		  } else
 			elog(WARN,"bad rule action %s", CString($1));
 		}
@@ -932,7 +931,6 @@ AppendStmt:
                         LispValue root;
 			LispValue command;
                         int x = RangeTablePosn(CString($5),LispNil);
-                        StripRangeTable();
 
 			if ( $4 == LispNil )
 			  command = KW(append);
@@ -992,7 +990,6 @@ DeleteStmt:
 		      ADD_TO_RT(MakeRangeTableEntry (CString ($5),
 						     LispNil,
 						     CString($5)));
-		    StripRangeTable();
 		    if ( $4 == LispNil )
 		      command = KW(delete);
 		    else
@@ -1061,7 +1058,6 @@ ReplaceStmt:
                     int result = RangeTablePosn(CString($5),LispNil);
                     if (result < 1)
                       elog(WARN,"parser internal error , bogus relation");
-                    StripRangeTable();
 		    if ( $4 == LispNil )
 		      command = KW(replace);
 		    else
@@ -1110,7 +1106,6 @@ RetrieveSubStmt:
 		    LispValue root;
 		    LispValue command;
 
-		    StripRangeTable();
 		    if ( $3 == LispNil )
 		      command = KW(retrieve);
 		    else
