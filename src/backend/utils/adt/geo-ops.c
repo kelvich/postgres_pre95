@@ -85,7 +85,7 @@ box_out(box)
 
 	if (box == NULL)
 		return(NULL);
-	result = (char *)PALLOC(60);
+	result = (char *)PALLOC(80);
 	(void) sprintf(result, "(%g,%g,%g,%g)",
 		       box->xh, box->yh, box->xl, box->yl);
 
@@ -941,7 +941,7 @@ point_out(pt)
 
 	if (pt == NULL)
 		return(NULL);
-	result = (char *)PALLOC(20);
+	result = (char *)PALLOC(40);
 	(void) sprintf(result, "(%g,%g)", pt->x, pt->y);
 	return(result);
 }
@@ -1120,7 +1120,7 @@ lseg_out(ls)
 
 	if (ls == NULL)
 		return(NULL);
-	result = (char *)PALLOC(20);
+	result = (char *)PALLOC(80);
 	(void) sprintf(result, "(%g,%g,%g,%g)",
 		       ls->p[0].x, ls->p[0].y, ls->p[1].x, ls->p[1].y);
 	return(result);
