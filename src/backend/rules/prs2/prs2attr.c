@@ -296,3 +296,158 @@ HeapTuple *newTupleP;
 	return(0);
     }
 }
+
+/*--------------------------------------------------------------------
+ *
+ * attributeValuesCombineNewAndOldTuple
+ *
+ * Hm.. this is a little bit tricky, so I'll try to do my best:
+ * When we want to replace a tuple, the executor has first to retrieve
+ * it. So it calls the Access Methods and retrieves what we call the
+ * 'raw' tuple, i.e. the tuple as stored in the database.
+ * Then it calls the rule manager to activate any 'ON RETRIEVE' rules,
+ * and if there are some backward chaining rules that calculate values
+ * for some attributes of this tuple, then the rule manager forms a
+ * new tuple. This is what we call the 'old' tuple.
+ * (NOTE: both the 'old' and 'raw' tuples are stored in the
+ * 'qualification_tuple' and 'raw_qualification_tuple' fields of 
+ * the 'EState').
+ * Finally this 'old' tuple (if it satisfies the qualifications of the
+ * replace command) must be replaced. So, the executor forms a new tuple,
+ * which is a copy of the 'old' tuple + the updates proposed by the
+ * 'replace' command as issued by the user.
+ * Then, a final call to the rule manager is made to activate all the
+ * 'ON REPLACE' rules. Some of them might be backward chaining rules of
+ * the form 'ON REPLACE EMP.salary WHERE .... DO REPLACE CURRENT(desk = ...)'
+ * so they might cause even more updated to the tuple and possibly trigger
+ * even more rules etc, and to cut a long story short the whole hell can
+ * break loose. My completely bug free code handles all these cases
+ * in the most perfect way, and what we end up having is:
+ * the 'raw' tuple as described above, and a brand 'new' tuple which 
+ * incorporates a) all changes made by ON RETRIEVE rules, b) all user
+ * updates and c) all changes made by ON REPLACE rules.
+ * Well, the tuple that has to be stored in the database (lets call
+ * it the 'returned' tuple) must ONLY incorporate (b) and (c).
+ * IT MUST NOT INCORPORATE changes made by ON RETRIEVE rules !!!
+ * In order to convince all of you that are not as clever as me and
+ * can not see the light, here is an example:
+ * We have the rule:
+ *   ON RETRIEVE TO EMP.salary DO INSTEAD RETRIEVE (salary = 1)
+ * and the tuple:
+ *   name="spyros", salary = 9999999999999999, status = "prophet"
+ * and the user 'replace' command:
+ *   replace EMP(status = "god") where EMP.name = "spyros"
+ * So the 'raw' tuple is:
+ *   name="spyros", salary = 9999999999999999, status = "prophet"
+ * the 'old' tuple (after the ON RETRIEVE rule is activated)
+ *   name="spyros", salary = 1, status = "prophet"
+ * and the 'new' tuple as formed by the executor (after making all changes
+ * suggested by the 'replace' command):
+ *   name="spyros", salary = 1, status = "god"
+ * 
+ * Obviously enough, if we store this tuple in the database and
+ * then delete the rule, then spyros' salary will be '1' and not
+ * what he really deserves (i.e. '9999999999999999').
+ * 
+ * So, what we have to do, is somehow keep track of what attributes
+ * of the 'new' tuple have been changed either by the user ('status')
+ * or by ON REPLACE rules (none in our example), and when forming the
+ * 'returned' tuple we must use for these attributes the values stored
+ * in 'new' tuple, while for all other attributes we have to use
+ * the values as stored in 'raw' tuple.
+ *
+ * In case you haven't suspected it so far, that's exactly what this
+ * routine is supposed to do....
+ */
+
+HeapTuple
+attributeValuesCombineNewAndOldTuple(rawAttrValues, newAttrValues,
+		    relation, attributeArray, numberOfAttributes)
+AttributeValues rawAttrValues;		/* values as stored in 'raw' tuple */
+AttributeValues newAttrValues;		/* values of the 'new' tuple */
+Relation relation;
+AttributeNumberPtr attributeArray;	/* attributes changed by the user */
+AttributeNumber numberOfAttributes;	/* size of 'attributeArray' */
+{
+    AttributeNumber natts;
+    AttributeNumber i,j;
+    Boolean replacedByRule;
+    Boolean replacedByUser;
+    char *nulls;
+    Datum *values;
+    HeapTuple resultTuple;
+    long int size;
+
+    /*
+     * find the number of attributes of the tuple
+     */
+    natts = RelationGetNumberOfAttributes(relation);
+
+    /*
+     * Now create some arrays needed by 'ModifyHeapTuple()'
+     */
+    size = natts * sizeof(Datum);
+    values = (Datum *) palloc(size);
+    if (values == NULL) {
+	elog(WARN,"attributeValuesCreate: palloc(%ld) failed",size);
+    }
+
+    size = natts * sizeof(char);
+    nulls = (char *) palloc(size);
+    if (nulls == NULL) {
+	elog(WARN,"attributeValuesCreate: palloc(%ld) failed",size);
+    }
+
+    /*
+     * Fill these arrays with the right values.
+     * For all the attributes of the tuple, check if the
+     * attribute has been replaced by the user or by a rule.
+     * If yes, then use the value as stored in 'newAttrValues'.
+     * Otherwise, use the value as stored in the 'rawAttrValues'.
+     */
+    for (i=1; i<=natts; i++) {
+	replacedByUser = (Boolean) 0;
+	for (j=0; j<numberOfAttributes; j++) {
+	    if (attributeArray[j] == i) {
+		replacedByUser = (Boolean) 1;
+		break;
+	    }
+	}
+	replacedByRule = newAttrValues[i-1].isChanged;
+	if (replacedByRule || replacedByUser) {
+	    values[i-1] = newAttrValues[i-1].value;
+	    if (newAttrValues[i-1].isNull) {
+		nulls[i-1] = 'n';
+	    } else {
+		nulls[i-1] = ' ';
+	    }
+	} else {
+	    values[i-1] = rawAttrValues[i-1].value;
+	    if (rawAttrValues[i-1].isNull) {
+		nulls[i-1] = 'n';
+	    } else {
+		nulls[i-1] = ' ';
+	    }
+	}
+    }
+
+    /*
+     * create the new tuple
+     */
+    resultTuple = FormHeapTuple(
+			RelationGetNumberOfAttributes(relation),
+			RelationGetTupleDescriptor(relation),
+			values, nulls);
+			
+    /*
+     * free the space occupied by the arrays
+     */
+    pfree(values);
+    pfree(nulls);
+
+    /*
+     * return the new tuple
+     */
+    return(resultTuple);
+}
+
