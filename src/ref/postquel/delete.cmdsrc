@@ -7,8 +7,7 @@
 delete \*- delete instances from a class
 .uh SYNOPSIS
 .lp
-.b delete [\c
-.b * ]
+.b delete 
 instance_variable [ 
 .b from
 from_list ] [
@@ -30,10 +29,6 @@ the effect is to delete all
 instances in the class.
 The result is a valid, but empty class.
 .sp
-The
-.q *
-indicates a transitive closure and \*(PP
-will run the command until it produces no further effect.
 .uh EXAMPLE
 .lp
 .nf
@@ -48,9 +43,3 @@ will run the command until it produces no further effect.
 .uh "SEE ALSO"
 .lp
 Destroy(commands).
-.uh BUGS
-.sp
-.in .5i
-The code to support
-.q *
-is very buggy.

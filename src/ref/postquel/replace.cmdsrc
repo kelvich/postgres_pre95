@@ -7,8 +7,7 @@
 replace \*- replace values of attributes in a class
 .uh SYNOPSIS
 .lp
-.b replace [\c
-.b * ]
+.b replace 
 instance_variable
 .b (
 att_name1
@@ -39,17 +38,9 @@ satisfy the qualification,
 .i qual .
 Only attributes which are to be modified need appear in the
 target_list.
-.sp
-The * indicates a transitive closure and \*(PP will run
-the command until it produces no further effect.
 .uh EXAMPLE
 .lp
 .nf
 /* Give all employees who work for Smith a 10% raise */
 .sp
    replace emp(sal = 1.1 * emp.sal) where emp.mgr = \*(lqSmith\*(rq
-.uh BUGS
-.lp
-The code to support
-.q *
-is very buggy.
