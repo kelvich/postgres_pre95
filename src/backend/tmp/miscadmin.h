@@ -70,8 +70,6 @@ extern int Noversion;		/* moved from magic.c	*/
 
 extern char	    OutputFileName[];
 
-extern char	    *PG_username;
-
 /*
  * done in storage/backendid.h for now.
  *
@@ -86,6 +84,8 @@ extern bool	    TransactionInitWasProcessed;
 
 extern bool	    IsUnderPostmaster;
 extern bool	    IsPostmaster;
+
+extern short	    DebugLvl;
 
 extern struct bcommon Ident;	/* moved from dlog */
 
