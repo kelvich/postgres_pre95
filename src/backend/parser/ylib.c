@@ -518,6 +518,7 @@ ParseFunc ( funcname , fargs )
 	      relname = (Name)CString(CDR(pair));
 	      rd = heap_openr(relname);
 	      relid = RelationGetRelationId(rd);
+	      heap_close(rd);
 
 	      /* get the range table entry for the var node */
 	      vnum = RangeTablePosn(relname, 0);
@@ -536,13 +537,12 @@ ParseFunc ( funcname , fargs )
 	       */
 
 	      CAR(i) = (LispValue)
-		MakeList(MakeVar(vnum, 0, relid,
-				 LispNil /* vardotfields */,
-				 LispNil /* vararraylist */,
-				 lispCons(lispInteger(vnum),
-					  lispCons(lispInteger(0),LispNil)),
-				 0 /* varslot */),
-			 -1);
+		MakeVar(vnum, 0, relid,
+			LispNil /* vardotfields */,
+			LispNil /* vararraylist */,
+			lispCons(lispInteger(vnum),
+				 lispCons(lispInteger(0),LispNil)),
+			0 /* varslot */);
 	  }
 	 else
 	  {
@@ -854,10 +854,17 @@ LispValue HandleNestedDots(dots)
     List mutator_iter;
     LispValue retval = LispNil;
 
-    retval = ParseFunc(CString(CADR(dots)), 
-		       lispCons(lispCons(lispAtom("relation"), 
-					 CAR(dots)),
-				LispNil));
+    if (IsA(CAR(dots),Param))
+      retval = ParseFunc(CString(CADR(dots)),
+			 lispCons(lispCons(typeid_get_relid
+					   (get_paramtype((Param)CAR(dots))),
+					   CAR(dots)),
+				  LispNil));
+    else
+      retval = ParseFunc(CString(CADR(dots)), 
+			 lispCons(lispCons(lispAtom("relation"), 
+					   CAR(dots)),
+				  LispNil));
 
     foreach (mutator_iter, CDR(CDR(dots)))
       retval = ParseFunc(CString(CAR(mutator_iter)), lispCons(retval, LispNil));
