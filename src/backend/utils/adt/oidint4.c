@@ -92,7 +92,7 @@ oidint4ne(o1, o2)
 	return ((bool) (o1->oi_oid != o2->oi_oid || o1->oi_int4 != o2->oi_int4));
 }
 
-bool
+int
 oidint4cmp(o1, o2)
 	OidInt4 o1, o2;
 {
@@ -116,3 +116,6 @@ mkoidint4(v_oid, v_int4)
 	o->oi_int4 = v_int4;
 	return (o);
 }
+
+
+
