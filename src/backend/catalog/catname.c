@@ -3,11 +3,7 @@
  *	POSTGRES system catalog relation name code.
  */
 
-#include "c.h"
-
-#include "name.h"
-
-#include "cat.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
@@ -31,9 +27,8 @@ static NameData	ProcedureArgumentRelationNameData = { "pg_parg" };
 static NameData	ProcedureRelationNameData = { "pg_proc" };
 static NameData	Prs2RuleRelationNameData = { "pg_prs2rule" };
 static NameData	Prs2PlansRelationNameData = { "pg_prs2plans" };
+static NameData	Prs2StubRelationNameData = { "pg_prs2stub" };
 static NameData	RelationRelationNameData = { "pg_relation" };
-static NameData	RuleRelationNameData = { "pg_rule" };
-static NameData	RulePlansRelationNameData = { "pg_ruleplans" };
 static NameData	ServerRelationNameData = { "pg_server" };
 static NameData	StatisticRelationNameData = { "pg_statistic" };
 static NameData TimeRelationNameData = { "pg_time" };
@@ -64,9 +59,8 @@ Name	ProcedureArgumentRelationName = &ProcedureArgumentRelationNameData;
 Name	ProcedureRelationName = &ProcedureRelationNameData;
 Name	Prs2RuleRelationName = &Prs2RuleRelationNameData;
 Name	Prs2PlansRelationName = &Prs2PlansRelationNameData;
+Name	Prs2StubRelationName = &Prs2StubRelationNameData;
 Name	RelationRelationName = &RelationRelationNameData;
-Name	RulePlansRelationName = &RulePlansRelationNameData;
-Name	RuleRelationName = &RuleRelationNameData;
 Name	ServerRelationName = &ServerRelationNameData;
 Name	StatisticRelationName = &StatisticRelationNameData;
 Name    TimeRelationName = &TimeRelationNameData;
