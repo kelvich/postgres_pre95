@@ -50,6 +50,8 @@ static SJCacheHeader	*SJHeader;	/* pointer to cache header in shmem */
 static HTAB		*SJCacheHT;	/* pointer to hash table in shmem */
 static SJCacheItem	*SJCache;	/* pointer to cache metadata in shmem */
 static SJCacheTag	*SJNBlockCache;	/* pointer to nblock cache */
+static SJCacheTag	*DebugBlockEnd;	/* pointer to nblock cache */
+int			*MaoDebugInt = 0x10072000;
 
 #ifndef	HAS_TEST_AND_SET
 
@@ -160,10 +162,11 @@ sjinit()
     SpinAcquire(SJCacheLock);
 
 #ifdef HAS_TEST_AND_SET
-    metasize = (SJCACHESIZE * sizeof(SJCacheItem)) + sizeof(SJCacheHeader);
+    metasize = (SJCACHESIZE * sizeof(SJCacheItem)) + sizeof(SJCacheHeader)
+		+ (SJNBLKSIZE * sizeof(SJCacheTag));
 #else /* HAS_TEST_AND_SET */
     metasize = (SJCACHESIZE * sizeof(SJCacheItem)) + sizeof(SJCacheHeader)
-		+ sizeof(*SJNWaiting);
+		+ (SJNBLKSIZE * sizeof(SJCacheTag)) + sizeof(*SJNWaiting);
 #endif /* HAS_TEST_AND_SET */
     cachesave = cacheblk = (char *) ShmemInitStruct("Jukebox cache metadata",
 						    metasize, &metafound);
@@ -191,6 +194,7 @@ sjinit()
     cacheblk += SJNBLKSIZE * sizeof(SJCacheTag);
 
     SJCache = (SJCacheItem *) cacheblk;
+    DebugBlockEnd = (SJCacheTag *) cacheblk;
 
     /*
      *  Now initialize the pointer to the shared memory hash table.
@@ -1802,6 +1806,7 @@ _sjfindnblocks(tag)
 	    }
 
 	    /* save cache tag */
+	    if (cachetag >= DebugBlockEnd) _punt();
 	    cachetag->sjct_dbid = mytag.sjct_dbid;
 	    cachetag->sjct_relid = mytag.sjct_relid;
 	    cachetag->sjct_base = mytag.sjct_base;
@@ -1827,7 +1832,7 @@ _sjregnblocks(tag)
     SJCacheTag *cachetag;
     SJCacheTag mytag;
 
-    cachetag = &(SJNBlockCache[0]);
+    cachetag = SJNBlockCache;
     i = 0;
     while (i < SJNBLKSIZE && cachetag->sjct_relid != (ObjectId) 0) {
 	if (cachetag->sjct_dbid == tag->sjct_dbid
@@ -1843,6 +1848,7 @@ _sjregnblocks(tag)
 	cachetag = &(SJNBlockCache[i]);
     }
 
+    if (cachetag >= DebugBlockEnd) _punt();
     cachetag->sjct_dbid = tag->sjct_dbid;
     cachetag->sjct_relid = tag->sjct_relid;
     cachetag->sjct_base = tag->sjct_base;
@@ -2080,3 +2086,8 @@ SJInitSemaphore(key)
 }
 
 #endif /* SONY_JUKEBOX */
+
+_punt()
+{
+	elog(NOTICE, "found it");
+}
