@@ -281,7 +281,7 @@ int  *length;
 	if (*local_str == '\"')
 	{
 		for (local_str++; *local_str != '\"'; (*length)++, local_str++);
-		(*length++); local_str++;
+		(*length)++; local_str++;
 	}
 	else if (*local_str == ')' || *local_str == '(')
 	{
