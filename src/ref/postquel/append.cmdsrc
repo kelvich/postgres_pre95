@@ -7,8 +7,7 @@
 append \*- append tuples to a relation
 .uh SYNOPSIS
 .lp
-.b append [\c
-.b * ]
+.b append 
 classname
 .b (
 att_name1
@@ -43,8 +42,7 @@ the values of the fields to be appended to
 The fields may be listed in any order.
 Fields of the result class which do not appear in the 
 target list
-(either explicitly or by default)
-are assigned default values.
+are default a null value.
 The expression for each field must be of the correct
 data type. 
 There is no automatic coercion of expressions.
@@ -53,11 +51,6 @@ The keyword
 .b all
 can be used when it is desired
 to append all domains of a class to another class.
-.sp
-The
-.q *
-indicates a transitive closure and \*(PP will run
-the command until it produces no further effect.
 .uh EXAMPLE
 .lp
 .nf
@@ -81,10 +74,5 @@ the command until it produces no further effect.
 .in .5i
 postquel(postquel),
 retrieve(commands),
-definetype(commands).
-.uh BUGS
-.sp
-.in .5i
-The code to support
-.q *
-is very buggy.
+define type(commands).
+
