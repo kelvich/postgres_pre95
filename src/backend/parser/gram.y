@@ -185,17 +185,21 @@ CopyStmt:
 		{
 
 			if  (! lispNullp($3)) 
-				$2 = nappend1 (lispCons ($2, LispNil), $3 ) ;
+			  $2 = nappend1 (lispCons ($2, LispNil), $3 ) ;
+			else
+			  $2 = lispCons ($2 , LispNil );
+
 			$4 = lispCons ($4, $2 );
 
 			$$ = lispCons ($1 , LispNil) ;
 			$$ = nappend1 ($$ , $4) ; 
 
+			/* to filename */
 			$8 = lispCons ($8 , lispCons ($9 , LispNil ));
 			$$ = nappend1 ($$ , $8);
 						
-			$4 = nappend1 ($$ , lispCons ( KW(USING) , $10 ));
-
+			$$ = nappend1 ($$ , lispCons ( KW(USING) , $10 ));
+			$$ = nappend1 ($$ , $6 );
 		}
 	;
 
@@ -793,8 +797,8 @@ RetrieveStmt:
 				    p_priority, p_ruleinfo);
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $8 );		/* (eq p_target $6) */
-		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $9) */
+		    $$ = nappend1 ( $$ , p_target );	/* (eq p_target $8) */
+		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $10) */
 		}
 
  /**************************************************
@@ -839,7 +843,7 @@ sortby_list:
 
 sortby:
 	  Id OptUseOp
-		{/*$$ = add_sibling($1, $2);*/}
+		{ $$ = lispCons ( $1, lispCons ($2, LispNil )) ; }
 	;
 
 
@@ -926,12 +930,12 @@ from_val:
 			LispValue temp2;
 			LispValue frelname;
 			temp = p_rtable;
-			while ( ! lispNullp(CDR (temp))) {
+			while(! lispNullp(CDR (temp))) {
 				temp = CDR(temp); /* move to last elt */
 			}
 			frelname = CAR(CDR(CAR(temp)));
-			/*printf("from relname = %s\n",CString(frelname));
-			fflush(stdout);*/
+			printf("from relname = %s\n",CString(frelname));
+			fflush(stdout);
 			CAR(CAR(temp)) = CAR($1); 
 
 			temp2 = CDR($1);
@@ -974,6 +978,7 @@ opt_portal:
 OptUseOp:
 	  /*EMPTY*/			{ NULLTREE }
 	| Using Op			{ $$ = $2; }
+	| Using Id			{ $$ = $2; }
 	;
 
 from_rel_name:
@@ -1023,13 +1028,16 @@ Relation:
 
 boolexpr:
 	  b_expr And boolexpr
-		{ $$ = lispCons ( lispString ("AND") , $1 , $3 ) ; }
+		{ $$ = lispCons ( lispString ("AND") , lispCons($1 , 
+		  lispCons($3 ,LispNil ))) ; }
 	| b_expr Or boolexpr
-		{ $$ = lispCons ( lispString ("OR") , $1 , $3 ); }
+		{ $$ = lispCons ( lispString ("OR") , lispCons($1 , 
+		  lispCons ( $3 , LispNil))); }
 	| b_expr
 		{ $$ = $1;}
 	| Not b_expr
-		{ $$ = lispCons ( lispString ("NOT") , $2 ) ; }
+		{ $$ = lispCons ( lispString ("NOT") , 
+		       lispCons ($2, LispNil  )); }
 	;
 
 record_qual:
@@ -1063,22 +1071,28 @@ a_expr:
 	| AexprConst		
 	| adt_name '[' adt_const ']'
 		{
-/*		    Type tp = type(CString($1));
-		    char *cp = instr2(tp, CString ($3));
-		    int32 len = tlen(tp);
-		    LispValue lcp;
+			/* check for passing non-ints */
+		        LispValue adt,lcp;
+			Type tp = type(CString($1));
+			int32 len = tlen(tp);
+			char *cp = instr2 (tp, CString($3));
 
-		    if (!tbyvalue(tp)) {
-			if (len >= 0 && len != PSIZE(cp)) {
-				char *pp = palloc(len);
-				bcopy(cp,pp,len);
-				cp = pp;
+			if (!tbyvalue(tp)) {
+			  if (len >= 0 && len != PSIZE(cp)) {
+			    char *pp;
+			    pp = palloc(len);
+			    bcopy(cp, pp, len);
+			    cp = pp;
+			  }
+			  lcp = ppreserve(cp);
+			} else {
+			  lcp = lispInteger((long) cp);
 			}
-			lcp = ppreserve(cp);
-		    } else
-			lcp = lispInteger((long) cp);
-		    $$ = lispMakeConst ( typeid(tp), len, lcp , 0 );
-*/
+
+			adt = lispMakeConst ( typeid(tp), len, lcp , 0 );
+			printf("adt %s : %d %d %d\n",CString($1),typeid(tp) ,
+			       len,cp);
+			$$ = lispCons  ( lispInteger (typeid(tp)) , adt );
 		}
 	| spec 
 	| a_expr Op a_expr
@@ -1136,19 +1150,28 @@ attr:
 
 
 res_target_list:
-	  res_target_list ',' res_target_el	{ INC_LIST ; }
-	| res_target_el 			{ ELEMENT ; p_target = $$;}
+	  res_target_list ',' res_target_el	
+		{ p_target = nappend1(p_target,$3); $$ = p_target;}
+	| res_target_el 			
+		{ p_target = lispCons ($1,LispNil); $$ = p_target;}
 	| relation_name '.' All
-	/* Can't expand "all" because we don't know about range vars yet */
 		{
-			/* XXX expand all */
+			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
-			if( RangeTablePosn ( $1 ) == 0 )
-			  nappend1( p_rtable, MakeRangeTableEntry ( $1 ));
-			$$ = lispCons ( $1 , $3 );
-		/*	$$ = ExpandAll(relname , &p_last_resno);*/
+			while (temp != LispNil && CDR(temp) != LispNil)
+				temp = CDR(temp);
+			CDR(temp) = ExpandAll( $1, &p_last_resno);
+			$$ = p_target;
 		}
 	| res_target_list ',' relation_name '.' All
+		{
+			LispValue temp = p_target;
+			INC_NUM_LEVELS(1);
+			while(temp != LispNil && CDR(temp) != LispNil )
+				temp = CDR(temp);
+			CDR(temp) = ExpandAll( $3, &p_last_resno);
+			$$ = p_target;
+		}
 	;
 
 res_target_el:
@@ -1161,7 +1184,7 @@ res_target_el:
 						       0 , $1, 0 , 0 ) ,
 				       lispCons (CDR($3) , LispNil) );
 
-			printf("done with rte\n");
+			/* printf("done with rte\n"); */
 			fflush(stdout);
 		}
 
