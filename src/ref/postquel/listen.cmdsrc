@@ -1,0 +1,27 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "LISTEN" COMMANDS 3/25/92
+.XA 2 "Listen"
+.uh NAME
+.lp
+listen \*(- Listen for notification on a relation
+.uh SYNOPSIS
+.lp
+.b "listen"
+relation_name
+.uh DESCRIPTION
+.lp
+.b listen
+is used to register the current backend as a listener on the relation
+.b relation_name.
+When the command 
+.b notify relation_name
+is called either from within a rule or at the query level, the
+frontends corresponding to the listening backends are notified.
+.uh "SEE ALSO"
+.lp
+retrieve(postquel).
+notify(postquel).
+definerule(postquel).
+libpq.
+.uh BUGS
