@@ -48,7 +48,7 @@ functions.  If you are defining a "simple" large object ADT, these functions
 can be used as your "input" and "output" functions (see 
 .b define
 .b type
-and the tutorial on ADT's for details).
+and the \*(PP Manual sections concerning user defined types for details).
 .(1
 
 lo_filein(filename) \*- Nominates a user file as a \*(PP large object.
