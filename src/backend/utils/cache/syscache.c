@@ -147,10 +147,10 @@ static struct cachedesc cacheinfo[] = {
       NULL,
       NULL  },
     { &ProcedureRelationName,			/* PRONAME */
-	  1,
+	  3,
 	  { Anum_pg_proc_proname,
-		0,
-		0,
+	    Anum_pg_proc_pronargs,
+	    Anum_pg_proc_proargtypes,
 		0 },
 	  sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
       &ProcedureNameIndex,
