@@ -21,6 +21,12 @@
  *
  * WriteBuffer() -- WriteNoReleaseBuffer() + ReleaseBuffer() 
  *
+ * DirtyBufferCopy() -- For a given dbid/relid/blockno, if the buffer is
+ *			in the cache and is dirty, mark it clean and copy
+ *			it to the requested location.  This is a logical
+ *			write, and has been installed to support the cache
+ *			management code for write-once storage managers.
+ *
  * FlushBuffer() -- as above but never delayed write.
  *
  * BufferSync() -- flush all dirty buffers in the buffer pool.
@@ -432,6 +438,48 @@ Buffer	buffer;
   }
   return(TRUE);
 } 
+
+/*
+ *  DirtyBufferCopy() -- Copy a given dirty buffer to the requested
+ *			 destination.
+ *
+ *	We treat this as a write.  If the requested buffer is in the pool
+ *	and is dirty, we copy it to the location requested and mark it
+ *	clean.  This routine supports the Sony jukebox storage manager,
+ *	which agrees to take responsibility for the data once we mark
+ *	it clean.
+ */
+
+DirtyBufferCopy(dbid, relid, blkno, dest)
+  ObjectId dbid;
+  ObjectId relid;
+  BlockNumber blkno;
+  char *dest;
+{
+  BufferDesc *buf;
+  BufferTag btag;
+
+  btag.relId.relId = relid;
+  btag.relId.dbId = dbid;
+  btag.blockNum = blkno;
+
+  SpinAcquire(BufMgrLock);
+  buf = BufTableLookup(&btag);
+
+  if (buf == (BufferDesc *) NULL
+      || !(buf->flags & BM_DIRTY)
+      || !(buf->flags & BM_VALID)) {
+    SpinRelease(BufMgrLock);
+    return;
+  }
+
+  /* hate to do this holding the lock, but release and reacquire is slower */
+  (void) bcopy((char *) MAKE_PTR(buf->data), dest, BLCKSZ);
+
+  buf->flags &= ~BM_DIRTY;
+
+  SpinRelease(BufMgrLock);
+}
 
 /*
  * BufferRewrite -- special version of WriteBuffer for
