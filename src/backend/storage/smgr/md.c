@@ -48,7 +48,7 @@ extern char		*DataDir;
 
 #define MDFD_DIRTY	(uint16) 0x01
 
-#define	RELSEG_SIZE	2147483688	/* 2 ** 31 */
+#define	RELSEG_SIZE	262144		/* (2 ** 31) / 8192 -- 2GB file */
 
 /* routines declared here */
 extern MdfdVec	*_mdfd_openseg();
