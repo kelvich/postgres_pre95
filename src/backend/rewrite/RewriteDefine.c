@@ -258,7 +258,6 @@ DefineQueryRewrite ( args )
 				 ev_relid,event_attno);
     } else {
 
-	printf("# number of actions = %d\n", length(action));
 	/*
 	 * I don't use the some of the more interesting LockTypes...so
 	 * PutRelationLocks() has suddenly got much dumber -- glass
@@ -300,7 +299,7 @@ ShowRuleAction(ruleaction)
 {
     if ( ! lispNullp (ruleaction) ) {
 	if ( atom(CAR(ruleaction)) ) {
-	    printf("Utility Actions are not supported yet");
+	    elog(WARN, "Utility Actions are not supported yet");
 	} else {
 	    switch ( root_command_type (parse_root ( ruleaction ) )) {
 	      case RETRIEVE:
