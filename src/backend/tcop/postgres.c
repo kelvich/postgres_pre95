@@ -168,7 +168,7 @@ main(argc, argv)
 
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
-    /*
+
     if (IsUnderPostmaster == true && Portfd < 0) {
 	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
 	exit(1);
@@ -176,7 +176,7 @@ main(argc, argv)
     if (IsUnderPostmaster == true) {
 	pinit();
     }
-    */
+
 
     /* ----------------
      * 	various initalization stuff
@@ -212,8 +212,10 @@ main(argc, argv)
      *   new code for handling input
      * ----------------
      */
-    puts("\nPOSTGRES backend interactive interface");
-    puts("$Revision$ $Date$");
+    if (! IsUnderPostmaster ) {
+	puts("\nPOSTGRES backend interactive interface");
+	puts("$Revision$ $Date$");
+    }
 
     for (;;) {
 	/* ----------------
@@ -353,45 +355,6 @@ BeginCommand(pname,attinfo)
     }
 }
 
-#ifdef NOTYET
-  XXX - uncomment this eventually, - jeff
-
-   do not remove the following code.  It will be needed when
-   we are to test functions from the frontend (fastpath)
-
-ReturnToFrontEnd( data, fid, rettype)
-     char *data;
-     int fid, rettype;
-{
-    putnchar("V",1);
-    putint(fid,4);
-    
-    switch (rettype) {
-      case 0:
-	break; 
-      case 1:
-      case 2:
-      case 4:
-	putnchar("G",1);
-	putint(rettype,4);
-	putint( data, rettype);
-      case VAR_LENGTH_RES:
-	elog(WARN,"not done as yet, refer to lisp code");
-	putnchar("G",1);
-	putint( rettype, 4);
-	putstr(data);
-	break;
-      case PORTAL_RESULT:
-	elog(WARN,"portal results, not ready yet");
-	break;
-      default:
-	putnchar( "0", 1);
-	break;
-    }
-    putnchar ("0",1);
-}
-
-#endif
 /*
  *  SocketBackend()	Is called for frontend-backend connections
  */
