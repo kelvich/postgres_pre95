@@ -196,7 +196,8 @@ cost_sort (keys,tuples,width,noread)
       temp += _disable_cost_ ;
     if (tuples == 0 || null(keys) )
       return(temp);
-    temp += pages * base_log(pages, (double)NBuffers);
+    temp += pages * base_log(pages, (double)2.0);
+    /* could be base_log(pages, NBuffers), but we are only doing 2-way merges */
     temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log(pages, 2.0);
     if( !noread )
       temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),npages,tuples);
