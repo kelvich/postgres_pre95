@@ -85,7 +85,7 @@ DefineFunction(name, parameters)
      * ----------------
      */
     entry = DefineListRemoveRequiredAssignment(&parameters, "file");
-    fileName = DefineEntryGetString(entry);
+    fileName = filename_in(DefineEntryGetString(entry));
     
     /* ----------------
      * handle "[ iscachable ]"
