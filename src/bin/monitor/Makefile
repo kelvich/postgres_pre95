@@ -1,13 +1,11 @@
 #
-# Build and install postgres.
-#
-# You have to cd into doc/ and ref/ by hand to make them.  They are
-# not done automatically because they depend on groff, which you may not
-# have installed.
-# Formatted copies of the documents are already made in ../{doc,ref}
-# for you.
+# $Header$
 #
 
-SUBDIR= backend libpq bin regress
+.include <postgres.global.mk>
 
-.include <postgres.subdir.mk>
+PROG= monitor
+
+SRCS= monitor.c
+
+.include <postgres.prog.mk>
