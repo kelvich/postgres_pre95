@@ -407,6 +407,7 @@ LOCKT		lockt;
   bzero(&item, XID_TAGSIZE);
   TransactionIdStore(myXid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
+  item.tag.backendId = MyBackendId;
 
   result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found);
   if (!result)
@@ -507,6 +508,8 @@ TransactionId	xid;
   bzero(&item, XID_TAGSIZE);
   TransactionIdStore(xid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
+  item.tag.backendId = MyBackendId;
+
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found)))
   {
@@ -703,6 +706,8 @@ LOCKT	lockt;
   Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
 
   item.tag.lock = MAKE_OFFSET(lock);
+  item.tag.backendId = MyBackendId;
+
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
   {
@@ -850,6 +855,8 @@ LOCKT 	lockt;
   Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
 
   item.tag.lock = MAKE_OFFSET(lock);
+  item.tag.backendId = MyBackendId;
+
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
   {
@@ -1019,8 +1026,8 @@ SHM_QUEUE	*lockQueue;
      * always remove the xidLookup entry, we're done with it now
      * ----------------
      */
-    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, HASH_REMOVE, &found)) ||
-	!found)
+    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, HASH_REMOVE, &found))
+        || !found)
     {
       SpinRelease(masterLock);
       elog(NOTICE,"LockReplace: xid table corrupted");
