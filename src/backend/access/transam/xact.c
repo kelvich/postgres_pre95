@@ -458,6 +458,7 @@ CommandCounterIncrement()
     CurrentTransactionStateData.commandId += 1;
     if (CurrentTransactionStateData.commandId == FirstCommandId) {
 	CommandIdCounterOverflowFlag = true;
+	elog(WARN, "You may only have 65535 commands per transaction");
     }
 
     /* make cache changes visible to me */
