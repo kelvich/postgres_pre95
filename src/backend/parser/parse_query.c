@@ -124,7 +124,10 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 
 	Assert(! null (one_sort_elt));
 
-	one_sort_op = CString(CADR(one_sort_clause));
+	if ( ! null ( CADR ( one_sort_clause )))
+	  one_sort_op = CString(CADR(one_sort_clause));
+	else
+	  one_sort_op = "<";
 
 	/* Assert ( tlelementP (one_sort_elt) ); */
 
