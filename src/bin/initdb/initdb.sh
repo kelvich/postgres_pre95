@@ -4,7 +4,7 @@
 #	initdb	create a postgres template database
 #
 #   DESCRIPTION
-#	this program feeds the proper input to the ``backend'' program
+#	this program feeds the proper input to the ``postgres'' program
 #	to create a postgres database and register it in the
 #	shared ``pg_database'' database.
 #
@@ -37,9 +37,9 @@ done
 # ----------------
 if (test "$debug" -eq 1)
 then
-    BACKENDARGS="-COd -ami"
+    BACKENDARGS="-boot -COd -ami"
 else
-    BACKENDARGS="-COQ -ami"
+    BACKENDARGS="-boot -COQ -ami"
 fi
 
 # ----------------
@@ -85,25 +85,25 @@ else
 fi
 
 # ----------------
-# 	find the paths to the backend, pg_version, and pg_id programs
+# 	find the paths to the postgres, pg_version, and pg_id programs
 # ----------------
 if (test "$verbose" -eq 1)
 then
-    echo "$CMDNAME: looking for backend..."
+    echo "$CMDNAME: looking for postgres..."
 fi
 
-if (test -f $PGBIN/backend)
+if (test -f $PGBIN/postgres)
 then
-    BACKEND=$PGBIN/backend
+    BACKEND=$PGBIN/postgres
     PG_VERSION=$PGBIN/pg_version
 	PG_ID=$PGBIN/pg_id
     if (test "$verbose" -eq 1)
     then
         echo "$CMDNAME: found $BACKEND"
     fi
-elif (test -f $TREE/*/support/backend)
+elif (test -f $TREE/*/support/postgres)
 then
-    BACKEND=$TREE/*/support/backend
+    BACKEND=$TREE/*/support/postgres
     PG_VERSION=$TREE/*/support/pg_version
 	PG_ID=$TREE/*/support/pg_id
     if (test "$verbose" -eq 1)
@@ -111,7 +111,7 @@ then
         echo "$CMDNAME: found $BACKEND"
     fi
 else
-    echo "$CMDNAME: could not find backend program"
+    echo "$CMDNAME: could not find postgres program"
     echo "$CMDNAME: set POSTGRESHOME to the proper directory and rerun."
     exit 1
 fi
