@@ -267,21 +267,9 @@ HeapTuple *newTupleP;
 	/*
 	 * create the new tuple
 	 */
-	/**---- HACK:
-	 **
-	 ** The following call to ModifyHeapTuple does not
-	 ** do the right thing, so until somebody fixes
-	 ** this routine, I'll use 'FormHeapTuple' instead...
-
-	*newTupleP = ModifyHeapTuple( tuple, buffer,
+	*newTupleP = heap_modifytuple( tuple, buffer,
 			    relation, replaceValue,
 			    replaceNull, replace);
-	 **
-	 **/
-    	*newTupleP = FormHeapTuple(
-			RelationGetNumberOfAttributes(relation),
-			RelationGetTupleDescriptor(relation),
-			replaceValue, replaceNull);
 	/*
 	 * free the space occupied by the arrays
 	 */
