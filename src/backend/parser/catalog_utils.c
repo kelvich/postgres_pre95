@@ -389,3 +389,17 @@ funcname_get_funcid ( function_name )
       return ( (OID) 0 );
 }
 
+/* Given a type id, returns the in-conversion function of the type */
+OID
+typeid_get_retinfunc(type_id)
+        int type_id;
+{
+        HeapTuple     typeTuple;
+        TypeTupleForm   type;
+        OID             infunc;
+        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
+                  (char *) NULL, (char *) NULL, (char *) NULL);
+        type = (TypeTupleForm) GETSTRUCT(typeTuple);
+        infunc = type->typinput;
+        return(infunc);
+}
