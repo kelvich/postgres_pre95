@@ -149,6 +149,25 @@ _equalVar(a, b)
 	return (true);
 }
 
+bool
+_equalArray(a, b)
+	register Array	a;
+	register Array	b;
+
+{
+	if (!_equalExpr(a, b))
+		return (false);
+	if (a->arrayelemtype != b->arrayelemtype)
+		return (false);
+	if (a->arraylow != b->arraylow)
+		return (false);
+	if (a->arrayhigh != b->arrayhigh)
+		return (false);
+	if (a->arraylen != b->arraylen)
+		return (false);
+	return(true);
+}
+
 /*
  *  Oper is a subclass of Expr.
  */
