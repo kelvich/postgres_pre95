@@ -705,7 +705,7 @@ _readResdom()
 	token = lsptok(NULL, &length);    		/* eat :resname */
 	token = lsptok(NULL, &length);    		/* get the name */
 
-	if (!strncmp(token, "\"null\", 5"))
+	if (!strncmp(token, "\"null\"", 5))
 	{
 		local_node->resname = NULL;
 	}
@@ -2016,6 +2016,11 @@ parsePlanString()
 	{
 		return_value = (LispValue) _readJInfo();
 		return_value->type = T_JInfo;
+	}
+	else if (!strncmp(token, "array", 5))
+	{
+		return_value = (LispValue) _readArray();
+		return_value->type = T_Array;
 	}
 	else
 	{
