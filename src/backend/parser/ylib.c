@@ -241,6 +241,99 @@ parser_typecast ( expr, typename )
     return (lispCons  ( lispInteger (typeid(tp)) , adt ));
 }
 
+LispValue
+parser_typecast2 ( expr, tp)
+     LispValue expr;
+     Type tp;
+{
+    /* check for passing non-ints */
+    Const adt;
+    Datum lcp;
+    int32 len = tlen(tp);
+    char *cp = NULL;
+
+    char *const_string; 
+	bool string_palloced = false;
+    
+    switch ( CInteger(CAR(expr)) ) {
+      case 23: /* int4 */
+	  const_string = palloc(256);
+	  string_palloced = true;
+	sprintf(const_string,"%d",
+		get_constvalue(CDR(expr)));
+	break;
+      case 19: /* char16 */
+	  const_string = palloc(256);
+	  string_palloced = true;
+	sprintf(const_string,"%s",
+		get_constvalue(CDR(expr)));
+	break;
+      case 18: /* char */
+	  const_string = palloc(256);
+	  string_palloced = true;
+	sprintf(const_string,"%c",
+		get_constvalue(CDR(expr)));
+	break;
+      case 701:/* float8 */
+	  const_string = palloc(256);
+	  string_palloced = true;
+	sprintf(const_string,"%f",
+		get_constvalue(CDR(expr)));
+	break;
+      case 25: /* text */
+	const_string = 
+	  DatumGetPointer(
+			  get_constvalue(CDR(expr)) );
+	  const_string = (char *) textout(const_string);
+	break;
+      case 705: /* unknown */
+        const_string =
+          DatumGetPointer(
+                          get_constvalue(CDR(expr)) );
+          const_string = (char *) textout(const_string);
+        break;
+      default:
+	elog(WARN,"unknown type%d ",
+	     CInteger(CAR(expr)) );
+    }
+    
+    cp = instr2 (tp, const_string);
+    
+    
+    if (!tbyvalue(tp)) {
+	if (len >= 0 && len != PSIZE(cp)) {
+	    char *pp;
+	    pp = palloc(len);
+	    bcopy(cp, pp, len);
+	    cp = pp;
+	}
+	lcp = PointerGetDatum(cp);
+    } else {
+	switch(len) {
+	  case 1:
+	    lcp = Int8GetDatum(cp);
+	    break;
+	  case 2:
+	    lcp = Int16GetDatum(cp);
+	    break;
+	  case 4:
+	    lcp = Int32GetDatum(cp);
+	    break;
+	  default:
+	    lcp = PointerGetDatum(cp);
+	    break;
+	}
+    }
+    
+    adt = MakeConst ( typeid(tp), len, lcp , 0 );
+    /*
+      printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
+      len,cp);
+      */
+	if (string_palloced) pfree(const_string);
+    return ((LispValue) adt);
+}
+
 char *
 after_first_white_space( input )
      char *input;
