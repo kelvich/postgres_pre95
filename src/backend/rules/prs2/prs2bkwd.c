@@ -241,6 +241,7 @@ AttributeNumber numberOfAttributes;
 		 * No such plan has been found (an obsolete rule?)
 		 * Continue with the next lock...
 		 */
+		prs2RuleStackPop(prs2EStateInfo);
 		continue;
 	    }
 	    ruleInfo = prs2GetRuleInfoFromActionPlan(plan);
@@ -325,7 +326,9 @@ AttributeNumber numberOfAttributes;
 			newAttributeValues,
 			newTupleLocks,
 			newTupleLockType);
+	    Prs2Stats_rulesTested +=1;	/* update statistics */
 	    if (prs2CheckQual(planQual, paramList, prs2EStateInfo)) {
+		Prs2Stats_rulesActivated +=1;	/* update statistics */
 		/*
 		 * the qualification is true. Execute the action
 		 * part in order to caclulate the new value
@@ -663,11 +666,13 @@ AttributeNumber numberOfAttributes;
 			newTupleLockType,
 			attributeArray,
 			numberOfAttributes);
+	    Prs2Stats_rulesTested +=1;	/* update statistics */
 	    if (prs2CheckQual(planQual, paramList, prs2EStateInfo)) {
 		/*
 		 * the qualification is true. Execute the action
 		 * part of the rule.
 		 */
+		Prs2Stats_rulesActivated +=1;	/* update statistics */
 		prs2RunActionPlans(planActions, paramList, prs2EStateInfo);
 		if (prs2IsRuleInsteadFromRuleInfo(ruleInfo)) {
 		    *insteadRuleFoundP = true;
