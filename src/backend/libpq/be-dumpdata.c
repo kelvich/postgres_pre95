@@ -187,7 +187,6 @@ be_typeinit(entry, attrs, natts)
 {
     PortalBuffer 	*portal;
     GroupBuffer 	*group;
-    TypeBlock 		*types, *type;
     int 		i;
 
     /* ----------------
@@ -204,13 +203,12 @@ be_typeinit(entry, attrs, natts)
      * ----------------
      */
     if (natts > 0) {
-	type = types = group->types = pbuf_addTypes(natts);
-	for (i = 0; i < natts; ++i) {
-	    strncpy(types->name, attrs[i]->attname, NameLength);
-	    type->adtid = attrs[i]->atttypid;
-	    type->adtsize = attrs[i]->attlen;
-	    type++;
-	}
+      group->types = pbuf_addTypes(natts);
+      for (i = 0; i < natts; ++i) {
+	strncpy(group->types[i].name, attrs[i]->attname, NameLength);
+	group->types[i].adtid = attrs[i]->atttypid;
+	group->types[i].adtsize = attrs[i]->attlen;
+      }
     }
 }
 	    
@@ -238,6 +236,8 @@ be_printtup(tuple, typeinfo)
     GroupBuffer  *group = NULL ;
     TupleBlock 	 *tuples = NULL;
     char 	 **values;
+    int          *lengths;
+    int          len;
     
     MemoryContext savecxt;
     
@@ -266,6 +266,13 @@ be_printtup(tuple, typeinfo)
 	tuples->tuple_index = 0;
     } else {
 	tuples = group->tuples;
+	/* walk to the end of the linked list of TupleBlocks */
+	while (tuples->next)
+	  tuples = tuples->next;
+	/* now, tuples is the last TupleBlock, check to see if it is full.  
+	   If so, allocate a new TupleBlock and add it to the end of 
+	   the chain */
+
 	if (tuples->tuple_index == TupleBlockSize) {
 	    tuples->next = pbuf_addTuples();
 	    tuples = tuples->next;
@@ -278,7 +285,7 @@ be_printtup(tuple, typeinfo)
      * ----------------
      */
     tuples->values[tuples->tuple_index] = pbuf_addTuple(tuple->t_natts);
-    
+    tuples->lengths[tuples->tuple_index] = pbuf_addTupleValueLengths(tuple->t_natts);
     /* ----------------
      *	copy printable representations of the tuple's attributes
      *  to the portal.
@@ -294,15 +301,27 @@ be_printtup(tuple, typeinfo)
      *  -cim 2/11/91
      * ----------------
      */
+
     values = tuples->values[tuples->tuple_index];
+    lengths = tuples->lengths[tuples->tuple_index];
+
     for (i = 0; i < tuple->t_natts; i++) {
 	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
 	typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
+
+	lengths[i] = typeinfo[i]->attlen;
+
+	if (lengths[i] == -1) /* variable length attribute */
+	  if (!isnull)
+	    lengths[i] = VARSIZE(attr)-VARHDRSZ;
+	  else
+	    lengths[i] = 0;
 
 	if (!isnull && ObjectIdIsValid(typoutput)) {
 	    values[i] = fmgr(typoutput, attr);
 	} else 
 	    values[i] = NULL;
+
     }
     
     /* ----------------
