@@ -1035,7 +1035,7 @@ _copySort(from, to, alloc)
  *  _copyAgg
  * --------------
  */
-/*bool
+bool
 _copyAgg(from, to, alloc)
     Agg	  from;
     Agg   *to;
@@ -1055,8 +1055,6 @@ _copyAgg(from, to, alloc)
     (*to) = newnode;
     return true;
 }
--commented out for adam...
-*/
 
     
 /* ----------------
