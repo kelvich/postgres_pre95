@@ -180,8 +180,8 @@ pull_ors (orlist)
     return (LispNil);
   else 
     if (or_clause (CAR (orlist))) 
-      return (pull_ors (append (CDR (orlist),
-				get_orclauseargs (CAR (orlist)))));
+      return (pull_ors (nconc(CopyObject(get_orclauseargs(CAR(orlist))),
+				 CopyObject(CDR (orlist)))));
     else 
       return (lispCons (CAR (orlist),pull_ors (CDR (orlist))));
 }  /* function end   */
@@ -205,8 +205,8 @@ pull_ands (andlist)
     return (LispNil);
   else 
     if (and_clause (CAR (andlist))) 
-      return (pull_ands (append (CDR (andlist),
-				 get_andclauseargs (CAR (andlist)))));
+      return (pull_ands(nconc(CopyObject(get_andclauseargs(CAR(andlist))),
+				 CopyObject(CDR (andlist)))));
     else 
       return (lispCons (CAR (andlist),pull_ands (CDR (andlist))));
 }  /* function end   */
