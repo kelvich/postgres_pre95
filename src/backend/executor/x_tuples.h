@@ -20,8 +20,8 @@ extern void ExecInitResultTupleSlot ARGS((EState estate, CommonState commonstate
 extern void ExecInitScanTupleSlot ARGS((EState estate, CommonScanState commonscanstate));
 extern void ExecInitViewTupleSlot ARGS((EState estate, CommonScanState commonscanstate));
 extern void ExecInitMarkedTupleSlot ARGS((MergeJoinState merg estate, int mergestate));
-extern void ExecInitSavedTupleSlot ARGS((EState estate, HashJoinState hashstate));
-extern void ExecInitTemporaryTupleSlot ARGS((EState estate, HashJoinState hashstate));
+extern void ExecInitOuterTupleSlot ARGS((EState estate, HashJoinState hashstate));
+extern void ExecInitHashTupleSlot ARGS((EState estate, HashJoinState hashstate));
 extern AttributePtr ExecGetTupType ARGS((Plan node));
 extern Buffer ExecGetBuffer ARGS((Plan node));
 extern AttributePtr ExecTypeFromTL ARGS((List targetList));
