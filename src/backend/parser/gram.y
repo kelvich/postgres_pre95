@@ -91,7 +91,7 @@ static bool QueryIsRule = false;
 bool Input_is_string = false;
 bool Input_is_integer = false;
 bool Typecast_ok = true;
-
+static bool Params_ok = false;
 %}
 
 /* Commands */
@@ -119,7 +119,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT VACUUM PARALLEL AGGREGATE 
+		STDIN STDOUT VACUUM PARALLEL AGGREGATE
 
 /* precedence */
 %nonassoc Op
@@ -136,7 +136,7 @@ bool Typecast_ok = true;
 %left  	'[' ']' 
 %nonassoc TYPECAST
 %nonassoc REDUCE
-
+%token PARAM
 %%
 
 queryblock:
@@ -658,7 +658,27 @@ ProcedureStmt:
 		   $$ = lispCons ($1, $$ );
 		   QueryIsRule = false;
 		}
-	;
+	| DEFINE P_FUNCTION name '(' def_list ')'
+               {
+                  param_type_init($5);
+            }
+    	  RETURNS def_elem IS
+          {
+	      Params_ok = true;
+          }
+              OptimizableStmt
+         {
+
+	     $$ = lispCons($12, LispNil);
+	     $$ = lispCons($9, $$ );
+	     $$ = lispCons($5, $$ );
+	     $$ = lispCons($3, $$);
+	     $$ = lispCons(KW(postquel), $$);
+	     $$ = lispCons($1, $$);
+	     Params_ok = false;
+	 };
+    
+
 AggregateStmt:
 
 	DEFINE AGGREGATE def_rest 
@@ -1947,6 +1967,25 @@ AexprConst:
 	| CCONST			{ $$ = make_const ( $1 ) ; }
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
 					  Input_is_string = true; }
+        | PARAM                         {
+	    if (Params_ok) {
+		ObjectId toid;
+		int aid;
+		char temp[8];
+		aid = CInteger($1);
+		toid = param_type(aid);
+		if (!ObjectIdIsValid(toid)) {
+		    elog(WARN, "Parameter '$%d' is out of range",
+			 aid);
+		}
+		$$ = (List) lispCons(lispInteger(toid),
+				     MakeParam(PARAM_NUM, aid, "foop", toid));
+	    }
+	    else {
+		Params_ok = false;
+		elog(WARN, "Can't use parameters here");
+            }
+	}
 	| Pnull			 	{ $$ = LispNil; 
 					  Typecast_ok = false; }
 	;
@@ -2014,6 +2053,7 @@ parser_init()
 	Input_is_string = false;
 	Input_is_integer = false;
 	Typecast_ok = true;
+	Params_ok = false;
 }
 
 

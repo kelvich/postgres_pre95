@@ -345,7 +345,10 @@ ProcessUtility(command, args, commandString, dest)
 			    CString(CADDR(args)), /* relation name */
 			    CString(nth(3,args)));  /* query string */
 	    break;
-	case RULE:
+	case POSTQUEL:
+	    DefineRealPFunction(CDR(args));
+	    break;
+        case RULE:
 	    elog(WARN,
 		 "Sorry, the old rule system is not supported any more (yet!)");
 	    break;

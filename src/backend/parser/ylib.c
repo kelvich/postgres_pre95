@@ -366,6 +366,7 @@ ParseFunc ( funcname , fargs )
     extern Func MakeFunc();
     extern OID funcname_get_rettype();
     extern OID funcname_get_funcid();
+    extern ObjectId *funcname_get_funcargtypes();
     OID rettype = (OID)0;
     OID funcid = (OID)0;
     Func funcnode = (Func)NULL;
@@ -405,6 +406,8 @@ ParseFunc ( funcname , fargs )
 
     } else {
 	/* is really a function */
+	int nargs,x;
+	ObjectId *oid_array;
 
 	funcid = funcname_get_funcid ( funcname );
 	rettype = funcname_get_rettype ( funcname );
@@ -413,11 +416,26 @@ ParseFunc ( funcname , fargs )
 	    funcnode = MakeFunc ( funcid , rettype , false, 0, NULL );
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
-	
+	nargs = funcname_get_funcnargs(funcname);
+	if (nargs != length(fargs))
+	    elog(WARN, "function '%s' takes %d arguments not %d",
+		 funcname, nargs, length(fargs));
+	oid_array = funcname_get_funcargtypes(funcname);
+	/* type checking */
+	x=0;
 	foreach ( i , fargs ) {
-	    CAR(i) = CDR(CAR(i));
+	    List pair = CAR(i);
+	    ObjectId toid;
+	    
+	    toid = CInteger(CAR(pair));
+	    if (toid != oid_array[x]) 
+		elog(WARN,
+	"Argument type mismatch in function '%s' at arg %d",
+		     funcname, x+1);
+	    CAR(i) = CDR(pair);
+	    x++;
 	}
-
+	
     } /* was a function */
     return ( lispCons (lispInteger(rettype) ,
 			   lispCons ( funcnode , fargs )));

@@ -16,6 +16,7 @@ typedef struct
 	int typlen;
 	int nargs;
 	int typbyval;
+	ObjectId foid;
 }
 FunctionCache, *FunctionCachePtr;
 

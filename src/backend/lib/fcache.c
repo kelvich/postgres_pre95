@@ -90,6 +90,7 @@ Boolean use_syscache;
         typeStruct = (Form_pg_type) GETSTRUCT(typeTuple);
         retval->typlen = (typeStruct)->typlen;
         retval->typbyval = (typeStruct)->typbyval ? true : false ;
+	retval->foid = foid;
     }
     else
     {
@@ -97,6 +98,7 @@ Boolean use_syscache;
 
         retval->typlen = sizeof(int4);
         retval->typbyval = true;
+	retval->foid = foid;
     }
 
     fmgr_info(foid, &(retval->func), &(retval->nargs));

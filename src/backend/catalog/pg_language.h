@@ -57,8 +57,12 @@ typedef FormData_pg_language	*Form_pg_language;
  */
 
 DATA(insert OID = 11 ( internal "n/a" ));
+#define INTERNALlanguageId 11
 DATA(insert OID = 12 ( lisp "/usr/ucb/liszt" ));
 DATA(insert OID = 13 ( "C" "/bin/cc" ));
+#define ClanguageId 13
+DATA(insert OID = 14 ( "postquel" "postgres"));
+#define POSTQUELlanguageId 14
 
 /* ----------------
  *	old definition of struct language
@@ -83,3 +87,10 @@ struct	language {
     Anum_pg_language_lanname
     
 #endif PgLanguageIncluded
+
+
+
+
+
+
+

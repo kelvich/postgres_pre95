@@ -458,6 +458,39 @@ funcname_get_rettype ( function_name )
 
     return (funcrettype);
 }
+int 
+funcname_get_funcnargs ( function_name )
+     char *function_name;
+{
+    HeapTuple func_tuple = NULL;
+    int2 nargs = -1;
+
+    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
+
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function named %s does not exist", function_name);
+    
+    nargs = (int2) 
+      ((struct proc *)GETSTRUCT(func_tuple))->pronargs ;
+
+    return (nargs);
+}
+ObjectId *
+funcname_get_funcargtypes ( function_name )
+     char *function_name;
+{
+    HeapTuple func_tuple = NULL;
+    ObjectId *oid_array = NULL;
+    struct proc *foo;
+    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
+
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function named %s does not exist", function_name);
+    
+    foo = (struct proc *)GETSTRUCT(func_tuple);
+    oid_array = foo->proargtypes.data;
+    return (oid_array);
+}
 
 OID
 funcname_get_funcid ( function_name )

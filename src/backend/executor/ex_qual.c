@@ -62,6 +62,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_language.h" /* temp */
 
 #include "utils/fmgr.h"
 
@@ -518,7 +519,7 @@ static Buffer      	currentBuffer;
 static Relation 	currentRelation;
 
 /* ----------------
- *	ArgumentIsRelation
+  *	ArgumentIsRelation
  *
  *	used in ExecMakeFunctionResult() to see if we need to
  *	call SetCurrentTuple().
@@ -626,7 +627,7 @@ Datum
 ExecMakeFunctionResult(fcache, arguments, econtext)
     FunctionCachePtr fcache;
     List 	arguments;
-    ExprContext econtext;
+     ExprContext econtext;
 {
     List	arg;
     Datum	args[MAXFMGRARGS];
@@ -641,7 +642,7 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
      */
     if (ArgumentIsRelation(arguments)) {
 	arguments = CDR(arguments);
-	SetCurrentTuple(econtext);
+  	SetCurrentTuple(econtext);
     }
 
     /* ----------------
@@ -671,9 +672,12 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
      *   passing the function the evaluated parameter values. 
      * ----------------
      */
-
-    return (Datum)
-	fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args);
+/* temp fix */
+    if (fmgr_func_lang(fcache->foid) == POSTQUELlanguageId)
+	return (Datum) fmgr_array_args(fcache->foid, fcache->nargs, args);
+    else 
+	return (Datum)
+	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args);
 }
 
 /* ----------------------------------------------------------------
@@ -732,7 +736,7 @@ ExecEvalOper(opClause, econtext, isNull)
         set_fcache(op, get_opid(op));
     	fcache = get_op_fcache(op);
     }
-
+    
     return
 	ExecMakeFunctionResult(fcache, argList, econtext);
 }

@@ -437,6 +437,7 @@ Param paramNode;
 	paramList = (ParamListInfo) palloc(size);
 	Assert(PointerIsValid(paramList));
 	paramList[0].kind = PARAM_INVALID;
+	elog(DEBUG,"added initial entry");
     }
 
     /*
@@ -445,11 +446,27 @@ Param paramNode;
      * or till we reach the end of the array.
      */
     i = 0;
-    while(paramList[i].kind != PARAM_INVALID &&
-	    ! (NameIsEqual(paramList[i].name, get_paramname(paramNode))
-	      && paramList[i].kind == get_paramkind(paramNode))) {
-	i += 1;
+    while(paramList[i].kind != PARAM_INVALID) {
+	int match = false;
+	if (paramList[i].kind != get_paramkind(paramNode)) continue;
+	switch (paramList[i].kind) {
+	case PARAM_NUM:
+	    match = (paramList[i].id == get_paramid(paramNode));
+	    break;
+	case PARAM_NAMED: 	
+	case PARAM_NEW:	
+	case PARAM_OLD:
+	default: elog(WARN, "unexpected kind of parameter node");
+		break;
+	}
+	if (match) break;
+	i+=1;
     }
+/*	    if ((PARAM_NUM != get_paramkind(paramNode)) &&
+		!NameIsEqual(paramList[i].name, get_paramname(paramNode))
+		&& paramList[i].kind == get_paramkind(paramNode))
+		*/
+
 
     if (paramList[i].kind != PARAM_INVALID) {
 	/*

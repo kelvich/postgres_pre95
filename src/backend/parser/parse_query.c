@@ -36,6 +36,9 @@ RcsId("$Header$");
 extern LispValue parser_ppreserve();
 extern int Quiet;
 
+static ObjectId *param_type_info;
+static int pfunc_num_args;
+
 LispValue
 ModifyQueryTree(query,priority,ruletag)
      LispValue query,priority,ruletag;
@@ -871,6 +874,60 @@ char *attrName;
     return(result);
 		    
 }
+/*
+ * param_type_init()
+ *
+ * keep enough information around fill out the type of param nodes
+ * used in postquel functions
+ * 
+ * NOTE: the rule system uses param nodes for something totally different.
+ *       hopefully we won't collide
+ */
+
+void param_type_init(def_list)
+    List def_list;
+{
+    int nargs,y=0;
+    List i,x,args = LispNil;
+
+    nargs = length(def_list);
+    def_list = (List) lispCopy(def_list);
+
+    if (nargs)
+	param_type_info = (ObjectId *) palloc(sizeof(ObjectId)*nargs);
+
+    else {
+	    pfunc_num_args = 0;
+	    param_type_info = NULL;
+	    return;
+	}
+    foreach (i, def_list) {
+	List t = CAR(CAR(i));
+
+	if (!lispStringp(t))
+	    elog(WARN, "DefinePFunction: arg type = ?");
+	args = nappend1(args, t);
+    }
+    foreach (x, args) {
+	List t = CAR(x);
+	ObjectId toid;
+	int defined;
+	toid = TypeGet(CString(t), &defined);
+	if (!ObjectIdIsValid(toid)) {
+	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
+		 CString(t));
+	}
+	param_type_info[y++]= toid;
+    }
+    pfunc_num_args = nargs;
+}
+ObjectId param_type(t)
+     int t;
+{
+    if ((t >pfunc_num_args) ||(t ==0)) return InvalidObjectId;
+    return param_type_info[t-1];
+}
+
 
 /*--------------------------------------------------------------------
  * FindVarNodes

@@ -31,7 +31,7 @@
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
-
+#include "parser/parse.h"  /* temporary */
 /* ----------------
  *	support functions in pg_type.c
  * ----------------
@@ -47,14 +47,15 @@ extern ObjectId	TypeShellMake();
 
 /*ARGSUSED*/
 void
-ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
+ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 		canCache, argList)
-    Name 		procedureName;	
-    Name 		returnTypeName;	
-    Name 		languageName;	
-    char 		*fileName;	/* XXX path to binary */
-    Boolean		canCache;
-    List		argList;
+     Name 		procedureName;
+     Name 		returnTypeName;	
+     Name 		languageName;
+     char 		*prosrc;
+     char               *probin;
+     Boolean		canCache;
+     List		argList;
 {
     register		i;
     Relation 		rdesc;
@@ -65,6 +66,9 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
     char 		*values[ ProcedureRelationNumberOfAttributes ];
     ObjectId 		languageObjectId;
     ObjectId		typeObjectId;
+    List x;
+    static char oid_string[64];
+    static char temp[8];
 #ifdef USEPARGS
     ObjectId		procedureObjectId;
 #endif
@@ -76,18 +80,14 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
     Assert(NameIsValid(procedureName));
     Assert(NameIsValid(returnTypeName));
     Assert(NameIsValid(languageName));
-    Assert(PointerIsValid(fileName));
+    Assert(PointerIsValid(prosrc));
+    Assert(PointerIsValid(probin));
 
-    /* ----------------
-     *	
-     * ----------------
-     */
     parameterCount = length(argList);
 
-    /* ----------------
-     *	
-     * ----------------
-     */
+    if (parameterCount > 8)	/* until oid10 */
+	elog(WARN, "A function may have only 8 arguments"); 
+
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
 			      (char *) NULL,
@@ -98,10 +98,6 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	elog(WARN, "ProcedureDefine: procedure %s already exists",
 	     procedureName);
 
-    /* ----------------
-     *	
-     * ----------------
-     */
     tup = SearchSysCacheTuple(LANNAME,
 			      (char *) languageName,
 			      (char *) NULL,
@@ -113,35 +109,40 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	     languageName);
 
     languageObjectId = tup->t_oid;
-    
-    /* ----------------
-     *	
-     * ----------------
-     */
+
     typeObjectId = TypeGet(returnTypeName, &defined);
     if (!ObjectIdIsValid(typeObjectId)) {
-	elog(NOTICE, "ProcedureDefine: return type %s not yet defined",
+	elog(NOTICE, "ProcedureDefine: return type '%s' not yet defined",
 	     returnTypeName);
 
 	typeObjectId = TypeShellMake(returnTypeName);
 	if (!ObjectIdIsValid(typeObjectId))
-	    elog(WARN, "ProcedureDefine: could not create type %s",
+	    elog(WARN, "ProcedureDefine: could not create type '%s'",
 		 returnTypeName);
     }
-    
-    /* ----------------
-     *	
-     * ----------------
-     */
+    oid_string[0] = '\0';
+    foreach (x, argList) {
+	List t = CAR(x);
+	ObjectId toid;
+	
+	
+	if (!strcmp(CString(t), "RELATION")) {
+	    toid = RELATION;
+	}
+	else toid = TypeGet(CString(t), &defined);
+	if (!ObjectIdIsValid(toid)) {
+	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
+		 CString(t));
+	}
+	sprintf(temp, "%ld ", toid);
+	strcat(oid_string, temp);
+    }
+
     for (i = 0; i < ProcedureRelationNumberOfAttributes; ++i) {
 	nulls[i] = ' ';
 	values[i] = (char *) NULL;
     }
 
-    /* ----------------
-     *	
-     * ----------------
-     */
     i = 0;
     values[i++] = (char *) procedureName;
     values[i++] = (char *) (ObjectId) getuid();
@@ -158,18 +159,10 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
     values[i++] = (char *) parameterCount;
     values[i++] = (char *) typeObjectId;
 
-    /* ----------------
-     *	
-     * ----------------
-     */
-    /*  XXX Fix this when prosrc is used */
-    values[i++] = fmgr(TextInRegProcedure, "-");	/* prosrc */
-    values[i++] = fmgr(TextInRegProcedure, fileName); /* probin */
+    values[i++] = fmgr(F_OID8IN, oid_string);
+    values[i++] = fmgr(TextInRegProcedure, prosrc);	/* prosrc */
+    values[i++] = fmgr(TextInRegProcedure, probin);   /* probin */
 
-    /* ----------------
-     *	
-     * ----------------
-     */
     rdesc = RelationNameOpenHeapRelation(ProcedureRelationName);
     tup = FormHeapTuple(ProcedureRelationNumberOfAttributes,
 			&rdesc->rd_att,
@@ -183,11 +176,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
     RelationCloseHeapRelation(rdesc);
 
     /* XXX Test to see if tuple inserted ?? */
-    
-    /* ----------------
-     *	
-     * ----------------
-     */
+
     /* XXX don't fill in PARG for now (not used for anything) */
 
 #ifdef USEPARGS
