@@ -27,6 +27,7 @@
 #include "rel.h"
 #include "xcxt.h"
 #include "log.h"
+#include "execdebug.h"
 
 extern void die();
 extern void handle_warn();
