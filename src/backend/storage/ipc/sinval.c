@@ -47,8 +47,10 @@ CreateSharedInvalidationState(key)
 {
 	int	status;
 
+    /* REMOVED
     SISyncKill(IPCKeyGetSIBufferMemorySemaphoreKey(key));
     SISyncInit(IPCKeyGetSIBufferMemorySemaphoreKey(key));
+    */
     
     status = SISegmentInit(true, IPCKeyGetSIBufferMemoryBlock(key));
     
@@ -72,7 +74,10 @@ AttachSharedInvalidationState(key)
           return;
         }
     /* attach the semaphores and segment    	    	*/
+    /* REMOVED
     SISyncInit(IPCKeyGetSIBufferMemorySemaphoreKey(key));
+    */
+
     status = SISegmentInit(false, IPCKeyGetSIBufferMemoryBlock(key));
     
     if (status == -1) {

@@ -6,7 +6,6 @@
  *      $Header$
  */
 
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #ifndef	_IPC_
@@ -81,17 +80,9 @@ int					*status;				/* output parameter */
 		return(2);		/* returns the number of the invalid argument	*/
 	}	
 	semId = semget(semKey, 0, 0);
-	/*
-	printf("%d = semget(%d,%d,0%od)\n", semId, semKey, semNum, permission);
-	*/
 	if (semId == -1) {
-		*status = IpcSemIdNotExist;/* there doesn't exist a semaphore*/
+		*status = IpcSemIdNotExist;	/* there doesn't exist a semaphore 	*/
 		semId = semget(semKey, semNum, IPC_CREAT|permission);
-		/*
-		printf("%d = semget(%d,%d,0%od)\n", 
-			semId, semKey, semNum, IPC_CREAT|permission
-		);
-		*/
 		if (semId < 0) {
 			perror("semget");
 			exit(3);
@@ -205,10 +196,6 @@ int					permission;
 	shmid = shmget(memKey, size, IPC_CREAT|permission); 
 	if (shmid < 0) {
 		perror("IpcMemoryCreate: shmget(..., create, ...) failed");
-		fprintf(stderr, 
-		    "Arguments: memKey=%08lx, size=%ld, perm=0%o\n",
-		    memKey, size, permission | IPC_CREAT
-		);
 		return(IpcMemCreationFailed);
 	}
 
