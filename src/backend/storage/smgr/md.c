@@ -80,7 +80,7 @@ mdcreate(reln)
      */
 
     if (fd < 0) {
-	if (fd = FileNameOpenFile(path, O_RDWR, 0666) >= 0) {
+	if ((fd = FileNameOpenFile(path, O_RDWR, 0666)) >= 0) {
 	    if (FileRead(fd, &tmp, sizeof(tmp)) != 0) {
 		FileClose(fd);
 		return (-1);
