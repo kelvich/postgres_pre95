@@ -33,8 +33,6 @@
 
 #include "access/heapam.h"
 #include "access/htup.h"
-#include "executor/recursion.h"
-#include "planner/recurplanner.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/lmgr.h"
@@ -340,11 +338,11 @@ bool CopyPlanFields(from, newnode, alloc)
     Plan 	newnode;
     char *	(*alloc)();
 {
-    newnode->cost = from->cost;
-    newnode->plan_size = from->plan_size;
-    newnode->plan_width = from->plan_width;
-    newnode->fragment =	from->fragment;
-    newnode->parallel = from->parallel;
+    newnode->cost = 		from->cost;
+    newnode->plan_size = 	from->plan_size;
+    newnode->plan_width = 	from->plan_width;
+    newnode->fragment =		from->fragment;
+    newnode->parallel = 	from->parallel;
     
     Node_Copy(from, newnode, alloc, state);
     Node_Copy(from, newnode, alloc, qptargetlist);
@@ -405,12 +403,6 @@ _copyExistential(from, to, alloc)
     CopyNodeFields(from, newnode, alloc);
     CopyPlanFields(from, newnode, alloc);
 
-    /* ----------------
-     *	copy remainder of node 
-     * ----------------
-     */
-    Node_Copy(from, newnode, alloc, exstate);
-    
     (*to) = newnode;
     return true;
 }
@@ -489,87 +481,14 @@ _copyAppend(from, to, alloc)
 
     
 /* ----------------
- *	_copyParallel
- * ----------------
- */
-bool
-_copyParallel(from, to, alloc)
-    Parallel	from;
-    Parallel	*to;
-    char *	(*alloc)();
-{
-    Parallel	newnode;
-
-    COPY_CHECKARGS();
-    COPY_CHECKNULL();
-    COPY_NEW(Parallel);
-    
-    /* ----------------
-     *	copy node superclass fields
-     * ----------------
-     */
-    CopyNodeFields(from, newnode, alloc);
-    CopyPlanFields(from, newnode, alloc);
-
-    /* ----------------
-     *	copy remainder of node 
-     * ----------------
-     */
-    Node_Copy(from, newnode, alloc, parstate);
-        
-    (*to) = newnode;
-    return true;
-}
-
-    
-/* ----------------
- *	_copyRecursive
- * ----------------
- */
-bool
-_copyRecursive(from, to, alloc)
-    Recursive	from;
-    Recursive	*to;
-    char *	(*alloc)();
-{
-    Recursive	newnode;
-
-    COPY_CHECKARGS();
-    COPY_CHECKNULL();
-    COPY_NEW(Recursive);
-    
-    /* ----------------
-     *	copy node superclass fields
-     * ----------------
-     */
-    CopyNodeFields(from, newnode, alloc);
-    CopyPlanFields(from, newnode, alloc);
-
-    /* ----------------
-     *	copy remainder of node 
-     * ----------------
-     */
-    newnode->recurMethod = from->recurMethod;
-    Node_Copy(from, newnode, alloc, recurCommand);
-    Node_Copy(from, newnode, alloc, recurInitPlans);
-    Node_Copy(from, newnode, alloc, recurLoopPlans);
-    Node_Copy(from, newnode, alloc, recurCleanupPlans);
-    Node_Copy(from, newnode, alloc, recurCheckpoints);
-    Node_Copy(from, newnode, alloc, recurResultRelationName);
-    Node_Copy(from, newnode, alloc, recurState);
-    
-    (*to) = newnode;
-    return true;
-}
-
-/* ----------------
  *	CopyScanFields
  *
  *	This function copies the fields of the Scan node.  It is used by
  *	all the copy functions for classes which inherit from Scan.
  * ----------------
  */
-bool CopyScanFields(from, newnode, alloc)
+bool
+CopyScanFields(from, newnode, alloc)
     Scan 	from;
     Scan 	newnode;
     char *	(*alloc)();
@@ -583,32 +502,37 @@ bool CopyScanFields(from, newnode, alloc)
  *	CopyRelDescUsing is a function used by CopyScanTempFields.
  * ----------------
  */
-
 Relation
 CopyRelDescUsing(reldesc, alloc)
-Relation	reldesc;
-char *		(*alloc)();
+    Relation	reldesc;
+    char *	(*alloc)();
 {
-    int len;
-    int natts;
-    int i;
-    Relation newreldesc;
+    int 	len;
+    int 	natts;
+    int 	i;
+    Relation 	newreldesc;
 
-    natts = reldesc->rd_rel->relnatts;
-    len = sizeof *reldesc + (int)(natts - 1) * sizeof reldesc->rd_att;
+    natts = 	reldesc->rd_rel->relnatts;
+    len = 	sizeof *reldesc + (int)(natts - 1) * sizeof reldesc->rd_att;
+    
     newreldesc = (Relation) COPYALLOC(len);
-    newreldesc->rd_fd = reldesc->rd_fd;
-    newreldesc->rd_refcnt = reldesc->rd_refcnt;
-    newreldesc->rd_ismem = reldesc->rd_ismem;
-    newreldesc->rd_am = reldesc->rd_am;  /* YYY */
+    
+    newreldesc->rd_fd = 	reldesc->rd_fd;
+    newreldesc->rd_refcnt = 	reldesc->rd_refcnt;
+    newreldesc->rd_ismem =	reldesc->rd_ismem;
+    newreldesc->rd_am = 	reldesc->rd_am;  /* YYY */
+    
     newreldesc->rd_rel = (RelationTupleForm)
 	COPYALLOC(sizeof (RuleLock) + sizeof *reldesc->rd_rel);
     *newreldesc->rd_rel = *reldesc->rd_rel;
-    newreldesc->rd_id = reldesc->rd_id;
+    
+    newreldesc->rd_id = 	reldesc->rd_id;
+    
     if (reldesc->lockInfo != NULL) {
-	newreldesc->lockInfo = (Pointer) COPYALLOC(sizeof(LockInfoData));
+	newreldesc->lockInfo = (Pointer)
+	    COPYALLOC(sizeof(LockInfoData));
         *(LockInfo)(newreldesc->lockInfo) = *(LockInfo)(reldesc->lockInfo); 
-      }
+    }
 
     len = sizeof *reldesc->rd_att.data[0];
     for (i = 0; i < natts; i++) {
@@ -619,24 +543,31 @@ char *		(*alloc)();
 	      (char *)newreldesc->rd_att.data[i],
 	      len);
         bzero((char *)(newreldesc->rd_att.data[i] + 1), sizeof (RuleLock));
-        newreldesc->rd_att.data[i]->attrelid=reldesc->rd_att.data[i]->attrelid;
+        newreldesc->rd_att.data[i]->attrelid =
+	    reldesc->rd_att.data[i]->attrelid;
     }
+    
     return newreldesc;
 }
 
+/* ----------------
+ *	copy a list of reldescs
+ * ----------------
+ */
 List
 copyRelDescsUsing(relDescs, alloc)
-List	relDescs;
-char *	(*alloc)();
+    List	relDescs;
+    char *	(*alloc)();
 {
     List newlist;
 
     if (lispNullp(relDescs))
 	return LispNil;
+    
     newlist = (List) COPYALLOC(classSize(LispValue));
     CopyNodeFields(relDescs, newlist, alloc);
-    newlist->val.car = (LispValue)CopyRelDescUsing(CAR(relDescs), alloc);
-    newlist->cdr = copyRelDescsUsing(CDR(relDescs), alloc);
+    newlist->val.car = 	(LispValue) CopyRelDescUsing(CAR(relDescs), alloc);
+    newlist->cdr = 	copyRelDescsUsing(CDR(relDescs), alloc);
     return newlist;
 }
 
@@ -794,13 +725,13 @@ _copyJoinRuleInfo(from, to, alloc)
     COPY_CHECKNULL();
     COPY_NEW(JoinRuleInfo);
 
-    newnode->jri_operator = from->jri_operator;
-    newnode->jri_inattrno = from->jri_inattrno;
-    newnode->jri_outattrno = from->jri_outattrno;
-    newnode->jri_lock = from->jri_lock;
-    newnode->jri_ruleid = from->jri_ruleid;
-    newnode->jri_stubid = from->jri_stubid;
-    newnode->jri_stub = from->jri_stub;
+    newnode->jri_operator = 	from->jri_operator;
+    newnode->jri_inattrno = 	from->jri_inattrno;
+    newnode->jri_outattrno = 	from->jri_outattrno;
+    newnode->jri_lock = 	from->jri_lock;
+    newnode->jri_ruleid = 	from->jri_ruleid;
+    newnode->jri_stubid = 	from->jri_stubid;
+    newnode->jri_stub = 	from->jri_stub;
 
     (*to) = newnode;
     return(true);
@@ -918,16 +849,19 @@ _copyMergeJoin(from, to, alloc)
      * ----------------
      */
     Node_Copy(from, newnode, alloc, mergeclauses);
+    
     newnode->mergesortop = from->mergesortop;
     newlist = LispNil;
     foreach (x, from->mergerightorder) {
 	newlist = nappend1(newlist, CAR(x));
-      }
+    }
+    
     newnode->mergerightorder = newlist;
     newlist = LispNil;
     foreach (x, from->mergeleftorder) {
 	newlist = nappend1(newlist, CAR(x));
-      }
+    }
+    
     newnode->mergeleftorder = newlist;
     Node_Copy(from, newnode, alloc, mergestate);
     
@@ -965,12 +899,15 @@ _copyHashJoin(from, to, alloc)
      * ----------------
      */
     Node_Copy(from, newnode, alloc, hashclauses);
-    newnode->hashjoinop = from->hashjoinop;
+    
+    newnode->hashjoinop = 		from->hashjoinop;
+    
     Node_Copy(from, newnode, alloc, hashjoinstate);
-    newnode->hashjointable = from->hashjointable;
-    newnode->hashjointablekey = from->hashjointablekey;
-    newnode->hashjointablesize = from->hashjointablesize;
-    newnode->hashdone = from->hashdone;
+    
+    newnode->hashjointable = 		from->hashjointable;
+    newnode->hashjointablekey = 	from->hashjointablekey;
+    newnode->hashjointablesize = 	from->hashjointablesize;
+    newnode->hashdone = 		from->hashdone;
     
     (*to) = newnode;
     return true;
@@ -989,7 +926,7 @@ bool CopyTempFields(from, newnode, alloc)
     Temp 	newnode;
     char *	(*alloc)();
 {
-    newnode->tempid = from->tempid;
+    newnode->tempid = 	from->tempid;
     newnode->keycount = from->keycount;
     return true;
 }
@@ -1156,9 +1093,10 @@ _copyHash(from, to, alloc)
      */
     Node_Copy(from, newnode, alloc, hashkey);
     Node_Copy(from, newnode, alloc, hashstate);
-    newnode->hashtable = from->hashtable;
-    newnode->hashtablekey = from->hashtablekey;
-    newnode->hashtablesize = from->hashtablesize;
+    
+    newnode->hashtable = 	from->hashtable;
+    newnode->hashtablekey = 	from->hashtablekey;
+    newnode->hashtablesize = 	from->hashtablesize;
     
     (*to) = newnode;
     return true;
@@ -1201,9 +1139,9 @@ _copyResdom(from, to, alloc)
      *	    it should be an int.  -cim 5/1/90
      * ----------------
      */
-    newnode->resno   = from->resno;
-    newnode->restype = from->restype;
-    newnode->reslen  = from->reslen;
+    newnode->resno   = 	from->resno;
+    newnode->restype = 	from->restype;
+    newnode->reslen  = 	from->reslen;
 
     if (from->resname != NULL)
 	newnode->resname = (Name)
@@ -1211,9 +1149,9 @@ _copyResdom(from, to, alloc)
     else
 	newnode->resname = (Name) NULL;
     
-    newnode->reskey  = from->reskey;
+    newnode->reskey  = 	from->reskey;
     newnode->reskeyop = from->reskeyop; /* USED AS AN INT (see above) */
-    newnode->resjunk = from->resjunk;
+    newnode->resjunk = 	from->resjunk;
     
     (*to) = newnode;
     return true;
@@ -1226,7 +1164,8 @@ _copyResdom(from, to, alloc)
  *	all the copy functions for classes which inherit from Expr.
  * ----------------
  */
-bool CopyExprFields(from, newnode, alloc)
+bool
+CopyExprFields(from, newnode, alloc)
     Expr 	from;
     Expr 	newnode;
     char *	(*alloc)();
@@ -1293,12 +1232,14 @@ _copyVar(from, to, alloc)
     newnode->vartype = 	 from->vartype;
     
     Node_Copy(from, newnode, alloc, vardotfields);
-    
-	Node_Copy(from, newnode, alloc, vararraylist);
-    
+    Node_Copy(from, newnode, alloc, vararraylist);
     Node_Copy(from, newnode, alloc, varid);    
 
-/*     newnode->varelemtype = from->varelemtype; */
+    /* ----------------
+     *	don't copy var's cached slot pointer!
+     * ----------------
+     */
+    newnode->varslot =	NULL;
     
     (*to) = newnode;
     return true;
@@ -1317,15 +1258,23 @@ _copyArray(from, to, alloc)
     COPY_CHECKNULL();
     COPY_NEW(Array);
 
+    /* ----------------
+     *	copy node superclass fields
+     * ----------------
+     */
     CopyNodeFields(from, newnode, alloc);
     CopyExprFields(from, newnode, alloc);
 
-	newnode->arrayelemtype = from->arrayelemtype;
-	newnode->arrayelemlength = from->arrayelemlength;
-	newnode->arrayelembyval = from->arrayelembyval;
-	newnode->arraylow = from->arraylow;
-	newnode->arrayhigh = from->arrayhigh;
-	newnode->arraylen = from->arraylen;
+    /* ----------------
+     *	copy remainder of node
+     * ----------------
+     */
+    newnode->arrayelemtype = 	from->arrayelemtype;
+    newnode->arrayelemlength = 	from->arrayelemlength;
+    newnode->arrayelembyval = 	from->arrayelembyval;
+    newnode->arraylow = 	from->arraylow;
+    newnode->arrayhigh = 	from->arrayhigh;
+    newnode->arraylen = 	from->arraylen;
 
     (*to) = newnode;
     return true;
@@ -1358,18 +1307,18 @@ _copyOper(from, to, alloc)
      *	copy remainder of node
      * ----------------
      */
-    newnode->opno = 	   from->opno;
-    newnode->opid = 	   from->opid;
-    newnode->oprelationlevel = from->oprelationlevel;
-    newnode->opresulttype =    from->opresulttype;
-    newnode->opsize = 	   from->opsize;
+    newnode->opno = 	   	from->opno;
+    newnode->opid = 	   	from->opid;
+    newnode->oprelationlevel = 	from->oprelationlevel;
+    newnode->opresulttype =    	from->opresulttype;
+    newnode->opsize = 	   	from->opsize;
 
     /*
      * NOTE: shall we copy the cache structure or just the pointer ?
      * Alternatively we can set 'op_fcache' to NULL, in which
      * case the executor will initialize it when it needs it...
      */
-    newnode->op_fcache =   from->op_fcache;
+    newnode->op_fcache =   	from->op_fcache;
     
     (*to) = newnode;
     return true;
@@ -1556,7 +1505,7 @@ _copyFunc(from, to, alloc)
      *	copy remainder of node
      * ----------------
      */
-    newnode->funcid = 	from->funcid;
+    newnode->funcid = 		from->funcid;
     newnode->functype = 	from->functype;
     newnode->funcisindex = 	from->funcisindex;
     newnode->funcsize = 	from->funcsize;
@@ -1667,13 +1616,18 @@ bool CopyPathFields(from, newnode, alloc)
     Path 	newnode;
     char *	(*alloc)();
 {
-    newnode->pathtype =  from->pathtype;
+    newnode->pathtype =  	from->pathtype;
+    
     Node_Copy(from, newnode, alloc, parent);
-    newnode->path_cost = from->path_cost;
+    
+    newnode->path_cost = 	from->path_cost;
+    
     Node_Copy(from, newnode, alloc, p_ordering);
     Node_Copy(from, newnode, alloc, keys);
     Node_Copy(from, newnode, alloc, sortpath);
-    newnode->outerjoincost = from->outerjoincost;
+    
+    newnode->outerjoincost = 	from->outerjoincost;
+    
     Node_Copy(from, newnode, alloc, joinid);
 	
     return true;
@@ -1955,8 +1909,8 @@ _copyMergeOrder(from, to, alloc)
     newnode->join_operator = 	from->join_operator;
     newnode->left_operator = 	from->left_operator;
     newnode->right_operator = 	from->right_operator;
-    newnode->left_type = 		from->left_type;
-    newnode->right_type = 		from->right_type;
+    newnode->left_type = 	from->left_type;
+    newnode->right_type = 	from->right_type;
     
     (*to) = newnode;
     return true;
@@ -1989,8 +1943,10 @@ _copyCInfo(from, to, alloc)
      * ----------------
      */
     Node_Copy(from, newnode, alloc, clause);
+    
     newnode->selectivity = 	from->selectivity;
     newnode->notclause = 	from->notclause;
+    
     Node_Copy(from, newnode, alloc, indexids);
     Node_Copy(from, newnode, alloc, mergesortorder);
     Node_Copy(from, newnode, alloc, hashjoinoperator);
@@ -2138,6 +2094,7 @@ _copyJInfo(from, to, alloc)
      */
     Node_Copy(from, newnode, alloc, otherrels);
     Node_Copy(from, newnode, alloc, jinfoclauseinfo);
+    
     newnode->mergesortable = from->mergesortable;
     newnode->hashjoinable =  from->hashjoinable;
     newnode->inactive =      from->inactive;
@@ -2152,17 +2109,19 @@ _copyJInfo(from, to, alloc)
  */
 ReturnState
 CopyReturnStateUsing(retstate, alloc)
-ReturnState     retstate;
-char *  (*alloc)();
+    ReturnState     retstate;
+    char *  (*alloc)();
 {
     ReturnState newnode;
 
     COPY_NEW_TYPE(ReturnState);
+    
     /* ----------------
      *  copy node superclass fields
      * ----------------
      */
     CopyNodeFields(retstate, newnode, alloc);
+    
     return newnode;
 }
 

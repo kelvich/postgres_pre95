@@ -141,6 +141,7 @@ class (TupleCount) public (Node) {
   /* public: */
 };
 
+
 /* ----------------
  *	Note:  the executor tuple table is managed and manipulated by special
  *	code and macros in executor/tuple.c and lib/H/executor/tuptable.h
@@ -183,12 +184,15 @@ class (TupleTableSlot) public (LispValue) {
 /* ----------------
  *    ExprContext
  *
- *      this class holds the "current context" information
- *      needed to evaluate expressions.  For example, if an
- *      expression refers to an attribute in the current inner tuple
- *      then we need to know what the current inner tuple is and
- *      so we look at the expression context.  Most of this
- *      information was originally stored in global variables
+ *      This class holds the "current context" information
+ *      needed to evaluate expressions for doing tuple qualifications
+ *	and tuple projections.  For example, if an expression refers
+ *	to an attribute in the current inner tuple then we need to know
+ *	what the current inner tuple is and so we look at the expression
+ *	context.
+ *
+ * old comments:
+ *	Most of this information was originally stored in global variables
  *      in the Lisp system.
  *
  *      ExprContexts are stored in CommonState nodes and so
@@ -205,20 +209,41 @@ class (ExprContext) public (Node) {
 #define ExprContextDefs \
         inherits(Node); \
         TupleTableSlot ecxt_scantuple; \
-        AttributePtr   ecxt_scantype; \
-        Buffer         ecxt_scan_buffer; \
         TupleTableSlot ecxt_innertuple; \
-        AttributePtr   ecxt_innertype; \
-        Buffer         ecxt_inner_buffer; \
         TupleTableSlot ecxt_outertuple; \
-        AttributePtr   ecxt_outertype; \
-        Buffer         ecxt_outer_buffer; \
         Relation       ecxt_relation; \
         Index          ecxt_relid; \
         ParamListInfo  ecxt_param_list_info
  /* private: */
         ExprContextDefs;
  /* public: */
+};
+
+/* ----------------
+ *	ProjectionInfo node information
+ *
+ *	This is all the information needed to preform projections
+ *	on a tuple.  Nodes which need to do projections create one
+ *	of these.  In theory, when a node wants to preform a projection
+ *	it should just update this information as necessary and then
+ *	call ExecProject().  -cim 6/3/91
+ *
+ *	targetlist	target list for projection
+ *	len		length of target list
+ *	tupValue	array of pointers to projection results
+ *	exprContext	expression context for ExecTargetList
+ *	slot		slot to place projection result in
+ * ----------------
+ */
+class (ProjectionInfo) public (Node) {
+      inherits(Node);
+  /* private: */
+      List		  pi_targetlist;
+      int		  pi_len;
+      Pointer             pi_tupValue;
+      ExprContext	  pi_exprContext;
+      TupleTableSlot 	  pi_slot;
+  /* public: */
 };
 
 /* ----------------
@@ -255,10 +280,10 @@ class (JunkFilter) public (JunkFilter) {
   /* private: */
       List			jf_targetList;
       int			jf_length;
-      AttributePtr		jf_tupType;
+      TupleDescriptor		jf_tupType;
       List			jf_cleanTargetList;
       int			jf_cleanLength;
-      AttributePtr		jf_cleanTupType;
+      TupleDescriptor		jf_cleanTupType;
       AttributeNumberPtr	jf_cleanMap;
   /* public: */
 };
@@ -476,28 +501,15 @@ class (BaseNode) public (Node) {
  *|     this is a bogus class used to hold slots so other
  *|     nodes can inherit them...
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the outer subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  *
- *              note: not all executor nodes make use of their
- *                    result tuple slot because they don't make copies
- *                    of tuples.
+ * old comments
  *
- *|     Currently the value of Level is ignored by almost everything
- *|     and since I don't understand it's purpose, it may go
- *|     away soon.
- *|
- *|     ScanType should probably mean the type of tuples
- *|     in the subplan being scanned for nodes without underlying
- *|     relations.
- *|
  *|     ScanAttributes and NumScanAttributes are new -- they are
  *|     used to keep track of the attribute numbers of attributes
  *|     which are actually inspected by the query so the rule manager
@@ -505,30 +517,27 @@ class (BaseNode) public (Node) {
  *|     that won't ever be inspected..
  *|
  *|     -cim 10/15/89
- *
- *      ExprContext contains the node's expression context which
- *      is created and initialized at ExecInit time.  Keeping these
- *      around reduces memory allocations and allows nodes to refer
- *      to tuples in other nodes (albeit in a gross fashion). -cim 10/30/89
- *
- *  SOON: ExprContext will contain indexes of tuples in the tupleTable
- *        stored in the EState, rather than pointers which it now stores.
- *        -cim 6/20/90
+ *|
+ *|     ExprContext contains the node's expression context which
+ *|     is created and initialized at ExecInit time.  Keeping these
+ *|     around reduces memory allocations and allows nodes to refer
+ *|     to tuples in other nodes (albeit in a gross fashion). -cim 10/30/89
+ *|
+ *| *  SOON: ExprContext will contain indexes of tuples in the tupleTable
+ *|       stored in the EState, rather than pointers which it now stores.
+ *|       -cim 6/20/90
  * ----------------
  */
 
 class (CommonState) public (BaseNode) {
 #define CommonStateDefs \
       inherits(BaseNode); \
-      TupleTableSlot      cs_OuterTuple; \
-      AttributePtr        cs_TupType; \
-      Pointer             cs_TupValue; \
-      int                 cs_Level; \
-      AttributePtr        cs_ScanType; \
-      AttributeNumberPtr  cs_ScanAttributes; \
-      int                 cs_NumScanAttributes; \
+      TupleTableSlot      cs_OuterTupleSlot; \
       TupleTableSlot      cs_ResultTupleSlot; \
-      ExprContext         cs_ExprContext 
+      ExprContext         cs_ExprContext; \
+      ProjectionInfo      cs_ProjInfo; \
+      int                 cs_NumScanAttributes; \
+      AttributeNumberPtr  cs_ScanAttributes
   /* private: */
       CommonStateDefs;
   /* public: */
@@ -541,31 +550,6 @@ class (CommonState) public (BaseNode) {
  */
 
 /* ----------------
- *   ExistentialState information
- *
- *      SatState           See if we have satisfied the left tree.
- *
- *   CommonState information
- *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
- *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
- *      ExprContext        node's current expression context
- * ----------------
- */
-class (ExistentialState) public (CommonState) {
-      inherits(CommonState);
-  /* private: */
-      List      ex_SatState;
-  /* public: */
-};
-
-/* ----------------
  *   ResultState information
  *
  *      Loop               flag which tells us to quit when we
@@ -573,15 +557,12 @@ class (ExistentialState) public (CommonState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the outer subplan
- *      ScanType           type of tuples in relation being scanned (unused)
- *      ScanAttributes     attribute numbers of interest in tuple (unused)
- *      NumScanAttributes  number of attributes of interest.. (unused)
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -601,72 +582,24 @@ class (ResultState) public (CommonState) {
  *      nplans          how many plans are in the list
  *      initialized     array of ExecInitNode() results
  *      rtentries       range table for the current plan
+ *
+ *   CommonState information
+ *
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
+ *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
+ *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
 class (AppendState) public (BaseNode) {
-    inherits(BaseNode);
+    inherits(CommonState);
     int         as_whichplan;
     int         as_nplans;
     ListPtr     as_initialized;
     List        as_rtentries;
-};
-
-/* ----------------------------------------------------------------
- *   RecursiveState information -JRB 12/11/89
- *
- *      Recursive nodes have some fields labelled "recurInitPlans",
- *      "recurLoopPlans", and "recurCleanupPlans" which are lists
- *      of plans and utilities to execute in sequence.  The following
- *      variables keep track of things...
- *
- *      whichSequence   which sequence of the three is being used
- *      whichPlan       which plan in the sequence is being executed
- *      numPlans        how many plans are in each list (list of 3)
- *      initialized     array of ExecInitNode() results
- *      rtentries       range table for the current plan
- *      effectsNoted    flag indicating whether the result relation
- *                      has been successfully affected in present
- *                      iteration.
- *      tempsSwapped    flag indicating whether the temporary relations
- *                      mentioned in the plan are used as initially
- *                      planned, or have switched places.
- * ----------------------------------------------------------------
- */
-
-class (RecursiveState) public (BaseNode) {
-    inherits(BaseNode);
-    int         rcs_whichSequence;
-    int         rcs_whichPlan;
-    List        rcs_numPlans;
-    ListPtr     rcs_initialized;
-    List        rcs_rtentries;
-    bool        rcs_effectsNoted;
-    bool        rcs_tempsSwapped;
-};
-
-/* ----------------
- *   ParallelState information
- *
- *      XXX these fields will change! -cim 1/24/89
- *
- *      parallel nodes have this field "parallelplans" which is this
- *      list of plans to execute in parallel..  these variables
- *      keep track of things..
- *
- *      whichplan       which plan is being executed
- *      nplans          how many plans are in the list
- *      initialized     array of ExecInitNode() results
- *      rtentries       range table for the current plan
- * ----------------
- */
-
-class (ParallelState) public (BaseNode) {
-    inherits(BaseNode);
-    int         ps_whichplan;
-    int         ps_nplans;
-    ListPtr     ps_initialized;
-    List        ps_rtentries;
 };
 
 /* ----------------------------------------------------------------
@@ -690,15 +623,12 @@ class (ParallelState) public (BaseNode) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the outer subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -730,15 +660,12 @@ class (CommonScanState) public (CommonState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -776,15 +703,12 @@ class (ScanTempState) public (CommonScanState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 class (IndexScanState) public (CommonState) {
@@ -809,15 +733,12 @@ class (IndexScanState) public (CommonState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 class (JoinState) public (CommonState) {
@@ -837,15 +758,12 @@ class (JoinState) public (CommonState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -868,15 +786,12 @@ class (NestLoopState) public (JoinState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -916,15 +831,12 @@ typedef char	*charP;
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -971,15 +883,12 @@ class (HashJoinState) public (JoinState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple' (unused)
- *      Level              level of the left subplan (unused)
- *      ScanType           type of tuples in relation being scanned (unused)
- *      ScanAttributes     attribute numbers of interest in tuple (unused)
- *      NumScanAttributes  number of attributes of interest.. (unused)
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -1015,15 +924,12 @@ class (MaterialState) public (CommonScanState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple' (unused)
- *      Level              level of the left subplan (unused)
- *      ScanType           type of tuples in relation being scanned (unused)
- *      ScanAttributes     attribute numbers of interest in tuple (unused)
- *      NumScanAttributes  number of attributes of interest.. (unused)
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -1050,15 +956,12 @@ class (SortState) public (CommonScanState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple' (unused)
- *      Level              level of the left subplan (unused)
- *      ScanType           type of tuples in relation being scanned (unused)
- *      ScanAttributes     attribute numbers of interest in tuple (unused)
- *      NumScanAttributes  number of attributes of interest.. (unused)
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
@@ -1075,22 +978,19 @@ class (UniqueState) public (CommonState) {
  *
  *   CommonState information
  *
- *      OuterTuple         points to the current outer tuple
- *      TupType            attr type info of tuples from this node
- *      TupValue           array to store attr values for 'formtuple'
- *      Level              level of the left subplan
- *      ScanType           type of tuples in relation being scanned
- *      ScanAttributes     attribute numbers of interest in this tuple
- *      NumScanAttributes  number of attributes of interest..
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
  *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
  *      ExprContext        node's current expression context
+ *	ProjInfo	   info this node uses to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
  * ----------------
  */
 
 class (HashState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-  FileP		hashBatches;
+      FileP		hashBatches;
   /* public: */
 };
 

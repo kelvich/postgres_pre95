@@ -420,12 +420,16 @@ pg_eval(query_string, dest)
      *	(1) parse the request string into a set of plans
      * ----------------
      */
-    if (ShowParserStats) ResetUsage();
+    if (ShowParserStats)
+	ResetUsage();
+    
     parser(query_string, parsetree_list);
+    
     if (ShowParserStats) {
 	fprintf(stderr, "! Parser Stats:\n");
 	ShowUsage();
-      }
+    }
+    
     /*
     if (testFlag)
        MemoryContextSwitchTo(oldcontext);
@@ -485,10 +489,8 @@ pg_eval(query_string, dest)
     
     /* ----------------
      * Fix time range quals
-     * this _must_ go here, because it must take place
-     * after rewrites ( if they take place )
-     * or even if no rewrite takes place
-     * so that time quals are usable by the executor
+     * this _must_ go here, because it must take place after rewrites
+     * ( if they take place ) so that time quals are usable by the executor
      *
      * Also, need to frob the range table entries here to plan union
      * queries for archived relations.
@@ -500,31 +502,33 @@ pg_eval(query_string, dest)
 	List rt = NULL;
 	extern List MakeTimeRange();
 	
-	if ( atom ( CAR(parsetree))) 
+	/* ----------------
+	 *  utilities don't have time ranges
+	 * ----------------
+	 */
+	if (atom(CAR(parsetree))) 
 	    continue;
 
-	rt = root_rangetable ( parse_root ( parsetree ));
+	rt = root_rangetable(parse_root(parsetree));
 
-	foreach ( l , rt ) {
-	    List timequal = rt_time (CAR(l));
-	    if ( timequal && consp(timequal) ) {
-		rt_time ( CAR(l)) = 
-		  MakeTimeRange ( CAR(timequal),
-				 CADR(timequal),
-				 CInteger(CADDR(timequal)));
-	    }
+	foreach (l, rt) {
+	    List timequal = rt_time(CAR(l));
+	    if ( timequal && consp(timequal) )
+		rt_time(CAR(l)) = MakeTimeRange(CAR(timequal),
+						CADR(timequal),
+						CInteger(CADDR(timequal)));
 	}
 
 	/* check for archived relations */
 	plan_archive(rt);
     }
     
-    if ( DebugPrintRewrittenParsetree == true ) {
+    if (DebugPrintRewrittenParsetree == true) {
 	List i;
 	printf("\n=================\n");
 	printf("  After Rewriting\n");
 	printf("=================\n");
-	lispDisplay(parsetree_list,0);
+	lispDisplay(parsetree_list, 0);
     }
 
     /* ----------------
@@ -532,10 +536,10 @@ pg_eval(query_string, dest)
      *      the utility reqyest.
      * ----------------
      */
-    foreach(i,parsetree_list )   {
-	int which_util;
+    foreach(i, parsetree_list) {
+	int 	  which_util;
 	LispValue parsetree = CAR(i);
-	Node plan  	= NULL;
+	Node plan = NULL;
 
 	if (atom(CAR(parsetree))) {
 	    /* ----------------
@@ -549,6 +553,7 @@ pg_eval(query_string, dest)
 		time(&tim);
 		printf("\tProcessUtility() at %s\n", ctime(&tim));
 	    }
+	    
 	    which_util = LISPVALUE_INTEGER(CAR(parsetree));
 	    ProcessUtility(which_util, CDR(parsetree), query_string, dest);
 
@@ -604,71 +609,111 @@ pg_eval(query_string, dest)
 	    if (ShowPlannerStats) {
 		fprintf(stderr, "! Planner Stats:\n");
 		ShowUsage();
-	      }
-	    
+	    }
+
+	    /* ----------------
+	     *	print plan if debugging
+	     * ----------------
+	     */
 	    if ( DebugPrintPlan == true ) {
 		printf("\nPlan is :\n");
 		lispDisplay(plan, 0);
 		printf("\n");
 	    }
-	    
+
+#if 0	    
+	    /* ----------------
+	     *	expand nested dots for attributes of type "set".
+	     *  i.e. "retrieve (x.y.z) where a.b.c > x.w" where x.y and
+	     *  a.b are sets might produce a simple join:
+	     *
+	     *		Join				   Join
+	     *		/  \	    this turns		 /      \
+	     *	     Scan   Scan    into ---->	     Join        Join
+	     *      "x.y"   "a.b"		     /  \	 /  \
+	     *					  Scan  Proc  Scan  Proc
+	     *					  "x"  "x.y"   "a"  "a.b"
+	     *
+	     *  after this is done, the executor can process the procedures
+	     *  stored in x.y and a.b and decide how to do the query
+	     *  dynamically. -cim 6/7/91
+	     * ----------------
+	     */
+	    ReplaceNestedDots(parsetree, &plan);
+#endif	    
+		
+	    /* ----------------
+	     *	XXX comment me.
+	     * ----------------
+	     */
 	    if (testFlag && IsA(plan,Choose)) {
-		Plan p;
-		List planlist;
+		Plan 	  p;
+		List 	  planlist;
 		LispValue x;
-		List setRealPlanStats();
-		List pruneHashJoinPlans();
+		List 	  setRealPlanStats();
+		List 	  pruneHashJoinPlans();
 
 		planlist = get_chooseplanlist(plan);
 		planlist = setRealPlanStats(parsetree, planlist);
 		planlist = pruneHashJoinPlans(planlist);
+		
 		/*
 		MemoryContextSwitchTo(oldcontext);
 		*/
+		
 		foreach (x, planlist) {
 		    char s[10];
-		    p = (Plan)CAR(x);
+		    p = (Plan) CAR(x);
 		    p_plan(p);
 		    if (confirmExecute) {
 		        printf("execute (y/n/q)? ");
 		        scanf("%s", s);
 		        if (s[0] == 'n') continue;
 			if (s[0] == 'q') break;
-		      }
+		    }
 		    BufferPoolBlowaway();
+		    
 		    /*
 		    CommitTransactionCommand();
 		    StartTransactionCommand();
 		    */
+		    
 		    ResetUsage();
 		    ProcessQuery(parsetree, p, dest);
 		    ShowUsage();
-		  }
+		}
 		/*
 		 GlobalMemoryDestroy(ParserPlannerContext);
-		*/
-	       }
-	    else {
-	    /* ----------------
-	     *   execute the plan
-	     *
-	     *   Note: _exec_repeat_ defaults to 1 but may be changed
-	     *	       by a DEBUG command.
-	     * ----------------
-	     */
-	    if (ShowExecutorStats) ResetUsage();
-	    for (j = 0; j < _exec_repeat_; j++) {
-		if (! Quiet) {
-		    time(&tim);
-		    printf("\tProcessQuery() at %s\n", ctime(&tim));
+		 */
+	    } else {
+		/* ----------------
+		 *   execute the plan
+		 *
+		 *   Note: _exec_repeat_ defaults to 1 but may be changed
+		 *	   by a DEBUG command.   If you set this to a large
+		 *	   number N, run a single query, and then set it
+		 *	   back to 1 and run N queries, you can get an idea
+		 *	   of how much time is being spent in the parser and
+		 *	   planner b/c in the first case this overhead only
+		 *	   happens once.  -cim 6/9/91
+		 * ----------------
+		 */
+		if (ShowExecutorStats)
+		    ResetUsage();
+		
+		for (j = 0; j < _exec_repeat_; j++) {
+		    if (! Quiet) {
+			time(&tim);
+			printf("\tProcessQuery() at %s\n", ctime(&tim));
+		    }
+		    ProcessQuery(parsetree, plan, dest);
 		}
-		ProcessQuery(parsetree, plan, dest);
+		
+		if (ShowExecutorStats) {
+		    fprintf(stderr, "! Executor Stats:\n");
+		    ShowUsage();
+		}
 	    }
-	    if (ShowExecutorStats) {
-		fprintf(stderr, "! Executor Stats:\n");
-		ShowUsage();
-	      }
-	   }
 	    
 	} /* if atom car */
 

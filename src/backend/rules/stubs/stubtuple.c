@@ -108,25 +108,24 @@ LispValue qual;
      */
 
     /*
-     * Initialize the tuple table stuff...
+     * Initialize the tuple table stuff.
      */
     tupleTable = ExecCreateTupleTable(1);
-    slotnum = ExecAllocTableSlot(tupleTable);
-    slot = (TupleTableSlot) ExecGetTableSlot(tupleTable, slotnum);
-    SetSlotContents(slot, NULL);
-    SetSlotShouldFree(slot, false);
-    SetSlotTupleDescriptor(slot, (TupleDescriptor) NULL);
-    SetSlotTupleDescriptorIsNew(slot, true);
-
+    slotnum = 	 ExecAllocTableSlot(tupleTable);
+    slot = (TupleTableSlot)
+	ExecGetTableSlot(tupleTable, slotnum);
+    
+    (void) ExecStoreTuple(tuple, slot, false);
+    (void) ExecSetSlotDescriptor(slot, tupDesc);
+    (void) ExecSetSlotBuffer(slot, buffer);
+    
+    /*
+     *	Initialize expression context.
+     */
     econtext = RMakeExprContext();
-    (void)ExecStoreTuple(tuple, slot, false);
     set_ecxt_scantuple(econtext, slot);
-    set_ecxt_scantype(econtext, tupDesc);
-    set_ecxt_scan_buffer(econtext, buffer);
     set_ecxt_innertuple(econtext, NULL);
-    set_ecxt_innertype(econtext, NULL);
     set_ecxt_outertuple(econtext, NULL);
-    set_ecxt_outertype(econtext, NULL);
     set_ecxt_param_list_info(econtext, NULL);
 
     /*

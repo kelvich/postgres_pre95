@@ -20,59 +20,12 @@
  */
 #include "tmp/postgres.h"
 #include "access/genam.h"
-#include "tmp/simplelists.h"
 #include "executor/execdesc.h"
-
-/* ----------------------------------------------------------------
- *	executor shared memory segment header definition
- *
- *	After the executor's shared memory segment is allocated
- *	the initial bytes are initialized to contain 2 pointers.
- *	the first pointer points to the "low" end of the available
- *	area and the second points to the "high" end.
- *
- *	When part of the shared memory is reserved by a call to
- *	ExecSMAlloc(), the "low" pointer is advanced to point
- *	beyond the newly allocated area to the available free
- *	area.  If an allocation would cause "low" to exceed "high",
- *	then the allocation fails and an error occurrs.
- *
- *	Note:  Since no heap management is done, there is no
- *	provision for freeing shared memory allocated via ExecSMAlloc()
- *	other than wipeing out the entire space with ExecSMClean().
- * ----------------------------------------------------------------
- */
-
-typedef struct ExecSMHeaderData {
-    Pointer	low;		/* pointer to low water mark */
-    Pointer	high;		/* pointer to high water mark */
-} ExecSMHeaderData;
-
-typedef ExecSMHeaderData *ExecSMHeader;
-
 
 /* ----------------------------------------------------------------
  *     #define macros
  * ----------------------------------------------------------------
  */
-
-/* ----------------
- *	the reverse alignment macros are for use with the executor
- *	shared memory allocator's ExecSMHighAlloc routine which
- *	allocates memory from the high-area "down" to the low-area.
- *	In this case we need alignment in the "other" direction than
- *	provided by SHORTALIGN and LONGALIGN
- * ----------------
- */
-#define	REVERSESHORTALIGN(LEN)\
-    (((long)(LEN)) & ~01)
-
-#ifndef	sun
-#define	REVERSELONGALIGN(LEN)\
-    (((long)(LEN)) & ~03)
-#else
-#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
-#endif
 
 /* ----------------
  *	miscellany
@@ -88,10 +41,85 @@ typedef ExecSMHeaderData *ExecSMHeader;
 #define ExecRevDir(direction)	(direction - 1) 
 
 /* ----------------
+ * Routines dealing with the structure 'skey' which contains the
+ * information on keys used to restrict scanning. This is also the
+ * structure expected by the sort utility.
+ * XXX I think we can get rid of these  -- aoki
+ *
+ *	ExecMakeSkeys(noKeys) --
+ *		returns pointer to an array containing 'noKeys' strucutre skey.
+ *
+ *	ExecSetSkeys(index, skeys, attNo, opr, value) --
+ *		sets the index'th  element of skeys with the values.
+ *
+ *	ExecSetSkeysValue(index, skeys, value) -
+ *		sets the index'th element of skeys with 'value'.
+ *		this is needed because 'value' field changes all the time.
+ *
+ *	ExecFreeSkeys(skeys) --
+ *		frees the array of structure skeys.
+ * ----------------
+ */
+#define ExecMakeSkeys(noSkeys) \
+    (noSkeys <= 0 ? \
+     ((Pointer) NULL) : \
+     ((Pointer) palloc(noSkeys * sizeof(struct skey))))
+ 
+#define ExecSetSkeys(index, skeys, attNo, opr, value) \
+    ScanKeyEntryInitialize(&((skeys)[index]), NULL, attNo, opr, value)
+
+#define ExecSetSkeysValue(index, skeys, value) \
+    ((ScanKey) skeys)->data[index].argument = ((Datum) value)
+ 
+#define ExecFreeSkeys(skeys) \
+    if (skeys != NULL) pfree((Pointer) skeys)
+
+
+/* --------------------------------
+ * Routines dealing with the structure 'TLValues' which contains the
+ * values from evaluating a target list. 
+ *
+ *	ExecMakeTLValues(noDomains) --
+ *		returns pointer to an array containing 'noDomains' values.
+ *
+ *	ExecSetTLValues(index, TLValues, value)
+ *		sets the index'th  element of "TLValues" with the value.
+ *
+ *	ExecFreeTLValues(TLValues) --
+ *		frees the array of structure cmplist.
+ * --------------------------------
+ */
+#define ExecMakeTLValues(noDomains) \
+    (noDomains <= 0 ? \
+    ((Pointer) NULL) : \
+    ((Pointer) palloc((noDomains) * sizeof(Datum))))
+
+#define ExecSetTLValues(index, TLValues, value) \
+    ((Datum *) TLValues)[index] = value
+
+#define ExecFreeTLValues(TLValues) \
+    if (TLValues != NULL) pfree(TLValues)
+
+/* ----------------
+ *	get_innerPlan()
+ *	get_outerPlan()
+ *
+ *	these are are defined to avoid confusion problems with "left"
+ *	and "right" and "inner" and "outer".  The convention is that
+ *      the "left" plan is the "outer" plan and the "right" plan is
+ *      the inner plan, but these make the code more readable. 
+ * ----------------
+ */
+#define get_innerPlan(node) \
+    ((Plan) get_righttree(node))
+
+#define get_outerPlan(node) \
+    ((Plan) get_lefttree(node))
+
+/* ----------------
  * 	macros to determine node types
  * ----------------
  */
-
 #define ExecIsRoot(node) 	LispNil
 #define ExecIsResult(node)	IsA(node,Result)
 #define ExecIsExistential(node)	IsA(node,Existential)
@@ -107,26 +135,12 @@ typedef ExecSMHeaderData *ExecSMHeader;
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsUnique(node)	IsA(node,Unique)
 #define ExecIsHash(node)	IsA(node,Hash)
-#define ExecIsScanTemps(node)    IsA(node,ScanTemps)
+#define ExecIsScanTemps(node)   IsA(node,ScanTemps)
 
 /* ----------------------------------------------------------------
  *	debugging structures
  * ----------------------------------------------------------------
  */
-
-/* ----------------
- *	ExecAllocDebugData is used by ExecAllocDebug() and ExecFreeDebug()
- *	to keep track of memory allocation.
- * ----------------
- */
-typedef struct ExecAllocDebugData {
-    Pointer	pointer;
-    Size	size;
-    String	routine;
-    String	file;
-    int		line;
-    SLNode 	Link;
-} ExecAllocDebugData;
 
 /* ----------------
  *	DebugVariable is a structure holding a string
@@ -142,21 +156,15 @@ typedef struct DebugVariable {
 } DebugVariable;
  
 typedef DebugVariable *DebugVariablePtr;
- 
 
 /* ----------------------------------------------------------------
  *	externs
  * ----------------------------------------------------------------
  */
 
-/* 
- *	miscellany
- */
 extern bool		ExecIsInitialized;
 extern Const		ConstTrue;
 extern Const		ConstFalse;
-
-extern SLList		ExecAllocDebugList;
 
 extern int		_debug_hook_id_;
 extern HookNode		_debug_hooks_[];

@@ -3,8 +3,11 @@
  *     	execdesc.h
  *     
  *   DESCRIPTION
- *     	parse, plan and query descriptor accessor macros used
+ *     	plan and query descriptor accessor macros used
  *      by the executor and related modules.
+ *
+ *   NOTES
+ *	parse tree macros moved to H/parser/parsetree.h
  *
  *   IDENTIFICATION
  *	$Header$"
@@ -15,7 +18,7 @@
 #define ExecdescHIncluded 1	/* include only once */
 
 /* ----------------
- *	query descriptor accessors
+ *	query descriptor macros
  * ----------------
  */
 #define GetOperation(queryDesc)	     (List) CAR(queryDesc)
@@ -45,42 +48,5 @@
 #define QdGetCommand(queryDesc)	FeatureGetCommand(QdGetFeature(queryDesc))
 #define QdGetCount(queryDesc)	FeatureGetCount(QdGetFeature(queryDesc))
 
-/* ----------------
- *	parse tree accessors
- * ----------------
- */
-#define parse_tree_root(parse_tree) \
-    CAR(parse_tree)
-
-#define parse_tree_target_list(parse_tree) \
-    CAR(CDR(parse_tree))
-
-#define parse_tree_qualification(parse_tree) \
-    CAR(CDR(CDR(parse_tree)))
-
-#define parse_tree_root_num_levels(parse_tree_root) \
-    CAR(parse_tree_root)
-
-#define parse_tree_root_command_type(parse_tree_root) \
-    CAR(CDR(parse_tree_root))
-
-#define parse_tree_root_result_relation(parse_tree_root) \
-    CAR(CDR(CDR(parse_tree_root)))
-
-#define parse_tree_root_range_table(parse_tree_root) \
-    CAR(CDR(CDR(CDR(parse_tree_root))))
-
-#define parse_tree_root_priority(parse_tree_root) \
-    CAR(CDR(CDR(CDR(CDR(parse_tree_root)))))
-
-#define parse_tree_root_rule_info(parse_tree_root) \
-    CAR(CDR(CDR(CDR(CDR(CDR((parse_tree_root)))))))
-
-
-#define parse_tree_range_table(parse_tree)	\
-    parse_tree_root_range_table(parse_tree_root(parse_tree))
-
-#define parse_tree_result_relation(parse_tree) \
-    parse_tree_root_result_relation(parse_tree_root(parse_tree))
 
 #endif  ExecdescHIncluded

@@ -77,7 +77,6 @@ extern OrderKey 	RMakeOrderKey();
 extern Param 		RMakeParam();
 extern Path 		RMakePath();
 extern Plan 		RMakePlan();
-extern Recursive 	RMakeRecursive();
 extern Rel 		RMakeRel();
 extern Resdom 		RMakeResdom();
 extern Result 		RMakeResult();
@@ -206,11 +205,7 @@ _readResult()
 /* ----------------
  *	_readExistential
  *
- *  Existential is a subclass of Plan.
- *  In fact, it is identical.
- * 
- *| Wrong! an Existential inherits Plan and has a field called exstate
- *| -cim 5/31/90
+ *	Existential nodes are only used by the planner.
  * ----------------
  */
 
@@ -221,10 +216,6 @@ _readExistential()
 
 	local_node = RMakeExistential();
 
-	/* ----------------
-	 *	XXX this doesn't read the exstate field... -cim
-	 * ----------------
-	 */
 	_getPlan(local_node);
 	
 	return( local_node );
@@ -262,49 +253,6 @@ _readAppend()
 	local_node->unionrtentries = lispRead(true);	/* now read it */
 
 	return(local_node);
-}
-
-
-/* ----------------
- *	_readRecursive
- *
- *  Recursive is a subclass of Plan.
- * ----------------
- */
-Recursive
-_readRecursive()
-{
-        Recursive local_node;
-        char *token;
-        int length;
-
-        local_node = RMakeRecursive();
-
-        _getPlan(local_node);
-
-        token = lsptok(NULL, &length);               /* eat :recurMethod */
-        token = lsptok(NULL, &length);               /* get recurMethod */
-        local_node->recurMethod = (RecursiveMethod) atoi(token);
-
-        token = lsptok(NULL, &length);               /* eat :recurCommand */
-        local_node->recurCommand = lispRead(true); /* now read it */
-
-        token = lsptok(NULL, &length);               /* eat :recurInitPlans */
-        local_node->recurInitPlans = lispRead(true); /* now read it */
-
-        token = lsptok(NULL, &length);               /* eat :recurLoopPlans */
-        local_node->recurLoopPlans = lispRead(true); /* now read it */
-
-        token = lsptok(NULL, &length);		/* eat :recurCleanupPlans */
-        local_node->recurCleanupPlans = lispRead(true); /* now read it */
-
-        token = lsptok(NULL, &length);       	/* eat :recurCheckpoints */
-        local_node->recurCheckpoints = lispRead(true); /* now read it */
-
-        token = lsptok(NULL, &length);       /* eat :recurResultRelationName */
-        local_node->recurResultRelationName = lispRead(true); /* now read it */
-
-        return(local_node);
 }
 
 /* ----------------
@@ -2068,11 +2016,6 @@ parsePlanString()
 	{
 		return_value = (LispValue) _readJInfo();
 		return_value->type = T_JInfo;
-	}
-	else if (!strncmp(token, "recursive", 9))
-	{
-		return_value = (LispValue) _readRecursive();
-		return_value->type = T_Recursive;
 	}
 	else
 	{

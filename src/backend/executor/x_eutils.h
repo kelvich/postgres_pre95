@@ -14,8 +14,6 @@ extern void ExecFreeSkeys ARGS((struct skey skeys[]));
 extern Pointer ExecMakeTLValues ARGS((int noDomains));
 extern void ExecSetTLValues ARGS((int index, Pointer TLValues, Datum value));
 extern void ExecFreeTLValues ARGS((Pointer TLValues));
-extern Plan get_innerPlan ARGS((Plan node));
-extern Plan get_outerPlan ARGS((Plan node));
 extern List QueryDescGetTypeInfo ARGS((List queryDesc));
 extern List ExecCollect ARGS((List l, int applyFunction, int collectFunction, List applyParameters));
 extern List ExecUniqueCons ARGS((List list1, List list2));

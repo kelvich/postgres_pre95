@@ -25,7 +25,6 @@
 
 #include "nodes/nodes.h"		/* bogus inheritance system */
 #include "nodes/pg_lisp.h"
-#include "executor/recursion_a.h"       /* recursion stuff that must go first */
 #include "nodes/primnodes.h"
 #include "rules/prs2stub.h"
 
@@ -40,8 +39,6 @@
  *	Existential		ExistentialState	exstate;
  *	Result			ResultState		resstate;
  *	Append			AppendState		unionstate;
- *	Parallel		ParallelState		parstate;
- *      Recursive               RecursiveState          recurstate;
  *
  * scan nodes
  *
@@ -98,7 +95,6 @@
 #define	OutResultExists
 #define	OutExistentialExists
 #define	OutAppendExists
-#define	OutRecursiveExists
 #define	OutJoinExists
 #define OutJoinRuleInfoExists
 #define	OutNestLoopExists
@@ -118,7 +114,6 @@ extern void	OutPlan();
 extern void	OutResult();
 extern void	OutExistential();
 extern void	OutAppend();
-extern void	OutRecursive();
 extern void	OutJoin();
 extern void	OutJoinRuleInfo();
 extern void	OutNestLoop();
@@ -143,7 +138,6 @@ extern bool	EqualPlan();
 extern bool	EqualResult();
 extern bool	EqualExistential();
 extern bool	EqualAppend();
-extern bool	EqualRecursive();
 extern bool	EqualJoin();
 extern bool	EqualNestLoop();
 extern bool	EqualMergeJoin();
@@ -164,7 +158,6 @@ extern bool     EqualFragment();
 #define	CopyResultExists
 #define	CopyExistentialExists
 #define	CopyAppendExists
-#define	CopyRecursiveExists
 #define	CopyJoinExists
 #define CopyJoinRuleInfoExists
 #define	CopyNestLoopExists
@@ -183,7 +176,6 @@ extern bool	CopyPlan();
 extern bool	CopyResult();
 extern bool	CopyExistential();
 extern bool	CopyAppend();
-extern bool	CopyRecursive();
 extern bool	CopyJoin();
 extern bool	CopyJoinRuleInfo();
 extern bool	CopyNestLoop();
@@ -269,8 +261,6 @@ class (Fragment) public (Node) {
  */
 class (Existential) public (Plan) {
 	inherits(Plan);
- /* private: */
-	ExistentialState	exstate;
  /* public: */
 };
 
@@ -298,46 +288,6 @@ class (Append) public (Plan) {
 	Index			unionrelid;
 	List			unionrtentries;
 	AppendState		unionstate;
- /* public: */
-};
-
-/* ----------------
- *	parallel-append node
- * ----------------
- */
-class (Parallel) public (Plan) {
-	inherits(Plan);
- /* private: */
-	ParallelState		parstate;
- /* public: */
-};
-
-/*****=====================
- *  JJJ - recursion node
- *****=====================
- *
- *      recurMethod             method chosen for recursive query evaluation
- *      recurCommand            e.g. append, delete
- *      recurInitPlans          plans/utilities executed once at start
- *      recurLoopPlans          sequence to be repeated until no effects
- *                                      are detected
- *      recurCleanupPlans       plans/utilities executed once at end
- *      recurCheckpoints        indicate which plans affect the true result
- *
- *	recurResultRelationName name of original result relation
- */
-
-class (Recursive) public (Plan) {
-        inherits(Plan);
- /* private */
-        RecursiveMethod         recurMethod;
-        LispValue		recurCommand;
-        List                    recurInitPlans;
-        List                    recurLoopPlans;
-        List                    recurCleanupPlans;
-        List                    recurCheckpoints;
-	LispValue		recurResultRelationName;
-        RecursiveState          recurState;
  /* public: */
 };
 

@@ -25,11 +25,6 @@
 #include "planner/internal.h"
 #include "planner/planner.h"
 
-/*** JJJ ***/
-#include "executor/recursion.h"
-extern Plan	RecursiveQueryPlan();
-/*** JJJ ***/
-
 /* ----------------
  *	Existential creator declaration
  * ----------------
@@ -187,30 +182,7 @@ planner (parse)
     Plan regular_plans = (Plan) NULL;
     LispValue flag = LispNil;
     List plan_list = LispNil;
-    bool isRecursiveQuery = false;
 
-    if ( (consp(commandType)) && (CInteger(CAR(commandType)) == '*') ) {
-      printf(" *** JJJ *** Planner.c -- recursive flag \n");
-      isRecursiveQuery = true;
-      commandType = CDR(commandType);
-      root = lispCons(CAR(root),
-                      lispCons(commandType,
-                               CDR(CDR(root))));
-	/* XXX the following is a dangerous hack, solves tcop error */
-      rplaca(parse, root);
-    }
-/* else, don't touch the command type list -- it is supposed to be there 
- * JJJ - the star IS removed 
- */
-
-/*** JJJ ***/
-    if ( isRecursiveQuery ) {
-      printf(" *** JJJ *** Planner.c -- recursive flag seconded \n");
-      special_plans = (List)RecursiveQueryPlan (parse);
-    }
-      /* JJJ fall through with NULL means not recursive, planned below */
-/*** JJJ ***/
-    
     plan_list = lispCons(lispAtom("inherits"),
 		   lispCons(lispAtom("union"),
 			    lispCons(lispAtom("archive"),LispNil)));

@@ -51,22 +51,40 @@
  *		Section 1:  palloc debugging defines
  * ----------------------------------------------------------------
  */
-#undef PALLOC_DEBUG 
+
+/* ----------------
+ *	file / line macros
+ *
+ *	_FLD_ 		File/Line Data
+ *	_FLV_ 		File/Line Variables
+ *	_FLV_DCL_ 	File/Line Variable Declarations
+ *
+ *	the FLD0 and FLV0 macros are for functions taking no arguments
+ * ----------------
+ */
+#define _FLD_ 		__FILE__, __LINE__, 
+#define _FLD0_ 		__FILE__, __LINE__
+#define _FLV_ 		_FL_file, int _FL_line,
+#define _FLV0_ 		_FL_file, int _FL_line
+#define _FLV_DCL_ 	char *_FL_file; int _FL_line;
+#define _FL_PRINT_	printf("f: %s l: %d ", _FL_file, _FL_line)
 
 /* ----------------
  *	allocation debugging stuff
  * ----------------
  */
+#undef PALLOC_DEBUG 
+
 #ifdef PALLOC_DEBUG
-#define palloc(size)       palloc_debug(__FILE__, __LINE__, size)
-#define pfree(ptr)         pfree_debug(__FILE__, __LINE__, ptr)
+#define palloc(size)       palloc_debug(_FLD_ size)
+#define pfree(ptr)         pfree_debug(_FLD_ ptr)
 #define MemoryContextAlloc(context, size) \
-	MemoryContextAlloc_Debug(__FILE__, __LINE__, context, size)
+	MemoryContextAlloc_Debug(_FLD_ context, size)
 #define MemoryContextFree(context, ptr)  \
-	MemoryContextFree_Debug(__FILE__, __LINE__, context, ptr)
-#define AllocSetReset(set) AllocSetReset_debug(__FILE__, __LINE__, set)
-#define malloc(size)	    malloc_debug(__FILE__, __LINE__, size)
-#define free(ptr)	    free_debug(__FILE__, __LINE__, ptr)
+	MemoryContextFree_Debug(_FLD_ context, ptr)
+#define AllocSetReset(set) AllocSetReset_debug(_FLD_ set)
+#define malloc(size)	    malloc_debug(_FLD_ size)
+#define free(ptr)	    free_debug(_FLD_ ptr)
 #endif /* PALLOC_DEBUG */
 
 /*

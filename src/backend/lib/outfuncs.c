@@ -22,8 +22,6 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/htup.h"
 #include "catalog/syscache.h"
-#include "executor/recursion.h"
-#include "planner/recurplanner.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
 
@@ -175,73 +173,6 @@ _outAppend(str, node)
 	sprintf(buf, " :unionrtentries ");
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->unionrtentries);
-
-}
-
-/*
- *  Recursive is a subclass of Plan.
- */
-
-void
-_outRecursive(str, node)
-	StringInfo str;
-        Recursive       node;
-{
-	char buf[500];
-
-        LispValue       element;
-        GeneralPlan     generalPlan;
-
-        sprintf(buf, "recursive");
-	appendStringInfo(str,buf);
-	_outPlanInfo(str, (Plan) node);
-
-/* specifics for Recursive nodes */
-
-/*
- *	switch (node->recurMethod) {
- *        case RecursiveMethodNone:
- *		sprintf(buf, " :recurMethod None");
- *	        appendStringInfo(str,buf);
- *		break;
- *	  case RecursiveMethodNaive:
- *		sprintf(buf, " :recurMethod Naive");
- *		appendStringInfo(str,buf);
- *		break;
- *	  case RecursiveMethodSemiNaive:
- *		sprintf(buf, " :recurMethod SemiNaive");
- * 		appendStringInfo(str,buf);
- *		break;
- *	  default:
- *		elog(WARN,"Can't print -- unknown recursive method");
- *	}
- */
-	sprintf(buf, " :recurMethod %d",node->recurMethod);
-	appendStringInfo(str,buf);
-        sprintf(buf, " :recurCommand %d");
-	appendStringInfo(str,buf);
-	_outLispValue(str, node->recurCommand);
-
-        sprintf(buf, " :recurInitPlans ");
-	appendStringInfo(str,buf);
-        _outLispValue(str, node->recurInitPlans);
-
-        sprintf(buf, " :recurLoopPlans ");
-	appendStringInfo(str,buf);
-        _outLispValue(str, node->recurLoopPlans);
-
-        sprintf(buf, " :recurCleanupPlans ");
-	appendStringInfo(str,buf);
-        _outLispValue(str, node->recurCleanupPlans);
-
-        sprintf(buf, " :recurCheckpoints ");
-	appendStringInfo(str,buf);
-        _outLispValue(str, node->recurCheckpoints);
-
-        sprintf(buf, " :recurResultRelationName");
-	appendStringInfo(str,buf);
-        _outLispValue(str, node->recurResultRelationName);
-
 
 }
 

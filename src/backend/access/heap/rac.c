@@ -72,6 +72,13 @@ HeapTupleGetRuleLock(tuple, buffer)
 	Buffer		buffer;
 {
 	register RuleLock l;
+	
+	BlockNumber	blockNumber;
+	Page		page;
+	ItemId		itemId;
+	Item		item;
+	Item		returnItem;
+
 
 	Assert(HeapTupleIsValid(tuple));
 
@@ -113,31 +120,33 @@ HeapTupleGetRuleLock(tuple, buffer)
             elog(WARN,"HeapTupleGetRuleLock: Invalid buffer");
         }
 
-
-{
-	BlockNumber	blockNumber;
-	Page		page;
-	ItemId		itemId;
-	Item		item;
-	Item		returnItem;
-
+	/* ----------------
+	 *	Yow! raw page access! shouldn't this use the am code?
+	 * ----------------
+	 */
 	blockNumber = ItemPointerGetBlockNumber(&tuple->t_lock.l_ltid);
-	buffer = RelationGetBuffer(BufferGetRelation(buffer), blockNumber,
-		L_PIN);
+	
+	buffer = RelationGetBuffer(BufferGetRelation(buffer),
+				   blockNumber,
+				   L_PIN);
+	
 	page = BufferSimpleGetPage(buffer);
 	itemId = PageGetItemId(page,
 		ItemPointerSimpleGetOffsetIndex(&tuple->t_lock.l_ltid));
 	item = PageGetItem(page, itemId);
+	
 	returnItem = (Item) palloc(itemId->lp_len);	/* XXX */
 	bcopy(item, returnItem, (int)itemId->lp_len);	/* XXX Clib-copy */
+	
 	BufferPut(buffer, L_UNPIN);
-	l = LintCast(RuleLock, returnItem);
+	
 	/*
 	 * `l' is a pointer to data in a buffer page.
 	 * return a copy of it.
 	 */
+	l = LintCast(RuleLock, returnItem);
+	
 	return(prs2CopyLocks(l));
-}
 }
 
 /*----------------------------------------------------------------------------
@@ -297,6 +306,9 @@ HeapTupleStoreRuleLock(tuple, buffer)
 	 * need to check if sufficient space.  If so, then place it.
 	 * Otherwise, allocate a new page.  Etc.  Look at util/access.c
 	 * for ideas and to have amputtup and amputnew call this funciton.
+	 *
+	 * XXX this should be rewritten to use the am code rather than
+	 *	using the buffer and page code directly.
 	 */
 
 	page = BufferSimpleGetPage(buffer);
@@ -309,14 +321,17 @@ HeapTupleStoreRuleLock(tuple, buffer)
 		offsetNumber = PageAddItem(page, lock, lockSize,
 			InvalidOffsetNumber, LP_USED | LP_LOCK);
 	} else {
-		Assert(lockSize < BLCKSZ);	/* XXX cannot handle this yet */
+		Assert(lockSize < BLCKSZ); /* XXX cannot handle this yet */
 
 		buffer = RelationGetBuffer(relation, P_NEW, L_NEW);
+		
 #ifndef NO_BUFFERISVALID
 		if (!BufferIsValid(buffer)) {
-			elog(WARN, "HeapTupleStoreRuleLock: cannot get new buffer");
+		    elog(WARN,
+			 "HeapTupleStoreRuleLock: cannot get new buffer");
 		}
-#endif
+#endif NO_BUFFERISVALID
+		
 		BufferSimpleInitPage(buffer);
 		blockNumber = BufferGetBlockNumber(buffer);
 		offsetNumber = PageAddItem(BufferSimpleGetPage(buffer),

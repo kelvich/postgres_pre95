@@ -26,6 +26,7 @@
 #include "executor/x_execinit.h"
 #include "executor/x_hash.h"
 #include "tcop/dest.h"
+#include "parser/parsetree.h"
 
  RcsId("$Header$");
 
