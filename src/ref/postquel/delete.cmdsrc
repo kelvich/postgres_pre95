@@ -47,7 +47,7 @@ will run the command until it produces no further effect.
    delete hobbies
 .uh "SEE ALSO"
 .lp
-destroy(postquel).
+destroy(commands).
 .uh BUGS
 .sp
 .in .5i
