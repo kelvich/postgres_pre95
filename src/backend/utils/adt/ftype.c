@@ -3,6 +3,10 @@
  */
 
 #include <sys/file.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"
@@ -78,6 +82,194 @@ f262file(name, flags, mode)
     pfree((char *)pathname);
 
     return (vfd);
+}
+
+ObjectId
+pftp_write(host, port)
+    struct varlena *host;
+    int port;
+{
+    int fd;
+    ObjectId foid;
+    int fseqno;
+    int nbytes;
+    Relation r;
+    Relation indrel;
+    TupleDescriptor tupdesc;
+    TupleDescriptor itupdesc;
+    HeapTuple htup;
+    IndexTuple itup;
+    GeneralInsertIndexResult res;
+    struct varlena *fdata;
+    OidSeq os;
+    Datum values[3];
+    Datum ivalues[1];
+    char nulls[3];
+
+    /* open the data file */
+    if ((fd = pftp_open(host, port)) < 0)
+	return (-1);
+
+    /*
+     *  Allocate a varlena big enough to hold one tuple's worth of
+     *  block data.  Each tuple gets an (oid, seqno, block data) triple.
+     */
+
+    fdata = (struct varlena *) palloc(sizeof(struct varlena) + FBLKSIZ);
+    if (fdata == (struct varlena *) NULL) {
+	elog(NOTICE, "pftp_write() cannot allocate varlena for file data.");
+	return ((ObjectId) NULL);
+    }
+
+    /* open pg_files and prepare to insert new tuples into it */
+    if ((r = heap_openr(PGFILES)) == (Relation) NULL) {
+	elog(NOTICE, "pftp_write() cannot open %s", PGFILES);
+	pfree((char *)fdata);
+	return ((ObjectId) NULL);
+    }
+    tupdesc = RelationGetTupleDescriptor(r);
+
+    if ((indrel = index_openr((Name)INDNAME)) == (Relation) NULL) {
+	elog(NOTICE, "pftp_write() cannot open %s", INDNAME);
+	pfree((char *)fdata);
+	(void) heap_close(r);
+	return ((ObjectId) NULL);
+    }
+    itupdesc = RelationGetTupleDescriptor(indrel);
+
+    /* get a unique identifier for this file data */
+    foid = newoid();
+
+    /* copy file data into the pg_files table */
+    nulls[0] = nulls[1] = nulls[2] = ' ';
+    fseqno = 0;
+    values[0] = foid;
+    while ((nbytes = read(fd, VARDATA(fdata), FBLKSIZ)) > 0) {
+	values[1] = fseqno;
+	VARSIZE(fdata) = nbytes + sizeof(fdata->vl_len);
+	values[2] = PointerGetDatum(fdata);
+	htup = heap_formtuple(3, tupdesc, &values[0], &nulls[0]);
+	(void) heap_insert(r, htup, (double *) NULL);
+
+	/* index heap tuple by foid, fseqno */
+	os = (OidSeq) mkoidseq(foid, fseqno);
+	ivalues[0] = PointerGetDatum(os);
+	itup = index_formtuple(1, itupdesc, &ivalues[0], &nulls[0]);
+	bcopy(&(htup->t_ctid), &(itup->t_tid), sizeof(ItemPointerData));
+	res = index_insert(indrel, itup, (double *) NULL);
+
+	if (res)
+	    pfree((char *)res);
+
+	pfree((char *)itup);
+	pfree((char *)htup);
+
+	/* bump sequence number */
+	fseqno++;
+    }
+
+    (void) heap_close(r);
+    (void) index_close(indrel);
+    (void) close(fd);
+
+    return (foid);
+}
+
+int
+pftp_read(host, port, foid)
+    struct varlena *host;
+    int port;
+    ObjectId foid;
+{
+    int fd;
+    int nread, nbytes;
+    Buffer b;
+    HeapTuple htup;
+    Datum d;
+    char n;
+    struct varlena *fdata;
+    f262desc *f;
+    RetrieveIndexResult res;
+    int fbytes;
+    ScanKeyEntryData rkey[1];
+
+    /* open the comm port to the client */
+    if ((fd = pftp_open(host, port)) < 0)
+	return (-1);
+
+    f = f262open(foid);
+
+    nread = 0;
+    for (;;) {
+	res = index_getnext(f->f_iscan, ForwardScanDirection);
+	if (res == (RetrieveIndexResult) NULL)
+	    break;
+
+	htup = heap_fetch(f->f_heap, NowTimeQual, &(res->heapItemData), &b);
+	pfree((char *)res);
+
+	if (htup == (HeapTuple) NULL)
+	    continue;
+
+	d = (Datum) heap_getattr(htup, b, 3, f->f_hdesc, &n);
+	fdata = (struct varlena *) DatumGetPointer(d);
+	fbytes = fdata->vl_len - sizeof(fdata->vl_len);
+	if (write(fd, VARDATA(fdata), fbytes) < fbytes) {
+	    elog(NOTICE, "pftp_read: write failed");
+	    (void) f262close(f);
+	    (void) close(fd);
+	    return (nread);
+	}
+
+	ReleaseBuffer(b);
+	nread += fbytes;
+    }
+
+    (void) f262close(f);
+    (void) close(fd);
+
+    return (nread);
+}
+
+int
+pftp_open(host, port)
+    struct varlena *host;
+    int port;
+{
+    int sock;
+    struct sockaddr_in server;
+    struct hostent *h;
+    char *hostname;
+    int length;
+    int i;
+
+    /* open the comm port */
+    length = host->vl_len - sizeof(host->vl_len);
+    hostname = (char *) palloc(length + 1);
+    (void) bcopy(VARDATA(host), hostname, length);
+    hostname[length] = '\0';
+
+    /* get a stream socket for the connection */
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    server.sin_family = AF_INET;
+
+    if ((h = gethostbyname(hostname)) == (struct hostent *) NULL) {
+	pfree(hostname);
+	elog(NOTICE, "host %s unknown", hostname);
+	return(-1);
+    }
+
+    bcopy(h->h_addr, &server.sin_addr, h->h_length);
+    server.sin_port = htons(port);
+
+    /* make the connection */
+    if (connect(sock, &server, sizeof(server)) < 0) {
+	perror("connect");
+	exit (1);
+    }
+
+    pfree((char *) hostname);
+    return (sock);
 }
 
 ObjectId
@@ -331,6 +523,38 @@ f262close(f)
     pfree((char *)f);
 
     return (0);
+}
+
+int32
+f262rtest()
+{
+    int32 nblocks;
+    Buffer b;
+    HeapTuple htup;
+    Datum d;
+    char n;
+    struct varlena *fdata;
+    Relation r;
+    HeapScanDesc s;
+    TupleDescriptor tdesc;
+    ScanKeyEntryData rkey[1];
+
+    r = heap_openr("mao_files");
+    tdesc = RelationGetTupleDescriptor(r);
+    s = heap_beginscan(r, 0, NowTimeQual, 0, &(rkey[0]));
+
+    nblocks = 0;
+    while (HeapTupleIsValid(htup = heap_getnext(s, 0, &b))) {
+	d = (Datum) heap_getattr(htup, b, 3, tdesc, &n);
+	fdata = (struct varlena *) DatumGetPointer(d);
+	ReleaseBuffer(b);
+	nblocks++;
+    }
+
+    heap_endscan(s);
+    heap_close(r);
+
+    return (nblocks);
 }
 
 int32
