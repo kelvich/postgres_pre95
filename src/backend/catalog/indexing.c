@@ -334,15 +334,15 @@ AttributeNumIndexScan(heapRelation, relid, attnum)
 {
     Relation idesc;
     ScanKeyEntry skey;
-    OidInt4 keyarg;
+    OidInt2 keyarg;
     HeapTuple tuple;
 
-    keyarg = mkoidint4(relid, (int)attnum);
+    keyarg = mkoidint2(relid, (uint16)attnum);
     skey = (ScanKeyEntry) palloc(sizeof(ScanKeyEntryData));
     ScanKeyEntryInitialize(skey,
 			   (bits16)0x0,
 			   (AttributeNumber)1,
-			   (RegProcedure)OidInt4EqRegProcedure,
+			   (RegProcedure)OidInt2EqRegProcedure,
 			   (Datum)keyarg);
 
     idesc = index_openr((Name)AttributeNumIndex);
@@ -379,13 +379,20 @@ ProcedureOidIndexScan(heapRelation, procId)
 }
 
 HeapTuple
-ProcedureNameIndexScan(heapRelation, procName)
+ProcedureNameIndexScan(heapRelation, procName, nargs, argTypes)
     Relation heapRelation;
     char     *procName;
+    int	     nargs;
+    ObjectId *argTypes;
 {
     Relation idesc;
     ScanKeyEntryData skey;
     HeapTuple tuple;
+    IndexScanDesc sd;
+    GeneralRetrieveIndexResult indexRes;
+    Buffer buffer;
+    Form_pg_proc pgProcP;
+    bool bufferUsed = FALSE;
 
     ScanKeyEntryInitialize(&skey,
 			   (bits16)0x0,
@@ -394,8 +401,45 @@ ProcedureNameIndexScan(heapRelation, procName)
 			   (Datum)procName);
 
     idesc = index_openr((Name)ProcedureNameIndex);
-    tuple = CatalogIndexFetchTuple(heapRelation, idesc, (ScanKey)&skey);
 
+    sd = index_beginscan(idesc, false, 1, (ScanKey)&skey);
+
+    /*
+     * for now, we do the work usually done by CatalogIndexFetchTuple
+     * by hand, so that we can check that the other keys match.  when
+     * multi-key indices are added, they will be used here.
+     */
+    do {  
+	tuple = (HeapTuple)NULL;
+	if (bufferUsed) {
+	    ReleaseBuffer(buffer);
+	    bufferUsed = FALSE;
+        }
+
+	indexRes = AMgettuple(sd, ForwardScanDirection);
+	if (GeneralRetrieveIndexResultIsValid(indexRes)) {
+	    ItemPointer iptr;
+
+	    iptr = GeneralRetrieveIndexResultGetHeapItemPointer(indexRes);
+	    tuple = heap_fetch(heapRelation, NowTimeQual, iptr, &buffer);
+	    pfree(indexRes);
+	    if (HeapTupleIsValid(tuple)) {
+		pgProcP = (Form_pg_proc)GETSTRUCT(tuple);
+		bufferUsed = TRUE;
+	    }
+	} else
+	    break;
+    } while (!HeapTupleIsValid(tuple) ||
+	     pgProcP->pronargs != nargs ||
+	     !oid8eq(&(pgProcP->proargtypes.data[0]), argTypes));
+
+    if (HeapTupleIsValid(tuple)) {
+	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+    }
+
+	
+    index_endscan(sd);
     index_close(idesc);
 
     return tuple;
@@ -519,3 +563,9 @@ ClassOidIndexScan(heapRelation, relId)
 
     return tuple;
 }
+
+
+
+
+
+
