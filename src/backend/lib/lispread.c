@@ -16,6 +16,7 @@
 #include "pg_lisp.h"
 #include "log.h"
 #include "atoms.h"
+#include "params.h"
 
 /*
  * 	Global declaration for LispNil.
@@ -29,7 +30,10 @@ extern void lispDisplayFp();
 extern void lispDisplay();
 
 #include "c.h"
+#include "name.h"
 #include "nodes.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 
 #define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
 
@@ -37,7 +41,26 @@ extern void lispDisplay();
 #define LEFT_PAREN  (1000000 + 2)
 #define PLAN_SYM    (1000000 + 3)
 
-/*
+/*----------------------------------------------------------
+ *
+ * Param Node handling.
+ *
+ * makeParamList is a global variable. If it is set to 'true' then
+ * every time a Param node is generated, we add an entry to
+ * paramList (another global variable).
+ * maxParamListEntries is the current maximum number of
+ * entries the array can handle.
+ */
+
+static bool makeParamList;
+static ParamListInfo paramList;
+static int maxParamListEntries;
+
+static
+void
+addToParamList();
+
+/*-------------------------------------------------------------
  * LispToken returns the type of the lisp token contained in token.
  * It returns one of
  * 
@@ -111,7 +134,8 @@ int length;
  * Any callers should set read_car_only to true.
  */
 
-LispValue lispRead(read_car_only)
+LispValue
+lispRead(read_car_only)
 
 bool read_car_only;
 
@@ -138,6 +162,11 @@ bool read_car_only;
 			this_value = parsePlanString(NULL);
 			token = lsptok(NULL, &tok_len);
 			if (token[0] != ')') return(NULL);
+			if (makeParamList) {
+			    if (IsA(this_value,Param)) {
+				addToParamList(this_value);
+			    }
+			}
 			if (!read_car_only)
 				make_dotted_pair_cell = true;
 			else
@@ -307,16 +336,139 @@ int  *length;
 	return(ret_string);
 }
 
-/*
+/*---------------------------------------------------------------------
  * This function fronts the more generic lispRead function by calling
  * lsptok with length == NULL, which just passes lsptok the string.
+ *
+ * There are two version of lispReadString.
+ *
+ *      lispReadString (the simple one)
+ *           and
+ *      lispReadStringWithParams
+ *
+ * the second one takes en extra (output) argument, 'thisParamListP'
+ * If it is non NULL then when the routine returns it will point to
+ * a 'ParamLispInfo' which contains information about all the Param
+ * nodes of the LispValue returned.
+ *
  */
 
-LispValue lispReadString(string)
+LispValue
+lispReadStringWithParams(string, thisParamListP)
 
 char *string;
+ParamListInfo *thisParamListP;
 
 {
+	LispValue res;
+
+	if (thisParamListP == NULL) {
+	    makeParamList = false;	/* global variable */
+	}
+	else {
+	    makeParamList = true;	/* global variable */
+	    paramList = NULL;		/* global variable */
+	}
+
 	(void) lsptok(string, NULL);
-	return(lispRead(true));
+	res = lispRead(true);
+
+	if (thisParamListP != NULL) {
+	    *thisParamListP = paramList;
+	}
+	return(res);
 }
+			    
+LispValue
+lispReadString(string)
+char *string;
+{
+    LispValue res;
+
+    res = lispReadStringWithParams(string, NULL);
+    return(res);
+}
+
+/*-----------------------------------------------------------
+ *
+ * addToParamList
+ *
+ * Add an entry for the given Param node to array
+ * 'paramList' (thsi is a global variable).
+ *
+ * 'paramList' points to a place in memory where 'ParamListInfoData'
+ * structs are contiguously stored. A struct with its field 'name'
+ * equal to 'Invalidname' is always the last entry.
+ */
+
+static
+void
+addToParamList(paramNode)
+Param paramNode;
+{
+    int size;
+    int oldSize;
+    int i;
+    int delta = 10;
+    ParamListInfo temp;
+
+    if (paramList == NULL) {
+	/*
+	 * this is the first entry.
+	 * allocate some space for a few entries...
+	 */
+	maxParamListEntries = delta;
+	size = sizeof(ParamListInfoData) * maxParamListEntries;
+	paramList = (ParamListInfo) palloc(size);
+	Assert(PointerIsValid(paramList));
+	paramList[0].name = InvalidName;
+    }
+
+    /*
+     * search the array until either another entry with
+     * the same name is found or till we reach the end of the array.
+     */
+    i = 0;
+    while(NameIsValid(paramList[i].name) &&
+	    ! NameIsEqual(paramList[i].name, get_paramname(paramNode))) {
+	i += 1;
+    }
+
+    if (NameIsValid(paramList[i].name)) {
+	/*
+	 * we have found a duplicate entry
+	 */
+	return;
+    }
+
+    /*
+     * No entry exists for this parameter, therefore we msut add
+     * a  new entry at the end of the array.
+     * We must first check to see if the array is big enough
+     * to hold this new entry. If not, then we have to reallocate
+     * some space.
+     */
+
+    if ((i+1) >= maxParamListEntries) {
+	oldSize = sizeof(ParamListInfoData) * maxParamListEntries;
+	maxParamListEntries += delta;
+	size = sizeof(ParamListInfoData) * maxParamListEntries;
+	temp = (ParamListInfo) palloc(size);
+	Assert(PointerIsValid(temp));
+	/*
+	 * copy the entries of the old array to the new one
+	 */
+	bcopy((char *)paramList, (char *)temp, (unsigned int) oldSize);
+	pfree(paramList);
+	paramList = temp;
+    }
+
+    /*
+     * Ok, there is enough room for a new entry.
+     */
+    paramList[i].name = get_paramname(paramNode); /* Note: no copy! */
+    paramList[i+1].name = InvalidName;
+
+}
+
+
