@@ -207,8 +207,8 @@
  * .. targetlist-resdom-numbers, tlist-member, tlist-temp-references
  */
 #define tl_resdom(tl_entry)          CAR(tl_entry)
-
 #define tl_node(tl_entry)            CAR(tl_entry)
+#define tl_is_resdom(tl_entry)       IsA(CAR(tl_entry),Resdom)
 
 
 /* .. MakeAttlist, copy-vars, find-tlist-read-vars, flatten-tlist
