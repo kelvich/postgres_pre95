@@ -11,7 +11,7 @@ define function \(em define a new function
 	\fBlanguage =\fP {"c" | "postquel"}\fB,\fP
 	\fBreturntype =\fP type-r
 	[ \fB, iscachable\fP ]
-	[ \fB, trusted\fP ]
+.\"	[ \fB, trusted\fP ]
 	[ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
 	[ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
 	[ \fB, outin_ratio = \fP percentage]
@@ -88,14 +88,23 @@ word
 .BR costly :
 specifically, each exclamation point can be thought of as another
 order of magnitude in cost, i.e.,
-.BR "cost = 10\s-2\unumber-of-exclamation-points\d\s0."
+.ie t \{
+.(C
+cost = 10\s-2\unumber-of-exclamation-points\d\s0
+.)C
+\}
+.el \{
+.(C
+cost = 10 ** number-of-exclamation-points
+.)C
+\}
 The default value for 
 .BR percall_cpu
 and
 .BR perbyte_cpu
 is 0.  Examples of reasonable cost values may be found in the system
-catalog \*(lqpg_proc\*(rq;
-most simple functions on base types have costs of 0.
+catalog \*(lqpg_proc\*(rq; most simple functions on base types have
+costs of 0.
 .PP
 The
 .IR outin_ratio
@@ -123,7 +132,7 @@ should be the
 .BR "FULL PATH"
 of the object code (.o file) for the function, bracketed by quotation
 marks.  (\*(PG will not compile a function automatically \(em it must
-be compiled before it is used in a 
+be compiled before it is used in a
 .BR "define function"
 command.)
 .PP
@@ -145,7 +154,7 @@ following include options:
 -I.../src/backend/obj
 .)C
 before any \*(lq.c\*(rq programs in the 
-.IR /bin/cc
+.IR cc
 command line, e.g.:
 .(C
 cc -I.../src/backend \e
@@ -160,14 +169,16 @@ has been built.
 The convention for passing arguments to and from the user's C
 functions is to use pass-by-value for data types that are 32 bits (4
 bytes) or smaller, and pass-by-reference for data types that require
-more than 32 bits.  The following table gives the C type required for
-parameters in the C functions that will be loaded into \*(PG.  The
-\*(lqDefined In\*(rq column gives the actual header file (in the
+more than 32 bits.
+.if t \{
+The following table gives the C type required for parameters in the C
+functions that will be loaded into \*(PG.  The \*(lqDefined In\*(rq
+column gives the actual header file (in the
 .(C
 \&.../src/backend
 .)C
 directory) that the equivalent C type is defined.  However, if you
-include "utils/builtins.h", these files will automatically be
+include \*(lqutils/builtins.h\*(rq, these files will automatically be
 included.
 .SH "Equivalent C Types for Built-In \*(PG Types"
 .PP
@@ -203,6 +214,7 @@ uint2	uint16	tmp/c.h
 uint4	uint32	tmp/c.h
 xid	(XID *) 	tmp/postgres.h
 .TE
+\}
 .PP
 Complex arguments to C functions are passed into the C function as a
 special C type, TUPLE, defined in
@@ -450,6 +462,14 @@ flag does not do anything in Version \*(PV.
 Untrusted functions cannot make any function calls using access
 methods or built-in functions that have not been loaded into the
 untrusted-function process.
+.PP
+Untrusted functions must be explicitly designated as such in a
+separate query, e.g.:
+.(C
+replace pg_proc (proistrusted = "f"::bool)
+	where pg_proc.proname = "mynewfunction"
+.)C
+Untrusted functions will become the default in a future release.
 .PP
 C functions cannot return a set of values.
 .PP
