@@ -287,7 +287,7 @@ rndread(fd, small)
     struct varlena *buf;
     extern long random();
 
-    srandom(getpid());
+    srandom(time(0L));
 
     for (i = 0; i < NITERS_BIG; i++) {
 
@@ -332,7 +332,7 @@ locrndread(fd, small)
     long pct;
     extern long random();
 
-    srandom(getpid());
+    srandom(time(0L));
 
     for (i = 0; i < NITERS_BIG; i++) {
 
@@ -439,7 +439,7 @@ rndwrite(fd, small)
     for (i = 0; i < 8092; i++)
 	*sbuf++ = ' ';
 
-    srandom(getpid());
+    srandom(time(0L));
 
     if (small)
 	lim = NITERS_BIG;
@@ -496,7 +496,7 @@ locrndwrite(fd, small)
     for (i = 0; i < 8092; i++)
 	*sbuf++ = ' ';
 
-    srandom(getpid());
+    srandom(time(0L));
 
     if (small)
 	lim = NITERS_BIG;
