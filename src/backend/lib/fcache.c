@@ -115,6 +115,11 @@ Boolean use_syscache;
         retval->typbyval = (typeStruct)->typbyval ? true : false ;
 	retval->foid = foid;
         retval->language = procedureStruct->prolang;
+        retval->func_state = (char *)NULL;
+	retval->setArg     = NULL;
+	retval->hasSetArg  = false;
+	retval->oneResult   = false;
+
 	/*
 	 * might want to change this to just deref the pointer, there are
 	 * no varlenas (currently) before this attribute.
@@ -126,10 +131,6 @@ Boolean use_syscache;
         tmp = (char *) SearchSysCacheGetAttribute(PROOID,Anum_pg_proc_probin,
                                          foid);
         retval->bin = ( char *) textout(tmp);
-
-        retval->func_state = (char *)NULL;
-	retval->setArg = NULL;
-	retval->hasSetArg  = false;
 
 	nargs = procedureStruct->pronargs;
 	retval->nargs = nargs;
