@@ -174,9 +174,19 @@ pq_getstr(s, maxlen)
 /*
  * USER FUNCTION - gets a newline-terminated string from the backend.
  * 
- * Chiefly here so that applications can use "COPY <rel> () from stdin"
- * and read the output string.  Returns a null-terminated string in s and
- * EOF if it is detected.
+ * Chiefly here so that applications can use "COPY <rel> to stdout"
+ * and read the output string.  Returns a null-terminated string in s.
+ *
+ * PQgetline reads up to maxlen-1 characters (like fgets(3)) but strips
+ * the terminating \n (like gets(3)).
+ *
+ * RETURNS:
+ *	EOF if it is detected or invalid arguments are given
+ *	0 if EOL is reached (i.e., \n has been read)
+ *		(this is required for backward-compatibility -- this
+ *		 routine used to always return EOF or 0, assuming that
+ *		 the line ended within maxlen bytes.)
+ *	1 in other cases
  */
 
 int
@@ -184,31 +194,31 @@ PQgetline(s, maxlen)
     char *s;
     int maxlen;
 {
-    int c;
+    int c = '\0';
 
-    if (Pfin == (FILE *) NULL)
+    if (!Pfin || !s || maxlen <= 1)
 	return(EOF);
 
-    while (maxlen-- && (c = getc(Pfin)) != '\n' && c != EOF) {
+    for (; maxlen > 1 && (c = getc(Pfin)) != '\n' && c != EOF; --maxlen) {
 	*s++ = c;
     }
     *s = '\0';
 
-    /* -----------------
-     *     If EOF reached let caller know
-     * -----------------
-     */
-    if (c == EOF)
-	return(EOF);
-    return(!EOF);
+    if (c == EOF) {
+	return(EOF);		/* error -- reached EOF before \n */
+    } else if (c == '\n') {
+	return(0);		/* done with this line */
+    }
+    return(1);			/* returning a full buffer */
 }
 
 /*
  * USER FUNCTION - sends a string to the backend.
  * 
- * Chiefly here so that applications can use "COPY <rel> () to stdout"
- * and read the output string.  Returns a null-terminated string in s and
- * EOF if it is detected.
+ * Chiefly here so that applications can use "COPY <rel> from stdin".
+ *
+ * RETURNS:
+ *	0 in all cases.
  */
 
 int
