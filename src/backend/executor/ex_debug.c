@@ -17,7 +17,7 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include "executor/executor.h
+#include "executor/executor.h"
 
  RcsId("$Header$");
 
