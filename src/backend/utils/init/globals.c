@@ -33,13 +33,11 @@ int Portfd, Packfd, Slog, Pipefd;
 
 BackendId	MyBackendId;
 BackendTag	MyBackendTag;
-static NameData	MyDatabaseNameData;
+NameData	MyDatabaseNameData;
 Name		MyDatabaseName = &MyDatabaseNameData;
 bool		MyDatabaseIdIsInitialized = false;
 ObjectId	MyDatabaseId = InvalidObjectId;
 bool		TransactionInitWasProcessed = false;
 
 struct	bcommon	Ident;	/* moved to dlog */
-
-int	Debug_file, Err_file, Noversion;
 
