@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "DEFINE INDEX" COMMANDS 01/23/93
+.TH "DEFINE INDEX" COMMANDS 02/08/93
 .XA 2 "Define Index"
 .SH NAME
 define index \(em construct a secondary index
@@ -10,6 +10,7 @@ define index \(em construct a secondary index
 \fBdefine\fR [\fBarchive\fR] \fBindex\fR index-name
 	\fBon\fR classname \fBusing\fR am-name
 	\fB(\fR attname\-1 type_class\-1 { , attname\-i type_class\-i } \fB)\fR
+	[\fBwhere\fR qual]
 .)l
 .SH DESCRIPTION
 This command constructs an index called
@@ -38,6 +39,35 @@ would use the
 .IR int4_ops
 class; this operator class includes comparison functions for four-byte
 integers.
+.PP
+If a
+.IR qual
+is given, the index will be a
+.IR "partial index" ,
+which will index only those instances in
+.IR classname
+for which the predicate specified by
+.IR qual
+is true.  Note that the predicate may only refer to attributes
+of the indexed class,
+.IR classname .
+\*(PG may use a partial index as an access path only for
+queries that include a restriction that implies that the predicate is true.
+For example, if the index predicate is
+.(C
+emp.age < 30
+.)C
+then the index can be used for a query with the restriction
+.(C
+\fBwhere\fR emp.age < 25
+.)C
+but not for a query with the restriction
+.(C
+\fBwhere\fR emp.age < 40
+.)C
+and so forth.  Although partial indexes cannot be used to satisfy as wide
+a range of queries as complete indexes, they can be constructed more quickly
+and extended incrementally (see the \fBextend index\fR command).
 .PP
 \*(PG Version \*(PV provides btree and rtree access methods for
 secondary indices.  The operator classes defined on btrees are
@@ -111,6 +141,20 @@ define index empname
 define index cityrect
 	on city using rtree (boundbox box_ops)
 .)C
+.(C
+/*
+ * Create a partial btree index on employee salaries for
+ *   employees over age 50
+ */
+define index empsal
+	on emp using btree (salary int4_ops) where emp.age > 49
+.)C
+Note: if the partial-index predicate refers to an attribute of a
+discrete-valued type (such as integers), it is slightly preferable to
+express the predicate as, e.g., "emp.age > 49" rather than as "emp.age >= 50",
+because even though both indexes would, in theory, be equally usable, \*(PG
+would only be able to use a partial index with the former predicate in the
+event of a query that had the exact restriction "emp.age > 49".
 .SH BUGS
 Archive indices are not supported in Version \*(PV.
 .PP
@@ -119,3 +163,14 @@ There should be an access method designer's guide.
 Indices may only be defined on a single key.  This can be hacked
 around by defining composite types and using the \*(PG support for
 indices on functional values of attributes.
+.PP
+The only kind of partial index predicates \*(PG Version \*(PV
+understands are those made up of boolean combinations of simple
+clauses of the form
+.(C
+ATTR OP CONST
+.)C
+where ATTR is a single attribute of the indexed class, and OP is
+an operator in a btree operator class defined on the types of
+ATTR and CONST.  If some other form of predicate is specified,
+Version \*(PV will never use the resulting partial index.
