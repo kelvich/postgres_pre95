@@ -746,6 +746,123 @@ ProcessPostgresArguments(argc, argv)
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
 }
+/* ----------------------------------------------------------------
+ *	InitializePostgres
+ *
+ *	This routine should only be called once (by the "master"
+ *  	backend).  Put "re-initialization" type stuff someplace else!
+ *  	-cim 10/3/90
+ * ----------------------------------------------------------------
+ */
+bool InitializePostgresCalled = false;
+
+void
+InitializePostgres(DatabaseName)
+    String    DatabaseName;	/* name of database to use */
+{
+    /* ----------------
+     *	sanity checks
+     *
+     *  Note: we can't call elog yet..
+     * ----------------
+     */
+    if (InitializePostgresCalled) {
+	fprintf(stderr, "InitializePostgresCalled more than once!\n");
+	exitpg(1);
+    } else
+	InitializePostgresCalled = true;
+
+    /* ----------------
+     *	set processing mode appropriately depending on weather or
+     *  not we want the transaction system running.  When the
+     *  transaction system is not running, all transactions are
+     *  assumed to have successfully committed and we never go to
+     *  the transaction log.
+     *
+     *  The way things seem to work: we start in InitProcessing and
+     *  change to NormalProcessing after InitPostgres() is done.  But
+     *  if we run with the wierd override flag, then it means we always
+     *  run in "BootstrapProcessing" mode.
+     *
+     * XXX the -C version flag should be removed and combined with -O
+     * ----------------
+     */
+    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
+
+    /* ----------------
+     *	if fmgr() is called and the desired function is not
+     *  in the builtin table, then we call the desired function using
+     *  the routine registered in EnableDynamicFunctionManager().
+     *  That routine (fmgr_dynamic) is expected to dynamically
+     *  load the desired function and then call it.
+     *
+     *  dynamic loading only works after EnableDynamicFunctionManager()
+     *  is called.
+     *
+     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
+     * ----------------
+     */
+    if (! Quiet)
+	puts("\tEnableDynamicFunctionManager()..");
+    EnableDynamicFunctionManager(fmgr_dynamic);
+        	
+    /* ----------------
+     *	initialize portal file descriptors
+     *
+     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
+     * ----------------
+     */
+    if (IsUnderPostmaster == true) {
+	if (Portfd < 0) {
+	    fprintf(stderr,
+		    "Postmaster flag set, but no port number specified\n");
+	    exitpg(1);
+	}
+	pinit();
+    }
+    
+    /* ****************************************************
+     *	InitPostgres()
+     *
+     *  Do all the general initialization.  Anything that can be
+     *  done more than once should go in InitPostgres().  Note:
+     *  InitPostgres is also used by the various support/ programs
+     *  so it has to be linked in with cinterface.a.  Someday this
+     *  should be fixed and then InitPostgres moved closer to here.
+     * ****************************************************
+     */
+    if (! Quiet)
+	puts("\tInitPostgres()..");
+    InitPostgres(DatabaseName);
+
+    /* ----------------
+     *  Initialize the Master/Slave shared memory allocator,
+     *	fork and initialize the parallel slave backends, and
+     *  register the Master semaphore/shared memory cleanup
+     *  procedures.
+     *
+     *  This may *NOT* happen more than once so we can't
+     *  put this in InitPostgres() -cim 10/5/90
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	extern void IPCPrivateSemaphoreKill();
+	extern void IPCPrivateMemoryKill();
+	
+	if (! Quiet)
+	    puts("\tInitializing Executor Shared Memory...");
+	ExecSMInit();
+	
+	if (! Quiet)
+	    puts("\tInitializing Slave Backends...");
+	SlaveBackendsInit();
+
+	if (! Quiet)
+	    puts("\tRegistering Master IPC Cleanup Procedures...");
+	ExecSemaphoreOnExit(IPCPrivateSemaphoreKill);
+	ExecSharedMemoryOnExit(IPCPrivateMemoryKill);
+    }
+}
 
 /* ----------------
  *	ShowSessionStatistics prints some information after
