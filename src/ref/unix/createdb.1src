@@ -56,11 +56,11 @@ createdb(postquel).
 .uh DIAGNOSTICS
 .lp
 You are not a valid \*(PP user
-.pp
+.lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
 <dbname> already exists
-.pp
+.lp
 The database already exists.
