@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	pathnode
@@ -31,6 +30,7 @@
 #include "planner/cfi.h"
 #include "planner/costsize.h"
 
+extern int testFlag;
 /* ----------------
  *	node creator declarations
  * ----------------
@@ -148,21 +148,28 @@ add_pathlist (parent_rel,unique_paths,new_paths)
      Rel parent_rel;
      List unique_paths,new_paths ;
 {
-     LispValue new_path = LispNil;
-     foreach (new_path, new_paths) {
-	 LispValue old_path = better_path (CAR(new_path),unique_paths);
+     LispValue x;
+     Path new_path;
+     LispValue old_path;
+     foreach (x, new_paths) {
+	 new_path = (Path)CAR(x);
+	 old_path = better_path (new_path,unique_paths);
 	 if (old_path == LispTrue) {
 	     /*  Is a brand new path.  */
-	     set_parent (CAR(new_path),parent_rel);
-	     unique_paths = lispCons (CAR(new_path),unique_paths);
+	     set_parent (new_path,parent_rel);
+	     unique_paths = lispCons (new_path,unique_paths);
 	
 	 }
 	 else if (null(old_path))
 	   ;  /* do nothing if path is not cheaper */
 	 else if (IsA(old_path,Path)) {
-	     set_parent (CAR(new_path),parent_rel);
-	     unique_paths = lispCons (CAR(new_path),
-				      LispRemove(old_path,unique_paths));
+	     set_parent (new_path,parent_rel);
+	     if (testFlag) {
+	         unique_paths = lispCons(new_path, unique_paths);
+		}
+	     else
+	         unique_paths = lispCons(new_path,
+				         LispRemove(old_path,unique_paths));
 	 }
      }
      return(unique_paths);
@@ -212,14 +219,14 @@ better_path (new_path,unique_paths)
 	 retval = LispTrue;
      } 
      else 
-       if (path_is_cheaper (new_path,old_path)) {
+       if (path_is_cheaper (new_path,old_path) || testFlag) {
 	   retval = (LispValue)old_path;
        } 
        else
 	 retval = LispNil;
      
      return(retval);
- }
+}
 
 
 
