@@ -925,9 +925,9 @@ DeletePgRelationTuple(rdesc)
      *	delete the relation tuple from pg_relation, and finish up.
      * ----------------
      */
+    amendscan(pg_relation_scan);
     amdelete(pg_relation_desc, &tup->t_ctid);
 
-    amendscan(pg_relation_scan);
     amclose(pg_relation_desc);
 }
 
@@ -959,6 +959,12 @@ DeletePgAttributeTuples(rdesc)
     ScanKeyEntryInitialize(&key, NULL, Anum_pg_attribute_attrelid,
 						   F_INT4EQ, rdesc->rd_att.data[0]->attrelid);
 
+    /* -----------------
+     * Get a write lock _before_ getting the read lock in the scan
+     * ----------------
+     */
+    RelationSetLockForWrite(pg_attribute_desc);
+
     pg_attribute_scan = ambeginscan(pg_attribute_desc,
 				    0,
 				    NowTimeQual,
@@ -981,6 +987,12 @@ DeletePgAttributeTuples(rdesc)
      * ----------------
      */
     amendscan(pg_attribute_scan);
+
+    /* ----------------
+     * Release the write lock 
+     * ----------------
+     */
+    RelationUnsetLockForWrite(pg_attribute_desc);
     amclose(pg_attribute_desc);
 }
 
@@ -1143,7 +1155,7 @@ heap_destroy(relname)
      *	prevent deletion of system relations
      * ----------------
      */
-    if (issystem(&rdesc->rd_rel->relname) || 0 /* is not owned etc. */)
+    if (IsSystemRelation(rdesc) || 0 /* is not owned etc. */)
 	elog(WARN, "amdestroy: cannot destroy %s relation",
 	     &rdesc->rd_rel->relname);
 
