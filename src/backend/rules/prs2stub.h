@@ -44,7 +44,7 @@
 /*--------------
  * turn on/off debugging....
  */
-#define STUB_DEBUG	10
+/* #define STUB_DEBUG	10 */
 
 #include "tmp/postgres.h"
 #include "access/attnum.h"
@@ -158,6 +158,20 @@ prs2StubToRawStub ARGS((
 ));
 
 /*-------------------------
+ * Prs2StubToSmallRawStubs:
+ * given a 'Prs2Stub' create the equivalent 'Prs2RawStub', but
+ * break it into pieces, so that no piece is greater than 'maxsize'
+ * bytes
+ */
+extern
+Prs2RawStub *
+prs2StubToSmallRawStubs ARGS((
+	Prs2Stub	stub,
+	int		maxsize,
+	int		*npieces
+));
+
+/*-------------------------
  * Prs2RawStubToStub:
  * given a 'Prs2RawStub' create the equivalent 'Prs2Stub'
  */
@@ -165,6 +179,17 @@ extern
 Prs2Stub
 prs2RawStubToStub ARGS((
 	Prs2RawStub	rawStub;
+));
+
+/*-------------------------
+ * Prs2RawStubUnion
+ * create the union of two raw stubs
+ */
+extern
+Prs2RawStub
+prs2RawStubUnion ARGS((
+	Prs2RawStub	rawStub1,
+	Prs2RawStub	rawStub2
 ));
 
 
@@ -331,6 +356,7 @@ prs2DeleteRelationStub ARGS((
 	Relation	relation;
 	Prs2OneStub	stub;
 ));
+
 /*-------------------------
  * prs2ReplaceRelationStub:
  * Replace the relation stubs of a relation with the given ones
@@ -353,19 +379,7 @@ prs2GetRelationStubs ARGS((
 	ObjectId	relOid
 ));
 
-/*-------------------------
- * prs2GetStubsFromPrs2StubTuple:
- * given a tuple of the pg_prs2stub relation, extract the value
- * of the stubs field.
- */
-extern
-Prs2Stub
-prs2GetStubsFromPrs2StubTuple ARGS((
-    	HeapTuple		tuple,
-	Buffer			buffer,
-	TupleDesccriptor	tupleDesc
-));
-
+#ifdef OBSOLETE
 /*-------------------------
  * prs2PutStubsInPrs2StubTuple:
  * put the given stubs to the appropriate attribute of a 
@@ -380,6 +394,7 @@ prs2PutStubsInPrs2StubTuple ARGS((
 	TupleDesccriptor	tupleDesc,
 	Prs2Stub		stubs
 ));
+#endif OBSOLETE
 
 /*================= ROUTINES IN FILE 'stubtuple.c' =======================*/
 
