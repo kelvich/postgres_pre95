@@ -1096,8 +1096,8 @@ opt_portal:
 		{ NULLTREE }
 	| Portal name 
 		{
-		    $2=lispCons($2,LispNil);
-		    $$=lispCons($1,$2);
+			$2 = lispCons($2, LispNil);
+			$$ = lispCons(KW(portal), $2);
 		}
 	;
 
