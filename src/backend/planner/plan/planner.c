@@ -438,6 +438,8 @@ pg_checkretval(rettype, parselist)
     Resdom resnode;
     Var varnode;
     Relation reln;
+    ObjectId relid;
+    int relnatts;
     int i;
     ObjectId rtrelid;
     int varno, varattno;
@@ -508,6 +510,20 @@ pg_checkretval(rettype, parselist)
     }
 
     /*
+     *  If the target list is of length 1, and the type of the varnode
+     *  in the target list is the same as the declared return type, this
+     *  is okay.  This can happen, for example, where the body of the
+     *  function is 'retrieve (x = func2())', where func2 has the same
+     *  return type as the function that's calling it.
+     */
+
+    if (ExecTargetListLength(tlist) == 1) {
+	resnode = (Resdom) CAR(CAR(tlist));
+	if (get_restype(resnode) == rettype)
+	    return;
+    }
+
+    /*
      *  By here, the procedure returns a (set of) tuples.  This part of
      *  the typechecking is a hack.  We look up the relation that is
      *  the declared return type, and be sure that attributes 1 .. n
@@ -521,11 +537,16 @@ pg_checkretval(rettype, parselist)
     if (!RelationIsValid(reln))
 	elog(WARN, "cannot open relation relid %d", get_typrelid(typ));
 
-    if (ExecTargetListLength(tlist) != reln->rd_rel->relnatts)
+    relid = reln->rd_id;
+    relnatts = reln->rd_rel->relnatts;
+
+    heap_close(reln);
+
+    if (ExecTargetListLength(tlist) != relnatts)
 	elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
 
     /* expect attributes 1 .. n in order */
-    for (i = 1; i <= reln->rd_rel->relnatts; i++) {
+    for (i = 1; i <= relnatts; i++) {
 	tle = CAR(tlist);
 	tlist = CDR(tlist);
 	varnode = (Var) CADR(tle);
@@ -547,7 +568,10 @@ pg_checkretval(rettype, parselist)
 	rte = CAR(rte);
 	rtrelid = (ObjectId) CInteger(CADR(CDR(rte)));
 
-	if (rtrelid != reln->rd_id)
+	if (rtrelid != relid)
 	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
     }
+
+    /* success */
+    return;
 }
