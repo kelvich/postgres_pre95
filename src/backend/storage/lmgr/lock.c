@@ -169,7 +169,7 @@ int 	ntypes;
   }
 
   /* allocate a string for the binding table lookup */
-  shmemName = (char *) palloc((unsigned)(strlen(tabName)+10));
+  shmemName = (char *) palloc((unsigned)(strlen(tabName)+32));
   if (! shmemName)
   {
     elog(NOTICE,"LockTabInit: couldn't malloc string %s \n",tabName);
