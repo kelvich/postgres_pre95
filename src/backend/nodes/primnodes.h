@@ -306,6 +306,7 @@ class (Array) public (Expr) {
 	bool			arrayelembyval;
 	int			arraylow;
 	int			arrayhigh;
+	int			arraylen;
  /* public: */
 };
 #endif /* PrimNodesIncluded */
