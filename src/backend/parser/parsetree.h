@@ -16,8 +16,8 @@
 #define parse_targetlist(parse)                 CADR(parse)
 #define parse_qualification(parse)              CADDR(parse)
 #define root_numlevels(root)                    CAR(root)
-#define root_commandtype(root)                  CADR(root)
-#define root_resultrelation(root)               CADDR(root)
+#define root_command_type(root)                  CADR(root)
+#define root_result_relation(root)               CADDR(root)
 
 /* .. subst-rangetable */
 #define root_rangetable(root)                   CADDR(CDR(root))
@@ -118,6 +118,7 @@ typedef struct root_struct {
   LispValue priority;
   LispValue ruleinfo;
 } root;  /* XXX constr name: new_root */
+
 
 /*
 typedef struct resultrelation {
