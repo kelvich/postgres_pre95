@@ -33,7 +33,4 @@ AttributeIsValid ARGS((
 	Attribute	attribute
 ));
 
-#define ATT_SYMBOLS \
-	SymbolDecl(AttributeIsValid, "_AttributeIsValid")
-
 #endif	/* !defined(AttIncluded) */

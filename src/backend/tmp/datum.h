@@ -385,34 +385,4 @@ ObjectIdGetDatum ARGS((
 	ObjectId	objectId
 ));
 
-#define DATUM_SYMBOLS \
-	SymbolDecl(DatumGetChar, "_DatumGetChar"), \
-	SymbolDecl(CharGetDatum, "_CharGetDatum"), \
-	SymbolDecl(DatumGetInt8, "_DatumGetInt8"), \
-	SymbolDecl(Int8GetDatum, "_Int8GetDatum"), \
-	SymbolDecl(DatumGetUInt8, "_DatumGetUInt8"), \
-	SymbolDecl(UInt8GetDatum, "_UInt8GetDatum"), \
-	SymbolDecl(DatumGetInt16, "_DatumGetInt16"), \
-	SymbolDecl(Int16GetDatum, "_Int16GetDatum"), \
-	SymbolDecl(DatumGetUInt16, "_DatumGetUInt16"), \
-	SymbolDecl(UInt16GetDatum, "_UInt16GetDatum"), \
-	SymbolDecl(DatumGetInt32, "_DatumGetInt32"), \
-	SymbolDecl(Int32GetDatum, "_Int32GetDatum"), \
-	SymbolDecl(DatumGetUInt32, "_DatumGetUInt32"), \
-	SymbolDecl(UInt32GetDatum, "_UInt32GetDatum"), \
-	SymbolDecl(DatumGetFloat32, "_DatumGetFloat32"), \
-	SymbolDecl(Float32GetDatum, "_Float32GetDatum"), \
-	SymbolDecl(DatumGetFloat64, "_DatumGetFloat64"), \
-	SymbolDecl(Float64GetDatum, "_Float64GetDatum"), \
-	SymbolDecl(DatumGetPointer, "_DatumGetPointer"), \
-	SymbolDecl(PointerGetDatum, "_PointerGetDatum"), \
-	SymbolDecl(DatumGetPointerPointer, "_DatumGetPointerPointer"), \
-	SymbolDecl(PointerPointerGetDatum, "_PointerPointerGetDatum"), \
-	SymbolDecl(DatumGetStructPointer, "_DatumGetStructPointer"), \
-	SymbolDecl(StructPointerGetDatum, "_StructPointerGetDatum"), \
-	SymbolDecl(DatumGetName, "_DatumGetName"), \
-	SymbolDecl(NameGetDatum, "_NameGetDatum"), \
-	SymbolDecl(DatumGetObjectId, "_DatumGetObjectId"), \
-	SymbolDecl(ObjectIdGetDatum, "_ObjectIdGetDatum")
-
 #endif	/* !defined(DatumIncluded) */

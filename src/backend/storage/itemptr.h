@@ -258,22 +258,4 @@ ItemPointerSetLogicalPageNumber ARGS((
 	LogicalPageNumber	pageNumber
 ));
 
-#define ITEMPTR_SYMBOLS \
-	SymbolDecl(ItemPointerIsUserDefined, "_ItemPointerIsUserDefined"), \
-	SymbolDecl(ItemPointerIsValid, "_ItemPointerIsValid"), \
-	SymbolDecl(ItemPointerGetBlockNumber, "_ItemPointerGetBlockNumber"), \
-	SymbolDecl(ItemPointerGetPageNumber, "_ItemPointerGetPageNumber"), \
-	SymbolDecl(ItemPointerGetOffsetNumber, "_ItemPointerGetOffsetNumber"), \
-	SymbolDecl(ItemPointerGetOffsetIndex, "_ItemPointerGetOffsetIndex"), \
-	SymbolDecl(ItemPointerSet, "_ItemPointerSet"), \
-	SymbolDecl(ItemPointerCopy, "_ItemPointerCopy"), \
-	SymbolDecl(ItemPointerSetInvalid, "_ItemPointerSetInvalid"), \
-	SymbolDecl(ItemPointerSimpleGetPageNumber, "_ItemPointerSimpleGetPageNumber"), \
-	SymbolDecl(ItemPointerSimpleGetOffsetNumber, "_ItemPointerSimpleGetOffsetNumber"), \
-	SymbolDecl(ItemPointerSimpleGetOffsetIndex, "_ItemPointerSimpleGetOffsetIndex"), \
-	SymbolDecl(ItemPointerSimpleSet, "_ItemPointerSimpleSet"), \
-	SymbolDecl(ItemPointerEquals, "_ItemPointerEquals"), \
-	SymbolDecl(ItemPointerGetLogicalPageNumber, "_ItemPointerGetLogicalPageNumber"), \
-	SymbolDecl(ItemPointerSetLogicalPageNumber, "_ItemPointerSetLogicalPageNumber")
-
 #endif	/* !defined(ItemPtrIncluded) */

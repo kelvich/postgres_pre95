@@ -71,10 +71,4 @@ PositionIdGetOffsetNumber ARGS((
 	PagePartition	partition
 ));
 
-#define POS_SYMBOLS \
-	SymbolDecl(PositionIdIsValid, "_PositionIdIsValid"), \
-	SymbolDecl(PositionIdSet, "_PositionIdSet"), \
-	SymbolDecl(PositionIdGetPageNumber, "_PositionIdGetPageNumber"), \
-	SymbolDecl(PositionIdGetOffsetNumber, "_PositionIdGetOffsetNumber")
-
 #endif	/* !defined(PosIncluded) */

@@ -110,20 +110,4 @@ extern Exception SemanticError;		/* XXX inconsistent naming style */
  */
 extern Exception SystemError;		/* XXX inconsistent naming style */
 
-#define EXCID_SYMBOLS \
-	ExternDecl(FailedAssertion, "_FailedAssertion"), \
-	ExternDecl(BadState, "_BadState"), \
-	ExternDecl(BadArg, "_BadArg"), \
-	ExternDecl(BadAllocSize, "_BadAllocSize"), \
-	ExternDecl(ExhaustedMemory, "_ExhaustedMemory"), \
-	ExternDecl(Unimplemented, "_Unimplemented")
-/*
- * Private symbols:
- *
- *	CatalogFailure
- *	InternalError
- *	SemanticError
- *	SystemError
- */
-
 #endif	/* !defined(ExcIdIncluded) */

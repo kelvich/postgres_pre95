@@ -632,19 +632,21 @@ form ARGS((
  *	// more declarations ...
  *
  *	#define yourfilename_SYMBOLS \
- *		ExternDecl(fooValue, "_fooValue"), \
- *		SymbolDecl(foo, "_foo")
+ *		ExternDecl(fooValue), \
+ *		SymbolDecl(foo)
  *
  *	// DO *NOT* INCLUDE A TRAILING ^ COMMA
  */
-#define SymbolDecl(_symbol_, _string_) \
-	{ (func_ptr)_symbol_, _string_ }
 
-#define ExternDecl(_external_, _string_) \
-	{ (data_ptr)&(_external_), _string_ }
+#define constantquote(x)"
+#define prefixquote(x)constantquote(x)x
+#define prefixquoteunder(x)prefixquote(_)x
+#define symstring(x)prefixquoteunder(x)"
 
-#define C_SYMBOLS \
-	SymbolDecl(ExceptionalCondition, "_ExceptionalCondition"), \
-	SymbolDecl(form, "_form")
+#define SymbolDecl(_symbol_) \
+	{ (func_ptr)_symbol_, symstring(_symbol_) }
+
+#define ExternDecl(_external_) \
+	{ (data_ptr)&(_external_), symstring(_external_) }
 
 #endif	/* !defined(CIncluded) */

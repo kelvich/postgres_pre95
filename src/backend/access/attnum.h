@@ -81,11 +81,4 @@ AttributeOffsetGetAttributeNumber ARGS((
 	AttributeOffset	attributeOffset
 ));
 
-#define ATTNUM_SYMBOLS \
-	SymbolDecl(AttributeNumberIsValid, "_AttributeNumberIsValid"), \
-	SymbolDecl(AttributeNumberIsForUserDefinedAttribute, "_AttributeNumberIsForUserDefinedAttribute"), \
-	SymbolDecl(AttributeNumberIsInBounds, "_AttributeNumberIsInBounds"), \
-	SymbolDecl(AttributeNumberGetAttributeOffset, "_AttributeNumberGetAttributeOffset"), \
-	SymbolDecl(AttributeOffsetGetAttributeNumber, "_AttributeOffsetGetAttributeNumber")
-
 #endif	/* !defined(AttNumIncluded) */

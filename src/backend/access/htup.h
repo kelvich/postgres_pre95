@@ -128,8 +128,4 @@ HeapTupleGetForm ARGS((
 	HeapTuple	tuple
 ));
 
-#define HTUP_SYMBOLS \
-	SymbolDecl(HeapTupleIsValid, "_HeapTupleIsValid"), \
-	SymbolDecl(HeapTupleGetForm, "_HeapTupleGetForm")
-
 #endif	/* !defined(HTupIncluded) */

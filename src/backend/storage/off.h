@@ -65,10 +65,4 @@ OffsetIdGetOffsetNumber ARGS((
 	OffsetId	offsetId
 ));
 
-#define OFF_SYMBOLS \
-	SymbolDecl(OffsetNumberIsValid, "_OffsetNumberIsValid"), \
-	SymbolDecl(OffsetIdIsValid, "_OffsetIdIsValid"), \
-	SymbolDecl(OffsetIdSet, "_OffsetIdSet"), \
-	SymbolDecl(OffsetIdGetOffsetNumber, "_OffsetIdGetOffsetNumber")
-
 #endif	/* !defined(OffIncluded) */

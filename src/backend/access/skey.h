@@ -121,11 +121,4 @@ ScanKeyEntryInitialize ARGS((
 	Datum		argument
 ));
 
-#define SKEY_SYMBOLS \
-	SymbolDecl(ScanKeyIsValid, "_ScanKeyIsValid"), \
-	SymbolDecl(ScanKeyEntryIsValid, "_ScanKeyEntryIsValid"), \
-	SymbolDecl(ScanKeyEntryIsLegal, "_ScanKeyEntryIsLegal"), \
-	SymbolDecl(ScanKeyEntrySetIllegal, "_ScanKeyEntrySetIllegal"), \
-	SymbolDecl(ScanKeyEntryInitialize, "_ScanKeyEntryInitialize")
-
 #endif	/* !defined(SKeyIncluded) */

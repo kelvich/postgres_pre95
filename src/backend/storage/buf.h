@@ -73,10 +73,4 @@ BufferIsUnknown ARGS ((
 	Buffer	buffer
 ));
 
-#define BUF_SYMBOLS \
-	SymbolDecl(RelationGetNumberOfBlocks, "_RelationGetNumberOfBlocks"), \
-	SymbolDecl(BufferIsValid, "_BufferIsValid"), \
-	SymbolDecl(BufferIsInvalid, "_BufferIsInvalid"), \
-	SymbolDecl(BufferIsUnknown, "_BufferIsUnknown")
-
 #endif	/* !defined(BufIncluded) */

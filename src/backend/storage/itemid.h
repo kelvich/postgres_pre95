@@ -155,12 +155,4 @@ ItemIdIsInternal ARGS((
 	ItemId	itemId;
 ));
 
-#define ITEMID_SYMBOLS \
-	SymbolDecl(ItemIdIsValid, "_ItemIdIsValid"), \
-	SymbolDecl(ItemIdIsUsed, "_ItemIdIsUsed"), \
-	SymbolDecl(ItemIdIsContinuing, "_ItemIdIsContinuing"), \
-	SymbolDecl(ItemIdIsContinuation, "_ItemIdIsContinuation"), \
-	SymbolDecl(ItemIdIsLock, "_ItemIdIsLock"), \
-	SymbolDecl(ItemIdIsInternal, "_ItemIdIsInternal")
-
 #endif	/* !defined(ItemIdIncluded) */

@@ -225,20 +225,4 @@ HeapTupleSatisfiesTimeQual ARGS((
 	TimeQual	qual
 ));
 
-#define TQUAL_SYMBOLS \
-	ExternDecl(SelfTimeQual, "_SelfTimeQual"), \
-	SymbolDecl(TimeQualIsValid, "_TimeQualIsValid"), \
-	SymbolDecl(TimeQualIsLegal, "_TimeQualIsLegal"), \
-	SymbolDecl(TimeQualIncludesNow, "_TimeQualIncludesNow"), \
-	SymbolDecl(TimeQualIncludesPast, "_TimeQualIncludesPast"), \
-	SymbolDecl(TimeQualIsSnapshot, "_TimeQualIsSnapshot"), \
-	SymbolDecl(TimeQualIsRanged, "_TimeQualIsRanged"), \
-	SymbolDecl(TimeQualIndicatesDisableValidityChecking, "_TimeQualIndicatesDisableValidityChecking"), \
-	SymbolDecl(TimeQualGetSnapshotTime, "_TimeQualGetSnapshotTime"), \
-	SymbolDecl(TimeQualGetStartTime, "_TimeQualGetStartTime"), \
-	SymbolDecl(TimeQualGetEndTime, "_TimeQualGetEndTime"), \
-	SymbolDecl(TimeFormSnapshotTimeQual, "_TimeFormSnapshotTimeQual"), \
-	SymbolDecl(TimeFormRangedTimeQual, "_TimeFormRangedTimeQual"), \
-	SymbolDecl(HeapTupleSatisfiesTimeQual, "_HeapTupleSatisfiesTimeQual")
-
 #endif	/* !defined(TQualIncluded) */

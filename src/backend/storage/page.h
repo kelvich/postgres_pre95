@@ -27,7 +27,4 @@ PageIsValid ARGS((
 	Page	page
 ));
 
-#define PAGE_SYMBOLS \
-	SymbolDecl(PageIsValid, "_PageIsValid")
-
 #endif	/* !defined(PageIncluded) */

@@ -55,9 +55,4 @@ PagePartitionGetPagesPerBlock ARGS((
 	PagePartition	partition
 ));
 
-#define PART_SYMBOLS \
-	SymbolDecl(PagePartitionIsValid, "_PagePartitionIsValid"), \
-	SymbolDecl(CreatePagePartition, "_CreatePagePartition"), \
-	SymbolDecl(PagePartitionGetPagesPerBlock, "_PagePartitionGetPagesPerBlock")
-
 #endif	/* !defined(PartIncluded) */

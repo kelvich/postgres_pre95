@@ -49,8 +49,4 @@ LogicalPageNumberIsValid ARGS((
 	PagePartition	pagePartition
 ));
 
-#define PAGENUM_SYMBOLS \
-	SymbolDecl(PageNumberIsValid, "_PageNumberIsValid"), \
-	SymbolDecl(LogicalPageNumberIsValid, "_LogicalPageNumberIsValid")
-
 #endif	/* !defined(PageNumIncluded) */

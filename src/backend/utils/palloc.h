@@ -86,10 +86,4 @@ repalloc ARGS((
 	Size	size
 ));
 
-#define PALLOC_SYMBOLS \
-	SymbolDecl(palloc, "_palloc"), \
-	SymbolDecl(pfree, "_pfree"), \
-	SymbolDecl(pfree, "_psize"), \
-	SymbolDecl(repalloc, "_repalloc")
-
 #endif /* !defined(PAllocIncluded) */

@@ -149,19 +149,4 @@ IndexStrategyInitialize ARGS((
 	StrategyNumber	maxStrategyNumber
 ));
 
-#define ISTRAT_SYMBOLS \
-	SymbolDecl(StrategyNumberIsValid, "_StrategyNumberIsValid"), \
-	SymbolDecl(IndexStrategyIsValid, "_IndexStrategyIsValid")
-/*
- * Protected symbols:
- *
- *	StrategyNumberIsInBounds
- *	AttributeNumberGetIndexStrategySize
- *	StrategyMapIsValid
- *	StrategyMapGetScanKeyEntry
- *	IndexStrategyGetStrategyMap
- *	AttributeNumberGetIndexStrategySize
- *	IndexStrategyInintialize
- */
-
 #endif	/* !defined(IStratIncluded) */

@@ -236,22 +236,4 @@ RelationGetNumberOfAttributes ARGS((
 	Relation relation
 ));
 
-#define REL_SYMBOLS \
-	SymbolDecl(RelationIsValid, "_RelationIsValid"), \
-	SymbolDecl(RelationGetSystemPort, "_RelationGetSystemPort"), \
-	SymbolDecl(RelationGetAccessMethodTupleForm, "_RelationGetAccessMethodTupleForm"), \
-	SymbolDecl(RelationGetRelationTupleForm, "_RelationGetRelationTupleForm"), \
-	SymbolDecl(RelationGetTupleDescriptor, "_RelationGetTupleDescriptor"), \
-	SymbolDecl(RelationGetIndexStrategy, "_RelationGetIndexStrategy"), \
-	SymbolDecl(RelationGetRelationId, "_RelationGetRelationId"), \
-	SymbolDecl(RelationGetFile, "_RelationGetFile"), \
-	SymbolDecl(RelationGetRelationName, "_RelationGetRelationName"), \
-	SymbolDecl(RelationGetNumberOfAttributes, "_RelationGetNumberOfAttributes")
-/*
- *	SymbolDecl(RelationHasReferenceCountZero, "_RelationHasReferenceCountZero")
- *	SymbolDecl(RelationIncrementReferenceCount, "_RelationIncrementReferenceCount")
- *	SymbolDecl(RelationDecrementReferenceCount, "_RelationDecrementReferenceCount")
- *	SymbolDecl(RelationSetIndexStrategy, "_RelationSetIndexStrategy")
- */
-
 #endif	/* !defined(RelIncluded) */

@@ -78,11 +78,4 @@ BlockIdGetBlockNumber ARGS((
 	PageId		pageId
 ));
 
-#define BLOCK_SYMBOLS \
-	SymbolDecl(BlockSizeIsValid, "_BlockSizeIsValid"), \
-	SymbolDecl(BlockNumberIsValid, "_BlockNumberIsValid"), \
-	SymbolDecl(BlockIdIsValid, "_BlockIdIsValid"), \
-	SymbolDecl(BlockIdSet, "_BlockIdSet"), \
-	SymbolDecl(BlockIdGetBlockNumber, "_BlockIdGetBlockNumber")
-
 #endif	/* !defined(BlockIncluded) */

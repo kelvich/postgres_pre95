@@ -418,28 +418,4 @@ PageGetMaxItemIndex ARGS((
 ));
 */
 
-#define BUFPAGE_SYMBOLS \
-	SymbolDecl(PageSizeIsValid, "_PageSizeIsValid"), \
-	SymbolDecl(PageIsUsed, "_PageIsUsed"), \
-	SymbolDecl(BufferInitPage, "_BufferInitPage"), \
-	SymbolDecl(BufferGetPage, "_BufferGetPage"), \
-	SymbolDecl(BufferGetPageSize, "_BufferGetPageSize"), \
-	SymbolDecl(BufferGetPagePartition, "_BufferGetPagePartition"), \
-	SymbolDecl(BufferSimpleGetPage, "_BufferSimpleGetPage"), \
-	SymbolDecl(PageInit, "_PageInit"), \
-	SymbolDecl(BufferSimpleInitPage, "_BufferSimpleInitPage"), \
-	SymbolDecl(PageGetMaxOffsetIndex, "_PageGetMaxOffsetIndex"), \
-	SymbolDecl(PageGetItemId, "_PageGetItemId"), \
-	SymbolDecl(PageGetFirstItemId, "_PageGetFirstItemId"), \
-	SymbolDecl(PageGetItem, "_PageGetItem"), \
-	SymbolDecl(PageGetSpecialSize, "_PageGetSpecialSize"), \
-	SymbolDecl(PageGetSpecialPointer, "_PageGetSpecialPointer"), \
-	SymbolDecl(PageAddItem, "_PageAddItem"), \
-	SymbolDecl(PageRemoveItem, "_PageRemoveItem"), \
-	SymbolDecl(PageRepairFragmentation, "_PageRepairFragmentation"), \
-	SymbolDecl(PageGetPageSize, "_PageGetPageSize"), \
-	SymbolDecl(PageGetInternalFragmentation, "_PageGetInternalFragmentation"), \
-	SymbolDecl(PageGetFreeSpace, "_PageGetFreeSpace"), \
-	SymbolDecl(PageManagerModeSet, "_PageManagerModeSet")
-
 #endif	/* !defined(BufPageIncluded) */

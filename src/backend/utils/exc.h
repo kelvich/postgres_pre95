@@ -122,18 +122,4 @@ ExcAbort ARGS((
 	ExcMessage	message
 ));
 
-#define EXC_SYMBOLS \
-	ExternDecl(ExcCurFrameP, "_ExcCurFrameP"), \
-	SymbolDecl(EnableExceptionHandling, "_EnableExceptionHandling"), \
-	SymbolDecl(ExcRaise, "_ExcRaise")
-/*
- * Protected symbols:
- *
- *	ExcGetUnCaught
- *	ExcSetUnCaught
- *	ExcPrint
- *
- * What about ProgramName?  Unclear at first glance to me.  -hirohama
- */
-
 #endif	/* !defined(ExcIncluded) */

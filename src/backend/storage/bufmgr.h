@@ -214,22 +214,4 @@ BufferWriteInOrder ARGS((
 	const Buffer	successorBuffer
 ));
 
-#define BUFMGR_SYMBOLS \
-	SymbolDecl(BufferGetBlock, "_BufferGetBlock"), \
-	SymbolDecl(BufferGetRelation, "_BufferGetRelation"), \
-	SymbolDecl(BufferGetBlockSize, "_BufferGetBlockSize"), \
-	SymbolDecl(BufferGetBlockNumber, "_BufferGetBlockNumber"), \
-	SymbolDecl(ReadBuffer, "_ReadBuffer"), \
-	SymbolDecl(WriteBuffer, "_WriteBuffer"), \
-	SymbolDecl(WriteNoReleaseBuffer, "_WriteNoReleaseBuffer"), \
-	SymbolDecl(ReleaseBuffer, "_ReleaseBuffer"), \
-	SymbolDecl(BufferWriteInOrder, "_BufferWriteInOrder")
-
-/*
- * Protected symbols:
- *
- *	RelationGetBuffer
- *	BufferPut
- */
-
 #endif	/* !defined(BufMgrIncluded) */

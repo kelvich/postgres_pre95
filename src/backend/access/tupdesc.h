@@ -78,9 +78,4 @@ TupleDescInitEntry ARGS((
 	Name		typeName
 ));
 
-#define TUPDESC_SYMBOLS \
-	SymbolDecl(TupleDescIsValid, "_TupleDescIsValid"), \
-	SymbolDecl(CreateTemplateTupleDesc, "_CreateTemplateTupleDesc"), \
-	SymbolDecl(TupleDescInitEntry, "_TupleDescInitEntry")
-
 #endif	/* !defined(TupDescIncluded) */
