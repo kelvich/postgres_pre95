@@ -2673,7 +2673,14 @@ First, we define left unary operators on both
 .cW int4
 and
 .cW int2
-that have very different meanings:
+that have very different meanings.  To do this, we will use some
+mathemetical functions that already happen to be built into \*(PP.
+.cW int4fac ,
+.cW int2um/int4um
+and
+.cW int4pl
+are functions that calculate integer factorial, unary minus and
+addition, respectively.
 .(C
 /* n! (factorial) for int4 */
 * define operator ## (arg2 = int4,
@@ -2758,7 +2765,9 @@ attribute values from each instance.
 is an example of this kind of aggregate.  
 .q "Sum"
 starts at zero and always adds the current instance's value to its
-running total.
+running total.  We will use the
+.cW int4pl
+that is built into \*(PP to perform this addition.
 .(C
 * define aggregate my_sum (sfunc1 = int4pl, /* addition */
                            basetype = int4, 
@@ -2783,7 +2792,10 @@ is independent of the attribute values from each instance.
 is the most common example of this kind of aggregate.
 .q Count
 starts at zero and adds one to its running total for each instance,
-ignoring the instance value.
+ignoring the instance value.  Here, we use the built-in 
+.cW int4inc
+routine to do the work for us.  This routine increments (adds one to)
+its argument.
 .(C
 * define aggregate my_count (sfunc2 = int4inc, /* add one */
                              stype2 = int4,
@@ -2800,11 +2812,16 @@ emp_count
 .TE
 .)T
 .q Average
-is an example of an aggregate that requires both a function that
-computes the running sum and a function that computes the running
-count.  When all of the instances have been processed, the final
-answer for the aggregate is the running sum divided by the running
-count. 
+is an example of an aggregate that requires both a function to compute
+the running sum and a function to compute the running count.  When all
+of the instances have been processed, the final answer for the
+aggregate is the running sum divided by the running count.  We use the
+.cW int4pl
+and
+.cW int4inc
+routines we used before as well as the \*(PP integer division routine,
+.cW int4div ,
+to compute the division of the sum by the count.
 .(C
 * define aggregate my_average (sfunc1 = int4pl, /* sum */
                                basetype = int4,
@@ -3182,7 +3199,7 @@ and
 .cW pg_opclass ).
 Unfortunately, there is no simple command to do this.  We will
 demonstrate how to modify these catalogs through a running example: a
-new operator class to the B-tree access method that sorts integers in
+new operator class for the B-tree access method that sorts integers in
 ascending absolute value order.
 .lp
 The
@@ -4038,6 +4055,30 @@ every night or so (perhaps in a script that is executed by the \*(UU
 or
 .cW at (1) 
 commands).
+.lp
+.b "Do frequent backups" .
+That is, you should either back up your database directories using the
+\*(PP
+.b copy
+command and/or the \*(UU
+.cW dump (1)
+or
+.cW tar (1)
+commands.  You may think, 
+.q "Why am I backing up my database?  What about crash recovery?"
+One side effect of the \*(PP 
+.q "no overwrite"
+storage manager is that it is also a 
+.q "no log"
+storage manager.  That is, the database log stores only abort/commit
+data, and this is not enough information to recover the database if
+the storage medium (disk) or the database files are corrupted!  In
+other words, if a disk block goes bad or \*(PP happens to corrupt a
+database file, 
+.b "you cannot recover that file" .
+This can be disastrous if the file is one of the shared catalogs, such
+as 
+.cW pg_database .
 .\"------------------------------------
 .sh 3 "Tuning"
 .lp
@@ -4102,12 +4143,18 @@ form, e.g.,
 .(C
 where A.a = B.b and B.b = C.c and ...
 .)C
-rather than in a 
+Notice that relatively few clauses refer to a given class and
+attribute; the clauses form a linear sequence connecting the
+attributes, like links in a chain.  This is preferable to a query
+written in a
 .q star
-form such as
+form, such as
 .(C
 where A.a = B.b and A.a = C.c and ...
 .)C
+Here, many clauses refer to the same class and attribute (in this
+case,
+.cW A.a ).
 When presented with a query of this form, the \*(PP query optimizer
 will tend to consider far more choices than it should and may run out
 of memory.
@@ -4123,7 +4170,10 @@ with the
 .cW -t
 option.  The format in which query plans will be printed is hard to
 read but you should be able to tell whether any index scans are being
-performed.
+performed.  See the Reference Manual under
+.b postgres
+and 
+.b postmaster .
 .\"------------------------------------
 .bp
 .HL
@@ -4135,7 +4185,70 @@ all of the following actions.
 .\"------------------------------------
 .sh 3 "Cleaning Up After Crashes"
 .lp
-You may have occasion to run the
+The 
+.cW postgres
+server and the
+.cW postmaster
+run as two different processes.  They may crash separately or
+together.  The housekeeping procedures required to fix one kind of
+crash are different from those required to fix the other.
+.lp
+The message you will usually see when the backend server crashes is:
+.(C
+FATAL: no response from backend: detected in ...
+.)C
+This generally means one of two things: there is a bug in the \*(PP
+server, or there is a bug in some user code that has been dynamically
+loaded into \*(PP.  You should be able to restart your application and
+resume processing, but there are some considerations:
+.np
+\*(PP usually dumps a core file (a snapshot of process memory used for
+debugging) in the database directory
+.(C
+/usr/local/postgres/data/base/<database>/core
+.)C
+on the server machine.  If you don't want to try to debug the problem
+or produce a stack trace to report the bug to someone else, you can
+delete this file (which is probably around 10MB).
+.np
+When one backend crashes in an uncontrolled way (i.e., without calling
+its built-in cleanup routines), the 
+.cW postmaster
+will detect this situation, kill all running servers and reinitialize
+the state shared among all backends (e.g., the shared buffer pool and
+locks).  If your server crashed, you will get the 
+.q "no response" 
+message shown above.  If your server was killed because someone else's
+server crashed, you will see the following message:
+.(C
+I have been signalled by the postmaster.
+Some backend process has died unexpectedly and possibly
+corrupted shared memory.  The current transaction was
+aborted, and I am going to exit.  Please resend the
+last query. -- The postgres backend
+.)C
+.np
+Sometimes shared state is not completely cleaned up.  Frontend
+applications may see errors of the form:
+.(C
+WARN:Mar 11 14:41:29: cannot write block 34 of myclass [mydb] blind
+.)C
+In this case, you should kill the 
+.cW postmaster
+and restart it.
+.lp
+The
+.cW postmaster
+does not usually crash (it doesn't do very much except start servers)
+but it does happen on occasion.  In addition, there are a few cases
+where it encounters problems during the reinitialization of shared
+resources.  Specifically, there are race conditions where the
+operating system lets the
+.cW postmaster
+free shared resources but then will not permit it to reallocate the
+same amount of shared resources (even when there is no contention).
+.lp
+You will typically have to run the
 .cW ipcclean
 command if system errors cause the
 .cW postmaster
