@@ -438,7 +438,6 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
     char id[2];
     char errormsg[error_msg_length];
     char command[command_length];
-    char PQcommand[command_length+1];
     void EstablishComm();
     int  actual_len;
     short i;
@@ -565,7 +564,6 @@ PQfsread(fd, buf, nbytes)
     char id[2];
     char errormsg[error_msg_length];
     char command[command_length];
-    char PQcommand[command_length+1];
     void EstablishComm();
     int  actual_len;
     short i;
@@ -674,7 +672,6 @@ PQfswrite(fd, buf, nbytes)
     char id[2];
     char errormsg[error_msg_length];
     char command[command_length];
-    char PQcommand[command_length+1];
     void EstablishComm();
     int  actual_len;
     short i;
@@ -786,7 +783,7 @@ PQexec(query)
     char id[2];
     char errormsg[error_msg_length];
     char command[command_length];
-    char PQcommand[command_length+1];
+    static char PQcommand[command_length+1];
     void EstablishComm();
 
     /* If the communication is not established, establish it. */
