@@ -34,38 +34,54 @@ CMDNAME=`basename $0`
 TMPFILE=/tmp/rebuild.$$
 
 DBNAME=$1
+if [ -z "$DBNAME" ]; then
+    echo "Usage: $CMDNAME database"
+    exit 1
+fi
 
 TEMPLATE=$FILESDIR/local1_template1.bki
-if [ ! -f $TEMPLATE ]
-then
+if [ ! -f $TEMPLATE ]; then
     echo "$CMDNAME: error: database initialization files not found."
-    echo "$CMDNAME: either bmake install has not been run or you're trying to"
+    echo "$CMDNAME: Either bmake install has not been run or you're trying to"
     echo "$CMDNAME: run this program on a machine that does not store the"
     echo "$CMDNAME: database (PGHOST doesn't work for this)."
     exit 1
 fi
 
-echo "$CMDNAME: this command will destroy and attempt to rebuild the system"
+echo "$CMDNAME: This command will destroy and attempt to rebuild the system"
 echo "$CMDNAME: catalog indices for the database stored in the directory"
-echo "$CMDNAME: $PGDATA/base/$DBNAME"
+echo "$CMDNAME: $PGDATA/base/$DBNAME."
 echo _fUnKy_DASH_N_sTuFf_ "Are you sure you want to do this (y/n) [n]? "_fUnKy_BACKSLASH_C_sTuFf_
-read resp || exit
+read resp || exit 0
 case $resp in
-	y*)	: ;;
-	*)	exit ;;
+   y*)	: ;;
+   *)	exit 0;;
 esac
+
+echo "$CMDNAME: WARNING!  You MUST kill the postmaster daemon running on"
+echo "$CMDNAME: this database before attempting to rebuild catalogs!"
+echo _fUnKy_DASH_N_sTuFf_ "Have you done this yet (y/n) [n]? "_fUnKy_BACKSLASH_C_sTuFf_
+read resp || exit 0
+case $resp in
+   y*)	: ;;
+   *)	exit 0;;
+esac
+
+echo "$CMDNAME: Working..."
 
 echo "destroy indices" > $TMPFILE
 egrep '(declare|build) ind' $TEMPLATE >> $TMPFILE
 
 postgres -boot -COQ -ami $DBNAME < $TMPFILE
 
-if (test $? -ne 0)
-then
-    echo "$CMDNAME: index rebuild failed."
-    exit 1;
+if [ $? -ne 0 ]; then
+    echo "$CMDNAME: Index rebuild failed.  Your .bki files or the base"
+    echo "$CMDNAME: system catalog tables may be damaged."
+    exit 1
 fi
 
 rm -f $TMPFILE
+
+echo "$CMDNAME: Done."
 
 exit 0
