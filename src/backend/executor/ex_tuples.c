@@ -714,6 +714,7 @@ ExecSlotDescriptorIsNew(slot)
     SetSlotContents((TupleTableSlot) slot, NULL); \
     SetSlotShouldFree((TupleTableSlot) slot, true); \
     SetSlotTupleDescriptor((TupleTableSlot) slot, (TupleDescriptor) NULL); \
+    SetSlotWhichPlan((TupleTableSlot) slot, -1); \
     SetSlotTupleDescriptorIsNew((TupleTableSlot) slot, true)
     
 /* ----------------

@@ -72,16 +72,17 @@ List
 exec_append_initialize_next(node)
     Append      node;
 {
-    EState      estate;
-    AppendState unionstate;
-    List        rangeTable;
+    EState         estate;
+    AppendState    unionstate;
+    TupleTableSlot result_slot;
+    List           rangeTable;
     
-    int         whichplan;
-    int         nplans;
-    List        rtentries;
-    List        rtentry;
+    int            whichplan;
+    int            nplans;
+    List           rtentries;
+    List           rtentry;
     
-    Index       unionrelid;
+    Index          unionrelid;
     
     /* ----------------
      *  get information from the append node
@@ -89,6 +90,7 @@ exec_append_initialize_next(node)
      */
     estate =    (EState) get_state((Plan) node);
     unionstate =         get_unionstate(node);
+    result_slot =        get_cs_ResultTupleSlot((CommonState) unionstate);
     rangeTable =         get_es_range_table(estate);
     
     whichplan = get_as_whichplan(unionstate);
@@ -119,7 +121,7 @@ exec_append_initialize_next(node)
     } else {
         /* ----------------
          *      initialize the scan
-         *      (and update the range table appropritately)
+         *      (and update the range table appropriately)
          * ----------------
          */
 	if (get_unionrelid(node) > 0) {
@@ -129,6 +131,7 @@ exec_append_initialize_next(node)
 	  
 	    unionrelid = get_unionrelid(node);
 	    rt_store(unionrelid, rangeTable, rtentry);
+	    set_ttc_whichplan( result_slot, whichplan );
 	}
       
 	return LispTrue;
@@ -169,6 +172,7 @@ ExecInitAppend(node, estate, parent)
     int         i;
     Plan        initNode;
     List        result;
+    List        junkList;
     int         baseid;
     
     /* ----------------
@@ -213,12 +217,38 @@ ExecInitAppend(node, estate, parent)
      */
     ExecInitResultTupleSlot(estate, (CommonState) unionstate);
     
+    if (get_es_result_relation_info(estate))
+    {
+	RelationInfo rri;
+	RelationInfo es_rri = get_es_result_relation_info(estate);
+	List         resultList = LispNil;
+	List         rtentryP;
+
+	foreach(rtentryP,rtentries)
+	{
+	    ObjectId reloid;
+	    List     rtentry = CAR(rtentryP);
+
+	    reloid = CInteger(rt_relid(rtentry));
+	    rri = MakeRelationInfo(get_ri_RangeTableIndex(es_rri),
+				   heap_open(reloid),
+				   0,		/* num indices */
+				   NULL,	/* index descs */
+				   NULL);	/* index key info */
+	    resultList = nappend1(resultList, rri);
+	    ExecOpenIndices(reloid, rri);
+	}
+	set_es_result_relation_info_list(estate, resultList);
+    }
     /* ----------------
      *  call ExecInitNode on each of the plans in our list
      *  and save the results into the array "initialized"
      * ----------------
      */       
+    junkList = LispNil;
     for(i = 0; i < nplans ; i++ ) {
+	JunkFilter j;
+	List       targetList;
         /* ----------------
          *  NOTE: we first modify range table in 
          *        exec_append_initialize_next() and
@@ -234,8 +264,16 @@ ExecInitAppend(node, estate, parent)
 	
         initialized[i] = result;
 	
-        /* was: vset(initialized, i, ExecInitNode(nth(i,plans), level)); */
+	/* ---------------
+	 *  Each targetlist in the subplan may need its own junk filter
+	 * ---------------
+	 */
+	targetList = get_qptargetlist(initNode);
+	j = (JunkFilter) ExecInitJunkFilter(targetList);
+	junkList = nappend1(junkList, j);
+
     }
+    set_es_junkFilter_list(estate, junkList);
     
     /* ----------------
      *	initialize the return type from the appropriate subplan.
