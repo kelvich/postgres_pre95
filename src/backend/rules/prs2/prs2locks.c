@@ -211,9 +211,13 @@ RuleLock locks;
  * prs2GetLocksFromTuple
  *
  * Extract the locks from a tuple. It returns a 'RuleLock',
- * (NOTE:it will never return NULL! Even if the tuple has no
+ *
+ * NOTE 1:it will never return NULL! Even if the tuple has no
  * locks in it, it will return a 'RuleLock' with 'numberOfLocks'
- * equal to 0.
+ * equal to 0.)
+ *
+ * NOTE 2: The lock returned is a COPY, so it can and must be pfreed!
+ * (otherwise we will have memory leaks!)
  *
  */
 
@@ -223,38 +227,7 @@ HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupleDescriptor;
 {
-    
-    RuleLock locks;
-    RuleLock t;
-    int n;
-
-
-    t = HeapTupleGetRuleLock(tuple, buffer);
-
-#ifdef MEMORY_LEAK
-	/* 
-	 * If we got an empty lock, return it.  Otherwise, we have one too many
-	 * palloc's and we'll drop the space for the empty lock on the floor.
-	 * 
-	 * Anyway, an empty lock means that the rule system should do nothing.
-	 */
-
-	if (prs2GetNumberOfLocks(t) == 0)
-	{
-		locks = t;
-	}
-	else
-	{
-    	/*
-     	 * Make a copy of the locks
-     	 */
-    	locks = prs2CopyLocks(t);
-	}
-#else
-    locks = prs2CopyLocks(t);
-#endif MEMORY_LEAK
-
-    return(locks);
+    return(HeapTupleGetRuleLock(tuple, buffer));
 }
  
 /*------------------------------------------------------------------
