@@ -183,6 +183,15 @@ extern void		btreerescan();
 extern void		btreeendscan();
 
 /*
+ *	RTree code.
+ *	Defined in access/index-rtree/
+ */
+extern char		*rtreeinsert();
+extern char		*rtreedelete();
+extern char		*rtreegetnext();
+extern void		rtreebuild();
+
+/*
  *	Functional B-tree code.
  *	Defined in ftree/
  */
