@@ -105,6 +105,8 @@ cnfify (qual, removeAndFlag)
 	      newqual=remove_ands(make_andclause(lispCons(newqual,LispNil)));
 	}
     }
+    else if ( !lispNullp(qual) )
+	newqual = lispCons(qual, LispNil);
 
     return (newqual);
 
