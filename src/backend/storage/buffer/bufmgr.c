@@ -956,12 +956,9 @@ Buffer
 BufferDescriptorGetBuffer(descriptor)
     BufferDesc *descriptor;
 {
-    
-    if (BufferDescriptorIsValid(descriptor))
-        return(1+descriptor - BufferDescriptors);
+    Assert(BufferDescriptorIsValid(descriptor));
 
-    elog(WARN,"Invalid bufferDescriptor\n");
-    return (-1);
+    return(1+descriptor - BufferDescriptors);
 }
 
 void
