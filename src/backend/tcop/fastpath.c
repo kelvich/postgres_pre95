@@ -53,7 +53,7 @@
  *	external_to_internal
  * ----------------
  */
-int
+static int
 external_to_internal( string )
      char *string;
 {
@@ -64,7 +64,7 @@ external_to_internal( string )
  *	internal_to_external
  * ----------------
  */
-char * 
+static char * 
 internal_to_external( string )
      char *string;
 {
@@ -75,7 +75,7 @@ internal_to_external( string )
  *	SendFunctionResult
  * ----------------
  */
-void
+static void
 SendFunctionResult ( fid, retval, rettype )
      int fid;
      char *retval;
@@ -172,6 +172,7 @@ SendFunctionResult ( fid, retval, rettype )
  * ----------------
  */
 
+int
 HandleFunctionRequest()
 {
     int xactid;

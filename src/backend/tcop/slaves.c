@@ -35,15 +35,17 @@
  * ----------------
  */
 #include "tcop/tcopdebug.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
+#include "executor/execdesc.h"
+#include "tcop/dest.h"
+#include "tcop/pquery.h"
 #include "tcop/slaves.h"
 
 #include "access/xact.h"
 #include "utils/log.h"
 #include "catalog/syscache.h"
-#include "executor/execdesc.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
 
 /* ----------------
  *	parallel state variables
@@ -409,7 +411,6 @@ SlaveBackendsInit()
     int nslaves;		/* number of slaves */
     int i;			/* counter */
     int p;			/* process id returned by fork() */
-    int paradj_handler(); 	/* intr handler for adjusting parallelism */
     extern int ProcessAffinityOn; /* process affinity on flag */
     
     /* ----------------

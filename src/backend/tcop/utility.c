@@ -33,11 +33,11 @@
  */
 #include "tcop/tcopdebug.h"
 
-#include "tcop/dest.h"
 #include "parser/parse.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 
 #include "tmp/globals.h"
 

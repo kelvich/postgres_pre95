@@ -33,8 +33,6 @@ RcsId("$Header$");
  */
 #include "tcop/tcopdebug.h"
 
-#include "tcop/dest.h"
-#include "commands/command.h"
 #include "parser/parse.h"
 #include "parser/parsetree.h"
 #include "utils/log.h"
@@ -51,12 +49,15 @@ RcsId("$Header$");
 #include "nodes/execnodes.a.h"
 #include "nodes/mnodes.h"
 
+#include "tcop/dest.h"
+#include "commands/command.h"
+
 #include "executor/execdefs.h"
 #include "executor/execmisc.h"
-
 #include "executor/x_execmain.h"
-
-extern List MakeList();
+#include "tcop/pfrag.h"
+#include "tcop/pquery.h"
+#include "lib/lisplist.h"
 
 /* ----------------------------------------------------------------
  *	MakeQueryDesc is a utility used by ProcessQuery and
@@ -67,7 +68,7 @@ List
 MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
     List  	operation;
     List  	parsetree;
-    List  	plantree;
+    Plan  	plantree;
     List  	state;
     List  	feature;
     CommandDest dest;
@@ -90,7 +91,7 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
 List
 CreateQueryDesc(parsetree, plantree, dest)
     List 	parsetree;
-    List 	plantree;
+    Plan 	plantree;
     CommandDest dest;
 {
     return MakeQueryDesc(CAR(CDR(CAR(parsetree))), 	/* operation */
@@ -450,8 +451,6 @@ ProcessQuery(parsertree, plan, dest)
  *	explore inter-query parallelism.
  * ----------------------------------------------------
  */
-extern Fragment InitialPlanFragments();
-extern void OptimizeAndExecuteFragments();
 
 void
 ParallelProcessQueries(parsetree_list, plan_list, dest)

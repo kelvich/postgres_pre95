@@ -24,13 +24,15 @@
 
 RcsId("$Header$");
 
-#include "tcop/dest.h"
 #include "parser/parse.h"
+#include "access/htup.h"
 #include "tmp/libpq-be.h"
+#include "access/printtup.h"
 #include "tmp/portal.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 
 #include "catalog/pg_type.h"
 
@@ -44,14 +46,6 @@ donothing(tuple, attrdesc)
     List attrdesc;
 {
 }
-
-/* ----------------
- * 	DestToFunction - return the proper "output" function for dest
- * ----------------
- */
-extern void debugtup();
-extern void printtup();
-extern void be_printtup();
 
 void
 (*DestToFunction(dest))()
@@ -281,4 +275,3 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
 	break;
     }
 }
-

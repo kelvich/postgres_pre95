@@ -42,7 +42,7 @@
  *	ValidateParsedQuery
  * ----------------
  */
-void
+static void
 ValidateParsedQuery(parse)
     List	parse;
 {
@@ -57,7 +57,7 @@ ValidateParsedQuery(parse)
  *	ValidateUtility
  * ----------------
  */
-void
+static void
 ValidateUtility(command, args)
 	int		command;	/* "tag" */
 	LispValue	args;
@@ -284,9 +284,9 @@ ValidateUtility(command, args)
 		AssertArg(lispStringp(CADR(args)));
 		AssertArg(lispStringp(CADDR(args)));
 		if (len == 3) {
-			NameIsEqual(CString(CAR(args)), "RELATION");	/*XXX*/
+			NameIsEqual((Name)CString(CAR(args)), (Name)"RELATION");
 		} else {
-			NameIsEqual(CString(CAR(args)), "ATTRIBUTE");	/*XXX*/
+			NameIsEqual((Name)CString(CAR(args)),(Name)"ATTRIBUTE");
 			AssertArg(lispStringp(CADDR(CDR(args))));
 		}
 	}

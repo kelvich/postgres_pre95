@@ -50,7 +50,6 @@ RcsId("$Header$");
 #include "access/tqual.h"
 
 #include "commands/copy.h"
-#include "tcop/dest.h"
 #include "storage/buf.h"
 #include "storage/itemptr.h"
 #include "tmp/miscadmin.h"
@@ -62,6 +61,7 @@ RcsId("$Header$");
 #include "utils/rel.h"
 
 #include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 #include "commands/command.h"
 
 #include "catalog/catname.h"
@@ -258,7 +258,7 @@ PerformPortalClose(name, dest)
  * 	FixDomainList
  * --------------------------------
  */
-List
+static List
 FixDomainList(domains)
     List	domains;
 {

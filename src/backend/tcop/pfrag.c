@@ -15,29 +15,33 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
+#include <signal.h>
+#include "tmp/postgres.h"
 #include "tcop/tcopdebug.h"
 #include "tcop/slaves.h"
 #include "nodes/pg_lisp.h"
-#include "nodes/execnodes.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"
-#include "nodes/plannodes.a.h"
 #include "executor/execmisc.h"
 #include "executor/x_execinit.h"
 #include "executor/x_hash.h"
 #include "tcop/dest.h"
+#include "tmp/portal.h"
+#include "commands/command.h"
 #include "parser/parsetree.h"
 #include "storage/lmgr.h"
 #include "catalog/pg_relation.h"
 #include "utils/lsyscache.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+#include "nodes/relation.h"
+#include "lib/copyfuncs.h"
+#include "lib/catalog.h"
+#include "tcop/pquery.h"
 
  RcsId("$Header$");
-
-extern ScanTemps RMakeScanTemps();
-extern Fragment RMakeFragment();
-extern Relation CopyRelDescUsing();
 
 int AdjustParallelismEnabled = 1;
 
@@ -50,7 +54,7 @@ int AdjustParallelismEnabled = 1;
  *	blocking edges, i.e., edges out of Hash nodes and Sort nodes
  * ------------------------------------
  */
-List
+static List
 FindFragments(parsetree, node, fragmentNo)
 List parsetree;
 Plan node;
@@ -161,7 +165,7 @@ extern int NBuffers;
  *	get the current amount of available memory
  * -----------------------------
  */
-int
+static int
 GetCurrentMemSize()
 {
    return NBuffers;  /* YYY functionalities to be added later */
@@ -173,7 +177,7 @@ GetCurrentMemSize()
  *	get the current load average of the system
  * -----------------------------
  */
-float
+static float
 GetCurrentLoadAverage()
 {
     return 0.0;  /* YYY functionalities to be added later */
@@ -186,7 +190,7 @@ GetCurrentLoadAverage()
  *	have no children
  * ------------------------------
  */
-List
+static List
 GetReadyFragments(fragments)
 Fragment fragments;
 {
@@ -212,7 +216,7 @@ Fragment fragments;
  *	get the set of fragments that can fit in the current available memory
  * ---------------------------------
  */
-List
+static List
 GetFitFragments(fragmentlist, memsize)
 List fragmentlist;
 int memsize;
@@ -227,7 +231,7 @@ int memsize;
  *	of memory
  * ----------------------------------
  */
-List
+static List
 DecomposeFragments(fragmentlist, memsize)
 List fragmentlist;
 int memsize;
@@ -242,7 +246,7 @@ int memsize;
  *	to execute in parallel
  * -----------------------------------
  */
-List
+static List
 ChooseToFire(fragmentlist, memsize)
 List fragmentlist;
 int memsize;
@@ -257,7 +261,7 @@ int memsize;
  *	choose the fragments to execute in parallel
  * -----------------------------------
  */
-List
+static List
 ChooseFragments(fragments, memsize)
 Fragment fragments;
 int memsize;
@@ -284,7 +288,7 @@ int memsize;
  *	set the degree of parallelism for fragments in fragmentlist
  * ------------------------------
  */
-void
+static void
 SetParallelDegree(fragmentlist, nfreeslaves)
 List fragmentlist;
 int nfreeslaves;
@@ -323,7 +327,7 @@ Plan plan;
 	LispValue x;
 	NameData opname;
 	Oper op;
-	indxqual = get_indxqual(plan);
+	indxqual = get_indxqual((IndexScan)plan);
 	if (length(CAR(indxqual)) < 2)
 	    return false;
 	foreach (x, CAR(indxqual)) {
@@ -347,7 +351,7 @@ Plan plan;
  *	
  * ----------------------------------------------------------------
  */
-List
+static List
 ParallelOptimize(fragmentlist)
 List fragmentlist;
 {
@@ -407,7 +411,7 @@ static IpcMemoryKey nextHashTableMemoryKey = 0;
  *	get the next hash table key
  * -------------------------
  */
-IpcMemoryKey
+static IpcMemoryKey
 getNextHashTableMemoryKey()
 {
     extern int MasterPid;
@@ -450,7 +454,7 @@ Plan plan;
  *	are already in process to take advantage of the extra processors
  * ------------------------
  */
-void
+static void
 AdjustParallelism(pardelta, notgroupid)
 int pardelta;
 int notgroupid; /* do not adjust this proc group */
@@ -523,7 +527,7 @@ int notgroupid; /* do not adjust this proc group */
             addSlaveToProcGroup(slave, i, oldnproc+j);
 	    V_Start(slave);
           }
-        ProcGroupSMEndAlloc(i);
+        ProcGroupSMEndAlloc();
       }
     else {
         ProcGroupInfoP[i].newparallel = ProcGroupInfoP[i].nprocess + pardelta;
@@ -598,10 +602,10 @@ CommandDest	destination;
 	       * ------------
 	       */
 	      hashTableMemoryKey = getNextHashTableMemoryKey();
-	      set_hashtablekey(plan, hashTableMemoryKey);
+	      set_hashtablekey((Hash)plan, hashTableMemoryKey);
 	      hashtable = ExecHashTableCreate(plan);
-	      set_hashtable(plan, hashtable);
-	      hashTableMemorySize = get_hashtablesize(plan);
+	      set_hashtable((Hash)plan, hashtable);
+	      hashTableMemorySize = get_hashtablesize((Hash)plan);
 	      parse_tree_result_relation(parsetree) = LispNil;
 	      }
 	   else if (get_fragment(plan) >= 0) {
@@ -629,7 +633,7 @@ CommandDest	destination;
 	   ProcGroupInfoP[groupid].status = WORKING;
 	   ProcGroupSMBeginAlloc(groupid);
 	   ProcGroupInfoP[groupid].queryDesc = (List)
-			CopyObjectUsing(fragQueryDesc, ProcGroupSMAlloc);
+			CopyObjectUsing((Node)fragQueryDesc, ProcGroupSMAlloc);
 	   size = sizeofTmpRelDesc(plan);
 	   for (p = ProcGroupLocalInfoP[groupid].memberProc;
 		p != NULL;
@@ -791,10 +795,10 @@ MasterWait:
 	    *  if it is hashjoin, let the parent know where the hash table is
 	    * ----------------
 	    */
-	   set_hashjointable(parentPlan, hashtable);
-	   set_hashjointablekey(parentPlan, hashTableMemoryKey);
-	   set_hashjointablesize(parentPlan, hashTableMemorySize);
-	   set_hashdone(parentPlan, true);
+	   set_hashjointable((HashJoin)parentPlan, hashtable);
+	   set_hashjointablekey((HashJoin)parentPlan, hashTableMemoryKey);
+	   set_hashjointablesize((HashJoin)parentPlan, hashTableMemorySize);
+	   set_hashdone((HashJoin)parentPlan, true);
 	  }
        else {
 	   List unionplans = LispNil;
@@ -808,12 +812,12 @@ MasterWait:
 	       List	tempRelDescs;
 	       LispValue y;
 
-	       tempRelDescs = get_temprelDescs(plan);
+	       tempRelDescs = get_temprelDescs((ScanTemps)plan);
 	       foreach (y, tempRelDescs) {
 		   tempreldesc = (Relation)CAR(y);
 		   ReleaseTmpRelBuffers(tempreldesc);
 		   if (FileNameUnlink(
-			  relpath(&(tempreldesc->rd_rel->relname))) < 0)
+			  relpath((char*)&(tempreldesc->rd_rel->relname))) < 0)
 		       elog(WARN, "ExecEndScanTemp: unlink: %m");
 		}
 	     }
@@ -844,22 +848,23 @@ MasterWait:
 						 tempRelationDesc);
 		 }
 	      scantempNode = RMakeScanTemps();
-	      set_qptargetlist(scantempNode, get_qptargetlist(plan));
+	      set_qptargetlist((Plan)scantempNode, get_qptargetlist(plan));
 	      set_temprelDescs(scantempNode, tempRelationDescList);
 	      if (parentPlan == NULL) {
-		 set_frag_root(fragment, scantempNode);
+		 set_frag_root(fragment, (Plan)scantempNode);
 		 set_frag_subtrees(fragment, LispNil);
-		 set_fragment(scantempNode,-1);/*means end of parallelism */
+		 set_fragment((Plan)scantempNode,-1);
+					    /*means end of parallelism */
 		 set_frag_is_inprocess(fragment, false);
 		}
 	      else {
-	      if (plan == (Plan)get_lefttree(parentPlan)) {
-		 set_lefttree(parentPlan, scantempNode);
+	      if (plan == get_lefttree(parentPlan)) {
+		 set_lefttree(parentPlan, (Plan)scantempNode);
 		}
 	      else {
-		 set_righttree(parentPlan, scantempNode);
+		 set_righttree(parentPlan, (Plan)scantempNode);
 		}
-	      set_fragment(scantempNode, get_fragment(parentPlan));
+	      set_fragment((Plan)scantempNode, get_fragment(parentPlan));
 	      }
 	   }
          }
