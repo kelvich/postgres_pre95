@@ -261,11 +261,19 @@ RelationIdGetRelation(relationId)
 
 	rd = (Relation)KeyHashTableLookup(RelationCacheHashById,relationId);
 	if (RelationIsValid(rd)) {
-		if (rd->rd_fd == -1) {
-			rd->rd_fd = relopen(&rd->rd_rel->relname,
-					O_RDWR|O_CREAT, 0666);
-			Assert(rd->rd_fd != -1);
-		}
+#ifdef _xprs_
+        if (rd -> rd_fd.fd[0] == -1) {
+#else                           /* _xprs_ */
+            if (rd -> rd_fd == -1) {
+#endif                          /* _xprs_ */
+                rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
+                        O_RDWR | O_CREAT, 0666);
+#ifdef _xprs_
+                Assert (rd -> rd_fd.fd[0] != -1);
+#else                           /* _xprs_ */
+                Assert (rd -> rd_fd != -1);
+#endif                          /* _xprs_ */
+            }
 		RelationIncrementReferenceCount(rd);
 
 		RelationSetLockForDescriptorOpen(rd);
@@ -336,11 +344,19 @@ getreldesc(relationName)
 	} else
 		elog(NOIND,"rd = %x",rd);)
 	if (RelationIsValid(rd)) {
-		if (rd->rd_fd == -1) {
-			rd->rd_fd = relopen(&rd->rd_rel->relname,
-					O_RDWR|O_CREAT, 0666);
-			Assert(rd->rd_fd != -1);
-		}
+#ifdef _xprs_
+            if (rd -> rd_fd.fd[0] == -1) {
+#else                           /* _xprs_ */
+                if (rd -> rd_fd == -1) {
+#endif                          /* _xprs_ */
+                    rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
+                            O_RDWR | O_CREAT, 0666);
+#ifdef _xprs_
+                    Assert (rd -> rd_fd.fd[0] != -1);
+#else                           /* _xprs_ */
+                    Assert (rd -> rd_fd != -1);
+#endif                          /* _xprs_ */
+                }
 		RelationIncrementReferenceCount(rd);
 		DO_DB(elog(NOIND,"getreldesc: found %s hashed", relationName));
 		OUT();
@@ -419,8 +435,13 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	fd = relopen(&((RelationTupleForm)GETSTRUCT(tuple))->relname, O_RDWR,
 		0666);
 
-	Assert(fd >= -1);
-	if (fd == -1) {
+#ifdef _xprs_
+            Assert (fd.fd[0] >= -1);
+            if (fd.fd[0] == -1) {
+#else                           /* _xprs_ */
+                Assert (fd >= -1);
+                if (fd == -1) {
+#endif                          /* _xprs_ */
 	    elog(NOTICE, "BuildRelation: relopen(%s): %m",
 		 &((RelationTupleForm)GETSTRUCT(tuple))->relname);
 	}
@@ -781,7 +802,18 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 		HashTableDelete(RelationCacheHashByName,relation);
 		HashTableDelete(RelationCacheHashById,relation);
 
+#ifdef _xprs_
+{		File fd;
+		fd = RelationGetSystemPort(relation);
+		if (fd.is_sys)
+		   FileClose(fd.fd[0]);
+		else
+		   for (i=0; i<NSTRIPING; i++)
+		       FileClose(fd.fd[i]);
+}
+#else /* _xprs_ */
 		FileClose(RelationGetSystemPort(relation));
+#endif /* _xprs_ */
 
 		i = relation->rd_rel->relnatts - 1;
 		p = &relation->rd_att.data[i];
@@ -901,10 +933,26 @@ int	mode;
 	DO_DB(elog(NOIND,"relopen: %s (%s)",relationName,relpath(relationName)));
 
 	oumask = umask(0077);
+#ifdef _xprs_
+{	int i;
+	if (issystem(relationName))  { /* system relations are not striped */
+	   file.is_sys = true;
+	   file.fd[0] = FileNameOpenFile(relpath(relationName,0), flags, mode);
+	   }
+	else {
+	 file.is_sys = false;
+	 for (i=0; i<NSTRIPING; i++)
+	   file.fd[i] = FileNameOpenFile(relpath(relationName,i), flags, mode);
+	 }
+}
+	if (file.fd[0] == -1) 
+	  elog(NOTICE, "Unable too open %s (%d)", relpath(relationName,0), errno);
+#else /* _xprs_ */
 	file = FileNameOpenFile(relpath(relationName), flags, mode);
-	umask(oumask);
 	if (file == -1) 
-		elog(NOTICE, "Unable too open %s (%d)", relpath(relationName), errno);
+	   elog(NOTICE, "Unable too open %s (%d)", relpath(relationName), errno);
+#endif /* _xprs_ */
+	umask(oumask);
 	OUT();
 	return (file);
 }
@@ -923,7 +971,7 @@ formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	int		i;
 /*	struct	attribute *attp; */
 	char		*relpath();
-	int		relopen();
+	File		relopen();
 	Relation	publicCopy;
 
 	DO_DB(elog(NOIND,"formrdesc: %s",relationName));
@@ -931,7 +979,11 @@ formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	len = sizeof *relation + ((int)natts - 1) * sizeof relation->rd_att;
 	relation = (Relation)palloc(len);
 	bzero((char *)relation, len);
+#ifdef _xprs_
+	relation->rd_fd.fd[0] = -1;
+#else /* _xprs_ */
 	relation->rd_fd = -1;
+#endif /* _xprs_ */
 	RelationSetReferenceCount(relation, 1);
 	relation->rd_rel = (RelationTupleForm)palloc(sizeof (RuleLock) +
 		sizeof *relation->rd_rel);
