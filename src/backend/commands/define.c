@@ -82,16 +82,7 @@ DefineFunction(name, parameters)
     AssertArg(NameIsValid(name));
     AssertArg(listp(parameters));
     
-    /* ----------------
-     * handle "[ language = X ]"
-     * ----------------
-     */
-    entry = DefineListRemoveOptionalAssignment(&parameters, "language");
-    if (null(entry)) {
-	languageName = FetchDefault("language", "C");
-    } else {
-	languageName = DefineEntryGetString(entry);
-    }
+    languageName = FetchDefault("language", "C");
     
     /* ----------------
      * handle "file = X"
