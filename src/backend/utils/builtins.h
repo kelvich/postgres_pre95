@@ -177,9 +177,9 @@ extern int		rt_poly_size();
 extern POLYGON	*rt_poly_union();
 extern POLYGON	*rt_poly_inter();
 
-/* rule locks */
-extern Datum GetAttributeByName();
-extern Datum GetAttributeByNum();
+/* projection utilities */
+extern char *GetAttributeByName();
+extern char *GetAttributeByNum();
 
 
 extern int32 pqtest();
