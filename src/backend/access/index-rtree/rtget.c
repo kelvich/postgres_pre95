@@ -176,7 +176,7 @@ rtnext(s, dir)
 	    else
 		n = stk->rts_child + 1;
 	    so->s_stack = stk->rts_parent;
-	    free ((char *) stk);
+	    pfree ((char *) stk);
 
 	    n = findnext(s, p, n, dir);
 	}
