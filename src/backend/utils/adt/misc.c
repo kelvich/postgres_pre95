@@ -54,6 +54,9 @@ userfntest(i)
 {
     int small;
 
+    if (i == 200)
+	return mao_flush();
+
     if (i >= 100) {
 	i -= 100;
 	small = 1;
@@ -613,5 +616,37 @@ myShowUsage()
 	r.ru_stime.tv_sec - Save_r.ru_stime.tv_sec,
 	r.ru_stime.tv_usec - Save_r.ru_stime.tv_usec);
     fflush(stdout);
+}
+
+int
+mao_flush()
+{
+    int fd;
+    int nbytes;
+    struct varlena *buf;
+
+    if ((fd = LOopen("mao_nfs", INV_READ, Inversion)) < 0) {
+	elog(WARN, "benchmark: cannot open %s", FILENAME);
+    }
+
+    /* start of file, please */
+    if (LOlseek(fd, 0, L_SET) != (off_t) 0) {
+	elog(WARN, "bigread: cannot seek");
+    }
+
+    for (;;) {
+	buf = (struct varlena *) LOread(fd, 8092);
+	nbytes = buf->vl_len - sizeof(int32);
+	pfree(buf);
+	if (nbytes < 0) {
+	    elog(WARN, "cannot read");
+	} else if (nbytes == 0) {
+	    break;
+	}
+    }
+
+    (void) LOclose(fd);
+
+    return (0);
 }
 #endif /* ndef MAO_VLDB */
