@@ -910,7 +910,7 @@ SIWriteLock()
     status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
     if (status == -1) {
     	perror("semop");
-    	exit(255);
+    	exitpg(255);
     }
 }
 
@@ -927,7 +927,7 @@ SIReadUnlock()
     status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
     if (status == -1) {
     	perror("semop");
-    	exit(255);
+    	exitpg(255);
     }
 }
 
@@ -944,7 +944,7 @@ SIWriteUnlock()
     status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
     if (status == -1) {
     	perror("semop");
-    	exit(255);
+    	exitpg(255);
     }
 }
 

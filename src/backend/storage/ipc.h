@@ -65,4 +65,6 @@ extern IpcMemoryId IpcMemoryIdGet();
 extern char *IpcMemoryAttach();
 extern void IpcMemoryKill();
 
+extern int on_exitpg();
+
 #endif	/* !defined(IPCIncluded) */

@@ -46,7 +46,7 @@ EnableExceptionHandling(on)
 {
 	if (on == ExceptionHandlingEnabled) {
 		/* XXX add logging of failed state */
-		exit(255);
+		exitpg(255);
 		/* ExitPostgres(FatalExitStatus); */
 	}
 

@@ -127,14 +127,14 @@ char	*fmt;
 			write(open("/dev/console", O_WRONLY), line, len);
 			fflush(stdout);
 			fflush(stderr);
-			exit(lev);
+			exitpg(lev);
 		}
 	if (lev == WARN)
 		kill(getpid(), 1);	/* abort to traffic cop */
 	if (lev >= FATAL) {
 		fflush(stdout);
 		fflush(stderr);
-		exit(lev);
+		exitpg(lev);
 	}
 }
 
