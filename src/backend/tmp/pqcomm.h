@@ -19,7 +19,8 @@
 
 #include <sys/types.h>
 #include <netinet/in.h>
-#include "catalog/pg_user.h"
+
+#include "tmp/postgres.h"
 
 /*
  * startup msg parameters: path length, argument string length
@@ -65,7 +66,7 @@ typedef struct PacketHdr {
 typedef struct StartupPacket {
   PacketHdr	hdr;
   char		database[PATH_SIZE];	/* database name */
-  char		user[USER_NAMESIZE];	/* user name */
+  char		user[NAMEDATALEN];	/* user name */
   char		options[ARGV_SIZE];	/* possible additional args */
   char		execFile[ARGV_SIZE];	/*  possible backend to use */
   char		tty[PATH_SIZE];		/*  possible tty for debug output */
