@@ -16,142 +16,192 @@ RcsId("$Header$");
 
 #include "simplelists.h"
 
-#define NODE	SimpleNode
-#define LIST	SimpleList
-#define SBASE(node)	((void *)((char *)(node) - (node)->sn_Offset))
+#define NODE	SetNode
+#define LIST	SetList
+#define SBASE(list,node) ((void *)((char *)(node) - (list)->sl_Offset))
 
 void
-SListNewList(list)
+SetNewList(list, offset)
 LIST *list;
+Offset offset;
 {
     list->sl_Head = (NODE *)&list->sl_Term;
     list->sl_Term = NULL;
     list->sl_Tail = (NODE *)&list->sl_Head;
+    list->sl_Offset = offset;
+    list->sl_Magic= LIST_MAGIC;
 }
 
 void
-SListNewNode(base, node)
-void *base;
+SetNewNode(node)
 NODE *node;
 {
-    node->sn_Offset = (char *)node - (char *)base;
-    node->sn_Next = NULL;	/* mark is unattached */
+    node->sn_List = NULL;
+    node->sn_Magic= NODE_MAGIC;
 }
 
 void *
-SListGetHead(list)
+SetGetHead(list)
 register LIST *list;
 {
     register NODE *node;
+
+    Assert(list->sl_Magic == LIST_MAGIC);
     node = list->sl_Head;
-    if (node->sn_Next)
-	return(SBASE(node));
-    return(NULL);
-}
-
-void *
-SListGetTail(list)
-register LIST *list;
-{
-    register NODE *node;
-    node = list->sl_Tail;
-    if (node->sn_Prev)
-	return(SBASE(node));
-    return(NULL);
-}
-
-void *
-SListGetPred(node)
-register NODE *node;
-{
-    node = node->sn_Prev;
-    if (node->sn_Prev)
-	return(SBASE(node));
-    return(NULL);
-}
-
-void *
-SListGetSucc(node)
-register NODE *node;
-{
-    node = node->sn_Next;
-    if (node->sn_Next) 
-	return(SBASE(node));
-    return(NULL);
-}
-
-void
-SListRemove(node)
-register NODE *node;
-{
-    node->sn_Next->sn_Prev = node->sn_Prev;
-    node->sn_Prev->sn_Next = node->sn_Next;
-    node->sn_Next = NULL;	/* Marker, used only for error detection */
-}
-
-void
-SListAddHead(list, node)
-register LIST *list;
-register NODE *node;
-{
-    node->sn_Next = list->sl_Head;
-    node->sn_Prev = (NODE *)&list->sl_Head;
-    node->sn_Next->sn_Prev = node;
-    node->sn_Prev->sn_Next = node;
-}
-
-void
-SListAddTail(list, node)
-register LIST *list;
-register NODE *node;
-{
-    node->sn_Next = (NODE *)&list->sl_Term;
-    node->sn_Prev = list->sl_Tail;
-    node->sn_Next->sn_Prev = node;
-    node->sn_Prev->sn_Next = node;
-}
-
-void
-SListInsertAfter(node, newnode)
-register NODE *node, *newnode;
-{
-    newnode->sn_Next = node->sn_Next;
-    newnode->sn_Prev = node;
-    node->sn_Next = newnode;
-    newnode->sn_Next->sn_Prev = newnode;
-}
-
-void
-SListInsertBefore(node, newnode)
-register NODE *node, *newnode;
-{
-    newnode->sn_Next = node;
-    newnode->sn_Prev = node->sn_Prev;
-    node->sn_Prev = newnode;
-    newnode->sn_Prev->sn_Next = newnode;
-}
-
-void *
-SListRemHead(list)
-register LIST *list;
-{
-    register NODE *node = list->sl_Head;
-
     if (node->sn_Next) {
-	SListRemove(node);
-	return(SBASE(node));
+	Assert(node->sn_List == list);
+	Assert(node->sn_Magic == NODE_MAGIC);
+	return(SBASE(list,node));
     }
     return(NULL);
 }
 
 void *
-SListRemTail(list)
+SetGetTail(list)
 register LIST *list;
 {
-    register NODE *node = list->sl_Tail;
+    register NODE *node;
+
+    Assert(list->sl_Magic == LIST_MAGIC);
+    node = list->sl_Tail;
     if (node->sn_Prev) {
-	SListRemove(node);
-	return(SBASE(node));
+	Assert(node->sn_List == list);
+	Assert(node->sn_Magic == NODE_MAGIC);
+	return(SBASE(list,node));
+    }
+    return(NULL);
+}
+
+void *
+SetGetPred(node)
+register NODE *node;
+{
+    Assert(node->sn_Magic == NODE_MAGIC);
+    node = node->sn_Prev;
+    if (node->sn_Prev) {
+	Assert(node->sn_Magic == NODE_MAGIC);
+	return(SBASE(node->sn_List,node));
+    }
+    return(NULL);
+}
+
+void *
+SetGetSucc(node)
+register NODE *node;
+{
+    Assert(node->sn_Magic == NODE_MAGIC);
+    node = node->sn_Next;
+    if (node->sn_Next)  {
+	Assert(node->sn_Magic == NODE_MAGIC);
+	return(SBASE(node->sn_List,node));
+    }
+    return(NULL);
+}
+
+void
+SetRemove(node)
+register NODE *node;
+{
+    Assert(node->sn_Magic == NODE_MAGIC);
+    Assert(node->sn_List  != NULL);
+    node->sn_Next->sn_Prev = node->sn_Prev;
+    node->sn_Prev->sn_Next = node->sn_Next;
+    node->sn_List = NULL;
+}
+
+void
+SetAddHead(list, node)
+register LIST *list;
+register NODE *node;
+{
+    Assert(node->sn_List  == NULL);
+    Assert(node->sn_Magic == NODE_MAGIC);
+    Assert(list->sl_Magic == LIST_MAGIC);
+    node->sn_Next = list->sl_Head;
+    node->sn_Prev = (NODE *)&list->sl_Head;
+    node->sn_Next->sn_Prev = node;
+    node->sn_Prev->sn_Next = node;
+    node->sn_List = list;
+}
+
+void
+SetAddTail(list, node)
+register LIST *list;
+register NODE *node;
+{
+    Assert(node->sn_List  == NULL);
+    Assert(node->sn_Magic == NODE_MAGIC);
+    Assert(list->sl_Magic == LIST_MAGIC);
+
+    node->sn_Next = (NODE *)&list->sl_Term;
+    node->sn_Prev = list->sl_Tail;
+    node->sn_Next->sn_Prev = node;
+    node->sn_Prev->sn_Next = node;
+    node->sn_List = list;
+}
+
+void
+SetInsertAfter(node, newnode)
+register NODE *node, *newnode;
+{
+    Assert(node->sn_List    != NULL);
+    Assert(newnode->sn_List == NULL);
+    Assert(node->sn_Magic   == NODE_MAGIC);
+    Assert(newnode->sn_Magic== NODE_MAGIC);
+
+    newnode->sn_Next = node->sn_Next;
+    newnode->sn_Prev = node;
+    node->sn_Next = newnode;
+    newnode->sn_Next->sn_Prev = newnode;
+    newnode->sn_List = node->sn_List;
+}
+
+void
+SetInsertBefore(node, newnode)
+register NODE *node, *newnode;
+{
+    Assert(node->sn_List    != NULL);
+    Assert(newnode->sn_List == NULL);
+    Assert(node->sn_Magic   == NODE_MAGIC);
+    Assert(newnode->sn_Magic== NODE_MAGIC);
+
+    newnode->sn_Next = node;
+    newnode->sn_Prev = node->sn_Prev;
+    node->sn_Prev = newnode;
+    newnode->sn_Prev->sn_Next = newnode;
+    newnode->sn_List = node->sn_List;
+}
+
+void *
+SetRemHead(list)
+register LIST *list;
+{
+    register NODE *node;
+
+    Assert(list->sl_Magic == LIST_MAGIC);
+    node = list->sl_Head;
+    if (node->sn_Next) {
+	Assert(node->sn_Magic == NODE_MAGIC);
+	Assert(node->sn_List == list);
+	SetRemove(node);
+	return(SBASE(list,node));
+    }
+    return(NULL);
+}
+
+void *
+SetRemTail(list)
+register LIST *list;
+{
+    register NODE *node;
+
+    Assert(list->sl_Magic == LIST_MAGIC);
+    node = list->sl_Tail;
+    if (node->sn_Prev) {
+	Assert(node->sn_Magic == NODE_MAGIC);
+	Assert(node->sn_List == list);
+	SetRemove(node);
+	return(SBASE(list,node));
     }
     return(NULL);
 }
