@@ -1,30 +1,3 @@
-
-/*
- * 
- * POSTGRES Data Base Management System
- * 
- * Copyright (c) 1988 Regents of the University of California
- * 
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for educational, research, and non-profit purposes and
- * without fee is hereby granted, provided that the above copyright
- * notice appear in all copies and that both that copyright notice and
- * this permission notice appear in supporting documentation, and that
- * the name of the University of California not be used in advertising
- * or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Permission to incorporate this
- * software into commercial products can be obtained from the Campus
- * Software Office, 295 Evans Hall, University of California, Berkeley,
- * Ca., 94720 provided only that the the requestor give the University
- * of California a free licence to any derived software for educational
- * and research purposes.  The University of California makes no
- * representations about the suitability of this software for any
- * purpose.  It is provided "as is" without express or implied warranty.
- * 
- */
-
-
-
 /*
  * relcache.c --
  *	POSTGRES relation descriptor cache code.
@@ -69,10 +42,12 @@
 #include "catname.h"
 #include "context.h"
 #include "fd.h"
+#include "genam.h"
 #include "hash.h"
 #include "hashlib.h"
 #include "heapam.h"
 #include "htup.h"
+#include "itup.h"
 #include "istrat.h"
 #include "lmgr.h"
 #include "log.h"
@@ -81,6 +56,7 @@
 #include "rlock.h"
 #include "rproc.h"
 #include "skey.h"
+#include "syscache.h"
 #include "trange.h"
 #include "tupdesc.h"
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
@@ -95,10 +71,11 @@ RcsId("$Header$");
 #ifdef DEBUG_RELCACHE
 # define DO_DB(A) A
 # define DO_NOTDB(A) /* A */
-# define static /* static */		/* WARNING WARNING WARNING */
+# define private /* static */
 #else
 # define DO_DB(A) /* A */
 # define DO_NOTDB(A) A
+# define private static
 #endif
 #define NO_DO_DB(A) /* A */
 
@@ -133,7 +110,7 @@ HashTable	PrivateRelationCacheHashById;
  *	This may or may not be correct.  (Depends on array semantics.)
  */
 
-static AttributeTupleFormData	relatt[REL_NATTS] = {
+private AttributeTupleFormData	relatt[REL_NATTS] = {
 	{ 83l, "relname",      19l, 83l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
 	{ 83l, "relowner",     26l, 83l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
 	{ 83l, "relam",        26l, 83l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
@@ -153,7 +130,7 @@ static AttributeTupleFormData	relatt[REL_NATTS] = {
 */
 	{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l }
 };
-static AttributeTupleFormData	attatt[ATT_NATTS] = {
+private AttributeTupleFormData	attatt[ATT_NATTS] = {
 	{ 75l, "attrelid",    26l, 75l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l },
 	{ 75l, "attname",     19l, 75l, 0l, 0l, 16, 2, 0, '\0', '\001', 0l },
 	{ 75l, "atttypid",    26l, 75l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
@@ -167,7 +144,7 @@ static AttributeTupleFormData	attatt[ATT_NATTS] = {
 	{ 75l, "attcanindex", 16l, 75l, 0l, 0l, 1, 11, 0, '\001', '\001', 0l },
 	{ 75l, "attproc",     26l, 75l, 0l, 0l, 4, 12, 0, '\001', '\001', 0l }
 };
-static AttributeTupleFormData	proatt[PRO_NATTS] = {
+private AttributeTupleFormData	proatt[PRO_NATTS] = {
 	{ 81l, "proname",       19l, 81l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
 	{ 81l, "proowner",      26l, 81l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
 	{ 81l, "prolang",       26l, 81l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
@@ -179,7 +156,7 @@ static AttributeTupleFormData	proatt[PRO_NATTS] = {
 	{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1, 9, 0, '\0', '\001', 0l },
 	{ 81l, "probin",        17l, 81l, 0l, 0l, -1, 10, 0, '\0', '\001', 0l }
 };
-static AttributeTupleFormData	typatt[TYP_NATTS] = {
+private AttributeTupleFormData	typatt[TYP_NATTS] = {
 	{ 71l, "typname",      19l, 71l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
 	{ 71l, "typowner",     26l, 71l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
 	{ 71l, "typlen",       21l, 71l, 0l, 0l, 2, 3, 0, '\001', '\001', 0l },
@@ -203,17 +180,17 @@ static AttributeTupleFormData	typatt[TYP_NATTS] = {
  * ----------------
  */
 
-static AttributeTupleFormData	varatt[VAR_NATTS] = {
+private AttributeTupleFormData	varatt[VAR_NATTS] = {
    { 90l, "varname",  19l, 90l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
    { 90l, "varvalue", 17l, 90l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
 };
 
-static AttributeTupleFormData	logatt[LOG_NATTS] = {
+private AttributeTupleFormData	logatt[LOG_NATTS] = {
    { 91l, "varname",  19l, 91l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
    { 91l, "varvalue", 17l, 91l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
 };
 
-static AttributeTupleFormData	timatt[VAR_NATTS] = {
+private AttributeTupleFormData	timatt[VAR_NATTS] = {
    { 92l, "varname",  19l, 92l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
    { 92l, "varvalue", 17l, 92l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
 };
@@ -222,7 +199,8 @@ static AttributeTupleFormData	timatt[VAR_NATTS] = {
  * Private Routines
  */
 
-static Relation
+private 
+Relation
 BuildRelation ARGS((
 	Relation	rd,
 	HeapScan	sd,
@@ -235,11 +213,29 @@ BuildRelation ARGS((
 /*
  * RelationFlushIndexes --
  */
-static
+private
 void
 RelationFlushIndexes ARGS((
 	ObjectId	accessMethodId
 ));
+
+/*
+ * find relation id of the index of relation id's on the attribute relation
+ */
+
+private
+ObjectId
+GetAttributeRelationIndexRelationId ARGS(());
+
+private
+inline
+void
+BuildRelationAttributes ARGS((
+	AttributeTupleForm	attp,
+	Relation		relation,
+	Name			errorName
+));
+
 
 Relation
 RelationIdGetRelation(relationId)
@@ -372,7 +368,7 @@ getreldesc(relationName)
 	return rd;
 }
 
-static Relation
+private Relation
 BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	Relation	rd;
 	HeapScan	sd;
@@ -382,6 +378,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	HashTable	NameCacheSave;
 	HashTable	IdCacheSave;
 {
+	static bool		avoidIndex = false;
 	File			fd;
 	Relation		relation;
 	int			len;
@@ -390,11 +387,13 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	RelationTupleForm	relp;
 	AttributeTupleForm	attp;
 	ScanKeyData		key;
+	ObjectId		attrioid; /* attribute relation index relation object id */
 
 	RelationTupleForm	relationTupleForm;
 
 	extern		pfree();
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "getreldesc: %s relation nonexistent", errorName);
 		NO_DO_DB(puts("I'm here..."));
@@ -405,6 +404,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 		return (NULL);
 	}
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	fd = relopen(&((RelationTupleForm)GETSTRUCT(tuple))->relname, O_RDWR,
 		0666);
 	Assert(fd >= -1)
@@ -423,6 +423,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	 * ----------------
 	 */
 	
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	len = sizeof(RelationData) + 
 	   ((int)natts - 1) * sizeof(relation->rd_att) + /* var len struct */
 	      sizeof(IndexStrategy);
@@ -437,6 +438,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	amendscan(sd);
 	amclose(rd);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	if (!ObjectIdIsValid(relationTupleForm->relam)) {
 		relation = (Relation)palloc(len);
 		bzero((char *)relation, len);
@@ -453,6 +455,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 
 		sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
 
+		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 		tuple = amgetnext(sd, 0, (Buffer *)NULL);
 		if (!HeapTupleIsValid(tuple)) {
 			elog(WARN, "getreldesc: %s: unknown AM %d", errorName,
@@ -473,6 +476,7 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 		NO_DO_DB(puts("and not, I'm here"));
 		amendscan(sd);
 		amclose(rd);
+		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 
 /*
   this was removed because the index strategy is now
@@ -489,82 +493,247 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 		relation->rd_am = accessMethodTupleForm;
 	}
 
-	rd = amopenr(AttributeRelationName);
-
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	key.data[0].flags = 0;
 	key.data[0].attributeNumber = AttributeRelationIdAttributeNumber;
 	key.data[0].procedure = ObjectIdEqualRegProcedure;
 	key.data[0].argument.objectId.value = relid;
 
-	sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
+	attrioid = GetAttributeRelationIndexRelationId();
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
+	if (ObjectIdIsValid(attrioid) && !avoidIndex) {
+		/*
+		 * indexed scan of Attribute Relation 
+		 */
+		IndexScan			scan;
+		GeneralRetrieveIndexResult	result;
+		Relation			attrd;
+		Relation			attrird;
+		Buffer				buffer;
 
-	while (HeapTupleIsValid(tuple = amgetnext(sd, 0, (Buffer *)NULL))) {
+		DO_DB(elog(NOIND,"Indexed build of %d", attrioid);)
+		/*
+		 * avoidIndex prevents a recursive call to this code.  I think
+		 * it would recurse indefinately.  It is okay to have to
+		 * do this one scan the long way because the result will
+		 * be cached.
+		 */
+		attrd = RelationIdGetRelation(AttributeRelationId);
+		avoidIndex = true;
+		attrird = RelationIdGetRelation(attrioid);
+		avoidIndex = false;
+		scan = RelationGetIndexScan(attrird, 0, 1, &key);
 
-		attp = (AttributeTupleForm)HeapTupleGetForm(tuple);
-		if (!AttributeNumberIsValid(attp->attnum))
-			elog(WARN, "getreldesc: found zero attnum %s",
-					errorName);
-		if (AttributeNumberIsForUserDefinedAttribute(attp->attnum)) {
-			if (AttributeIsValid(relation->rd_att.data[
-					attp->attnum - 1])) {
-				elog(WARN, "getreldesc: corrupted ATTRIBUTE %s"
-						,errorName);
-			}
-			relation->rd_att.data[attp->attnum - 1] =
-				(Attribute)palloc(sizeof (RuleLock) +
-					sizeof *relation->rd_att.data[0]);
-			bcopy((char *)attp, (char *)relation->rd_att.data[
-				attp->attnum - 1],
-				sizeof *relation->rd_att.data[0]);
+		for(;;) {	/* Get rid of loop?  Just use first index? */
+			IndexTuple	indexTuple;
+
+			result = IndexScanGetGeneralRetrieveIndexResult(scan,0);
+			if (!GeneralRetrieveIndexResultIsValid(result))
+				break;
+
+			/*
+			 * XXX
+			 *
+			 * the buffer should be freed.... 
+			 *
+			 * however, the buffer won't be retured and thus
+			 * wont't be freed.  (bug)
+			 */
+			tuple = GetHeapTuple(result, attrd, &buffer);
+			if (!HeapTupleIsValid(tuple)) 
+				break;
+
+			attp = (AttributeTupleForm)HeapTupleGetForm(tuple);
+			BuildRelationAttributes(attp, relation, errorName);
 		}
+		IndexScanEnd(scan);
+		RelationFree(attrd);
+		RelationFree(attrird);
+		DO_DB(elog(NOIND,"Done with Indexed build");)
+	} else {
+		/*
+		 * sequential scan of Attribute Relation
+		 */
+		DO_DB(elog(NOIND,"sequential build of %16s", errorName);)
+		rd = amopenr(AttributeRelationName);
+		sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+		while (HeapTupleIsValid(
+				tuple = amgetnext(sd, 0, (Buffer *)NULL))) {
+			attp = (AttributeTupleForm)HeapTupleGetForm(tuple);
+
+			BuildRelationAttributes(attp, relation, errorName);
+		}
+		amendscan(sd);
+		amclose(rd);
+		DO_DB(elog(NOIND,"Done with sequential build %16s", errorName);)
 	}
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	NO_DO_DB(puts("but now, I'm here again"));
-	amendscan(sd);
-	amclose(rd);
 	while ((int)--natts >= 0) {
+		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 		if (!AttributeIsValid(relation->rd_att.data[natts])) {
 			elog(WARN, "getreldesc: ATTRIBUTE relation corrupted %s"
 				,errorName);
 		}
 	}
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	relation->rd_fd = fd;
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationSetReferenceCount(relation, 1);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	if (ObjectIdIsValid(relation->rd_rel->relam)) {
 	   IndexStrategy strategy;
 	   int stratSize;
 
+	   DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	   stratSize = AttributeNumberGetIndexStrategySize(numatts,
 				     relation->rd_am->amstrategies);
 
+	   DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	   strategy = LintCast(IndexStrategy, palloc(stratSize));
 	      
+	   DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	   IndexStrategyInitialize(strategy,
 		RelationGetTupleDescriptor(relation)->data[0]->attrelid,
 		RelationGetRelationTupleForm(relation)->relam,
 		AMStrategies(RelationGetAccessMethodTupleForm(
 		relation)->amstrategies));
 
+	   DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	   RelationSetIndexStrategy(relation, strategy);
 	   
 	}
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	relation->rd_id = relid;
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationCacheHashByName = NameCacheSave;
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationCacheHashById = IdCacheSave;
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	HashTableInsert(RelationCacheHashByName,relation);
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	HashTableInsert(RelationCacheHashById,relation);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationInitLockInfo(relation);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	(void)switchcontext(oldcxt);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationInitLockInfo(relation);
 
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	return relation;
+}
+
+
+/*
+ * GetAttributeRelationIndexRelationId --
+ * 
+ *  attempt to return the object id of an index relation of 
+ *  RelationId on the AttributeRelation.
+ *
+ */
+
+#define	UNTRIED 0
+#define FOUND	1
+#define FAILED	2
+#define	TRYING	3
+#define TRIED	4
+
+private ObjectId
+GetAttributeRelationIndexRelationId ()
+{
+	HeapTuple		tuple;
+	ObjectId		objectId;
+
+	static int		state = UNTRIED;
+
+	/*
+	 * XXX The next line is incorrect.  It should be removed if the
+	 * performance penalty is not too great or if indexes are added
+	 * and dropped frequently.  A more clever hack which will produce
+	 * correct behavior in a *single-user* situation is to keep a
+	 * global variable which is incremented each time DEFINE INDEX
+	 * is called.  Then if the state is FAILED and a index has been
+	 * created since the last call to this function, then treat the
+	 * state as UNTRIED.  But, this hack works incorrectly in a
+	 * multiuser environment.  The correct thing to do is to have the
+	 * system cache keep information about failed search and to have
+	 * this information invalidated when a tuple is appended.  -hirohama
+	 */
+	IN();
+	DO_DB(elog(NOIND,"GetAttrRelIndRelnId %d\n",state);)
+	if (state == FAILED) {
+		OUT();
+		return InvalidObjectId;
+	}
+
+	/*
+	 * We don't want any infinately recusive calls to this
+	 * routine because SearchSysCacheTuple does some relation
+	 * descriptor lookups.  
+	 */
+	state = FAILED;
+
+	/*
+	 * The syscache must be searched again in the case of FOUND state
+	 * since the result may have been invalidated since the last call
+	 * to this function.
+	 */
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
+	tuple = SearchSysCacheTuple(INDRELIDKEY, AttributeRelationId,
+		AttributeRelationIdAttributeNumber);
+	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
+
+	if (!HeapTupleIsValid(tuple)) {
+		OUT();
+		state = FAILED;
+		return InvalidObjectId;
+	}
+
+	objectId = LintCast(IndexTupleForm, HeapTupleGetForm(tuple))
+		-> indexrelid;;
+
+	state = FOUND;
+	OUT();
+	return objectId;
+}
+
+private
+inline
+void
+BuildRelationAttributes(attp, relation, errorName) 
+	AttributeTupleForm	attp;
+	Relation		relation;
+{
+	IN();
+	DO_DB(elog(NOIND,"BuildRelationAttr %x %x %s",attp, relation, errorName);)
+
+	if (!AttributeNumberIsValid(attp->attnum))
+		elog(WARN, "getreldesc: found zero attnum %s",
+				errorName);
+	if (AttributeNumberIsForUserDefinedAttribute(attp->attnum)) {
+		if (AttributeIsValid(relation->rd_att.data[
+				attp->attnum - 1])) {
+			elog(WARN, "getreldesc: corrupted ATTRIBUTE %s"
+					,errorName);
+		}
+		relation->rd_att.data[attp->attnum - 1] =
+			(Attribute)palloc(sizeof (RuleLock) +
+				sizeof *relation->rd_att.data[0]);
+		bcopy((char *)attp, (char *)relation->rd_att.data[
+			attp->attnum - 1],
+			sizeof *relation->rd_att.data[0]);
+	}
+	OUT();
 }
 
 void
@@ -717,11 +886,13 @@ int	mode;
 	oumask = umask(0077);
 	file = FileNameOpenFile(relpath(relationName), flags, mode);
 	umask(oumask);
+	if (file == -1) 
+		elog(NOTICE, "Unable too open %s (%d)", relpath(relationName), errno);
 	OUT();
 	return (file);
 }
 
-static void
+private void
 formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	char		relationName[];
 	OID		oid;
@@ -781,7 +952,7 @@ formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	}
 }
 
-static Index
+private Index
 HashByNameAsArgument(collisions,hashTableSize,relationName)
 	uint16	collisions;
 	Size	hashTableSize;
@@ -790,7 +961,7 @@ HashByNameAsArgument(collisions,hashTableSize,relationName)
 	return NameHashFunction(collisions,hashTableSize,relationName);
 }
 
-static Index
+private Index
 HashByNameInRelation(collisions,hashTableSize,relation)
 	uint16	collisions;
 	Size	hashTableSize;
@@ -801,7 +972,7 @@ HashByNameInRelation(collisions,hashTableSize,relation)
 			&relation->rd_rel->relname);
 }
 
-static int
+private int
 CompareNameInArgumentWithRelationNameInRelation(relation,relationName)
 	Relation	relation;
 	String		relationName;
@@ -810,7 +981,7 @@ CompareNameInArgumentWithRelationNameInRelation(relation,relationName)
 	return strncmp(relationName, &relation->rd_rel->relname, 16);
 }
 
-static Index
+private Index
 HashByIdAsArgument(collisions,hashTableSize,relationId)
 	uint16	collisions;
 	Size	hashTableSize;
@@ -819,7 +990,7 @@ HashByIdAsArgument(collisions,hashTableSize,relationId)
 	return IntegerHashFunction(collisions,hashTableSize,relationId);
 }
 
-static Index
+private Index
 HashByIdInRelation(collisions,hashTableSize,relation)
 	uint16	collisions;
 	Size	hashTableSize;
@@ -828,7 +999,7 @@ HashByIdInRelation(collisions,hashTableSize,relation)
 	return IntegerHashFunction(collisions,hashTableSize,relation->rd_id);
 }
 
-static int
+private int
 CompareIdInArgumentWithIdInRelation(relation, relationId)
 	Relation	relation;
 	ObjectId	relationId;
@@ -918,7 +1089,7 @@ RelationInitialize()
 	OUT();
 }
 
-static
+private
 void
 RelationFlushIndexes(relation, accessMethodId)
 	Relation	relation;
@@ -931,3 +1102,5 @@ RelationFlushIndexes(relation, accessMethodId)
 		RelationFlushRelation(relation, false);
 	}
 }
+
+
