@@ -1,10 +1,7 @@
-February 1993
+March 1994
 
-This is release 4.1 of POSTGRES.
+This is release 4.2 of POSTGRES.
 
 The source code for the system is contained under the src/ directory,
 the reference manual is under ref/, and the user manual, installation
 guide and release notes are under doc/.
-
-If you would like to compile and install the system in as quick
-a fashion as possible read the file INITIAL_SETUP.
