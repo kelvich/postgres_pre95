@@ -203,10 +203,16 @@ print_subplan (subplan, levels)
 	LispValue subplan;
 	int levels;
 {
+	void print_var();
+
 	INDENT(levels);
 	printf("Type : %s\n", subplan_type(((Node)subplan)->type));
 	INDENT (levels);
 	printf("Cost : %f\n", get_cost(subplan));
+	INDENT (levels);
+	printf("Size : %d\n", get_plan_size(subplan));
+	INDENT (levels);
+	printf("Width : %d\n", get_plan_width(subplan));
 	if (IsA(subplan,Scan)) {
 		INDENT (levels);
 		printf("Relid: ");
@@ -233,7 +239,11 @@ print_subplan (subplan, levels)
 		printf ("TempList:\n");
 		print_tlist(get_qptargetlist(subplan), (levels + 1)); 
 
-	} else {
+	} else if (IsA(subplan,Hash)) {
+		INDENT(levels);
+		printf("HashKey: ");
+		print_var(get_hashkey(subplan));
+	} else  {
 		INDENT(levels);
 		printf("TargetList :\n");
 		print_tlist(get_qptargetlist(subplan), (levels + 1));
@@ -250,7 +260,12 @@ print_subplan (subplan, levels)
 		INDENT (levels);
 		printf("MergeClauses :\n");
 		print_qual(get_mergeclauses(subplan), (levels + 1));
-	};
+	}
+	if (IsA(subplan,HashJoin)) {
+		INDENT (levels);
+		printf("hashClauses :\n");
+		print_qual(get_hashclauses(subplan), (levels + 1));
+	}
 	if (IsA(subplan,IndexScan)) {
 		/*
 		 *  XXX need to add a function to print list at
