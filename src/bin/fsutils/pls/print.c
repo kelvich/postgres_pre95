@@ -1,4 +1,8 @@
 /*
+ * $Header$
+ */
+
+/*
  * Copyright (c) 1989 The Regents of the University of California.
  * All rights reserved.
  *
@@ -47,10 +51,12 @@ static char sccsid[] = "@(#)print.c	5.37 (Berkeley) 7/20/92";
 #include <pwd.h>
 #include <utmp.h>
 #include <unistd.h>
+#ifndef PORTNAME_hpux
 #include <tzfile.h>
-/*#include <stdlib.h>*/
+#endif /* PORTNAME_hpux */
 #include <stdio.h>
 #include <string.h>
+
 #include "tmp/libpq-fs.h"
 #include "ls.h"
 #include "extern.h"
