@@ -1,0 +1,111 @@
+Relevant files:
+lib/libpq/be-fsstubs.c		back-end interface wrapper
+lib/H/tmp/libpq-fs.h 		Constants and datatypes for use in
+				user-level code.
+lib/catalog/pg_lobj.c		Relation mapping oids to
+			        persistant-cookies.
+lib/H/catalog/pg_lobj.h		Constants for object type (Inversion = 0,
+				Unix = 1, etc...)
+
+The LOprocs table in be-fsstubs.c is indexed on object type, e.g.
+Inversion = 0, Unix = 1, etc.  This is the interface expected of a
+large object (lib/libpq/be-fsstubs.c), along with its current
+definition.  These functions map pretty much to the Unix semantics.
+The large object functions can be oblivious to the catalog code except
+for LOcreate.  This routine must make an entry in the pg_naming
+relation.  For example, if the persistant-cookie is a variable length
+structure called 'newobj' and the pathname provided by the user is
+'path', the code to add it to pg_naming is: (The constant 'Inversion'
+would differ depending upon objects.)
+
+    /* Log this instance of large object into directory table. */
+    {
+      oid oidf;
+      if ((oidf = FilenameToOID(path)) == InvalidObjectId) { /* new file */
+        oidf = LOcreatOID(path,0); /* enter it in system relation */
+        /* enter cookie into table */
+        if (LOputOIDandLargeObjDesc(oidf, Inversion, (struct varlena *)newobj) < 0) {
+#if FSDB
+          elog(NOTICE,"LOputOIDandLargeObjDesc failed");
+#endif
+          }
+      }
+    }
+
+If you are going to store a non-variable cookie, then you have to wrap
+it in a varlena structure.  Perhaps some of the information normally
+stored in inodes could be stored in the cookie.
+
+static struct {
+    int bigcookie; 
+#define SMALL_INT 0	 /* is integer wrapped in a varlena */
+#define BIG 1  /* must be passed as varlena*/
+    
+    void *(*LOcreate) ARGS((char *,int)); /* name,mode -> runtime-cookie */
+    void *(*LOopen) ARGS((void *,int)); /* persistant-cookie,mode -> runtime-cookie */
+    void (*LOclose) ARGS((void *)); /* runtime-cookie */
+    int (*LOread) ARGS((void *,char *,int)); /* rt-cookie,buf,length -> bytecount*/
+    int (*LOwrite) ARGS((void *,char *,int)); /*rt-cookie,buf,length -> bytecount*/
+    int (*LOseek) ARGS((void *,int,int)); /*rt-cookie,offset,whence -> bytecount */
+    int (*LOtell) ARGS((void *)); /*rt-cookie ->bytecount*/
+    int (*LOunixstat) ARGS((void *,struct pgstat *)); /* rt-cookie,stat ->errorcode*/
+} LOprocs[] = {
+    /* Inversion */
+    { SMALL_INT,Inversion_Create, Inversion_Open, Inversion_Close, 
+        Inversion_Read, Inversion_Write,
+	Inversion_Seek, Inversion_Tell, Inversion_UnixStat},
+    /* Unix */
+    { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
+	LOSeek, LOTell, LOUnixStat}
+};
+
+There is also another table in (lib/catalog/pg_lobj.c) which stores
+methods that destroy the object, e.g. remove the unix file or destroy
+the relation:
+
+static struct {
+#define SMALL_INT 0
+#define BIG 1
+    int bigcookie;
+    void (*LOdestroy)ARGS((void *));
+} LOprocs[] = {
+    /* Inversion */
+    { SMALL_INT, noaction }, /* not defined yet, probably destroy class */
+    /* Unix */
+    { BIG, LODestroyRef }
+};
+
+
+The persistant-cookies are stored on disk in the directory relation,
+so they should probably be small and contain no memory pointers.
+
+The runtime-cookies are created upon calling open on an existing
+object or creat.
+
+=================
+Some cosmetics for commands such as 'ls' which list ownership, access
+times, file size, etc were added.  They are optional and should not
+affect ability to create, read or write files.
+
+The LOstat function expects a structure of type 'pgstat' and fills it
+with information about the object.  The 'pgstat' structure has the
+following definition (lib/H/tmp/libpq-fs.h):
+
+struct pgstat {     /* just the fields we need from stat structure */
+/* Automatically set.  Object implementor need not worry. */
+    int st_ino;        /* Object Id of name in pg_naming relation */
+
+/* object dependent accessibility.  Can be rwxrwxrwx for simplicity. */
+    int st_mode;
+
+    unsigned int st_size;
+    unsigned int st_sizehigh;   /* high order bits */
+/* 2^64 == 1.8 x 10^20 bytes */
+
+/* Ownership and time information */
+    int st_uid;
+    int st_atime;   
+    int st_mtime;
+    int st_ctime;
+};
+
