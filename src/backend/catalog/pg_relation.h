@@ -106,7 +106,6 @@ DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 "magnetic disk
 DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 "magnetic disk" - - ));
 DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 "magnetic disk" - - ));
 DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 13 "magnetic disk" - - ));
-    
 /* pg_relation is now called pg_class -cim 2/26/90 */
 DATA(insert OID =  83 (  pg_class          6 0 0 0 0 0 f f r n 15 "magnetic disk" - - ));
     
