@@ -1289,6 +1289,36 @@ _copyIter(from, to, alloc)
     (*to) = newnode;
     return true;
 }
+
+bool
+_copyStream(from, to, alloc)
+    Stream	from;
+    Stream	*to;
+    char *	(*alloc)();
+{
+    Stream	newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(Stream);
+    
+    CopyNodeFields(from, newnode, alloc);
+
+    newnode->pathptr = from->pathptr;
+    newnode->cinfo = from->cinfo;
+    newnode->clausetype = from->clausetype;
+    newnode->groupup = from->groupup;
+    newnode->groupcost = from->groupcost;
+    newnode->groupsel = from->groupsel;
+    newnode->upstream = (StreamPtr)LispNil;  /* only copy nodes downwards! */
+    Node_Copy(from, newnode, alloc, downstream);
+    if (newnode->downstream)
+      ((Stream)newnode->downstream)->upstream = (StreamPtr)newnode;
+    
+    (*to) = newnode;
+    return true;
+}
+
 /* ----------------
  *	_copyVar
  * ----------------
@@ -1690,6 +1720,7 @@ _copyRel(from, to, alloc)
     Node_Copy(from, newnode, alloc, pathlist);
     Node_Copy(from, newnode, alloc, unorderedpath);
     Node_Copy(from, newnode, alloc, cheapestpath);
+    newnode->pruneable = from->pruneable;
     Node_Copy(from, newnode, alloc, classlist);
     Node_Copy(from, newnode, alloc, indexkeys);
     Node_Copy(from, newnode, alloc, ordering);
