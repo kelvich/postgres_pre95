@@ -32,7 +32,6 @@ static	char ami_h[] = "$Header$";
 #include "trange.h"
 #include "xcxt.h"
 #include "xid.h"
-#include "y.tab.h"     /* parser defines for tokens */
 
 #define FIRST_TYPE_OID 16	/* OID of the first type */
 #define	MAXATTR 40		/* max. number of attributes in arelation */
