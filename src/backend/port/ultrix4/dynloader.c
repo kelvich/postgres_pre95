@@ -1,9 +1,7 @@
 
 /*
-
-Return-Path: jsmith@king.mcs.drexel.edu
-
-*/
+ *  $Header$
+ */
 
 #include <pwd.h>
 #include <stdio.h>
@@ -15,7 +13,7 @@ Return-Path: jsmith@king.mcs.drexel.edu
 #include <a.out.h>
 #include <symconst.h>
 
-#include "dynamic_loader.h"
+#include "utils/dynamic_loader.h"
 
 extern char pg_pathname[];
 
