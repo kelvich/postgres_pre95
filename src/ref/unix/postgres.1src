@@ -52,7 +52,7 @@ use.  Again this functionality is only experimental at this stage.
 \fI-S\fR indicates that the transaction system can run with the assumption
 of stable main memory thus avoiding the necessary flushing of data and log
 pages to disk at the end of each transaction system.  This is only used
-for preformance compairsons for stable vs. non-stable storage.  Do not
+for performance comparisons for stable vs. non-stable storage.  Do not
 use this in other cases, as recovery after a system crash may be impossible
 when -S is specified in the absence of stable main memory.
 .sp
