@@ -197,15 +197,15 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	    resttlist = get_qptargetlist (restplan);
 	  subtlist = get_qptargetlist (subplan);
 	  plan = (Plan)make_result (new_result_tlist (tlist,
-						     subtlist,
-						     resttlist,
-						     currentlevel,
-						valid_sortkeys(sortkeys)),
+						      subtlist,
+						      resttlist,
+						      currentlevel,
+						      valid_sortkeys(sortkeys)),
 				   new_result_qual(relation_level_clauses,
 						   subtlist,
 						   resttlist,
 						   currentlevel),
-				   constant_qual,
+				    constant_qual,
 				   subplan,
 				   restplan);
 
@@ -309,9 +309,9 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 }  /* function end  */
 
 Result
-make_result( tlist,resrellevelqual,left,right)
+make_result( tlist,resrellevelqual,resconstantqual,left,right)
      List tlist;
-     List resrellevelqual;
+     List resrellevelqual,resconstantqual;
      Plan left,right;
 {
     extern void PrintResult();
@@ -327,7 +327,7 @@ make_result( tlist,resrellevelqual,left,right)
     set_righttree((Plan)node, right);
 
     set_resrellevelqual(node, resrellevelqual); 
-    set_resconstantqual(node, LispNil); 
+    set_resconstantqual(node, resconstantqual); 
     set_resstate(node, NULL);
     
     node->printFunc = PrintResult; 
