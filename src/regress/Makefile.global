@@ -9,8 +9,10 @@ CFLAGS+= -I${.CURDIR}/../../backend
 #
 SHCMD= PATH=${BINDIR}:$$PATH sh
 
-.if ${PORTNAME} == "ultrix4"
-CFLAGS+= -G 0 -DNOFIXADE
+.if (${PORTNAME} == "ultrix4")
+CFLAGS+= -G 0
+.elif (${PORTNAME} == "hpux")
+CFLAGS+= +z
 .endif
 
 .SUFFIXES: .source .pq .sh
