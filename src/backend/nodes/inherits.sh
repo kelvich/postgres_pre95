@@ -73,7 +73,7 @@ $CAT > $TAGTEMP << 'EOF'
 
 EOF
 $AWK 'BEGIN { i = -1 }\
-     { printf("#define T_%s %d\n", $1, ++i) }' $INHFILE >> $TAGTEMP
+     { printf("#define T_%s %d\n", $1, ++i); }' $INHFILE >> $TAGTEMP
 
 # ----------------
 # 	now extract slot names from node files and generate slots.temp
@@ -253,9 +253,11 @@ struct nodeinfo {
 struct nodeinfo _NodeInfo[] = {
 EOF
 
-$AWK '{ if ($2 == "") { $2 = "Node" };\
-       printf("	{ \"%s\", T_%s, T_%s, sizeof(struct _%s) },\n", $1, $1, $2, $1) }' \
-      $INHFILE >> $OUTFILE
+$AWK '{ c = $1; p = $2;\
+	if (p == "") { p = "Node"; }\
+	printf("	{ \"%s\", T_%s, T_%s, sizeof(struct _%s) },\n",\
+	       c, c, p, c);\
+}' < $INHFILE >> $OUTFILE
 $CAT >> $OUTFILE << 'EOF'
 	{ "INVALID", 0, 0, 0 }
 };
