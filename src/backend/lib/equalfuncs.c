@@ -385,39 +385,37 @@ _equalEState(a, b)
 	register EState	a;
 	register EState	b;
 {
-	if (a->direction != b->direction)
+	if (a->es_direction != b->es_direction)
 		return (false);
-	if (a->time != b->time)
+	if (a->es_time != b->es_time)
 		return (false);
-	if (a->owner != b->owner)
+	if (a->es_owner != b->es_owner)
 		return (false);
-	if (!_equalLispValue(a->locks, b->locks))
+	if (!_equalLispValue(a->es_locks, b->es_locks))
 		return (false);
-	if (!_equalLispValue(a->subplan_info, b->subplan_info))
+	if (!_equalLispValue(a->es_subplan_info, b->es_subplan_info))
 		return (false);
-	if (a->error_message == (Name) NULL
-	    || b->error_message == (Name) NULL) {
-		if (a->error_message != b->error_message)
+	if (a->es_error_message == (Name) NULL
+	    || b->es_error_message == (Name) NULL) {
+		if (a->es_error_message != b->es_error_message)
 			return (false);
 	} else {
-		if (strcmp(a->error_message, b->error_message) != 0)
+		if (strcmp(a->es_error_message, b->es_error_message) != 0)
 			return (false);
 	}
-	if (!_equalLispValue(a->range_table, b->range_table))
+	if (!_equalLispValue(a->es_range_table, b->es_range_table))
 		return (false);
 
-	if (!_equalHeapTuple(a->qualification_tuple, b->qualification_tuple))
+	if (!_equalHeapTuple(a->es_qualification_tuple,
+			     b->es_qualification_tuple))
 		return (false);
-	if (!ItemPointerEquals(a->qualification_tuple_id,
-			       b->qualification_tuple_id))
+	if (!ItemPointerEquals(a->es_qualification_tuple_id,
+			       b->es_qualification_tuple_id))
 		return (false);
-	if (!_equalRelation(a->relation_relation_descriptor,
-			    b->relation_relation_descriptor))
+	if (!_equalRelation(a->es_relation_relation_descriptor,
+			    b->es_relation_relation_descriptor))
 		return (false);
-	if (a->result_relation_index != b->result_relation_index)
-		return (false);
-	if (!_equalRelation(a->result_relation_descriptor,
-			    b->result_relation_descriptor))
+	if (a->es_result_relation_info != b->es_result_relation_info)
 		return (false);
 
 	return (true);
