@@ -117,9 +117,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	if (!ObjectIdIsValid(ffn) ||
 	    !ObjectIdIsValid(fret) ||
 	    !ObjectIdIsValid(farg) ||
-	    (proc->pronargs > 2) ||
-	    (proc->pronargs == 2 &&
-	     farg != proc->proargtypes.data[1]))
+	    proc->pronargs > 2)
 	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
