@@ -27,9 +27,10 @@ RcsId("$Header$");
  *    
  */
 void
-ProcessUtility(command, args)
+ProcessUtility(command, args, commandString)
 	int		command;	/* "tag" */
 	LispValue	args;
+	char 		*commandString;
 {
     String	commandTag = NULL;
     
@@ -228,22 +229,26 @@ ProcessUtility(command, args)
 			   CDR(CDR(args)));	/* rest */
 	    break;
 	  case RULE:
-	    DefineRule(CString(CADR(args)),	/* rule name */
-		       CADDR(args));		/* parsed rule query */
+	    elog(WARN,
+	    "Sorry, the old rule system is not supported any more (yet!)");
 	    break;
 	  case REWRITE:
-	    DefineQueryRewrite ( CDR (args )) ; 
+	    elog(WARN,"PRS2-query rewrite disabled for the time being");
+	    /* DefineQueryRewrite ( CDR (args )) ; */
 	    break;
 	  case P_TUPLE:
-	    /* XXX - Spyros, can you add your stuff here */
+	    prs2DefineTupleRule(args, commandString);
 	    break;
 	  case P_TYPE:
 	    DefineType (CString(CADR(args)),	/* type name */
 			CDR(CDR(args)));	/* rest */
 	    break;
 	  case VIEW:
+	    elog(WARN,"views disabled for the time being");
+#ifdef NOT_YET
 	    DefineView (CString(CADR(args)),	/* view name */
 			CDR(CDR(args)) );	/* retrieve parsetree */
+#endif NOT_YET
 	    break;
 	  default:
 	    elog(WARN, "unknown object type in define statement");
@@ -276,7 +281,7 @@ ProcessUtility(command, args)
 	    }
 	    break;
 	  case RULE:
-	    RemoveRule(CString(CADR(args)));
+	    prs2RemoveTupleRule(CString(CADR(args)));
 	    break;
 	  case P_TYPE:
 	    RemoveType(CString(CADR(args)));
