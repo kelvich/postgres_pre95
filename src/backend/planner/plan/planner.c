@@ -553,7 +553,15 @@ pg_checkretval(rettype, parselist)
 	    tletype = (ObjectId) get_consttype((Const)thenode);
 	else if (IsA(thenode,Param))
 	    tletype = (ObjectId) get_paramtype((Param)thenode);
-	else
+	else if (IsA(thenode,LispList)) {
+	    thenode = CAR(thenode);
+	    if (IsA(thenode,Oper))
+		tletype = (ObjectId) get_opresulttype((Oper)thenode);
+	    else if (IsA(thenode,Func))
+		tletype = (ObjectId) get_functype((Func)thenode);
+	    else
+		elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
+	} else
 	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
 
 	/* reach right in there, why don't you? */
