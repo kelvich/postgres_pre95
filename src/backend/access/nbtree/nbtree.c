@@ -346,7 +346,8 @@ btendscan(scan)
     }
 
     if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
-	_bt_relbuf(scan->relation, so->btso_mrkbuf, BT_READ);
+	if (BufferIsValid(so->btso_mrkbuf))
+	    _bt_relbuf(scan->relation, so->btso_mrkbuf, BT_READ);
 	so->btso_mrkbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
