@@ -917,11 +917,22 @@ retrieve (equip_name =
  */
 retrieve (arrtest.all)
 \g
-retrieve (arrtest.a[1], arrtest.b[1], arrtest.c[1], arrtest.d[1])
+retrieve (arrtest.a[1], arrtest.b[1][1][1], arrtest.c[1], arrtest.d[1][1], 
+			arrtest.e[0])
 \g
-retrieve (arrtest.all) where arrtest.a[1] < 5
+retrieve (arrtest.a[1:3], arrtest.b[1:1][1:2][1:2], arrtest.c[1:2], 
+			arrtest.d[1:1][1:2])
 \g
-retrieve (arrtest.all) where arrtest.b[2] < 10
+retrieve (x = array_dims(arrtest.b))
+\g
+retrieve (arrtest.all) where arrtest.a[1] < 5 and 
+					arrtest.c = "{"foobar"}"::_char16
+\g
+replace arrtest (a[1:2] = "{16,25}", b[1:1][1:1][1:2] = "{113, 117}", 
+				c[1:1] = "{"new_word"}")
+\g
+retrieve (arrtest.a[1:3], arrtest.b[1:1][1:2][1:2], arrtest.c[1:2], 
+			arrtest.d[1:1][1:2])
 \g
 
 /*
