@@ -17,6 +17,7 @@ LIBPQ= ${LIBDIR}/libpq.a
 LDADD+= ${LIBPQ}
 DPADD+= ${LIBPQ}
 
+
 #
 # And where libpq goes, so goes the authentication stuff...
 #
@@ -24,6 +25,7 @@ DPADD+= ${LIBPQ}
 LDADD+= ${KRBLIBS}
 CFLAGS+= ${KRBFLAGS}
 .endif
+
 
 #
 # And all the shell scripts here get stuffed with the default
@@ -37,7 +39,7 @@ SEDSCRIPT= -e "s^_fUnKy_BINDIR_sTuFf_^${BINDIR}^g" \
 # We also need to fix up the scripts to deal with the lack of installed
 # 'echo' commands that accept the -n option.
 #
-.if (${PORTNAME} == "hpux" || ${PORTNAME} == "alpha")
+.if (${PORTNAME} == "hpux" || ${PORTNAME} == "alpha" || ${PORTNAME} == "sparc_solaris")
 DASH_N=
 BACKSLASH_C='\\\\c'
 .else
