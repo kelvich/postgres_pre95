@@ -73,11 +73,13 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
 
      /*    XXX should the fix-opids be this early?? */
      /*    was mapCAR  */
-     
+#ifdef PLANNER_FIX_OPIDS     
      foreach (temp,expanded_tlist) {
 	  t_list = nappend1(t_list,fix_opids (CAR(temp)));
       }
-     
+#else
+     t_list = expanded_tlist;
+#endif
     /* ------------------
      *  for "replace" or "delete" queries, add ctid of the result
      *  relation into the target list so that the ctid can get
