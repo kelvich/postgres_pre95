@@ -317,7 +317,7 @@ gethilokey(relid, attnum, opid, high, low)
 		{ 0, StatisticAttributeNumberAttributeNumber, F_INT2EQ },
 		{ 0, StatisticOperatorAttributeNumber, F_OIDEQ }
 	};
-/* XXX	Boolean			isnull;*/
+	Boolean			isnull;
 	HeapTuple		tuple;
 	extern char		*textout();
 
@@ -334,8 +334,6 @@ gethilokey(relid, attnum, opid, high, low)
 /* XXX 		elog(WARN, "gethilokey: statistic tuple not found");*/
 		return;
 	}
-/* XXX stahikey doesn't exist for some reason ... */
-#ifdef HAS_STAHIKEY
 	*high = textout((struct varlena *)
 			amgetattr(tuple,
 				  InvalidBuffer,
@@ -352,10 +350,6 @@ gethilokey(relid, attnum, opid, high, low)
 				 &isnull));
 	if (isnull)
 		elog(DEBUG, "gethilokey: low key is null");
-#else /* !HAS_STAHIKEY */
-	*high = "0";
-	*low = "0";
-#endif /* !HAS_STAHIKEY */
 	HeapScanEnd(sdesc);
 	RelationCloseHeapRelation(rdesc);
 }
