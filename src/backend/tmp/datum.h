@@ -283,39 +283,57 @@ typedef unsigned long Datum;
  */
 
 /*---------------
- * datumGetRealLengthAndByVal
- * find the "real" length of a type
+ * datumGetSize
+ * find the "real" length of a datum
  */
 extern
-void
-datumGetRealLengthAndByVal ARGS((
-    Datum	value;
-    ObjectId	type;
-    Size	*sizeP;
-    bool	*byValP;
+Size
+datumGetSize ARGS((
+    Datum	value,
+    ObjectId	type,
+    bool	byVal,
+    Size	len
 ));
 
 /*---------------
- * copyDatum
+ * datumCopy
  * make a copy of a datum.
  */
 extern
 Datum
-copyDatum ARGS((
+datumCopy ARGS((
     Datum	value,
-    ObjectId	type
+    ObjectId	type,
+    bool	byVal,
+    Size	len
 ));
 
 /*---------------
- * freeDatum
- * free space that *might* have been palloced by "copyDatum"
+ * datumFree
+ * free space that *might* have been palloced by "datumCopy"
  */
 extern
 void
-freeDatum  ARGS((
+datumFree  ARGS((
     Datum	value,
-    ObjectId	type
+    ObjectId	type,
+    bool	byVal,
+    Size	len
 ));
 
+/*---------------
+ * datumIsEqual
+ * return true if thwo datums are equal, false otherwise.
+ * XXX : See comments in the code for restrictions!
+ */
+extern
+bool
+datumIsEqual ARGS((
+    Datum	value1,
+    Datum	value2,
+    ObjectId	type,
+    bool	byVal,
+    Size	len
+));
 
 #endif	/* !defined(DatumIncluded) */
