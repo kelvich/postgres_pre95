@@ -25,6 +25,7 @@
 #include "catalog/catname.h"	/* names of various system relations */
 #include "utils/fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
 #include "access/ftup.h"	/* for FormHeapTuple() */
+#include "utils/palloc.h"
 
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2rule.h"
@@ -34,8 +35,6 @@ extern HeapTuple palloctup();
 extern LispValue planner();
 extern LispValue lispCopy();
 
-void changeReplaceToRetrieve();
-bool prs2AttributeIsOfBasicType();
 
 /*-----------------------------------------------------------------------
  *
@@ -51,38 +50,108 @@ prs2DefineTupleRule(parseTree, ruleText)
 LispValue parseTree;
 char *ruleText;
 {
-    NameData ruleName;
-    EventType eventType;
-    ActionType actionType;
-    LispValue eventTarget;
-    NameData eventTargetRelationNameData;
-    Relation eventTargetRelation;
-    ObjectId eventTargetRelationOid;
-    NameData eventTargetAttributeNameData;
-    AttributeNumber eventTargetAttributeNumber;
-    LispValue ruleQual;
-    LispValue paramRuleQual;
-    LispValue paramRuleAction;
-    LispValue paramParseTree;
-    int isRuleInstead;
-    LispValue ruleActionPlans;
-    ObjectId ruleId;		/*the OID for the new rule*/
-    AttributeNumber updatedAttributeNumber;
 
-
-    LispValue prs2ReadRule();
+    Prs2RuleData ruleData;
 
 #ifdef PRS2_DEBUG
-    printf("---prs2DefineTupleRule called, with argument =");
+    printf("PRS2: ---prs2DefineTupleRule called, with argument =");
     lispDisplay(parseTree, 0);
     printf("\n");
-    printf("   ruletext = %s\n", ruleText);
+    printf("PRS2:   ruletext = %s\n", ruleText);
 #endif PRS2_DEBUG
+    
+    /*
+     * extract some rule info form the parsetree...
+     */
+    ruleData = prs2FindRuleData(parseTree, ruleText);
 
-    strcpy(ruleName.data, CString(GetRuleNameFromParse(parseTree)));
-    eventTarget = GetRuleEventTargetFromParse(parseTree);
-    isRuleInstead = CInteger(GetRuleInsteadFromParse(parseTree));
-    eventType = prs2FindEventTypeFromParse(parseTree);
+    /*
+     * now put locks/stubs and update system catalogs...
+     */
+    prs2AddTheNewRule(ruleData);
+
+#ifdef PRS2_DEBUG
+    printf("PRS2: --- DEFINE PRS2 RULE: Done.\n");
+#endif PRS2_DEBUG
+}
+
+/*-----------------------------------------------------------------------
+ * prs2RemoveTupleRule
+ *
+ * Remove a tuple-system rule given its name.
+ *
+ *-----------------------------------------------------------------------
+ */
+void
+prs2RemoveTupleRule(ruleName)
+Name ruleName;
+{
+    ObjectId ruleId;
+
+    /*
+     * first find its oid & then remove it...
+     */
+    ruleId = get_ruleid(ruleName);
+    if (ruleId == InvalidObjectId) {
+	elog(WARN, "Rule '%s' does not exist!", ruleName);
+    }
+
+    prs2DeleteTheOldRule(ruleId);
+}
+
+/*-----------------------------------------------------------------------
+ * prs2FindRuleData
+ *
+ * create a 'Prs2RuleData' struct & fill it with all the information
+ * about this rule we will ever need to know...
+ *
+ *-----------------------------------------------------------------------
+ */
+Prs2RuleData
+prs2FindRuleData(parseTree, ruleText)
+List parseTree;
+char *ruleText;
+{
+    Prs2RuleData r;
+    List eventTarget;
+    Relation rel;
+    bool newUsed, currentUsed;
+
+    /*
+     * create the structure where we hold all the rule
+     * information we need to know...
+     */
+    r = (Prs2RuleData) palloc(sizeof(Prs2RuleDataData));
+    if (r==NULL) {
+	elog(WARN, "prs2FindRuleInfo: Out of memory");
+    }
+    r->ruleName = (Name) palloc(sizeof(NameData));
+    if (r->ruleName == NULL) {
+	elog(WARN, "prs2FindRuleInfo: Out of memory");
+    }
+    r->eventRelationName = (Name) palloc(sizeof(NameData));
+    if (r->eventRelationName == NULL) {
+	elog(WARN, "prs2FindRuleInfo: Out of memory");
+    }
+    r->eventAttributeName = (Name) palloc(sizeof(NameData));
+    if (r->eventAttributeName == NULL) {
+	elog(WARN, "prs2FindRuleInfo: Out of memory");
+    }
+    
+    /*
+     * start filling it in...
+     * NOTE: we do not know yet the rule oid...
+     */
+    r->ruleId = InvalidObjectId;
+    r->parseTree = parseTree;
+    r->ruleText = ruleText;
+    strcpy(r->ruleName->data, CString(GetRuleNameFromParse(parseTree)));
+
+    if  (CInteger(GetRuleInsteadFromParse(parseTree)) != 0)
+	r->isInstead = true;
+    else
+	r->isInstead = false;
+    r->eventType = prs2FindEventTypeFromParse(parseTree);
 
     /*
      * 
@@ -99,19 +168,21 @@ char *ruleText;
      * that the parser will return a list with the relation OID
      * and the attibute number instead of their names!
      */
-    strcpy(eventTargetRelationNameData.data, CString(CAR(eventTarget)));
-    eventTargetRelation = RelationNameGetRelation(&eventTargetRelationNameData);
-    eventTargetRelationOid = eventTargetRelation->rd_id;
+    eventTarget = GetRuleEventTargetFromParse(parseTree);
+    strcpy(r->eventRelationName->data, CString(CAR(eventTarget)));
+    rel = RelationNameGetRelation(r->eventRelationName);
+    r->eventRelationOid = rel->rd_id;
     if (null(CDR(eventTarget))) {
 	/*
 	 * no attribute is specified
 	 */
-	eventTargetAttributeNumber = InvalidAttributeNumber;
+	r->eventAttributeNumber = InvalidAttributeNumber;
+	r->eventAttributeName = NULL;
     } else {
-	strcpy(eventTargetAttributeNameData.data, CString(CADR(eventTarget)));
-	eventTargetAttributeNumber = get_attnum(eventTargetRelationOid,
-					    &eventTargetAttributeNameData);
-	if (eventTargetAttributeNumber == InvalidAttributeNumber) {
+	strcpy(r->eventAttributeName->data, CString(CADR(eventTarget)));
+	r->eventAttributeNumber = get_attnum(r->eventRelationOid,
+					    r->eventAttributeName);
+	if (r->eventAttributeNumber == InvalidAttributeNumber) {
 	    elog(WARN,"Illegal attribute in event target list");
 	}
 	/*
@@ -119,11 +190,46 @@ char *ruleText;
 	 * be defined in attributes of basic types (i.e. not of type
 	 * relation etc....)
 	 */
-	if (!prs2AttributeIsOfBasicType(eventTargetRelationOid,
-					eventTargetAttributeNumber)) {
+	if (!prs2AttributeIsOfBasicType(r->eventRelationOid,
+					r->eventAttributeNumber)) {
 		elog(WARN,
 		"Can not define tuple rules in non-base type attributes");
 	}
+    }
+
+
+    /*
+     * check if we use CURRENT on a 'on append' rule, or NEW
+     * on a 'on retrieve' or 'on delete' rule.
+     * If yes, then complain...
+     */
+    r->ruleQual = GetRuleQualFromParse(parseTree);
+    r->ruleAction = GetRuleActionFromParse(parseTree);
+    IsPlanUsingNewOrCurrent(r->ruleQual, &currentUsed, &newUsed);
+    if (currentUsed && r->eventType == EventTypeAppend) {
+	elog(WARN,
+	    "An `on append' rule, can not reference the 'current' tuple");
+    }
+    if (newUsed && r->eventType == EventTypeRetrieve) {
+	elog(WARN,
+	    "An `on retrieve' rule, can not reference the 'new' tuple");
+    }
+    if (newUsed && r->eventType == EventTypeDelete) {
+	elog(WARN,
+	    "An `on delete' rule, can not reference the 'new' tuple");
+    }
+    IsPlanUsingNewOrCurrent(r->ruleAction, &currentUsed, &newUsed);
+    if (currentUsed && r->eventType == EventTypeAppend) {
+	elog(WARN,
+	    "An `on append' rule, can not reference the 'current' tuple");
+    }
+    if (newUsed && r->eventType == EventTypeRetrieve) {
+	elog(WARN,
+	    "An `on retrieve' rule, can not reference the 'new' tuple");
+    }
+    if (newUsed && r->eventType == EventTypeDelete) {
+	elog(WARN,
+	    "An `on delete' rule, can not reference the 'new' tuple");
     }
 
     /*
@@ -137,11 +243,10 @@ char *ruleText;
      * calculate the appropriate stub records etc.
      * nodes to the equivalent
      */
-    ruleQual = GetRuleQualFromParse(parseTree);
-    paramParseTree = lispCopy(parseTree);
-    SubstituteParamForNewOrCurrent(paramParseTree, eventTargetRelationOid);
-    paramRuleQual = GetRuleQualFromParse(paramParseTree);
-    paramRuleAction = GetRuleActionFromParse(paramParseTree);
+    r->paramParseTree = lispCopy(parseTree);
+    SubstituteParamForNewOrCurrent(r->paramParseTree, r->eventRelationOid);
+    r->paramRuleQual = GetRuleQualFromParse(r->paramParseTree);
+    r->paramRuleAction = GetRuleActionFromParse(r->paramParseTree);
 
     /*
      * Now, find the type of action. (i.e. ActionTypeRetrieve, 
@@ -149,10 +254,10 @@ char *ruleText;
      * In the first 2 cases,  `updatedAttributeNumber' is the number
      * of attribute beeing updated.
      */
-    actionType = prs2FindActionTypeFromParse(parseTree,
-			eventTargetAttributeNumber,
-			&updatedAttributeNumber,
-			eventType);
+    r->actionType = prs2FindActionTypeFromParse(r->parseTree,
+			r->eventAttributeNumber,
+			&(r->updatedAttributeNumber),
+			r->eventType);
     /*
      * Hm... for the time being we do NOT allow 
      *     ON RETRIEVE ... DO RETRIEVE ....
@@ -162,19 +267,19 @@ char *ruleText;
      * In this case the event target object must be a
      * relation and not a "relation.attribute"
      */
-    if (!isRuleInstead && actionType == ActionTypeRetrieveValue &&
-	eventTargetAttributeNumber != InvalidAttributeNumber ) {
+    if (!(r->isInstead) && r->actionType == ActionTypeRetrieveValue &&
+	r->eventAttributeNumber != InvalidAttributeNumber ) {
 	elog(WARN,
 	"`on retrieve ... do retrieve' tuple rules must have an `instead'");
     }
 
-    
 
 #ifdef PRS2_DEBUG
-    printf("---DEFINE TUPLE RULE:\n");
-    printf("   RuleName = %s\n", ruleName.data);
-    printf("   event type = %d ", eventType);
-    switch (eventType) {
+    {
+    printf("PRS2: ---DEFINE TUPLE RULE:\n");
+    printf("PRS2:    RuleName = %s\n", r->ruleName->data);
+    printf("PRS2:    event type = %d ", r->eventType);
+    switch (r->eventType) {
 	case EventTypeRetrieve:
 	    printf("(retrieve)\n");
 	    break;
@@ -190,58 +295,19 @@ char *ruleText;
 	default:
 	    printf("(*** UNKNOWN ***)\n");
     }
-    printf("   event target:");
+    printf("PRS2:    event target:");
     lispDisplay(eventTarget, 0);
     printf("\n");
-    printf("   event target relation OID = %ld\n", eventTargetRelationOid);
-    printf("   event target attr no = %d\n", eventTargetAttributeNumber);
-    printf("   Instead flag = %d\n", isRuleInstead);
-    printf("   ruleAction:");
-    lispDisplay(paramRuleAction, 0);
+    printf("PRS2:    event target relation OID = %ld\n", r->eventRelationOid);
+    printf("PRS2:    event target attr no = %d\n", r->eventAttributeNumber);
+    printf("PRS2:    Instead flag = %d\n", r->isInstead);
+    printf("PRS2:    ruleAction:");
+    lispDisplay(r->paramRuleAction);
     printf("\n");
+    }
 #endif PRS2_DEBUG
-
-    /*
-     * Insert information about the rule in the catalogs.
-     * The routine returns the rule's OID.
-     *
-     */
-    ruleId = prs2InsertRuleInfoInCatalog(&ruleName,
-					eventType,
-					eventTargetRelationOid,
-					eventTargetAttributeNumber,
-					ruleText);
-					
-    /*
-     * Now generate the plans for the action part of the rule
-     */
-    ruleActionPlans = prs2GenerateActionPlans(isRuleInstead,
-					paramRuleQual,paramRuleAction,
-					GetRuleRangeTableFromParse(parseTree),
-					eventTargetAttributeNumber,
-					updatedAttributeNumber);
-
-    /*
-     * Store the plans generated above in the system 
-     * catalogs.
-     */
-    prs2InsertRulePlanInCatalog(ruleId, 
-			    ActionPlanNumber,
-			    ruleActionPlans);
     
-    /*
-     * Now set the appropriate locks.
-     */
-    prs2TupleSystemPutLocks(ruleId, eventTargetRelationOid,
-		eventTargetAttributeNumber,
-		updatedAttributeNumber,
-		eventType, actionType,
-		ruleQual);
-
-#ifdef PRS2_DEBUG
-    printf("--- DEFINE PRS2 RULE: Done.\n");
-#endif PRS2_DEBUG
-
+    return(r);
 }
 
 
@@ -253,16 +319,11 @@ char *ruleText;
  * As the rule names are unique, we have first to make sure
  * that no other rule with the same names exists.
  *
+ *-----------------------------------------------------------------------
  */
-
 ObjectId
-prs2InsertRuleInfoInCatalog(ruleName, eventType, eventRelationOid,
-			    eventAttributeNumber, ruleText)
-Name ruleName;
-EventType eventType;
-ObjectId eventRelationOid;
-AttributeNumber eventAttributeNumber;
-char * ruleText;
+prs2InsertRuleInfoInCatalog(r)
+Prs2RuleData r;
 {
     register		i;
     Relation		prs2RuleRelation;
@@ -277,6 +338,7 @@ char * ruleText;
     
     /*
      * Open the system catalog relation
+     * where we keep the rule info (pg_prs2rule)
      */
     prs2RuleRelation = RelationNameOpenHeapRelation(Prs2RuleRelationName);
     if (!RelationIsValid(prs2RuleRelation)) {
@@ -290,16 +352,16 @@ char * ruleText;
     ruleNameKey[0].flags = 0;
     ruleNameKey[0].attributeNumber= Prs2RuleNameAttributeNumber;
     ruleNameKey[0].procedure = F_CHAR16EQ;
-    ruleNameKey[0].argument = NameGetDatum(ruleName);
+    ruleNameKey[0].argument = NameGetDatum(r->ruleName);
 
-    heapScan = RelationBeginHeapScan(prs2RuleRelation, 0, NowTimeQual,
+    heapScan = RelationBeginHeapScan(prs2RuleRelation, false, NowTimeQual,
 				     1, (ScanKey) ruleNameKey);
-    heapTuple = HeapScanGetNextTuple(heapScan, 0, (Buffer *) NULL);
+    heapTuple = HeapScanGetNextTuple(heapScan, false, (Buffer *) NULL);
     if (HeapTupleIsValid(heapTuple)) {
 	HeapScanEnd(heapScan);
 	RelationCloseHeapRelation(prs2RuleRelation);
-	elog(WARN, "prs2InsertRuleInfoInCatalog: rule %s already defined",
-	     ruleName);
+	elog(WARN, "Sorry, rule %s is already defined",
+	     r->ruleName);
     }
     HeapScanEnd(heapScan);
 
@@ -311,22 +373,23 @@ char * ruleText;
 	nulls[i] = 'n';
     }
 
-    values[Prs2RuleNameAttributeNumber-1] = fmgr(F_CHAR16IN,(char *)ruleName);
+    values[Prs2RuleNameAttributeNumber-1] =
+			    fmgr(F_CHAR16IN,(char *)(r->ruleName));
     nulls[Prs2RuleNameAttributeNumber-1] = ' ';
 
-    values[Prs2RuleEventTypeAttributeNumber-1] = (char *) eventType;
+    values[Prs2RuleEventTypeAttributeNumber-1] = (char *) r->eventType;
     nulls[Prs2RuleEventTypeAttributeNumber-1] = ' ';
 
     values[Prs2RuleEventTargetRelationAttributeNumber-1] =
-			(char *) eventRelationOid;
+			(char *) r->eventRelationOid;
     nulls[Prs2RuleEventTargetRelationAttributeNumber-1] = ' ';
 
     values[Prs2RuleEventTargetAttributeAttributeNumber-1] = 
-			(char *) eventAttributeNumber;
+			(char *) r->eventAttributeNumber;
     nulls[Prs2RuleEventTargetAttributeAttributeNumber-1] = ' ';
 
     values[Prs2RuleTextAttributeNumber-1] = 
-			fmgr(F_TEXTIN, ruleText);
+			fmgr(F_TEXTIN, r->ruleText);
     nulls[Prs2RuleTextAttributeNumber-1] = ' ';
 
     heapTuple = FormHeapTuple(Prs2RuleRelationNumberOfAttributes,
@@ -344,6 +407,56 @@ char * ruleText;
 }
 
 /*-----------------------------------------------------------------------
+ * prs2DeleteRuleInfoFromCatalog
+ *
+ * remove all rule info stored in 'pg_prs2rule' about the given
+ * rule.
+ *
+ *-----------------------------------------------------------------------
+ */
+void
+prs2DeleteRuleInfoFromCatalog(ruleId)
+ObjectId ruleId;
+{
+    Relation prs2RuleRelation;
+    HeapScanDesc scanDesc;
+    ScanKeyData scanKey;
+    HeapTuple tuple;
+    Buffer buffer;
+
+    /*
+     * Open the pg_rule relation. 
+     */
+    prs2RuleRelation = RelationNameOpenHeapRelation(Prs2RuleRelationName);
+
+     /*
+      * Scan the RuleRelation ('pg_prs2rule') until we find a tuple
+      */
+    scanKey.data[0].flags = 0;
+    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
+    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
+    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
+    scanDesc = RelationBeginHeapScan(prs2RuleRelation,
+				    false, NowTimeQual, 1, &scanKey);
+
+    tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
+
+    /*
+     * complain if no such rule existed
+     */
+    if (!HeapTupleIsValid(tuple)) {
+	RelationCloseHeapRelation(prs2RuleRelation);
+	elog(WARN, "No rule with id = '%d' was found.\n", ruleId);
+    }
+
+    /*
+     * Now delete the tuple...
+     */
+    RelationDeleteHeapTuple(prs2RuleRelation, &(tuple->t_ctid));
+    RelationCloseHeapRelation(prs2RuleRelation);
+}
+
+/*-----------------------------------------------------------------------
  *
  * prs2InsertRulePlanInCatalog
  *
@@ -353,12 +466,14 @@ char * ruleText;
  *			'prs2InsertRuleInfoInCatalog').
  *	planNumber	the corresponding planNumber.
  *	rulePlan	the rule plan itself!
+ *
+ *-----------------------------------------------------------------------
  */
 void
 prs2InsertRulePlanInCatalog(ruleId, planNumber, rulePlan)
-ObjectId	ruleId;
-Prs2PlanNumber	planNumber;
-LispValue	rulePlan;
+ObjectId ruleId;
+Prs2PlanNumber planNumber;
+List rulePlan;
 {
     register		i;
     char		*rulePlanString;
@@ -403,23 +518,59 @@ LispValue	rulePlan;
     RelationCloseHeapRelation(prs2PlansRelation);
 }
 
+/*--------------------------------------------------------------------------
+ * prs2DeleteRulePlanFromCatalog
+ *
+ * Delete all rule plans for the given rule from the "pg_prs2plans"
+ * system catalog.
+ *--------------------------------------------------------------------------
+ */
+void
+prs2DeleteRulePlanFromCatalog(ruleId)
+ObjectId ruleId;
+{
+    Relation prs2PlansRelation;
+    HeapScanDesc scanDesc;
+    ScanKeyData scanKey;
+    HeapTuple tuple;
+    Buffer buffer;
+
+    /*
+     * Delete all tuples of the Prs2Plans relation (pg_prs2plans)
+     * corresponding to this rule...
+     */
+    prs2PlansRelation = RelationNameOpenHeapRelation(Prs2PlansRelationName);
+
+    scanKey.data[0].flags = 0;
+    scanKey.data[0].attributeNumber = Prs2PlansRuleIdAttributeNumber;
+    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
+    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
+    scanDesc = RelationBeginHeapScan(prs2PlansRelation,
+				    false, NowTimeQual, 1, &scanKey);
+
+
+    while((tuple=HeapScanGetNextTuple(scanDesc,false,(Buffer *)NULL)) !=NULL) {
+	/*
+	 * delete the prs2PlansRelation tuple...
+	 */
+	RelationDeleteHeapTuple(prs2PlansRelation, &(tuple->t_ctid));
+    }
+	
+    RelationCloseHeapRelation(prs2PlansRelation);
+
+}
+
 /*----------------------------------------------------------------------
  *
  * prs2GenerateActionPlans
  *
  * generate the plan+parse trees for the action part of the rule
+ *
+ *----------------------------------------------------------------------
  */
 LispValue
-prs2GenerateActionPlans(isRuleInstead, ruleQual,ruleAction,
-			rangeTable,
-			eventTargetAttributeNumber,
-			updatedAttributeNumber)
-int isRuleInstead;
-LispValue ruleQual;
-LispValue ruleAction;
-LispValue rangeTable;
-AttributeNumber eventTargetAttributeNumber;
-AttributeNumber updatedAttributeNumber;
+prs2GenerateActionPlans(r)
+Prs2RuleData r;
 {
     LispValue result;
     LispValue action;
@@ -428,8 +579,11 @@ AttributeNumber updatedAttributeNumber;
     LispValue oneEntry;
     LispValue qualQuery;
     LispValue ruleInfo;
+    LispValue rangeTable;
     AttributeNumber currentAttributeNo;
 
+
+    rangeTable = GetRuleRangeTableFromParse(r->parseTree);
 
     /*
      * the first entry in the result is some rule info
@@ -444,14 +598,14 @@ AttributeNumber updatedAttributeNumber;
      *       DO REPLACE CURRENT.attribute
      *    the 'attribute' that is replced by the rule.
      */
-    if (isRuleInstead) {
+    if (r->isInstead) {
 	ruleInfo = lispCons(lispString("instead"), LispNil);
     } else {
 	ruleInfo = lispCons(lispString("not-instead"), LispNil);
     }
 
-    ruleInfo = nappend1(ruleInfo, lispInteger(eventTargetAttributeNumber));
-    ruleInfo = nappend1(ruleInfo, lispInteger(updatedAttributeNumber));
+    ruleInfo = nappend1(ruleInfo, lispInteger(r->eventAttributeNumber));
+    ruleInfo = nappend1(ruleInfo, lispInteger(r->updatedAttributeNumber));
 
     result = lispCons(ruleInfo, LispNil);
 
@@ -459,7 +613,7 @@ AttributeNumber updatedAttributeNumber;
     /*
      * now append the qual entry (parse tree + plan)
      */
-    if (null(ruleQual)) {
+    if (null(r->ruleQual)) {
 	oneEntry = LispNil;
     } else {
 	/*
@@ -520,7 +674,7 @@ AttributeNumber updatedAttributeNumber;
 	 */
 	qualQuery = lispCons(root,
 			lispCons(targetList,
-			    lispCons(ruleQual, LispNil)));
+			    lispCons(r->paramRuleQual, LispNil)));
 	onePlan = planner(qualQuery);
 	oneEntry = lispCons(onePlan, LispNil);
 	oneEntry = lispCons(qualQuery, oneEntry);
@@ -531,7 +685,7 @@ AttributeNumber updatedAttributeNumber;
      * Now for each action append the corresponding entry
      * (parse tree + plan)
      */
-    foreach (action, ruleAction) {
+    foreach (action, r->paramRuleAction) {
 	oneParse = CAR(action);
 	/*
 	 * XXX: THIS IS A HACK !!!
@@ -551,120 +705,6 @@ AttributeNumber updatedAttributeNumber;
     }
 
     return(result);
-
-}
-
-/* ----------------------------------------------------------------
- *
- * prs2RemoveTupleRule
- *
- * Delete a rule given its rulename.
- *
- * There are three steps.
- *   1) Find the corresponding tuple in 'pg_prs2rule' relation.
- *      Find the rule Id (i.e. the Oid of the tuple) and finally delete
- *      the tuple.
- *   2) Given the rule Id find and delete all corresonding tuples from
- *      'pg_prs2plans' relation
- *   3) (Optional) Delete the locks from the 'pg_relation' relation.
- *
- *
- * ----------------------------------------------------------------
- */
-
-void
-prs2RemoveTupleRule(ruleName)
-Name ruleName;
-{
-    Relation prs2RuleRelation;
-    Relation prs2PlansRelation;
-    HeapScanDesc scanDesc;
-    ScanKeyData scanKey;
-    HeapTuple tuple;
-    ObjectId ruleId;
-    ObjectId eventRelationOid;
-    Datum eventRelationOidDatum;
-    Buffer buffer;
-    Boolean isNull;
-
-    /*
-     * Open the pg_rule relation. 
-     */
-    prs2RuleRelation = RelationNameOpenHeapRelation(Prs2RuleRelationName);
-
-     /*
-      * Scan the RuleRelation ('pg_prs2rule') until we find a tuple
-      */
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Prs2RuleNameAttributeNumber;
-    scanKey.data[0].procedure = Character16EqualRegProcedure;
-    scanKey.data[0].argument = NameGetDatum(ruleName);
-    scanDesc = RelationBeginHeapScan(prs2RuleRelation,
-				    0, NowTimeQual, 1, &scanKey);
-
-    tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
-
-    /*
-     * complain if no rule with such name existed
-     */
-    if (!HeapTupleIsValid(tuple)) {
-	RelationCloseHeapRelation(prs2RuleRelation);
-	elog(WARN, "No rule with name = '%s' was found.\n", ruleName);
-    }
-
-    /*
-     * Store the OID of the rule (i.e. the tuple's OID)
-     * and the event relation's OID
-     */
-    ruleId = tuple->t_oid;
-    eventRelationOidDatum = HeapTupleGetAttributeValue(
-				tuple,
-				buffer,
-				Prs2RuleEventTargetRelationAttributeNumber,
-				&(prs2RuleRelation->rd_att),
-				&isNull);
-    if (isNull) {
-	/* XXX strange!!! */
-	elog(WARN, "prs2RemoveTupleRule: null event target relation!");
-    }
-    eventRelationOid = DatumGetObjectId(eventRelationOidDatum);
-
-    /*
-     * Now delete the tuple...
-     */
-    RelationDeleteHeapTuple(prs2RuleRelation, &(tuple->t_ctid));
-    RelationCloseHeapRelation(prs2RuleRelation);
-
-    /*
-     * Now delete all tuples of the Prs2Plans relation (pg_prs2plans)
-     * corresponding to this rule...
-     */
-    prs2PlansRelation = RelationNameOpenHeapRelation(Prs2PlansRelationName);
-
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Prs2PlansRuleIdAttributeNumber;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
-    scanDesc = RelationBeginHeapScan(prs2PlansRelation,
-				    0, NowTimeQual, 1, &scanKey);
-
-
-    while((tuple=HeapScanGetNextTuple(scanDesc, 0, (Buffer *)NULL)) != NULL) {
-	/*
-	 * delete the prs2PlansRelation tuple...
-	 */
-	RelationDeleteHeapTuple(prs2PlansRelation, &(tuple->t_ctid));
-    }
-	
-    RelationCloseHeapRelation(prs2PlansRelation);
-
-    /*
-     * Now delete the relation level locks from the updated relation
-     */
-    prs2RemoveRelationLevelLocks(ruleId, eventRelationOid);
-
-    elog(DEBUG, "---Rule '%s' deleted.\n", ruleName);
-
 }
 
 /*------------------------------------------------------------------
@@ -672,6 +712,7 @@ Name ruleName;
  * prs2FindEventTypeFromParse
  *
  * Given a rule's parse tree find its event type.
+ *------------------------------------------------------------------
  */
 EventType
 prs2FindEventTypeFromParse(parseTree)
@@ -720,6 +761,7 @@ LispValue parseTree;
  * if the action is in the form 'REPLACE CURRENT(x = ....)'
  * then (*updatedAttributeNumber) is the attribute number of the
  * updated field, otherwise it is InvalidAttributeNumber.
+ *------------------------------------------------------------------
  */
 ActionType
 prs2FindActionTypeFromParse(parseTree,
@@ -875,70 +917,6 @@ EventType eventType;
     return(actionType);
 }
 
-/*=============================== DEBUGGINF STUFF ================*/
-LispValue
-prs2ReadRule(fname)
-char *fname;
-{
-    FILE *fp;
-    int c;
-    int count, maxcount;
-    char *s1, *s2;
-    LispValue l;
-    LispValue StringToPlan();
-
-    printf("--- prsReadRule.\n");
-    AllocateFile();
-    if (fname==NULL) {
-	fp = stdin;
-	printf(" reading rule from stdin.\n");
-    } else {
-	AllocateFile();
-	fp = fopen(fname, "r");
-	if (fp==NULL){
-	    printf(" Can not open rule file %s\n", fname);
-	    elog(WARN,"prs2ReadRule.... exiting...\n");
-	} else {
-	    printf("Reading rule from file %s\n", fname);
-	}
-    }
-
-    maxcount = 100;
-    s1 = palloc(maxcount);
-    if (s1 == NULL) {
-	elog(WARN,"prs2ReadRule : out of memory!");
-    }
-
-    count = 0;
-    while((c=getc(fp)) != EOF) {
-	if (count >= maxcount) {
-	    maxcount = maxcount + 1000;
-	    s2 = palloc(maxcount);
-	    if (s2 == NULL) {
-		elog(WARN,"prs2ReadRule : out of memory!");
-	    }
-	    bcopy(s1, s2, count);
-	    free(s1);
-	    s1 = s2;
-	}
-	s1[count] = c;
-	count++;
-    }
-    s1[count+1] = '\0';
-
-    l = StringToPlan(s1);
-
-    printf("  list = \n");
-    lispDisplay(l,0);
-
-    if (fp!=stdin) {
-	fclose(fp);
-	FreeFile();
-    }
-
-    return(l);
-}
-
 /*----------------------------------------------------------------
  *
  * changeReplaceToRetrieve
@@ -946,6 +924,7 @@ char *fname;
  * Ghange the parse tree of a 'REPLACE CURRENT(X = ...)'
  * or 'REPLACE NEW(X = ...)' command to a
  * 'RETRIEVE (X = ...)'
+ *----------------------------------------------------------------
  */
 void
 changeReplaceToRetrieve(parseTree)
@@ -1014,6 +993,7 @@ LispValue parseTree;
  * prs2AttributeIsOfBasicType
  *
  * check if the given attribute is of a "basic" type.
+ *-----------------------------------------------------------------
  */
 bool
 prs2AttributeIsOfBasicType(relOid, attrNo)
@@ -1034,4 +1014,68 @@ AttributeNumber attrNo;
     } else {
 	return(false);
     }
+}
+
+/*=============================== DEBUGGINF STUFF ================*/
+LispValue
+prs2ReadRule(fname)
+char *fname;
+{
+    FILE *fp;
+    int c;
+    int count, maxcount;
+    char *s1, *s2;
+    LispValue l;
+    LispValue StringToPlan();
+
+    printf("--- prsReadRule.\n");
+    AllocateFile();
+    if (fname==NULL) {
+	fp = stdin;
+	printf(" reading rule from stdin.\n");
+    } else {
+	AllocateFile();
+	fp = fopen(fname, "r");
+	if (fp==NULL){
+	    printf(" Can not open rule file %s\n", fname);
+	    elog(WARN,"prs2ReadRule.... exiting...\n");
+	} else {
+	    printf("Reading rule from file %s\n", fname);
+	}
+    }
+
+    maxcount = 100;
+    s1 = palloc(maxcount);
+    if (s1 == NULL) {
+	elog(WARN,"prs2ReadRule : out of memory!");
+    }
+
+    count = 0;
+    while((c=getc(fp)) != EOF) {
+	if (count >= maxcount) {
+	    maxcount = maxcount + 1000;
+	    s2 = palloc(maxcount);
+	    if (s2 == NULL) {
+		elog(WARN,"prs2ReadRule : out of memory!");
+	    }
+	    bcopy(s1, s2, count);
+	    free(s1);
+	    s1 = s2;
+	}
+	s1[count] = c;
+	count++;
+    }
+    s1[count+1] = '\0';
+
+    l = StringToPlan(s1);
+
+    printf("  list = \n");
+    lispDisplay(l,0);
+
+    if (fp!=stdin) {
+	fclose(fp);
+	FreeFile();
+    }
+
+    return(l);
 }
