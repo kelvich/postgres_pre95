@@ -9,13 +9,17 @@
  *	PortalCleanup
  *	PerformPortalFetch
  *	PerformPortalClose
- *	PerformAddAttribute
  *	PerformRelationFilter
+ *	PerformAddAttribute
  *
  *   NOTES
  *	The PortalExecutorHeapMemory crap needs to be eliminated
  *	by designing a better executor / portal processing memory
  *	interface.
+ *	
+ *	The PerformAddAttribute() code, like most of the relation
+ *	manipulating code in the commands/ directory, should go
+ *	someplace closer to the lib/catalog code.
  *	
  *   IDENTIFICATION
  *	$Header$
@@ -27,6 +31,17 @@
 
 RcsId("$Header$");
 
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) postgres.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
 #include "access/attnum.h"
 #include "access/ftup.h"
 #include "access/heapam.h"
@@ -37,8 +52,7 @@ RcsId("$Header$");
 
 #include "commands/command.h"
 #include "commands/copy.h"
-#include "executor/execdefs.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
-#include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 #include "storage/buf.h"
 #include "storage/itemptr.h"
 #include "tmp/miscadmin.h"
@@ -49,12 +63,17 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 #include "utils/rel.h"
 
+#include "nodes/pg_lisp.h"
+
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
+
+#include "executor/execdefs.h"
+#include "executor/execdesc.h"
 
 /* ----------------
  * 	PortalExecutorHeapMemory stuff
@@ -102,7 +121,7 @@ PortalCleanup(portal)
      *	switch back to previous context
      * ----------------
      */
-    (void)MemoryContextSwitchTo(context);
+    (void) MemoryContextSwitchTo(context);
 }
 
 /* --------------------------------
@@ -110,10 +129,11 @@ PortalCleanup(portal)
  * --------------------------------
  */
 void
-PerformPortalFetch(name, forward, count)
+PerformPortalFetch(name, forward, count, dest)
     String	name;
     bool	forward;
     Count	count;
+    CommandDest dest;
 {
     Portal		portal;
     LispValue		feature;
@@ -131,7 +151,7 @@ PerformPortalFetch(name, forward, count)
     }
     
     /* ----------------
-     * 	switch into the portal context
+     *	get the portal from the portal name
      * ----------------
      */
     portal = GetPortalByName(name);
@@ -140,34 +160,42 @@ PerformPortalFetch(name, forward, count)
 	return;
     }
     
+    /* ----------------
+     * 	switch into the portal context
+     * ----------------
+     */
     context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
 
-    AssertState(context == (MemoryContext) PortalGetHeapMemory(GetPortalByName(NULL)));
+    AssertState(context == (MemoryContext) \
+		PortalGetHeapMemory(GetPortalByName(NULL)));
 
     /* ----------------
      *  setup "feature" to tell the executor what direction and
      *  how many tuples to fetch.
-     *
-     *  there must be a cleaner interface to the executor -hirohama
      * ----------------
      */
-    feature = lispCons(lispInteger(EXEC_END), LispNil);
     if (forward) {
-	feature = lispInteger((IsUnderPostmaster) ?
-			      EXEC_FOR : EXEC_FDEBUG);
+	feature = lispInteger(EXEC_FOR);
     } else {
-	feature = lispInteger((IsUnderPostmaster) ?
-			      EXEC_BACK : EXEC_BDEBUG);
+	feature = lispInteger(EXEC_BACK);
     }
     feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
 
     /* ----------------
-     *	execute the query
+     *	tell the destination to prepare to recieve some tuples
      * ----------------
      */
     queryDesc = PortalGetQueryDesc(portal);
-    BeginCommand(name, QueryDescGetTypeInfo(queryDesc));
+    BeginCommand(name,
+		 QueryDescGetTypeInfo(queryDesc),
+		 CAtom(GetOperation(queryDesc)),
+		 false,		/* portal fetches don't end up in relations */
+		 dest);
     
+    /* ----------------
+     *	execute the portal fetch operation
+     * ----------------
+     */
     PortalExecutorHeapMemory = (MemoryContext)
 	PortalGetHeapMemory(portal);
     
@@ -192,8 +220,9 @@ PerformPortalFetch(name, forward, count)
  * --------------------------------
  */
 void
-PerformPortalClose(name)
+PerformPortalClose(name, dest)
     String	name;
+    CommandDest dest;
 {
     Portal	portal;
 
@@ -206,6 +235,10 @@ PerformPortalClose(name)
 	return;
     }
 
+    /* ----------------
+     *	get the portal from the portal name
+     * ----------------
+     */
     portal = GetPortalByName(name);
     if (! PortalIsValid(portal)) {
 	elog(NOTICE, "PerformPortalClose: %s not found", name);
@@ -219,8 +252,93 @@ PerformPortalClose(name)
     PortalDestroy(portal);
 }
 
+/* --------------------------------
+ * 	FixDomainList
+ * --------------------------------
+ */
+List
+FixDomainList(domains)
+    List	domains;
+{
+    LispValue	first;
+    List		fixedFirst;
+    List		result;
+    
+    if (null(domains)) {
+	return (LispNil);
+    }
+    
+    first = CAR(domains);
+    fixedFirst = LispNil;
+    
+    if (lispStringp(first)) {
+	fixedFirst = lispCons(first,
+		       lispCons(lispInteger(-1),
+			 lispCons(lispInteger(strlen(CString(first))),
+				  LispNil)));
+    } else {
+	int len;
+	
+	len = length(first);
+	switch (len) {
+	case 1:
+	    fixedFirst = lispCons(CAR(first),
+			   lispCons(lispInteger(0),
+			     lispCons(lispInteger(-1), LispNil)));
+	    break;
+	case 2:
+	    fixedFirst = lispCons(CAR(first),
+			   lispCons(CADR(first),
+			     lispCons(lispInteger(-1), LispNil)));
+	    break;
+	case 3:
+	    fixedFirst = first;
+	    break;
+	default:
+	    ; /* this cannot happen */
+	}
+    }
+    
+    /*
+     * return result of processing entire list
+     */
+    result = FixDomainList(CDR(domains));
+    if (!null(fixedFirst)) {
+	result = lispCons(fixedFirst, result);
+    }
+    return (result);
+}
+
+/* --------------------------------
+ * 	PerformRelationFilter
+ * --------------------------------
+ */
+void
+PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
+		mapName, domains)
+    Name	relationName;
+    bool	isBinary;
+    bool	noNulls;
+    bool	isFrom;
+    String	fileName;
+    Name	mapName;
+    List	domains;
+{
+    AttributeNumber	numberOfAttributes;
+    Domain		domainDesc;
+    Count		domainCount;
+    
+    numberOfAttributes = length(domains);
+    domains = FixDomainList(domains);
+    domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
+			       domains, &domainCount);
+    
+    copyrel(relationName, isFrom, fileName, mapName, domainCount, domainDesc);
+}
+
+
 /* ----------------
- *	PerformAddAttribute	(was formerly addattribute())
+ *	PerformAddAttribute
  *
  *	adds an additional attribute to a relation
  *
@@ -251,240 +369,156 @@ PerformPortalClose(name)
  */
 void
 PerformAddAttribute(relationName, schema)
-	Name	relationName;
-	List	schema;
-{
-	List		element;
-	AttributeNumber	newAttributes;
-
-	Relation			relrdesc, attrdesc;
-	HeapScanDesc			relsdesc, attsdesc;
-	HeapTuple			reltup;
-	HeapTuple		attributeTuple;
-	AttributeTupleForm	attribute;
-	AttributeTupleFormD	attributeD;
-	struct attribute		*ap, *attp, **app;
-	int				i;
-	int				minattnum, maxatts;
-	HeapTuple			tup;
-	struct	skey			key[2];	/* static better? [?] */
-	ItemPointerData			oldTID;
-	HeapTuple		palloctup();
+    Name	relationName;
+    List	schema;
+{	
+    List		element;
+    AttributeNumber	newAttributes;
+    
+    Relation			relrdesc, attrdesc;
+    HeapScanDesc			relsdesc, attsdesc;
+    HeapTuple			reltup;
+    HeapTuple		attributeTuple;
+    AttributeTupleForm	attribute;
+    AttributeTupleFormD	attributeD;
+    struct attribute		*ap, *attp, **app;
+    int				i;
+    int				minattnum, maxatts;
+    HeapTuple			tup;
+    struct	skey			key[2];	/* static better? [?] */
+    ItemPointerData			oldTID;
+    HeapTuple		palloctup();
+    
+    if (issystem(relationName)) {
+	elog(WARN, "Add: system relation \"%s\" unchanged",
+	     relationName);
+	return;
+    }
+    
+    /*
+     * verify that no attributes are repeated in the list
+     */
+    foreach (element, schema) {
+	List	rest;
 	
-	if (issystem(relationName)) {
-		elog(WARN, "Add: system relation \"%s\" unchanged",
-			relationName);
-		return;
+	foreach (rest, CDR(element)) {
+	    if (equal(CAR(CAR(element)), CAR(CAR(rest)))) {
+		elog(WARN, "Add: \"%s\" repeated",
+		     CString(CAR(CAR(element))));
+	    }
 	}
-
-	/*
-	 * verify that no attributes are repeated in the list
-	 */
-	foreach (element, schema) {
-		List	rest;
-
-		foreach (rest, CDR(element)) {
-			if (equal(CAR(CAR(element)), CAR(CAR(rest)))) {
-				elog(WARN, "Add: \"%s\" repeated",
-					CString(CAR(CAR(element))));
-			}
-		}
-	}
-
-	newAttributes = length(schema);
-
-	relrdesc = amopenr(RelationRelationName);
-	key[0].sk_flags = NULL;
-	key[0].sk_attnum = RelationNameAttributeNumber;
-	key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key[0].sk_data = (DATUM)relationName;
-	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
-	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
-	if (!PointerIsValid(reltup)) {
-		amendscan(relsdesc);
-		amclose(relrdesc);
-		elog(WARN, "addattribute: relation \"%s\" not found",
-			relationName);
-		return;
-	}
-	/*
-	 * XXX is the following check sufficient?
-	 */
-	if (((struct relation *) GETSTRUCT(reltup))->relkind == 'i') {
-		elog(WARN, "addattribute: index relation \"%s\" not changed",
-			relationName);
-		return;
-	}
-	reltup = palloctup(reltup, InvalidBuffer, relrdesc);
+    }
+    
+    newAttributes = length(schema);
+    
+    relrdesc = amopenr(RelationRelationName);
+    key[0].sk_flags = NULL;
+    key[0].sk_attnum = RelationNameAttributeNumber;
+    key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
+    key[0].sk_data = (DATUM)relationName;
+    relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
+    reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
+    if (!PointerIsValid(reltup)) {
 	amendscan(relsdesc);
-
-	minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
-	maxatts = minattnum + newAttributes;
-	if (maxatts > MaxHeapAttributeNumber) {
-		pfree((char *) reltup);			/* XXX temp */
-		amclose(relrdesc);			/* XXX temp */
-		elog(WARN, "addattribute: relations limited to %d attributes",
-		     MaxHeapAttributeNumber);
-		return;
-	}
-
-	attrdesc = amopenr(AttributeRelationName);
-	key[0].sk_flags = NULL;
-	key[0].sk_attnum = AttributeRelationIdAttributeNumber;
-	key[0].sk_opr = ObjectIdEqualRegProcedure;
-	key[0].sk_data = (DATUM) reltup->t_oid;
-	key[1].sk_flags = NULL;
-	key[1].sk_attnum = AttributeNameAttributeNumber;
-	key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key[1].sk_data = (DATUM) NULL;	/* set in each iteration below */
-
-	attributeD.attrelid = reltup->t_oid;
-	attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */
-	attributeD.attnvals = 1;		/* XXX temporary */
-	attributeD.atttyparg = InvalidObjectId;	/* XXX temporary */
-	attributeD.attbound = 0;		/* XXX temporary */
-	attributeD.attcanindex = 0;		/* XXX need this info */
-	attributeD.attproc = InvalidObjectId;	/* XXX tempoirary */
-
-	attributeTuple = addtupleheader(AttributeRelationNumberOfAttributes,
-		sizeof attributeD, (Pointer)&attributeD);
-
-	attribute = (AttributeTupleForm)GETSTRUCT(attributeTuple);
-
-	i = 1 + minattnum;
-	foreach (element, schema) {
-		HeapTuple	typeTuple;
-		TypeTupleForm	form;
-
-		/*
-		 * XXX use syscache here as an optimization
-		 */
-		key[1].sk_data = (DATUM)CString(CAR(CAR(element)));
-		attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
-		tup = amgetnext(attsdesc, 0, (Buffer *) NULL);
-		if (HeapTupleIsValid(tup)) {
-			pfree((char *) reltup);		/* XXX temp */
-			amendscan(attsdesc);		/* XXX temp */
-			amclose(attrdesc);		/* XXX temp */
-			amclose(relrdesc);		/* XXX temp */
-			elog(WARN, "addattribute: attribute \"%s\" exists",
-				key[1].sk_data);
-			return;
-		}
-		amendscan(attsdesc);
-
-		typeTuple = SearchSysCacheTuple(TYPNAME,
-			CString(CADR(CAR(element))));
-		form = (TypeTupleForm)GETSTRUCT(typeTuple);
-
-		if (!HeapTupleIsValid(typeTuple)) {
-			elog(WARN, "Add: type \"%s\" nonexistant",
-				CString(CADR(CAR(element))));
-		}
-		/*
-		 * Note: structure assignment
-		 */
-		attribute->attname = *((Name)key[1].sk_data);
-		attribute->atttypid = typeTuple->t_oid;
-		attribute->attlen = form->typlen;
-		attribute->attnum = i;
-		attribute->attbyval = form->typbyval;
-
-		RelationInsertHeapTuple(attrdesc, attributeTuple,
-			(double *)NULL);
-		i += 1;
-	}
-	
-	amclose(attrdesc);
-	((struct relation *) GETSTRUCT(reltup))->relnatts = maxatts;
-	oldTID = reltup->t_ctid;
-	amreplace(relrdesc, &oldTID, reltup);
-	pfree((char *) reltup);
 	amclose(relrdesc);
-}
-
-
-/* --------------------------------
- * 	FixDomainList
- * --------------------------------
- */
-List
-FixDomainList(domains)
-	List	domains;
-{
-	LispValue	first;
-	List		fixedFirst;
-	List		result;
-
-	if (null(domains)) {
-		return (LispNil);
-	}
-
-	first = CAR(domains);
-	fixedFirst = LispNil;
-
-	if (lispStringp(first)) {
-		fixedFirst = lispCons(first,
-			lispCons(lispInteger(-1),
-				lispCons(lispInteger(strlen(CString(first))),
-					LispNil)));
-	} else {
-		int	len;
-
-		len = length(first);
-		switch (len) {
-		case 1:
-			fixedFirst = lispCons(CAR(first),
-				lispCons(lispInteger(0),
-					lispCons(lispInteger(-1), LispNil)));
-			break;
-		case 2:
-			fixedFirst = lispCons(CAR(first),
-				lispCons(CADR(first),
-					lispCons(lispInteger(-1), LispNil)));
-			break;
-		case 3:
-			fixedFirst = first;
-			break;
-		default:
-			; /* this cannot happen */
-		}
-	}
-
+	elog(WARN, "addattribute: relation \"%s\" not found",
+	     relationName);
+	return;
+    }
+    /*
+     * XXX is the following check sufficient?
+     */
+    if (((struct relation *) GETSTRUCT(reltup))->relkind == 'i') {
+	elog(WARN, "addattribute: index relation \"%s\" not changed",
+	     relationName);
+	return;
+    }
+    reltup = palloctup(reltup, InvalidBuffer, relrdesc);
+    amendscan(relsdesc);
+    
+    minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
+    maxatts = minattnum + newAttributes;
+    if (maxatts > MaxHeapAttributeNumber) {
+	pfree((char *) reltup);			/* XXX temp */
+	amclose(relrdesc);			/* XXX temp */
+	elog(WARN, "addattribute: relations limited to %d attributes",
+	     MaxHeapAttributeNumber);
+	return;
+    }
+    
+    attrdesc = amopenr(AttributeRelationName);
+    key[0].sk_flags = NULL;
+    key[0].sk_attnum = AttributeRelationIdAttributeNumber;
+    key[0].sk_opr = ObjectIdEqualRegProcedure;
+    key[0].sk_data = (DATUM) reltup->t_oid;
+    key[1].sk_flags = NULL;
+    key[1].sk_attnum = AttributeNameAttributeNumber;
+    key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
+    key[1].sk_data = (DATUM) NULL;	/* set in each iteration below */
+    
+    attributeD.attrelid = reltup->t_oid;
+    attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */
+    attributeD.attnvals = 1;		/* XXX temporary */
+    attributeD.atttyparg = InvalidObjectId;	/* XXX temporary */
+    attributeD.attbound = 0;		/* XXX temporary */
+    attributeD.attcanindex = 0;		/* XXX need this info */
+    attributeD.attproc = InvalidObjectId;	/* XXX tempoirary */
+    
+    attributeTuple = addtupleheader(AttributeRelationNumberOfAttributes,
+				    sizeof attributeD, (Pointer)&attributeD);
+    
+    attribute = (AttributeTupleForm)GETSTRUCT(attributeTuple);
+    
+    i = 1 + minattnum;
+    foreach (element, schema) {
+	HeapTuple	typeTuple;
+	TypeTupleForm	form;
+	
 	/*
-	 * return result of processing entire list
+	 * XXX use syscache here as an optimization
 	 */
-	result = FixDomainList(CDR(domains));
-	if (!null(fixedFirst)) {
-		result = lispCons(fixedFirst, result);
+	key[1].sk_data = (DATUM)CString(CAR(CAR(element)));
+	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
+	tup = amgetnext(attsdesc, 0, (Buffer *) NULL);
+	if (HeapTupleIsValid(tup)) {
+	    pfree((char *) reltup);		/* XXX temp */
+	    amendscan(attsdesc);		/* XXX temp */
+	    amclose(attrdesc);		/* XXX temp */
+	    amclose(relrdesc);		/* XXX temp */
+	    elog(WARN, "addattribute: attribute \"%s\" exists",
+		 key[1].sk_data);
+	    return;
 	}
-	return (result);
+	amendscan(attsdesc);
+	
+	typeTuple = SearchSysCacheTuple(TYPNAME,
+					CString(CADR(CAR(element))));
+	form = (TypeTupleForm)GETSTRUCT(typeTuple);
+	
+	if (!HeapTupleIsValid(typeTuple)) {
+	    elog(WARN, "Add: type \"%s\" nonexistant",
+		 CString(CADR(CAR(element))));
+	}
+	/*
+	 * Note: structure assignment
+	 */
+	attribute->attname = *((Name)key[1].sk_data);
+	attribute->atttypid = typeTuple->t_oid;
+	attribute->attlen = form->typlen;
+	attribute->attnum = i;
+	attribute->attbyval = form->typbyval;
+	
+	RelationInsertHeapTuple(attrdesc, attributeTuple,
+				(double *)NULL);
+	i += 1;
+    }
+    
+    amclose(attrdesc);
+    ((struct relation *) GETSTRUCT(reltup))->relnatts = maxatts;
+    oldTID = reltup->t_ctid;
+    amreplace(relrdesc, &oldTID, reltup);
+    pfree((char *) reltup);
+    amclose(relrdesc);
 }
 
-/* --------------------------------
- * 	PerformRelationFilter
- * --------------------------------
- */
-void
-PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
-		mapName, domains)
-	Name	relationName;
-	bool	isBinary;
-	bool	noNulls;
-	bool	isFrom;
-	String	fileName;
-	Name	mapName;
-	List	domains;
-{
-	AttributeNumber	numberOfAttributes;
-	Domain		domainDesc;
-	Count		domainCount;
 
-	numberOfAttributes = length(domains);
-	domains = FixDomainList(domains);
-	domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
-		domains, &domainCount);
-
-	copyrel(relationName, isFrom, fileName, mapName, domainCount,
-		domainDesc);
-}
