@@ -152,7 +152,7 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     if (*isNull)
 	return (Datum)NULL;
 
-    execConstByVal = get_refelembyval(arrayRef);
+    byval = execConstByVal = get_refelembyval(arrayRef);
     element_len    = get_refelemlength(arrayRef);
     
     nbytes = (* (int32 *) array_scanner) - sizeof(int32);
