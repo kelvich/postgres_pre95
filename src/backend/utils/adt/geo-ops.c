@@ -1414,14 +1414,14 @@ double *dist_ppth(pt, path)
     int i;
     LSEG lseg;
 
-    if (path->npts = 0) 
+    if (path->npts == 0) 
      {
 	 result = PALLOCTYPE(double);
 	 *result = Abs((double) HUGE_VAL);
 	 goto exit;
      }
 
-    if (path->npts = 1) 
+    if (path->npts == 1) 
       {
 	  result = point_distance(pt, &path->p[0]);
 	  goto exit;
@@ -1872,14 +1872,15 @@ make_bound_box(poly)
 POLYGON *poly;
 {
 	double x1,y1,x2,y2;
-	int npts;
+	int npts = poly->npts;
 
-	npts = poly->npts;
-	x1 = poly_min((double *)poly->pts, npts);
-	x2 = poly_max((double *)poly->pts, npts);
-	y1 = poly_min(((double *)poly->pts)+npts, npts),
-	y2 = poly_max(((double *)poly->pts)+npts, npts);
-	box_fill(&(poly->boundbox), x1, x2, y1, y2); 
+	if (npts > 0) {
+		x1 = poly_min((double *)poly->pts, npts);
+		x2 = poly_max((double *)poly->pts, npts);
+		y1 = poly_min(((double *)poly->pts)+npts, npts),
+		y2 = poly_max(((double *)poly->pts)+npts, npts);
+		box_fill(&(poly->boundbox), x1, x2, y1, y2); 
+	}
 }
 	
 /*------------------------------------------------------------------
@@ -1900,6 +1901,7 @@ char *s;
 
 	size = offsetof(POLYGON, pts[0]) + 2 * sizeof(double) * points;
 	poly = (POLYGON *) PALLOC(size);
+	bzero((char *) poly, size);	/* zero any holes */
 
 	if (!PointerIsValid(poly))
 		elog(WARN, "Memory allocation failed, can't input polygon");
@@ -2049,8 +2051,14 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	right = poly_max((double *)polya->pts, polya->npts);
-	left = poly_min((double *)polyb->pts, polyb->npts);
+	if (polya->npts > 0)
+		right = poly_max((double *)polya->pts, polya->npts);
+	else
+		right = polya->boundbox.xh;
+	if (polyb->npts > 0)
+		left = poly_min((double *)polyb->pts, polyb->npts);
+	else
+		left = polyb->boundbox.xl;
 
 	return (right < left);
 }
@@ -2066,8 +2074,14 @@ POLYGON *polya, *polyb;
 {
 	double left, right;
 
-	left = poly_min((double *)polya->pts, polya->npts);
-	right = poly_max((double *)polyb->pts, polyb->npts);
+	if (polya->npts > 0)
+		left = poly_min((double *)polya->pts, polya->npts);
+	else
+		left = polya->boundbox.xl;
+	if (polyb->npts > 0)
+		right = poly_max((double *)polyb->pts, polyb->npts);
+	else
+		right = polyb->boundbox.xh;
 
 	return (left <= right);
 }
@@ -2083,8 +2097,14 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	left = poly_min((double *)polya->pts, polya->npts);
-	right = poly_max((double *)polyb->pts, polyb->npts);
+	if (polya->npts > 0)
+		left = poly_min((double *)polya->pts, polya->npts);
+	else
+		left = polya->boundbox.xl;
+	if (polyb->npts > 0)
+		right = poly_max((double *)polyb->pts, polyb->npts);
+	else
+		right = polyb->boundbox.xh;
 
 	return (left > right);
 }
@@ -2100,8 +2120,14 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	right = poly_max((double *)polya->pts, polya->npts);
-	left = poly_min((double *)polyb->pts, polyb->npts);
+	if (polya->npts > 0)
+		right = poly_max((double *)polya->pts, polya->npts);
+	else
+		right = polya->boundbox.xh;
+	if (polyb->npts > 0)
+		left = poly_min((double *)polyb->pts, polyb->npts);
+	else
+		left = polyb->boundbox.xl;
 
 	return (right > left);
 }
