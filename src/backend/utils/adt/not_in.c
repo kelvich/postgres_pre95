@@ -96,6 +96,8 @@ oidnotin(the_oid, compare)
 ObjectId the_oid;
 char *compare;
 {
+	if (the_oid == InvalidObjectId)
+		return false;
 	return(int4notin(the_oid, compare));
 }
 
