@@ -54,7 +54,7 @@ char *dbname;
 	sprintf(buf,
 	        "append pg_database (datname = %s::char16, datdba = %d::oid, \
 	         datpath = %s::text", dbname, user_sysid, dbname);
-	parse_query(buf);
+	pg_eval(buf);
 }
 
 destroydb(dbname)
@@ -86,7 +86,7 @@ char *dbname;
 	}
 
 	sprintf(buf, "delete pg_database where datname = %s", dbname);
-	parse_query(buf);
+	pg_eval(buf);
 }
 
 /*
