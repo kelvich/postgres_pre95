@@ -604,7 +604,7 @@ int28 **index_atts;
 }
 
 
-#define ATTLEN 2048 /* need to fix if attributes ever get very long */
+#define ATTLEN 8192 /* need to fix if attributes ever get very long */
 
 /*
  * Reads input from fp until eof is seen.  If we are reading from standard
