@@ -793,6 +793,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 		pfree((char *)relation);
    
                 MemoryContextSwitchTo(oldcxt);
+	}
 
 	OUT();
 }
