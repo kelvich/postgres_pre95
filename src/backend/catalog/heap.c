@@ -1164,28 +1164,6 @@ DeletePgTypeTuple(rdesc)
 }
 
 /* --------------------------------
- *	UnlinkRelationFile
- *
- *	unlink unix file and close relation
- * --------------------------------
- */
-void
-UnlinkRelationFile(rdesc)
-    Relation		rdesc;
-{
-/*     char	*relpath();*/
-    int 	i;
-
-    /* ----------------
-     *	unlink the unix file
-     * ----------------
-     */
-    if (FileNameUnlink((FileName)(relpath((char*)(&rdesc->rd_rel->relname)))) < 0)
-	elog(WARN, "amdestroyr: unlink: %m");
-
-}
-
-/* --------------------------------
  *	heap_destroy
  *
  * --------------------------------
@@ -1253,7 +1231,6 @@ heap_destroy(relname)
      *	unlink the relation and finish up.
      * ----------------
      */
-    UnlinkRelationFile(rdesc);
-
+    (void) smgrunlink(rdesc->rd_rel->relsmgr, rdesc);
     amclose(rdesc);
 }
