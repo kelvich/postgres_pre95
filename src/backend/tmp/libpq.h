@@ -62,6 +62,8 @@ typedef struct TypeBlock {
 
 typedef struct TupleBlock {
     char **values[TupleBlockSize];	/* an array of tuples */
+    int *lengths[TupleBlockSize];       /* an array of length vec. foreach
+					   tuple */
     struct TupleBlock *next;		/* next tuple block */
     int    tuple_index;			/* current tuple index */
 } TupleBlock;
@@ -169,6 +171,7 @@ extern char *PQfname ARGS((PortalBuffer *portal, int tuple_index, int field_numb
 extern int PQftype ARGS((PortalBuffer *portal, int tuple_index, int field_number));
 extern int PQsametype ARGS((PortalBuffer *portal, int tuple_index1, int tuple_index2));
 extern char *PQgetvalue ARGS((PortalBuffer *portal, int tuple_index, int field_number));
+extern int PQgetlength ARGS((PortalBuffer *portal, int tuple_index, int field_number));
 extern void PQclear ARGS((char *pname));
 void PQcleanNotify ARGS((void ));
 void PQnotifies_init ARGS((void ));
@@ -184,6 +187,7 @@ extern TypeBlock *pbuf_addTypes ARGS((int n));
 extern TupleBlock *pbuf_addTuples ARGS(());
 extern char **pbuf_addTuple ARGS((int n));
 extern char *pbuf_addValues ARGS((int n));
+extern int *pbuf_addTupleValueLengths ARGS((int n));
 extern PortalEntry *pbuf_addEntry ARGS(());
 extern void pbuf_freeEntry ARGS((int i));
 extern void pbuf_freeTypes ARGS((TypeBlock *types));
