@@ -8,20 +8,11 @@
  *
  * Also note: this whole thing is UNIX dependent.  (well 70% anyway)
  *
- *
- *
- *
  * NOTE: SEQUENT OS BUG: on open w/ O_CREAT if EMFILE error occurs the
  * file is *still* created in the directory.  Therefore, we must ensure
  * fd descriptors are available before calling open if O_CREAT flag is
  * set.
  */
-
-#ifdef sequent
-#define RESERVE_FOR_LD	5
-#else
-#define RESERVE_FOR_LD	10
-#endif
 
 /*
  * CURRENT HACK
@@ -42,8 +33,6 @@
 
 extern errno;
 
-#define	MAXFILES	(NOFILE-RESERVE_FOR_LD)
-
 #include "tmp/c.h"
 #include "machine.h"	/* for BLCKSZ */
 
@@ -52,6 +41,22 @@ extern errno;
 #endif
 
 RcsId("$Header$");
+
+#ifdef sequent
+#define RESERVE_FOR_LD	5
+#else
+#define RESERVE_FOR_LD	10
+#endif
+
+#ifdef SONY_JUKEBOX
+#define RESERVE_FOR_JB	1
+#endif
+
+#ifdef SONY_JUKEBOX
+#define	MAXFILES	((NOFILE - RESERVE_FOR_LD) - RESERVE_FOR_JB)
+#else /* SONY_JUKEBOX */
+#define	MAXFILES	(NOFILE - RESERVE_FOR_LD)
+#endif /* SONY_JUKEBOX */
 
 /* #define FDDEBUG /* */
 
