@@ -102,6 +102,7 @@ SOURCES= \
 	${.CURDIR}/postquel/destroy${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/destroydb${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/end${CMD_SRC_EXT} \
+	${.CURDIR}/postquel/extend_index${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/fetch${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/listen${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/load${CMD_SRC_EXT} \
@@ -201,6 +202,7 @@ CMD_MAN_OBJS= \
 	destroy${CMD_MAN_EXT} \
 	destroydb${CMD_MAN_EXT} \
 	end${CMD_MAN_EXT} \
+	extend_index${CMD_MAN_EXT} \
 	fetch${CMD_MAN_EXT} \
 	listen${CMD_MAN_EXT} \
 	load${CMD_MAN_EXT} \
