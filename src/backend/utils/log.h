@@ -55,7 +55,7 @@ extern void EnableELog ARGS ((int enable));
  * elog --
  *	Old error logging function.
  */
-extern void elog ARGS((int, ...));
+extern void elog(/* int lev, char *fmt, ... */);
 
 #endif /* !UFP */
 
