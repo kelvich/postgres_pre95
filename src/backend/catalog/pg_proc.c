@@ -94,24 +94,30 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 	if (parameterCount == 8)
 	    elog(WARN, "Procedures cannot take more than 8 arguments");
 
-	toid = TypeGet((Name)(CString(t)), &defined);
-
-	if (!ObjectIdIsValid(toid)) {
-	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
-		 CString(t));
+	if (strcmp(CString(t), "wildcard") == 0) {
+	    if (strcmp(languageName, "postquel") == 0) {
+		elog(WARN, "ProcedureDefine: postquel functions cannot take type wildcard");
+	    }
+	    else
+		toid = 0;
 	}
 
-	if (!defined) {
-	    /* 
-	     * replace with 0 - this is probably a type output function
-	     */
-	    toid = 0;
-	    elog(NOTICE, "ProcedureDefine: arg type '%s' is only a shell",
-		 CString(t));
-        }
+	else {
+	    toid = TypeGet((Name)(CString(t)), &defined);
+
+	    if (!ObjectIdIsValid(toid)) {
+		elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
+		     CString(t));
+	    }
+
+	    if (!defined) {
+		elog(NOTICE, "ProcedureDefine: arg type '%s' is only a shell",
+		     CString(t));
+	    }
+	}
+
 	typev[parameterCount++] = toid;
 
-	sprintf(temp, "%ld ", toid);
     }
 
     tup = SearchSysCacheTuple(PRONAME,
@@ -136,41 +142,34 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     languageObjectId = tup->t_oid;
 
-    typeObjectId = TypeGet(returnTypeName, &defined);
-    if (!ObjectIdIsValid(typeObjectId) || (!defined)) {
+    if (strcmp(returnTypeName, "wildcard") == 0) {
+	if (strcmp(languageName, "postquel") == 0) {
+	    elog(WARN, "ProcedureDefine: postquel functions cannot return wildcard");
+	}
+	else
+	    typeObjectId = 0;
+    }
+
+    else {
+	typeObjectId = TypeGet(returnTypeName, &defined);
+
 	if (!ObjectIdIsValid(typeObjectId)) {
-            elog(NOTICE, "ProcedureDefine: type '%s' is not yet defined",
+	    elog(NOTICE, "ProcedureDefine: type '%s' is not yet defined",
 		 returnTypeName);
 	    elog(NOTICE, "ProcedureDefine: creating a shell for type '%s'",
 		 returnTypeName);
-        }
-	else {
+
+	    typeObjectId = TypeShellMake(returnTypeName);
+	    if (!ObjectIdIsValid(typeObjectId)) {
+		elog(WARN, "ProcedureDefine: could not create type '%s'",
+		     returnTypeName);
+	    }
+	}
+
+	else if (!defined) {
 	    elog(NOTICE, "ProcedureDefine: return type '%s' is only a shell",
 		 returnTypeName);
-        }
-
-	/*
-	 * assume this is the input or receive function for a new type
-	 * and create a "shell" for the type.  change the argument type(s)
-	 * to 0, because the function just takes a pointer to a
-	 *  null-terminated string 
-	 */
-	for(i=0; i<parameterCount; i++)
-	      typev[i] = 0;
-
-	tup = SearchSysCacheTuple(PRONAME,
-				  (char *) procedureName,
-				  parameterCount,
-				  typev,
-				  (char *) NULL);
-	if (HeapTupleIsValid(tup))
-	      elog(WARN, "ProcedureDefine: input procedure %s already exists",
-		   procedureName);
-
-	typeObjectId = TypeShellMake(returnTypeName);
-	if (!ObjectIdIsValid(typeObjectId))
-	    elog(WARN, "ProcedureDefine: could not create type '%s'",
-		 returnTypeName);
+	}
     }
 
     /* don't allow functions of complex types that have the same name as
