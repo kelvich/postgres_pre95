@@ -837,6 +837,11 @@ sjregister(item, jboffset, extentsz)
 					sizeof(FormData_pg_plmap),
 					(char *) plmdata);
 
+    /* clean up the memory that heap_addheader() palloc()'ed for us */
+    plmtup->t_oid = InvalidObjectId;
+    bzero((char *) &(plmtup->t_chain), sizeof(plmtup->t_chain));
+
+    /* insert the new catalog tuple */
     heap_insert(plmap, plmtup, (double *) NULL);
 
     pfree((char *) plmtup);
@@ -1060,17 +1065,6 @@ sjreadgrp(item, grpno)
     int nbytes, i;
     char *buf;
     SJGroupDesc *gdesc;
-
-    long	sjgd_magic;
-    long	sjgd_version;
-    NameData	sjgd_dbname;
-    NameData	sjgd_relname;
-    ObjectId	sjgd_dbid;
-    ObjectId	sjgd_relid;
-    long	sjgd_relblkno;
-    long	sjgd_jboffset;
-    long	sjgd_extentsz;
-    ObjectId	sjgd_groupoid;
 
     /* get the group from the cache file */
     seekpos = grpno * SJBufSize;
@@ -1410,10 +1404,10 @@ sjnblocks(reln)
      *  pg_plmap.
      */
 
-    while (HeapTupleIsValid(plmtup = heap_getnext(plmscan, false, &buf))) {
-	d = (Datum) heap_getattr(plmtup, buf, Anum_pg_plmap_plblkno,
+    while (HeapTupleIsValid(plmtup = heap_getnext(plmscan, false,
+						  (Buffer *) NULL))) {
+	d = (Datum) heap_getattr(plmtup, InvalidBuffer, Anum_pg_plmap_plblkno,
 				 plmdesc, &n);
-	ReleaseBuffer(buf);
 	v = DatumGetInt32(d);
 	if (v > maxblkno)
 	    maxblkno = v;
@@ -1504,14 +1498,7 @@ sjregnblocks(relid, nblocks)
 int
 sjcommit()
 {
-    SJNBlock *l;
-
-    while (SJNBlockList != (SJNBlock *) NULL) {
-	l = SJNBlockList;
-	SJNBlockList = SJNBlockList->sjnb_next;
-	pfree(l);
-    }
-
+    /* XXX should free the list, but it's in the wrong mcxt */
     SJNBlockList = (SJNBlock *) NULL;
 
     return (SM_SUCCESS);
@@ -1520,14 +1507,7 @@ sjcommit()
 int
 sjabort()
 {
-    SJNBlock *l;
-
-    while (SJNBlockList != (SJNBlock *) NULL) {
-	l = SJNBlockList;
-	SJNBlockList = SJNBlockList->sjnb_next;
-	pfree(l);
-    }
-
+    /* XXX should free the list, but it's in the wrong mcxt */
     SJNBlockList = (SJNBlock *) NULL;
 
     return (SM_SUCCESS);

@@ -37,6 +37,7 @@ RcsId("$Header$");
 #include "access/tupdesc.h"
 
 #include "storage/form.h"
+#include "storage/smgr.h"
 #include "tmp/miscadmin.h"
 #include "utils/mcxt.h"
 #include "utils/palloc.h"
@@ -840,6 +841,7 @@ index_create(heapRelationName, indexRelationName,
      */
     indexRelation = heap_creatr(indexRelationName,
 				numatts,
+				DEFAULT_SMGR,
 				indexTupDesc);
 
     /* ----------------

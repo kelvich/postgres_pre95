@@ -18,6 +18,7 @@ static	char ami_parser_y[] =
 #include "access/heapam.h"
 #include "support/bkint.h"
 #include "tmp/portal.h" 
+#include "storage/smgr.h" 
 
 #undef BOOTSTRAP
 #include "y.tab.h"
@@ -145,11 +146,18 @@ CreateStmt:
 			}
 			if (DebugMode)
 			    puts("creating bootstrap relation");
-			reldesc = heap_creatr(LexIDStr($3), numattr, attrtypes);
+			reldesc = heap_creatr(LexIDStr($3),
+					      numattr,
+					      DEFAULT_SMGR,
+					      attrtypes);
 			if (DebugMode)
 			    puts("bootstrap relation created ok");
 		    } else {
-		        heap_create(LexIDStr($3),'n',numattr,attrtypes);
+		        heap_create(LexIDStr($3),
+				    'n',
+				    numattr,
+				    DEFAULT_SMGR,
+				    attrtypes);
 		    }
 		    DO_END;
 		    if (DebugMode)

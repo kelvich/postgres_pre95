@@ -366,7 +366,7 @@ OptLocation:
 		    int which;
 
 		    which = smgrin(LISPVALUE_STRING($3));
-		    $$ = lispCons(KW(location), lispInteger(which));
+		    $$ = lispCons(KW(store), lispInteger(which));
 		}
 	;
 
@@ -377,7 +377,7 @@ OptArchiveLocation:
 		    int which;
 
 		    which = smgrin(LISPVALUE_STRING($3));
-		    $$ = lispCons(KW(location), lispInteger(which));
+		    $$ = lispCons(KW(arch_store), lispInteger(which));
 		}
 	;
 
@@ -1260,7 +1260,7 @@ RetrieveStmt:
 RetrieveSubStmt:
 	  { SkipForwardToFromList(); }
 	  from_clause 
-	  opt_star result opt_unique 
+	  result opt_unique 
 	  '(' res_target_list ')'
  	  where_clause ret_opt2 
   		{
@@ -1269,18 +1269,15 @@ RetrieveSubStmt:
 		    LispValue root;
 		    LispValue command;
 
-		    if ( $3 == LispNil )
-		      command = KW(retrieve);
-		    else
-		      command = lispCons( lispInteger('*'),KW(retrieve));
+		    command = KW(retrieve);
 
-		    root = MakeRoot(NumLevels,command, $4, p_rtable,
-				    p_priority, p_ruleinfo,$5,$10,$7);
+		    root = MakeRoot(NumLevels,command, $3, p_rtable,
+				    p_priority, p_ruleinfo,$4,$9,$6);
 		    
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $7 );	/* (eq p_target $8) */
-		    $$ = nappend1 ( $$ , $9 );	        /* (eq p_qual $10) */
+		    $$ = nappend1 ( $$ , $6 );
+		    $$ = nappend1 ( $$ , $8 );
 		}
 
  /**************************************************

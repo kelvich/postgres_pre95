@@ -26,6 +26,7 @@ RcsId("$Header$");
 #include "utils/exc.h"	/* for ExcAbort and <setjmp.h> */
 #include "utils/fmgr.h"
 #include "utils/mcxt.h"
+#include "storage/smgr.h"
 
 #include "catalog/pg_type.h"
 
@@ -329,7 +330,7 @@ createrel(name)
 	elog(WARN,"Warning: must define attributes before creating rel.\n");
 	elog(WARN,"         relation not created.\n");
     } else {
-	reldesc = heap_creatr(relname, numattr, attrtypes);
+	reldesc = heap_creatr(relname, numattr, DEFAULT_SMGR, attrtypes);
 	if (reldesc == (Relation)NULL) {
 	    elog(WARN,"Warning: cannot create relation %s.\n", relname);
 	    elog(WARN,"         Probably should delete old %s.\n", relname);

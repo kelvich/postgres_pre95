@@ -15,8 +15,8 @@
  * NOTE: These routines are not supposed to be widely used in Postgres.
  *	 They are preserved solely for the purpose of porting Mark Sullivan's
  *	 buffer manager to Postgres.  In fact we are only using four such
- *	 spin locks: ShmemLock, BindingLock, BufMgrLock, and LockMgrLock.
- *	 -- Wei
+ *	 spin locks: ShmemLock, BindingLock, BufMgrLock, SJCacheLock,
+ *	and LockMgrLock.	-- Wei
  */
 #include <errno.h>
 #include "tmp/postgres.h"
@@ -51,13 +51,19 @@ IPCKey key;
   extern SPINLOCK BufMgrLock;
   extern SPINLOCK LockMgrLock;
   extern SPINLOCK ProcStructLock;
+#ifdef SONY_JUKEBOX
+  extern SPINLOCK SJCacheLock;
+#endif /* SONY_JUKEBOX */
 
-  /* These five spinlocks have fixed location is shmem */
+  /* These six spinlocks have fixed location is shmem */
   ShmemLock = SHMEMLOCKID;
   BindingLock = BINDINGLOCKID;
   BufMgrLock = BUFMGRLOCKID;
   LockMgrLock = LOCKMGRLOCKID;
   ProcStructLock = PROCSTRUCTLOCKID;
+#ifdef SONY_JUKEBOX
+  SJCacheLock = SJCACHELOCKID;
+#endif /* SONY_JUKEBOX */
 
   return(TRUE);
 }
@@ -83,8 +89,14 @@ SPINLOCK lock;
 /* Spinlocks are implemented using SysV semaphores */
 
 
+#ifdef SONY_JUKEBOX
+#define MAX_SPINS 6	/* only for ShmemLock, BindingLock,
+			   BufMgrLock, LockMgrLock, SJCacheLock,
+			   and ProcStructLock */
+#else /* SONY_JUKEBOX */
 #define MAX_SPINS 5	/* only for ShmemLock, BindingLock,
-			   BufMgrLock, LockMgrLock, and ProcStructLock */
+			   BufMgrLock, LockMgrLock and ProcStructLock */
+#else /* SONY_JUKEBOX */
 IpcSemaphoreId  SpinLockId = -1;
 
 /*
@@ -174,11 +186,13 @@ IPCKey key;
 /*
  * InitSpinLocks -- Spinlock bootstrapping
  * 
- * We need four spinlocks for bootstrapping,
+ * We need several spinlocks for bootstrapping:
  * BindingLock (for the shmem binding table) and
  * ShmemLock (for the shmem allocator), BufMgrLock (for buffer
  * pool exclusive access), LockMgrLock (for the lock table), and
  * ProcStructLock (a spin lock for the shared process structure).
+ * If there's a Sony WORM drive attached, we also have a spinlock
+ * (SJCacheLock) for it.
  *
  */
 InitSpinLocks(init, key)
@@ -190,6 +204,9 @@ IPCKey key;
   extern SPINLOCK BufMgrLock;
   extern SPINLOCK LockMgrLock;
   extern SPINLOCK ProcStructLock;
+#ifdef SONY_JUKEBOX
+  extern SPINLOCK SJCacheLock;
+#endif /* SONY_JUKEBOX */
 
   if (!init || key != IPC_PRIVATE) {
       /* if bootstrap and key is IPC_PRIVATE, it means that we are running
@@ -201,12 +218,15 @@ IPCKey key;
       }
     }
 
-  /* These five spinlocks have fixed location is shmem */
+  /* These five (or six) spinlocks have fixed location is shmem */
   ShmemLock = SHMEMLOCKID;
   BindingLock = BINDINGLOCKID;
   BufMgrLock = BUFMGRLOCKID;
   LockMgrLock = LOCKMGRLOCKID;
   ProcStructLock = PROCSTRUCTLOCKID;
+#ifdef SONY_JUKEBOX
+  SJCacheLock = SJCACHELOCKID;
+#endif /* SONY_JUKEBOX */
   
   return(TRUE);
 }

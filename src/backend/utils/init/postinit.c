@@ -66,8 +66,9 @@
  * ----------------
  */
     
-extern bool override;
-extern int Quiet;
+extern bool	override;
+extern int	Quiet;
+IPCKey		PostgresIpcKey;
 
 /*
  * XXX PostgresPath and PostgresDatabase belong somewhere else.
@@ -395,6 +396,7 @@ forcesharedmemory:
 
 #endif
 
+    PostgresIpcKey = key;
     AttachSharedMemoryAndSemaphores(key);
 }
 
@@ -552,12 +554,6 @@ InitPostgres(name)
     be_portalinit();
 
     /* ----------------
-     *  intialize the storage manager switch
-     * ----------------
-     */
-    smgrinit();
-
-    /* ----------------
      *   set ourselves to the proper user id and figure out our postgres
      *   user id.  If we ever add security so that we check for valid
      *   postgres users, we might do it here.
@@ -623,7 +619,15 @@ InitPostgres(name)
      * ----------------
      */
     InitMyDatabaseId();
-    
+
+    /* ----------------
+     *  intialize the storage manager switch -- must be after shared memory,
+     *  semaphores, and database name get initialized.  PostgresIpcKey gets
+     *  set in InitCommunication(), above.
+     * ----------------
+     */
+    smgrinit(PostgresIpcKey);
+
     /* ----------------
      *	initialize the transaction system and the relation descriptor
      *  cache.  Note we have to make certain the lock manager is off while

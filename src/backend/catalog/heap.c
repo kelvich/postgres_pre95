@@ -166,9 +166,10 @@ static	struct	attribute *HeapAtt[] =
  * ----------------------------------------------------------------
  */
 Relation
-heap_creatr(relname, natts, att)
+heap_creatr(relname, natts, smgr, att)
     char	relname[];
     unsigned	natts;
+    unsigned	smgr;
     struct	attribute *att[];		/* XXX */
 {
     register int	i;
@@ -182,7 +183,7 @@ heap_creatr(relname, natts, att)
     MemoryContext	oldcxt;
 
     int			issystem();
-    File		relopen();		/* XXX */
+    File		smgrcreate();		/* XXX */
     OID			newoid();
     extern		bcopy(), bzero();
 
@@ -191,7 +192,7 @@ heap_creatr(relname, natts, att)
      * ----------------
      */
     if (!natts)
-	elog(WARN, "amcreatr(%s): called with 0 natts", relname);
+	elog(WARN, "heap_creatr(%s): called with 0 natts", relname);
 
     /* ----------------
      *	switch to the cache context so that we don't lose
@@ -224,47 +225,6 @@ heap_creatr(relname, natts, att)
 	  };
 
     /* ----------------
-     *	try and create the relation.
-     * ----------------
-     */
-    fd = relopen(relname, O_RDWR|O_CREAT|O_EXCL, 0666);
-
-    /* ----------------
-     *	I don't understand this. -cim 6/14/90
-     *  What's happening here is that if the file exists, but is empty,
-     *  then we assume that life is okay.  If it's not empty, we abort.
-     *  The reason for this is that during bootstrap processing, it is
-     *  possible for the pg_log and pg_time files to get created before
-     *  we come across their create entries in the bki files.  --mao 2 july 91
-     * ----------------
-     */
-    if (fd < 0) {
-	char buf[4];
-	int  n;
-
-	fd = relopen(relname, O_RDWR, 0666);
-
-	/* ----------------
-	 *	if we failed to create the relation, generate
-	 *	an error.
-	 * ----------------
-	 */
-	if (fd < 0)
-	    elog(WARN, "amcreatr(%s): %m", relname);
-
-	/* ----------------
-	 *	check that the newly created file is empty.
-	 * ----------------
-	 */
-	n = FileRead(fd, buf, 4);
-	if (n != 0) {
-	    FileClose(fd);
-
-	    elog(WARN, "amcreatr: %s not zero size",relname);
-	}
-    }
-
-    /* ----------------
      *	allocate a new relation descriptor.
      *
      * 	XXX the length computation may be incorrect, handle elsewhere
@@ -288,15 +248,10 @@ heap_creatr(relname, natts, att)
 	palloc(sizeof (RuleLock) + sizeof *rdesc->rd_rel);
 
     bzero((char *)rdesc->rd_rel, sizeof *rdesc->rd_rel + sizeof (RuleLock));
-    strncpy((char *)&rdesc->rd_rel->relname, relname, 16);
+    strncpy((char *)&rdesc->rd_rel->relname, relname, sizeof(NameData));
     rdesc->rd_rel->relkind = 'u';
     rdesc->rd_rel->relnatts = natts;
-
-/*
- *	relid should be 0 it is an unknown relation--assigned in amcreate()
- *	Eventually, this will really be an unnamed file, and this should
- *	be integrated with amcreate().				XXX
- */
+    rdesc->rd_rel->relsmgr = smgr;
 
     for (i = 0; i < natts; i++) {
 	rdesc->rd_att.data[i] = (AttributeTupleForm)
@@ -308,6 +263,13 @@ heap_creatr(relname, natts, att)
     }
 
     rdesc->rd_id = relid;
+
+    /* ----------------
+     *	have the storage manager create the relation.
+     * ----------------
+     */
+
+    rdesc->rd_fd = smgrcreate(smgr, rdesc);
 
     RelationRegisterRelation(rdesc);
 
@@ -633,10 +595,11 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
  * --------------------------------
  */
 ObjectId
-heap_create(relname, arch, natts, tupdesc)
+heap_create(relname, arch, natts, smgr, tupdesc)
     char		relname[];
     int			arch;
     unsigned		natts;
+    unsigned		smgr;
     struct attribute 	*tupdesc[];
 {
     Relation		pg_relation_desc;
@@ -684,7 +647,7 @@ heap_create(relname, arch, natts, tupdesc)
      *  of creating the disk file for the relation.
      * ----------------
      */
-    new_rel_desc = amcreatr(relname, natts, tupdesc);
+    new_rel_desc = amcreatr(relname, natts, smgr, tupdesc);
     new_rel_oid  = new_rel_desc->rd_att.data[0]->attrelid;
 
     /* ----------------

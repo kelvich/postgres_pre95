@@ -17,6 +17,7 @@ RcsId("$Header$");
 #include "access/ftup.h"
 #include "utils/log.h"
 #include "catalog/syscache.h"
+#include "storage/smgr.h"
 
 /*---------------------------------------------------------------------
  *
@@ -91,6 +92,7 @@ Name relationName;
 			relationName,
 			archiveMode,
 			numberOfAttributes,
+			DEFAULT_SMGR,
 			(TupleDescriptor)tupleDesc);
 
     if (!ObjectIdIsValid(relationOid)) {

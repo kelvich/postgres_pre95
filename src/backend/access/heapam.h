@@ -23,6 +23,8 @@
 #include "access/tqual.h"
 #include "access/tupdesc.h"
 
+#include "storage/smgr.h"
+
 #include "rules/rlock.h"
 #include "utils/rel.h"
 
@@ -138,21 +140,21 @@ doinsert ARGS((
  * RelationNameCreateHeapRelation --
  *	Returns relation id of a newly created cataloged heap relation.
  */
-#define RelationNameCreateHeapRelation(relname, arch, natts, tupdesc) \
-    heap_create(relname, arch, natts, tupdesc)
+#define RelationNameCreateHeapRelation(relname, arch, natts, smgr, tupdesc) \
+    heap_create(relname, arch, natts, smgr, tupdesc)
 
-#define amcreate(relname, arch, natts, tupdesc) \
-    heap_create(relname, arch, natts, tupdesc)
+#define amcreate(relname, arch, natts, smgr, tupdesc) \
+    heap_create(relname, arch, natts, smgr, tupdesc)
 
 /*
  * RelationNameCreateTemporaryRelation --
  *	Creates a temporary heap relation.
  */
 #define RelationNameCreateTemporaryRelation(relname, natts, att) \
-    heap_creatr(relname, natts, att)
+    heap_creatr(relname, natts, DEFAULT_SMGR, att)
 
-#define amcreatr(relname, natts, att) \
-    heap_creatr(relname, natts, att)
+#define amcreatr(relname, natts, smgr, att) \
+    heap_creatr(relname, natts, smgr, att)
 
 /*
  * RelationNameDestroyHeapRelation --

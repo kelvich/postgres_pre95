@@ -111,7 +111,14 @@ extern int on_exitpg();
 #define BINDINGLOCKID	5	/* reserved lock for shmem binding table */
 #define LOCKMGRLOCKID	6	/* reserved lock for lock table access */
 #define PROCSTRUCTLOCKID 7	/* reserved lock for process structure access */
+
+#ifdef SONY_JUKEBOX
+#define SJCACHELOCKID	8	/* reserved lock for sony jukebox cache */
+#define FIRSTFREELOCKID	9	/* the first free lock id */
+#else /* SONY_JUKEBOX */
 #define FIRSTFREELOCKID	8	/* the first free lock id */
+#endif /* SONY_JUKEBOX */
+
 typedef struct slock {
     slock_t		locklock;
     unsigned char	flag;
@@ -135,6 +142,11 @@ extern bool LockIsFree();
 #define BINDINGLOCKID	1	/* fixed spin lock for shmem binding table */
 #define BUFMGRLOCKID	2	/* fixed spin lock for shared buffer pool */
 #define LOCKMGRLOCKID	3	/* fixed spin lock for lmgr lock table */
-#define PROCSTRUCTLOCKID 3	/* fixed spin lock for lmgr lock table */
+#define PROCSTRUCTLOCKID 4	/* fixed spin lock for proc struct table */
+
+#ifdef SONY_JUKEBOX
+#define SJCACHELOCKID	5	/* fixed spin lock for sony jukebox cache */
+#endif /* SONY_JUKEBOX */
+
 #endif /* HAS_TEST_AND_SET */
 #endif	/* !defined(IPCIncluded) */

@@ -55,6 +55,8 @@
 
 #include "catalog/catname.h"
 
+#include "storage/smgr.h"
+
 #include "executor/execdefs.h"
 #include "executor/execmisc.h"
 
@@ -458,6 +460,7 @@ InitPlan(operation, parseTree, plan, estate)
 		intoRelationId = heap_create(intoName,
 					     archiveMode,
 					     len,
+					     DEFAULT_SMGR,
 					     tupType);
 		
 		/* ----------------

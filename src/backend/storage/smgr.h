@@ -9,6 +9,8 @@
 #define SM_FAIL		0
 #define	SM_SUCCESS	1
 
+#define	DEFAULT_SMGR	0
+
 extern int	smgrinit();
 extern void	smgrshutdown();
 extern int	smgrcreate();

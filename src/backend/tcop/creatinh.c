@@ -238,9 +238,6 @@ DefineRelation(relname, parameters, schema)
      *  disk storgage manager.  --mao 2 july 91
      */
 
-    if (heaploc != 0)
-	elog(WARN, "User relations must reside on magnetic disk.");
-
     if (lispNullp(CADR(locargs))) {
 	archloc = 0;
     } else {
@@ -269,8 +266,11 @@ DefineRelation(relname, parameters, schema)
      * ----------------
      */
     descriptor = BuildDescForRelation(schema, relationName);
-    relationId =
-	heap_create(relationName, archChar, numberOfAttributes, descriptor);
+    relationId = heap_create(relationName,
+			     archChar,
+			     numberOfAttributes,
+			     heaploc,
+			     descriptor);
 
     StoreCatalogInheritance(relationId, inheritList);
 
@@ -289,12 +289,12 @@ DefineRelation(relname, parameters, schema)
 	archiveName = (Name) palloc(sizeof(NameData));
 	sprintf(&archiveName->data[0], "a,%ld", relationId);
 	
-	relationId =
-	    heap_create(archiveName,
-			'n', 			/* archive isn't archived */
-			numberOfAttributes,
-			descriptor);
-	
+	relationId = heap_create(archiveName,
+				 'n', 		/* archive isn't archived */
+				 numberOfAttributes,
+				 archloc,
+				 descriptor);
+
 	pfree(archiveName);
     }
 }

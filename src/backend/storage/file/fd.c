@@ -828,7 +828,47 @@ int fileMode;
     sfdP = &(SfdCache[sfd]);
     for (i=0; i<NStriping; i++) {
 	fname = filepath(fileName, i);
-	sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode);
+	if ((sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode)) < 0)
+	    return ((File) sfdP->vfd[i]);
+    }
+    sfdP->curStripe = 0;
+    return(sfd);
+}
+
+File
+PathNameOpenFile(fileName, fileFlags, fileMode)
+FileName fileName;
+int fileFlags;
+int fileMode;
+{
+    int i;
+    File sfd;
+    Sfd *sfdP;
+    char *fname, *filepath();
+    if (SfdCache == NULL) {
+       SfdCache = (Sfd*)malloc(SizeSfdCache * sizeof(Sfd));
+       for (i=0; i<SizeSfdCache-1; i++)
+	 SfdCache[i].nextFree = i + 1;
+       SfdCache[SizeSfdCache - 1].nextFree = 0;
+    }
+    sfd = SfdCache[0].nextFree;
+    if (sfd == 0)  {
+       SfdCache = (Sfd*)realloc(SfdCache, sizeof(Sfd)*SizeSfdCache*2);
+       Assert(SfdCache != NULL);
+       for (i = SizeSfdCache; i < 2*SizeSfdCache; i++) {
+	   bzero((char *) &(SfdCache[i]), sizeof(SfdCache[0]));
+	   SfdCache[i].nextFree = i + 1;
+       }
+       SfdCache[0].nextFree = SizeSfdCache;
+       SfdCache[2*SizeSfdCache-1].nextFree = 0;
+       SizeSfdCache *= 2;
+       sfd = SfdCache[0].nextFree;
+      }
+    SfdCache[0].nextFree = SfdCache[sfd].nextFree;
+    sfdP = &(SfdCache[sfd]);
+    for (i=0; i<NStriping; i++) {
+	if ((sfdP->vfd[i] = fileNameOpenFile(fileName, fileFlags, fileMode)) < 0)
+	    return ((File) sfdP->vfd[i]);
     }
     sfdP->curStripe = 0;
     return(sfd);

@@ -70,6 +70,12 @@
 #define _FL_PRINT_	printf("f: %s l: %d ", _FL_file, _FL_line)
 
 /* ----------------
+ *	storage managers
+ * ----------------
+ */
+#define SONY_JUKEBOX
+
+/* ----------------
  *	allocation debugging stuff
  * ----------------
  */

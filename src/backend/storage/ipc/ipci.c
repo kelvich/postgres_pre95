@@ -59,7 +59,11 @@ CreateSharedMemoryAndSemaphores(key)
      * ----------------
      */
     CreateSpinlocks(IPCKeyGetSpinLockSemaphoreKey(key));
+#ifdef SONY_JUKEBOX
+    size = BufferShmemSize() + LockShmemSize() + SJShmemSize();
+#else /* SONY_JUKEBOX */
     size = BufferShmemSize() + LockShmemSize();
+#endif /* SONY_JUKEBOX */
     ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
     InitShmem(key, size);
     InitBufferPool(key);

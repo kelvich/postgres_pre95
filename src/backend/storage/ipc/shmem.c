@@ -59,15 +59,12 @@
 #include "utils/hsearch.h"
 #include "utils/log.h"
 
-/* default shared memory size */
-#define SHMEM_SIZE	(300000)
-
 /* shared memory global variables */
 	/* start and end address of shared memory */
 unsigned int  ShmemBase = 0;
 unsigned int  ShmemEnd = 0;
 	/* current size (and default) */
-unsigned int  ShmemSize = SHMEM_SIZE;
+unsigned int  ShmemSize = 0;
 
 	/* pointer to the OFFSET of first free shared memory */
 unsigned int *ShmemFreeStart = NULL;

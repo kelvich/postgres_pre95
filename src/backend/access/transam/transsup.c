@@ -41,6 +41,8 @@
 
 #include "access/transam.h"
 
+#include "storage/smgr.h"
+
 /* ----------------------------------------------------------------
  *		      general support routines
  * ----------------------------------------------------------------
@@ -75,7 +77,7 @@ void
 CreateTransRelation(name)
     Name name;			/* relation name */
 {
-    heap_create(name, 'n', 1, DummyTupleDescriptor);
+    heap_create(name, 'n', 1, DEFAULT_SMGR, DummyTupleDescriptor);
 }
 
 /* --------------------------------
