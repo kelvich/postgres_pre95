@@ -150,9 +150,13 @@ GetDataHome()
 	char		*home;
 	extern char	*getenv();
 
-	if ((home = getenv("POSTGRESHOME")) == (char *) NULL &&
-	    (home = getenv("POSTHOME")) == (char *) NULL)
-		home = CppAsString(DATAHOME);
+	home = getenv("POSTGRESHOME");
+	if (!StringIsValid(home)) {
+		home = getenv("POSTHOME");
+	}
+	if (!StringIsValid(home)) {
+		home = DATAHOME;
+	}
 	return(home);
 }
 
