@@ -43,6 +43,7 @@ RuleLock locks;
 	if (prs2OneLockGetLockType(oneLock) != LockTypeImport)
 	    continue;
 	npartial = prs2OneLockGetNPartial(oneLock);
+	Assert(npartial != 0);
 	partialindx = prs2OneLockGetPartialIndx(oneLock);
 	table = (bool *) palloc(sizeof(bool) * npartial);
 	for (j=0; j<npartial; j++)
