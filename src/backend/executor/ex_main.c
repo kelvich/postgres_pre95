@@ -1398,6 +1398,17 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
 			 tupleid,	     /* item ptr of tuple to replace */
 			 tuple);	     /* replacement heap tuple */
     
+    /* ----------------
+     * Don't want to continue if our heap_replace didn't actually
+     * do a replace. This would be the case if heap_replace 
+     * detected a non-functional update. -kw 12/30/93
+     * ----------------
+     */
+    if ((int) locks == 1)
+	return (TupleTableSlot)NULL;
+
+
+
     IncrReplaced();
     
     /* ----------------
