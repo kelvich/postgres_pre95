@@ -86,7 +86,7 @@ other		.
 				yylval = lispAtom(keyword->name);
 				return (keyword->value);
 			} else {
-				yylval = lispString(yytext);
+				yylval = lispName(yytext);
 				return (IDENT);
 			}
 		}
