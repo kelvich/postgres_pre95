@@ -68,7 +68,7 @@ int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
-int		NBuffers = 16;
+extern int	NBuffers;
 time_t		tim;
 bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
@@ -725,7 +725,7 @@ PostgresMain(argc, argv)
       case 'b':
       case 'B':
 	  /* ----------------
-	   *	??? -cim 5/12/90
+	   *	specify the size of buffer pool
 	   * ----------------
 	   */
 	  NBuffers = atoi(optarg);
