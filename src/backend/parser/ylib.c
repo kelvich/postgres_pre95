@@ -40,7 +40,8 @@ parser(str, l)
     fflush(stdout);
     if (strlen(str) != 0) {
 	StringInput = 1;
-	TheString = str;
+	TheString = malloc(strlen(str) + 1);
+	bcopy(str,TheString,strlen(str)+1);
     }
 
     parser_init();
