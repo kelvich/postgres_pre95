@@ -1,3 +1,3 @@
 /* $Header$ */
 /* lisplist.c */
-LispValue MakeList ARGS((LispValue, ... ));
+extern LispValue MakeList(/* LispValue, ... */);
