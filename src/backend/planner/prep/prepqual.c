@@ -279,12 +279,15 @@ push_nots (qual)
 	LispValue oper = get_op (qual);
 	ObjectId negator = get_negator (get_opno (oper));
 	if(negator) 
-	  return (lispCons(MakeOper (negator,
+	{
+	  Oper op = (Oper) MakeOper (negator,
 				     get_oprelationlevel (oper),
-				     get_opresulttype (oper)),
-			   lispCons(get_leftop (qual),
+				     get_opresulttype (oper), NULL, NULL);
+	  op->op_fcache = (FunctionCache *) init_fcache(get_opno(op));
+	  return (lispCons(op, lispCons(get_leftop (qual),
 				    lispCons(get_rightop (qual),
 					     LispNil))));
+	}
 	else 
 	  return (make_notclause (qual));
     }
