@@ -289,18 +289,26 @@ int32
 text_ge(arg1, arg2)
 	struct varlena *arg1, *arg2;
 {
+	int alen, blen;
+	int res;
 	int len;
+	char *ap, *bp;
 
 	if (arg1 == NULL && arg2 != NULL)
 		return((int32) 0);
 	if (arg2 == NULL)
 		return((int32) 1);
-	if ((len = arg1->vl_len) < arg2->vl_len)
-		len = arg2->vl_len;
+	if ((alen = len = arg1->vl_len) < (blen = arg2->vl_len))
+		len = blen;
 	len -= sizeof(int32);					/* varlena? */
 
-	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) >= 0)
+	ap = (char *) VARDATA(arg1);
+	bp = (char *) VARDATA(arg2);
+	res = strncmp(ap, bp, len);
+
+	if (res < 0 || (res == 0 && alen <= blen))
 		return ((int32) 1);
+
 	return ((int32) 0);
 }
 
