@@ -116,7 +116,7 @@ List parsetree,qual;
     AddQual(parsetree,copy);
 }
 
-static Const make_null(type)
+static List make_null(type)
      ObjectId type;     
 {
     Const c;
@@ -127,7 +127,7 @@ static Const make_null(type)
     set_constvalue(c, PointerGetDatum(NULL));
     set_constisnull(c, true);
     set_constbyval(c, get_typbyval(type));
-    return c;
+    return lispCons(c,LispNil);
 }
 void FixResdomTypes (user_tlist)
      List user_tlist;
@@ -136,10 +136,9 @@ void FixResdomTypes (user_tlist)
     foreach ( i , user_tlist ) {
 	List one_entry = CAR(i);
 	List entry_LHS  = CAR(one_entry);
-	List entry_RHS = CDR(one_entry);
+	List entry_RHS = CAR(CDR(one_entry));
 	
 	Assert(IsA(entry_LHS,Resdom));
-	Assert(IsA(entry_RHS,Var));
 	if (NodeType(entry_RHS) == classTag(Var)) {
 	    set_restype(entry_LHS, get_vartype(entry_RHS));
 	    set_reslen (entry_LHS, get_typlen(get_vartype(entry_RHS)));
@@ -264,21 +263,32 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 		char *name_to_look_for;
 		if (this_varno == rt_index &&
 		    get_varattno(this_node) == attr_num) {
-		    elog(DEBUG,"relid = %d, %d",
-			 CInteger(getrelid(this_varno,rt)), attr_num);
 		    if (vardots != LispNil) {
-			if (length(vardots) != 1)
-			    elog(WARN, "exceeded nested dot limit");
 			name_to_look_for = CString(CAR(vardots));
 		    }
-		    else name_to_look_for = (char *)
-			get_attname(CInteger(getrelid(this_varno,rt)),
-				    attr_num);
+		    else {
+			if (get_vartype(this_node) == 32) { /* HACK */
+			    n = (List) make_null(get_vartype(this_node));
+			    CAR(i) = CAR(n);
+			    CDR(i) = CDR(n);
+			    *modified = TRUE;
+			    break;
+			}
+			else {
+			    name_to_look_for = (char *)
+				get_attname(CInteger(getrelid(this_varno,
+							      rt)),
+					    attr_num);
+			}
+		    }
 		    n = FindMatchingTLEntry(tl,name_to_look_for);
 		    if (n == NULL)
 			n = (List) make_null(get_vartype(this_node));
 		    CAR(i) = CAR(n);
 		    CDR(i) = CDR(n);
+		    if (NodeType(CAR(n)) == classTag(Var) && vardots) {
+			set_vardotfields(CAR(n), lispCopy(CDR(vardots)));
+		    }			
 		    *modified = TRUE;
 		}
 	    }
