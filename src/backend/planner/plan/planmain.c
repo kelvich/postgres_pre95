@@ -430,8 +430,9 @@ make_aggplan(subplan, agg_tlist, aggidnum)
 	agg_tl_entry = CAR(agg_tlist);
 	aggnode = make_agg(agg_tl_entry, --aggidnum);
 
-	level_tlist = nconc(get_qptargetlist(subplan),
-					 get_qptargetlist((Plan)aggnode));
+        set_qptargetlist(subplan, nconc(get_qptargetlist(subplan),
+					 get_qptargetlist((Plan)aggnode)));
+	level_tlist = get_qptargetlist(subplan);
 	joinnode = make_nestloop(level_tlist, LispNil, (Plan)aggnode,
 							  subplan);
 	/* inner tree is the aggregate, outer tree is the rest of
