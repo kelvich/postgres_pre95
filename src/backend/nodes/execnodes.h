@@ -659,6 +659,8 @@ class (ScanState) public (CommonScanState) {
 class (ScanTempState) public (CommonScanState) {
 	inherits(CommonScanState);
 /* private: */
+        int         st_whichplan;
+        int         st_nplans;
 /* public: */
 };
 
