@@ -185,22 +185,34 @@ LDADD+= -ldld
 #
 
 LDADD+=	-lm
+#
+# Linux needs the BSD ipc library
+#
 .if (${PORTNAME} == "linux")
 LDADD+= -lipc
+#
+# HP-UX needs:
+# -Wl,-E - export symbols for linking with the shared libraries dynamic loader
+# -Wp,-H400000 - expand cpp #define table size so Nodes files don't break it
+#
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E -W p,-H400000
 LDFLAGS+= -W l,-E
 LDADD+= -ll -ldld
 .else
 LDADD+=	-lln
-.  ifndef PROFILE
+#
+# neither purify (SPARC) nor pixie (MIPS/Alpha) can handle OMAGIC files.
+#
+.  if (!defined(PROFILE) && !defined(PURIFY))
 LDADD+= -N 
 .  endif
 .endif
 
 #
-# this turns off unaligned access fixup
-# (it invokes a POSTGRES interface to syscall, it's not a DEC built-in)
+# this turns off unaligned access fixup.
+# (it's not a DEC builtin -- it invokes an explicit Ultrix syscall --
+# so defining this anywhere else is useless.)
 #
 .if (${PORTNAME} == "ultrix4")
 CFLAGS+= -DNOFIXADE
@@ -279,6 +291,11 @@ depend: .depend
 	${CC} -E ${CFLAGS} ${.IMPSRC} | cat -s > ${.TARGET}; \
 	indent ${.TARGET}
 
+.if defined(PURIFY)
+${PROG}: ${OBJS} ${LIBC} ${DPADD}
+	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
+.endif
+
 .include <postgres.prog.mk>
 
 #
@@ -298,7 +315,7 @@ ${PROG}: ${SUBOBJS}
 #
 .PATH: ${.CURDIR}/postmaster
 postmaster: postmaster.o ${OBJS}
-	${CC} ${CFLAGS} -o postmaster postmaster.o ${OBJS:S/^main.o$//} ${LDADD}
+	${CC} ${LDFLAGS} -o ${.TARGET} postmaster.o ${OBJS:S/^main.o$//} ${LDADD}
 all: postmaster
 
 CLEANFILES+= postmaster postmaster.o
