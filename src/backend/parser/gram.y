@@ -444,10 +444,14 @@ OptFetchPname:
 		merge <rel1> into <rel2>
 	TREE:
 		( MERGE <rel1> <rel2> )
+
+	XXX - unsupported in version 1 (outside of parser)
+
   ************************************************************/
 MergeStmt:
 	Merge Relation Into relation_name
 		{ 
+		    elog(NOTICE, "merge is unsupported in version 1");
 		    $$ = lispCons($1,
 		                  lispCons($2,lispCons($4,LispNil))) ;
 		}
