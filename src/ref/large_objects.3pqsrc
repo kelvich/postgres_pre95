@@ -1,5 +1,6 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
+.ds UX "\\s-2UNIX\\s0
 .SS "LARGE OBJECTS" 6/14/90
 .XA 0 "Section 7 \*- Large Objects"
 .sp 2i
@@ -9,66 +10,609 @@
 .sp 3
 .uh NAME
 .lp
-Large Object Backend Interface \*- interface to \*(PP large objects
+.lp
+Large Object Interface \*- interface to \*(PP large objects
 .uh DESCRIPTION
 .lp
-In addition to LIBPQ, the \*(PP Backend provides several functions that
-can be used by dynamically loaded functions to manipulate large objects
-and ADT's in general.  This interface is provided as a means of "market
-research" for a much more sophisticated large object implementation which
-will be used for Version 4.
+In \*(PP,
+data values are stored in tuples,
+and individual tuples cannot span multiple data pages.
+Since the size of a data page is 8192 bytes,
+the upper limit on the size of a data value is relatively low.
+To support the storage of larger atomic values,
+\*(PP provides a
+.i "large object"
+interface.
+This interface provides file-oriented access to user data
+that has been explicitly declared to be a large type.
 .lp
-Large objects in \*(PP are implemented as "filename as an abstract data
-type".  That is, users can "nominate" an external file to be a \*(PP large
-object and perform operations on it from outside of \*(PP, ie, the documents
-in a document retrieval system can be edited using normal text processors
-independent of \*(PP.  However, unlike simply storing a filename as a
-text string in a relation, the \*(PP "file as an ADT" implementation allows
-operators, functions, and, in Version 4, functional indices (values derived
-from functions, stored in a \*(PP secondary index, used in function and
-operator evaluation) to be used in Postquel queries.
+Version 4 of \*(PP supports two different implementations of large
+objects.
+These two implementations allow users to trade off speed of access
+against transaction protection and crash recovery on large object data.
+Applications that can tolerate lost data may store object data in
+conventional files that are fast to access,
+but cannot be recovered in the case of system crashes.
+For applications that require stricter guarantees of durability,
+a transaction-protected large object implementation is available.
+This section describes the two implementations
+and the programmatic and query language interfaces to large object
+data.
 .lp
-The "filename as an ADT" implementation of large objects does not support
-historical queries, transaction semantics, or crash recovery.  Further
-large object storage options, which will be available in Version 4, will
-support these necessary features.
-.lp
-The large object interface will eventually be promoted to a LIBPQ interface
-and be available to both front-end user applications and backend user
-functions.
+Unlike the BLOB support provided by most commercial relational
+database management systems,
+\*(PP allows users to define specific large object types.
+\*(PP large objects are first-class objects in the database,
+and any operation that can be applied to a conventional (small)
+abstract data type (ADT) may also be applied to a large one.
+For example,
+two different large object types,
+such as
+.i image
+and
+.i voice ,
+may be created.
+Functions that operate on image data,
+and other functions that operate on voice data,
+may be declared to the database system.
+The data manager will distinguish between image and voice data
+automatically,
+and will allow users to invoke the appropriate functions on values
+of each of these types.
+In addition,
+indices may be created large data values,
+or on functions of them.
+Finally,
+operators may be defined that operate on large values.
+Users may invoke these functions and operators from the query language.
+The database system will enforce type restrictions on large
+object data values.
 .lp
 The \*(PP large object interface is modeled after the Unix file system
 interface, with analogs of open(), read(), write(), lseek(), etc.
-However, the (almost) atomic unit of interaction is a "block" rather than
-a "byte", for several reasons: in future large object storage options, a
-block-oriented differencing scheme may be used, and the maximum unsigned
-integer quantity on 32 bit hardware may not be sufficiently large to hold
-a very large object.
+User functions call these routines to retrieve only the data of
+interest from a large object.
+For example,
+if a large object type called
+.CW mugshot
+existed that stored photographs of faces,
+then a function called
+.CW beard
+could be declared on
+.CW mugshot
+data.
+.CW Beard
+could look at the lower third of a photograph,
+and determine the color of the beard that appeared there,
+if any.
+The entire large object value need not be buffered,
+or even examined,
+by the
+.CW beard
+function.
+As mentioned above,
+\*(PP supports functional indices on large object data.
+In this example,
+the results of the
+.CW beard
+function could be stored in a B-tree index to provide
+fast searches for people with red beards.
+.uh "\*(UX FILES AS LARGE OBJECT ADTS"
 .lp
-.uh "QUERY LANGUAGE LARGE OBJECT INTERFACE"
+The simplest large object interface supplied with \*(PP is also
+the least robust.
+It does not support transaction protection,
+crash recovery,
+or time travel.
+On the other hand,
+it can be used on existing data files
+(such as word-processor files)
+that must be accessed simultaneously by the database system
+and existing application programs.
+.pp
+This implementation stores large object data in a \*(UX file,
+and stores only the file name in the database.
+Importing a large object into the database is as simple as storing the
+file name in a distinguished
+.q "large object name"
+relation.
+Interface routines allow the database system to open,
+seek,
+read,
+write,
+and close these \*(UX files by an internal large object identifier.
 .lp
-The below functions are \*(PP registered functions, meaning they can
-be used directly in Postquel queries as well as from dynamically loaded C
-functions.  If you are defining a "simple" large object ADT, these functions
-can be used as your "input" and "output" functions (see 
-.b define
-.b type
-and the \*(PP Manual sections concerning user defined types for details).
-.(1
-
-lo_filein(filename) \*- Nominates a user file as a \*(PP large object.
-
-char * lo_filein(filename)
-
+The functions
+.CW lo_filein
+and
+.CW lo_fileout
+convert between \*(UX filenames and internal large
+object identifiers.
+These functions are \*(PP registered functions,
+meaning they can be used directly in Postquel queries as well as from
+dynamically loaded C functions.
+If you are defining a simple large object ADT,
+these functions can be used as your
+.q input
+and
+.q output
+functions (see 
+.b "define type"
+and the \*(PP Manual sections concerning user-defined types for details).
+.(b
+.ta 0.5i 1i 1.5i 2i 2.5i 3i 3.5i 4i 4.5i 5i
+char *lo_filein(filename)
 	char *filename;
-
-lo_fileout(filename) \*- Prints the file name associated with a large object.
-
+.sp 0.5v
+.i
+		Import a new \*(UX file storing large object
+		data into the database system.  This routine stores
+		the filename in a large object naming relation and
+		assigns it a unique large object identifier.
+.r
+.sp
 char * lo_fileout (object)
-
 	LargeObject *object;
+.sp 0.5v
+.i
+		This routine returns the \*(UX filename associated
+		with a large object.
+.r
+.)b
+.lp
+The file storing the large object must be accessible on the machine
+on which \*(PP is running.
+The data is not copied into the database system,
+so if the file is later removed,
+it is unrecoverable.
+.lp
+Large objects are accessible from both the \*(PP backend,
+using dynamically-loaded functions,
+and from the front-end,
+using the LIBPQ interface.
+These interfaces will be described in detail below.
+.uh "INVERSION LARGE OBJECTS"
+.lp
+In contrast to \*(UX files as large objects,
+the Inversion large object implementation guarantees transaction protection,
+crash recovery,
+and time travel on user large object data.
+This implementation breaks large objects up into
+.q chunks
+and stores the chunks in tuples in the database.
+A B-tree index guarantees fast searches for the correct chunk number
+when doing random access reads and writes.
+.lp
+If a transaction that has made changes to an Inversion large object
+subsequently aborts,
+the changes are backed out in the normal way.
+Inversion large objects are stored in the database,
+and so are not directly accessible to other programs.
+Only programs that use the \*(PP data manager can read and
+write Inversion large objects.
+.lp
+To use Inversion large objects,
+a new large object should be created using the LOcreat()
+interface,
+defined below.
+Afterwards,
+the name of the large object can be stored in an ordinary
+tuple.
+.lp
+The next section describes the programmatic interface to both
+\*(UX and Inversion large objects.
+.uh "BACKEND INTERFACE TO LARGE OBJECTS"
+.lp
+Large object data is accessible from front-end programs
+linked with the LIBPQ library,
+and from dynamically-loaded routines that execute in the \*(PP
+backend.
+This section describes access from dynamically loaded C functions.
+.uh "Creating New Large Objects"
+.lp
+The routine
+.(b
+.ft C
+int LOcreat(path, mode, objtype)
+    char *path;
+    int mode;
+    int objtype;
+.ft
+.)b
+creates a new large object.
+.lp
+The pathname is a slash-separated list of components,
+and must be a unique pathname in the \*(PP large object namespace.
+There is a virtual root directory (``/'') in which objects
+may be placed.
+.lp
+The
+.CW objtype
+parameter can be one of
+.CW Inversion
+or
+.CW Unix ,
+which are symbolic constants defined in
+.(b
+~postgres/src/lib/H/catalog/pg_lobj.h
+.)b
+The interpretation of the
+.CW mode
+argument depends on the
+.CW objtype
+selected.
+.lp
+For \*(UX files,
+.CW mode
+is the mode used to protect the file on the \*(UX file system.
+On creation,
+the file is open for reading and writing.
+.lp
+For Inversion large objects,
+.CW mode
+is a bitmask describing several different attributes
+of the new object.
+The symbolic constants listed here are defined in
+.(b
+~postgres/src/lib/H/tmp/libpq-fs.h
+.)b
+The access type (read, write, or both) is controlled by
+OR'ing together the bits INV_READ and INV_WRITE.
+If the large object should be archived \*-
+that is,
+if historical versions of it should be moved periodically
+to a special archive relation \*-
+then the INV_ARCHIVE bit should be set.
+The low-order sixteen bits of
+.CW mask
+are the storage manager number on which the large object
+should reside\**.
+.(f
+\**
+In the distributed version of \*(PP,
+only the magnetic disk storage manager is supported.
+For users running \*(PP at UC Berkeley,
+additional storage managers are available.
+.)f
+For sites other than Berkeley,
+these bits should always be zero.
+At Berkeley,
+storage manager zero is magnetic disk,
+storage manager one is a Sony optical disk jukebox,
+and storage manager two is main memory.
+.lp
+The commands below open large objects of the two types
+for writing and reading.
+The Inversion large object is not archived,
+and is located on magnetic disk:
+.(b
+.ft C
+unix_fd = LOcreat("/my_unix_obj", 0600, Unix);
+.sp 0.5v
+inv_fd = LOcreat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
+.ft
+.)b
+.uh "Opening Large Objects"
+.lp
+Existing large objects may be opened for reading or writing by
+calling the routine
+.(b
+.ft C
+int LOopen(path, mode)
+    char *path;
+    int mode;
+.ft
+.)b
+The
+.CW path
+argument specifies the large object's pathname,
+and is the same as the pathname used to create the object.
+The
+.CW mode
+argument is interpreted by the two implementations differently.
+For \*(UX large objects,
+values should be chosen from the set of mode bits passed to the
+.CW open
+system call;
+that is,
+O_CREAT,
+O_RDONLY,
+O_WRONLY,
+O_RDWR,
+and O_TRUNC.
+For Inversion large objects,
+only the bits
+INV_READ and INV_WRITE have any meaning.
+.lp
+To open the two large objects created in the last example,
+a programmer would issue the commands
+.(b
+unix_fd = LOopen("/my_unix_obj", O_RDWR);
+.sp 0.5v
+inv_fd = LOopen("/my_inv_obj", INV_READ|INV_WRITE);
+.)b
+.lp
+If a large object is opened before it has been created,
+then a new large object is created using the \*(UX
+implementation,
+and the new object is opened.
+.uh "Seeking on Large Objects"
+.lp
+The command
+.(b
+.ft C
+int
+LOlseek(fd, offset, whence)
+    int fd;
+    int offset;
+    int whence;
+.ft
+.)b
+moves the current location pointer for a large object to the
+specified position.
+The
+.CW fd
+parameter is the file descriptor returned by either
+.CW LOcreat
+or
+.CW LOopen .
+.CW Offset
+is the byte offset in the large object to which to seek.
+The only legal value for
+.CW whence
+in the current release of the system is
+.CW L_SET ,
+as defined in <sys/files.h>.
+.lp
+\*(UX large objects allow holes to exist in objects;
+that is,
+a program may seek well past the end of the object and write
+bytes.
+Intervening blocks will not be created;
+reading them will return zero-filled blocks.
+Inversion large objects do not support holes.
+.lp
+The following code
+seeks to byte location 100000 of the example large objects:
+.(b
+.ft C
+unix_status = LOlseek(unix_fd, 100000, L_SET);
+.sp 0.5v
+inv_status = LOlseek(inv_fd, 100000, L_SET);
+.)b
+On error,
+.CW LOlseek
+returns a value less than zero.
+On success,
+the new offset is returned.
+.uh "Writing to Large Objects"
+.lp
+Once a large object has been created,
+it may be filled by calling
+.(b
+.ft C
+int
+LOwrite(fd, wbuf)
+    int fd;
+    struct varlena *wbuf;
+.)b
+Here,
+.CW fd
+is the file descriptor returned by
+.CW LOcreat
+or
+.CW LOopen ,
+and
+.CW wbuf
+describes the data to write.
+The
+.CW varlena
+structure in \*(PP consists of four bytes in which the length
+of the datum is stored,
+followed by the data itself.
+The four length bytes include themselves.
+.lp
+For example,
+to write 1024 bytes of zeroes to the sample large objects:
+.(b
+.ft C
+struct varlena *vl;
 
-.)1
+vl = (struct varlena *) palloc(1028);
+VARSIZE(vl) = 1028;
+bzero(VARDATA(vl), 1024);
+
+nwrite_unix = LOwrite(unix_fd, vl);
+.sp 0.5v
+nwrite_inv = LOwrite(inv_fd, vl);
+.ft
+.)b
+.CW LOwrite
+returns the number of bytes actually written,
+or a negative number on error.
+For Inversion large objects,
+the entire write is guaranteed to succeed or fail.
+That is,
+if the number of bytes written is non-negative,
+then it equals VARSIZE(vl).
+.lp
+The VARSIZE()
+and VARDATA()
+macros are declared in the file
+.(b
+~postgres/src/lib/H/tmp/postgres.h
+.)b
+.uh "Reading from Large Objects"
+.lp
+Data may be read from large objects by calling the routine
+.(b
+.ft C
+struct varlena *
+LOread(fd, len)
+    int fd;
+    int len;
+.)b
+This routine returns the byte count actually read
+and the data in a varlena structure.
+For example,
+.(b
+.ft C
+struct varlena *unix_vl, *inv_vl;
+int nread_ux, nread_inv;
+char *data_ux, *data_inv;
+
+unix_vl = LOread(unix_fd, 100);
+nread_ux = VARSIZE(unix_vl);
+data_ux = VARDATA(unix_vl);
+.sp 0.5v
+inv_vl = LOread(inv_fd, 100);
+nread_inv = VARSIZE(inv_vl);
+data_inv = VARDATA(inv_vl);
+.ft
+.)b
+The returned varlena structures have been allocated by the
+\*(PP memory manager
+.CW palloc ,
+and may be
+.CW pfree d
+when they are no longer needed.
+.uh "Closing a Large Object"
+Once a large object is no longer needed,
+it may be closed by calling
+.(b
+.ft C
+int
+LOclose(fd)
+    int fd;
+.ft
+.)b
+where
+.CW fd
+is the file descriptor returned by
+.CW LOopen
+or
+.CW LOcreat .
+On success,
+.CW LOclose
+returns zero.
+A negative return value indicates an error.
+.lp
+For example,
+.(b
+.ft C
+if (LOclose(unix_fd) < 0)
+    /* error */;
+.sp 0.5v
+if (LOclose(inv_fd) < 0)
+    /* error */
+.ft
+.)b
+.uh "LIBPQ LARGE OBJECT INTERFACE"
+.lp
+Large objects may also be accessed from database client
+programs that link the LIBPQ library.
+This library provides a set of routines that support opening,
+reading, writing, closing,
+and seeking on large objects.
+The interface is similar to that provided via the backend,
+but rather than using varlena structures,
+a more conventional \*(UX-style buffer scheme is used.
+.lp
+In version 4 of \*(PP,
+large object operations must be enclosed in a transaction
+block.
+This is true even for \*(UX large objects,
+which are not transaction-protected.
+This is due to a shortcoming in the memory management scheme
+for large objects,
+and will be rectified in version 4.1.
+The end of this section shows a short example program
+that correctly transaction-protects its file system operations.
+.lp
+This section describes the LIBPQ interface in detail.
+.uh "Creating a Large Object"
+.lp
+The routine
+.(b
+.ft C
+int
+p_creat(path, mode, objtype)
+    char *path;
+    int mode;
+    int objtype;
+.ft
+.)b
+creates a new large object.
+The
+.CW path
+argument specifies a large-object system pathname.
+.lp
+The
+.CW objtype
+parameter can be one of
+.CW Inversion
+or
+.CW Unix ,
+which are symbolic constants defined in
+.(b
+~postgres/src/lib/H/catalog/pg_lobj.h
+.)b
+The interpretation of the
+.CW mode
+argument depends on the
+.CW objtype
+selected.
+.lp
+For \*(UX files,
+.CW mode
+is the mode used to protect the file on the \*(UX file system.
+On creation,
+the file is open for reading and writing.
+.lp
+For Inversion large objects,
+.CW mode
+is a bitmask describing several different attributes
+of the new object.
+The symbolic constants listed here are defined in
+.(b
+~postgres/src/lib/H/tmp/libpq-fs.h
+.)b
+The access type (read, write, or both) is controlled by
+OR'ing together the bits INV_READ and INV_WRITE.
+If the large object should be archived \*-
+that is,
+if historical versions of it should be moved periodically
+to a special archive relation \*-
+then the INV_ARCHIVE bit should be set.
+The low-order sixteen bits of
+.CW mask
+are the storage manager number on which the large object
+should reside\**.
+.(f
+\**
+In the distributed version of \*(PP,
+only the magnetic disk storage manager is supported.
+For users running \*(PP at UC Berkeley,
+additional storage managers are available.
+.)f
+For sites other than Berkeley,
+these bits should always be zero.
+At Berkeley,
+storage manager zero is magnetic disk,
+storage manager one is a Sony optical disk jukebox,
+and storage manager two is main memory.
+.lp
+The commands below open large objects of the two types
+for writing and reading.
+The Inversion large object is not archived,
+and is located on magnetic disk:
+.(b
+.ft C
+unix_fd = LOcreat("/my_unix_obj", 0600, Unix);
+.sp 0.5v
+inv_fd = LOcreat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
+.ft
+.)b
 .uh "LARGE OBJECT INCLUDE FILE"
 .lp
 The include file
