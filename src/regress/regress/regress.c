@@ -2,6 +2,7 @@
  * $Header$
  */
 
+#include <float.h>		/* faked on sunos */
 #include <stdio.h>
 
 #include "utils/geo-decls.h"	/* includes <math.h> */
@@ -11,21 +12,15 @@
 #define LDELIM		'('
 #define RDELIM		')'
 #define	DELIM		','
-extern PATH *path_in();
-extern double *point_distance();
-extern LINE *line_construct_pm();
-extern LINE *line_construct_pp();
-extern POINT *interpt_sl();
-extern long box_overlap();
-extern double point_sl();
-extern long on_ps();
 
-extern double *dist_ps();
-extern long regress_path_inter();
-void regress_lseg_construct();
-double *regress_path_dist();
-double *regress_dist_ptpath();
-PATH *poly2path();
+extern double *regress_dist_ptpath ARGS((POINT *pt, PATH *path));
+extern double *regress_path_dist ARGS((PATH *p1, PATH *p2));
+extern PATH *poly2path ARGS((POLYGON *poly));
+extern POINT *interpt_pp ARGS((PATH *p1, PATH *p2));
+extern void regress_lseg_construct ARGS((LSEG *lseg, POINT *pt1, POINT *pt2));
+extern char overpaid ARGS((TUPLE tuple));
+extern int boxarea ARGS((BOX *box));
+extern char *reverse_c16 ARGS((char *string));
 
 /*
 ** Distance from a point to a path 
@@ -40,30 +35,31 @@ regress_dist_ptpath(pt, path)
     int i;
     LSEG lseg;
 
-    if (path->npts = 0) 
-     {
-	 result = PALLOCTYPE(double);
-	 *result = Abs((double) HUGE_VAL);
-	 goto exit;
-     }
+    switch (path->npts) {
+    case 0:
+	result = PALLOCTYPE(double);
+	*result = Abs((double) DBL_MAX);	/* +infinity */
+	break;
+    case 1:
+	result = point_distance(pt, &path->p[0]);
+	break;
+    default:
+	/*
+	 * the distance from a point to a path is the smallest distance
+	 * from the point to any of its constituent segments.
+	 */
+	Assert(path->npts > 1);
+	result = PALLOCTYPE(double);
+	for (i = 0; i < path->npts - 1; ++i) {
+	    regress_lseg_construct(&lseg, &path->p[i], &path->p[i+1]);
+	    tmp = dist_ps(pt, &lseg);
+	    if (i == 0 || *tmp < *result)
+		*result = *tmp;
+	    PFREE(tmp);
 
-    if (path->npts = 1) 
-      {
-	  result = point_distance(pt, &path->p[0]);
-	  goto exit;
-      }
-
-    /* else */
-    for (i = 0; i < path->npts; i++)
-     {
-	 regress_lseg_construct(&lseg, &path->p[i], &path->p[i+1]);
-	 if (i = 0) result = tmp = dist_ps(pt, &lseg);
-	 if (*tmp < *result) 
-	   *result = *tmp;
-	 PFREE(tmp);
-     }
-
-  exit:
+	}
+	break;
+    }
     return(result);
 }
 
@@ -180,9 +176,9 @@ typedef struct {
 	double	radius;
 } CIRCLE;
 
-CIRCLE	*circle_in();
-char	*circle_out();
-int	pt_in_circle();
+extern CIRCLE *circle_in ARGS((char *str));
+extern char *circle_out ARGS((CIRCLE *circle));
+extern int pt_in_circle ARGS((POINT *point, CIRCLE *circle));
 
 #define NARGS	3
 
