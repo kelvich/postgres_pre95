@@ -327,11 +327,11 @@ ParseFunc ( funcname , fargs )
     List first_arg_type = NULL;
     char *relname = NULL;
     extern List p_rtable;
+	extern Var make_relation_var();
 
     first_arg_type = CAR(CAR(fargs));
 
-    if ( CAtom(first_arg_type) == RELATION ) {
-	Var newvar = NULL;
+    if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION ) {
 
 	relname = CString(CDR(CAR(fargs)));
 	/* this is really a method */
@@ -349,7 +349,7 @@ ParseFunc ( funcname , fargs )
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
 
-	CDR(CAR(fargs)) = make_var ( relname , funcname );
+	CDR(CAR(fargs)) = (LispValue) make_relation_var( relname );
 
 	foreach ( i , fargs ) {
 	    CAR(i) = CDR(CAR(i));
@@ -370,9 +370,9 @@ ParseFunc ( funcname , fargs )
 	    CAR(i) = CDR(CAR(i));
 	}
 
-	return ( lispCons (lispInteger(rettype) ,
-			   lispCons ( funcnode , fargs )));
     } /* was a function */
+    return ( lispCons (lispInteger(rettype) ,
+			   lispCons ( funcnode , fargs )));
 	    
 }
 
@@ -460,3 +460,36 @@ MakeFromClause ( from_list, base_rel )
     }
 }
 
+
+Var make_relation_var(relname)
+
+char *relname;
+
+{
+    Var varnode;
+    int vnum, attid = 1, vartype;
+    LispValue vardotfields;
+    Type rtype;
+    Relation rd;
+    extern LispValue p_rtable;
+    extern int p_last_resno;
+    Index vararrayindex = 0;
+    
+    vnum = RangeTablePosn ( relname,0,0) ;
+    if (vnum == 0) {
+	p_rtable = nappend1 (p_rtable ,
+			     MakeRangeTableEntry ( relname , 0 , relname) );
+		vnum = RangeTablePosn (relname,0,0);
+    }
+
+    vartype = RELATION;
+    vardotfields = LispNil;                          /* XXX - fix this */
+    
+    varnode = MakeVar (vnum , attid ,
+		       vartype , vardotfields , vararrayindex ,
+		       lispCons(lispInteger(vnum),
+				lispCons(lispInteger(attid),LispNil)),
+		       0 );
+    
+    return ( varnode );
+}
