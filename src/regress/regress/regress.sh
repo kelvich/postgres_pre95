@@ -32,6 +32,7 @@ if [ $? -ne 0 ]; then
      echo the binary portal test causes an error
      exit 1
 fi
+
 sh -v fstest.sh
 if [ $? -ne 0 ]; then
      echo the Inversion file system test causes an error
@@ -45,6 +46,14 @@ if [ $? -ne 0 ]; then
      exit 1
 fi
 
+echo =============== running async portal test... =================
+sh -v aportaltest.sh
+if [ $? -ne 0 ]; then
+     echo the asynchronous portal test causes an error
+     exit 1
+fi
+
+echo =============== clearing regression database... =================
 monitor regression < destroy.pq
 if [ $? -ne 0 ]; then
      echo the destroy script has an error
