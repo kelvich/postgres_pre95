@@ -305,13 +305,17 @@ CFLAGS+= -DSEQUOIA
 # semantics.  We can use the POSIX sigaction(2) on systems that
 # allow us to request restartable signals (SA_RESTART).
 #
-.if (${PORTNAME} == "aix" || ${PORTNAME} == "alpha" || ${PORTNAME} == "svr4")
+.if (${PORTNAME} == "alpha" || ${PORTNAME} == "svr4")
 CFLAGS+= -DUSE_POSIX_SIGNALS
 .endif
 #
 # Some systems don't allow restartable signals at all unless we 
 # link to a special BSD library.
 #
+.if (${PORTNAME} == "aix")
+# the -lm is because "pow" is defined in libbsd.a and we want pow(3m)
+LDADD+= -lm -lbsd
+.endif
 .if (${PORTNAME} == "hpux")
 LDADD+= -lBSD
 .endif
