@@ -279,7 +279,7 @@ InitPlan(operation, parseTree, plan, estate)
      * ----------------
      */
     set_es_range_table(estate, rangeTable);
-    set_es_error_message(estate, (Name) "Foo bar and grill");
+    set_es_error_message(estate, (Name) "Foo bar");
     
     /* ----------------
      *	initialize the BaseId counter so node base_id's
