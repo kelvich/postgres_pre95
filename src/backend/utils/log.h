@@ -1,9 +1,15 @@
-/*
- * log.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	log.h
+ *
+ *   DESCRIPTION
  *	POSTGRES error logging definitions.
  *
- * Identification:
+ *   NOTES
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	LogIncluded	/* Include this file only once. */
@@ -32,7 +38,6 @@
 
 extern int	Cline;
 extern char	*Cfile;
-extern int	ElogDebugIndentLevel;
 
 #define TR(v, i, j)	(Cfile = __FILE__,Cline = __LINE__,v[i] & (1 << j))
 #define TRM(v, i)	(Cfile = __FILE__,Cline = __LINE__,v[i] != 0)
@@ -42,19 +47,12 @@ extern int	ElogDebugIndentLevel;
 
 #define ALLOCV(i)	(long *)calloc(i, sizeof (long))
 
-void
-EnableELog ARGS ((int enable));
+extern void EnableELog ARGS ((int enable));
 
 /*
  * elog --
  *	Old error logging function.
  */
-extern
-void
-elog ARGS(( int, ... ));
-
-extern
-int
-dlog ARGS ((long lvl, char *mess));
+extern void elog ARGS((int, ...));
 
 #endif	/* !defined(LogIncluded) */
