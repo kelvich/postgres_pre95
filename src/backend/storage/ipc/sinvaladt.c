@@ -24,8 +24,13 @@
 #include "ipci.h"
 
 /* XXX These should *not* be used directly; fix the interface in ipc*.h. */
+#ifndef sequent
 #include <sys/shm.h>
 #include <sys/sem.h>
+#else
+#include "/usr/att/usr/include/sys/shm.h"
+#include "/usr/att/usr/include/sys/sem.h"
+#endif
 
 #include "ipc.h"
 #include "log.h"
