@@ -1,0 +1,92 @@
+$Header$
+
+This directory contains our paltry efforts to conduct multi-user 
+testing.  Multi-user testing is timing-dependent and therefore hard 
+to automate, so we don't include them in the Makefile-driven 
+regression tests.
+
+This directory contains the following scripts:
+
+pgcook.pl
+
+	A PERL script that fires up several monitor processes on a
+	single database and throws a mix of update and retrieval 
+	queries at it.  Options include:
+
+	option		meaning					default
+	------		-------					-------
+	-d <database>	the database to cook			$USER
+	-m <monitors>	number of monitors to start		3
+	-n <iterations>	total number of queries to submit	1000
+	-D		use "Deadlock" mode			off
+
+	With Deadlock mode off, the queries are a mix of
+		retrieve	- obtains read lock
+		replace		- obtains write lock without read lock
+		append		- obtains write lock
+	Hence the system should never deadlock while running this
+	query mix.  This simply stresses concurrent operation.
+
+	With Deadlock mode on, the "replace" queries are replaced with
+		begin
+		retrieve
+		replace
+		end
+	This is a canonical bad query for concurrency purposes (if you 
+	don't use "SELECT FOR UPDATE", which is an option POSTGRES 
+	doesn't have).  When two of these queries overlap you are 
+	practically guaranteed to deadlock, since the two will likely
+	manage to acquire read locks (for the retrieve) and then
+	deadlock when they try to get write locks for the replace.
+
+	With 60 second timeouts this is very slow (there will be a lot 
+	of deadlocks) but this tests a code path that we don't test 
+	very thoroughly.  There were lots of bugs in the deadlock-
+	handling code and there are likely many more.
+
+	The output of each monitor is placed in 
+		./pgcook$$.n
+	where '$$' is the process id of the PERL script and 'n' is 
+	the number [0..m-1] of the monitor.  Everything the script 
+	throws at a monitor is logged in
+		./pgcook$$.out
+
+lookcook.awk
+	This script summarizes how many transactions of each type
+	were aborted due to deadlock.  Run it as
+		% cat pgcook12345.[0-9]* | awk -f lookcook.awk
+
+sinval.pl
+	This is a very simple PERL script that tests the shared
+	invalidation code.  POSTGRES caches a lot of state about
+	the system catalogs; when updates are made to tuples 
+	within certain key system catalogs, each backend server 
+	issues invalidation messages to the other backends.  When
+	the shared message buffer overflows, it is cleared and 
+	any backends that haven't kept up are told to flush their
+	caches and reinitialize them.  This code is also not well-
+	tested because (1) you have to have one idle backend and
+	another backend that makes a lot of catalog updates and
+	(2) the idle backend needs to actually start a transaction
+	(as opposed to exiting) in order to process the messages.
+	This is something we don't do very often, so...
+
+	This script is invoked with the following options:
+
+	option		meaning					default
+	------		-------					-------
+	-d <database>	the database to cook			$USER
+
+	Part of the output of the idle backend (the ".0" file)
+	should look like:
+
+		Query sent to backend is "retrieve (x=1)"
+		NOTICE:Feb 16 02:21:16:SIMarkEntryData: cache state reset
+		---------------
+		| x           |
+		---------------
+		| 1           |
+		---------------
+
+	without any additional NOTICE, WARN or FATAL messages.  This
+	indicates that the invalidation was successful.
