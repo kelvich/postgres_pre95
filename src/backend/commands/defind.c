@@ -38,7 +38,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	AttributeNumber	*attributeNumberA;
 	HeapTuple	tuple;
 	uint16		parameterCount;
-	String		*parameterA;
+	Datum		*parameterA = NULL;
 	String		*nextP;
 	FuncIndexInfo	fInfo;
 
@@ -87,7 +87,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	AssertArg(length(parameterList) == 2 * parameterCount);
 #endif
 	if (parameterCount >= 1) {
-		parameterA = LintCast(String *,
+		parameterA = LintCast(Datum *,
 			palloc(2 * parameterCount * sizeof *parameterA));
 
 		nextP = &parameterA[0];
