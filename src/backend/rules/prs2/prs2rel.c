@@ -356,11 +356,6 @@ AttributeNumber attrNo;
      */
     relationName = get_rel_name(relationId);
     currentLocks = prs2GetLocksFromRelation(relationName);
-#ifdef PRS2_DEBUG
-    printf("previous Lock:");
-    prs2PrintLocks(currentLocks);
-    printf("\n");
-#endif PRS2_DEBUG
 
     /*
      * Now calculate the new locks
@@ -372,12 +367,6 @@ AttributeNumber attrNo;
 			ActionPlanNumber);	/* ActionPlanNumber is
 						   a constant.  */
 
-#ifdef PRS2_DEBUG
-    printf("new Lock:");
-    prs2PrintLocks(newLocks);
-    printf("\n");
-#endif PRS2_DEBUG
-    
     /*
      * Now, update the locks of the relation
      */
