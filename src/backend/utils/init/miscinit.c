@@ -15,6 +15,7 @@
  * ----------------------------------------------------------------
  */
 
+#include <pwd.h>		/* for getpwent */
 #include <sys/param.h>		/* for MAXPATHLEN */
 #include <sys/types.h>		/* for dev_t */
 #include <sys/stat.h>
@@ -31,8 +32,7 @@
 #include "catalog/catname.h"
 #include "catalog/pg_user.h"
 #include "catalog/pg_proc.h"
-#include "access/skey.h"
-#include "utils/rel.h"
+#include "catalog/syscache.h"
 /*
  * EnableAbortEnvVarName --
  *	Enables system abort iff set to a non-empty string in environment.
@@ -151,31 +151,6 @@ GetProcessingMode()
 }
 
 /* ----------------------------------------------------------------
- *	ReinitAtFirstTransaction()
- *	InitAtFirstTransaction()
- *
- *	This is obviously some half-finished hirohama-ism that does
- *	nothing and should be removed.
- * ----------------------------------------------------------------
- */
-void
-ReinitAtFirstTransaction()
-{
-    elog(FATAL, "ReinitAtFirstTransaction: not implemented, yet");
-}
-
-void
-InitAtFirstTransaction()
-{
-    if (TransactionInitWasProcessed) {
-	ReinitAtFirstTransaction();
-    }
-    
-    /* Walk the relcache? */
-    TransactionInitWasProcessed = true;	/* XXX ...InProgress also? */
-}
-
-/* ----------------------------------------------------------------
  *		database path / name support stuff
  * ----------------------------------------------------------------
  */
@@ -214,78 +189,91 @@ SetDatabaseName(name)
      *  be eliminated! -cim 10/5/90
      * ----------------
      */
-    strncpy(&MyDatabaseNameData, name, 16);
+    strncpy(&MyDatabaseNameData, name, sizeof(NameData));
     
     DatabaseName = (String) &MyDatabaseNameData;
 }
 
+/* ----------------
+ *	GetUserName and SetUserName
+ *
+ *	SetUserName must be called before InitPostgres, since the setuid()
+ *	is done there.
+ * ----------------
+ */
+static NameData UserName = { "" };
+
+void
+GetUserName(namebuf)
+	Name namebuf;
+{
+	Assert(UserName.data[0]);
+	Assert(PointerIsValid((Pointer) namebuf));
+	
+	(void) strncpy(namebuf->data, UserName.data, sizeof(NameData));
+}
+
+void
+SetUserName()
+{
+	char *p;
+	struct passwd *pw;
+	extern char *getenv();	/* XXX STDLIB */
+
+	Assert(!UserName.data[0]);	/* only once */
+
+	if (IsUnderPostmaster) {
+		/* use the (possibly) authenticated name that's provided */
+		if (!(p = getenv("PG_USER")))
+			elog(FATAL, "SetUserName: PG_USER environment variable unset");
+	} else {
+		/* setuid() has not yet been done */
+		if (!(pw = getpwuid(getuid())))
+			elog(FATAL, "SetUserName: no entry in passwd file");
+		p = pw->pw_name;
+	}
+	(void) strncpy(UserName.data, p, sizeof(NameData));
+	
+	Assert(UserName.data[0]);
+}
+
 /* ----------------------------------------------------------------
- *	GetUserId and SetUserId support (used to be in pusr.c)
+ *	GetUserId and SetUserId
  * ----------------------------------------------------------------
  */
 static ObjectId	UserId = InvalidObjectId;
 
-/* ----------------
- *	GetUserId
- * ----------------
- */
 ObjectId
 GetUserId()
 {
-    AssertState(ObjectIdIsValid(UserId));
-    return (UserId);
+    Assert(ObjectIdIsValid(UserId));
+    return(UserId);
 }
-
-/* ----------------
- *	SetUserId
- * ----------------
- */
 
 void
 SetUserId()
 {
-    HeapScanDesc s;
-    ScanKeyData  key;
-    Relation userRel;
-    HeapTuple userTup;
+    HeapTuple	userTup;
+    NameData	user;
+
+    Assert(!ObjectIdIsValid(UserId));	/* only once */
 
     /*
      * Don't do scans if we're bootstrapping, none of the system
      * catalogs exist yet, and they should be owned by postgres
      * anyway.
      */
-    if (IsBootstrapProcessingMode())
-    {
+    if (IsBootstrapProcessingMode()) {
 	UserId = getuid();
 	return;
     }
 
-    userRel = heap_openr(UserRelationName);
-    ScanKeyEntryInitialize(&key.data[0],
-			   (bits16)0x0,
-			   Anum_pg_user_usename,
-			   Character16EqualRegProcedure,
-			   (Datum)PG_username);
-
-    s = heap_beginscan(userRel,0,NowTimeQual,1,(ScanKey)&key);
-    userTup = heap_getnext(s, 0, (Buffer *)NULL);
+    GetUserName(&user);
+    userTup = SearchSysCacheTuple(USENAME, user.data, NULL, NULL, NULL);
     if (!HeapTupleIsValid(userTup))
-    {
-	elog(FATAL, "User %s is not in %s", PG_username, UserRelationName);
-    }
-    UserId = (ObjectId) ((Form_pg_user)GETSTRUCT(userTup))->usesysid;
-    heap_endscan(s);
-    heap_close(userRel);
-}
-
-/* ----------------
- *	pg_username
- * ----------------
- */
-char *
-pg_username()
-{
-	return(PG_username);
+	elog(FATAL, "SetUserId: user \"%-*s\" is not in \"%-*s\"",
+	     sizeof(NameData), user.data, sizeof(NameData), UserRelationName);
+    UserId = (ObjectId) ((Form_pg_user) GETSTRUCT(userTup))->usesysid;
 }
 
 /* ----------------
@@ -393,13 +381,15 @@ FindBackend(backend, argv0)
 			p = rindex(buf, '/');
 			(void) strcpy(++p, "postgres");
 		}
-		if (ValidBackend(buf)) {
-			(void) strncpy(backend, buf, MAXPGPATH);
-			if (!Quiet)
-				fprintf(stderr, "FindBackend: found backend \"%s\" through argv[0]\n",
-					backend);
-			return(0);
+		if (!ValidBackend(buf)) {
+			fprintf(stderr, "FindBackend: could not find postgres using the pathname provided\n");
+			return(-1);
 		}
+		(void) strncpy(backend, buf, MAXPGPATH);
+		if (DebugLvl)
+			fprintf(stderr, "FindBackend: found backend \"%s\" through argv[0]\n",
+				backend);
+		return(0);
 	}
 
 	/*
@@ -423,7 +413,7 @@ FindBackend(backend, argv0)
 			if (ValidBackend(buf)) {
 				(void) strncpy(backend, buf, MAXPGPATH);
 				free(path);
-				if (!Quiet)
+				if (DebugLvl)
 					fprintf(stderr, "FindBackend: found backend \"%s\" through PATH\n",
 						backend);
 				return(0);
@@ -443,7 +433,7 @@ FindBackend(backend, argv0)
 		(void) strcat(buf, "/bin/postgres");
 		if (ValidBackend(buf)) {
 			(void) strncpy(backend, buf, MAXPGPATH);
-			if (!Quiet)
+			if (DebugLvl)
 				fprintf(stderr, "FindBackend: found backend \"%s\" through POSTGRESHOME\n",
 					backend);
 			return(0);
