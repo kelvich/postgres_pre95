@@ -93,19 +93,19 @@ below.
 .uh "Constants"
 .lp
 There are five types of
-i. constants
+.i constants
 for use in \*(PQ.
 They are described below.
 .uh  "Character Constants"
 .lp
 Single
-i. character constants
+.i "character constants"
 may be used in \*(PQ by 
 surrounding them by single
 quotes, e.g., `n'.
 .uh "String Constants"
 .lp
-i. Strings
+.i Strings
 in \*(PQ
 are arbitrary sequences of 
 ASCII characters bounded by
@@ -120,7 +120,7 @@ The same convention applies to `\e' itself.
 String constants are currently limited to a length of 8K bytes.
 .uh "Integer Constants"
 .lp
-i. Integer constants
+.i "Integer constants"
 in \*(PQ are collection of ASCII digits with no decimal point.
 Legal
 values 
@@ -129,8 +129,8 @@ to +2147483647.
 This will vary depending on the operating system and host machine.
 .uh  "Floating Point Constants"
 .lp
-i. Floating point
-constants consist of an integer part, a decimal point, and
+.i "Floating point constants"
+consist of an integer part, a decimal point, and
 a fraction part or scientific notation
 of the following format:
 .(l
@@ -153,7 +153,7 @@ This will vary depending on the operating system and host machine.
 .uh "Constants of Other Types
 .lp
 A constant of an
-i. arbitrary
+.i arbitrary
 type can be entered using the notation:
 .(l
 \*(lqstring\*(rq  :: type-name
@@ -206,7 +206,7 @@ to have more than 256 \*(PQ commands within one transaction.
 .uh "Attributes"
 .lp
 An
-i. attribute
+.i attribute
 is a construct of the form:
 .(l
 Tuple-variable{.composite_field}.field `['number`]'
@@ -241,7 +241,7 @@ designator indicates a specific element in the array.  If no
 number is indicated, then all array elements are returned.
 .uh "Operators"
 .lp
-Any built-in, system, or user defined operator
+Any built-in system, or user defined operator
 may be used in \*(PQ.  For the
 list of built-in and system operators consult
 .b built-in types 
@@ -254,7 +254,9 @@ OPERATOR relation.
 Parentheses may be used for arbitrary grouping of operators.
 .uh "Expressions (a_expr)"
 .lp
-An expression is one of the following:
+An
+.i expression
+is one of the following:
 .(l
 ( a_expr )
 constant
@@ -293,7 +295,8 @@ define \*(PQ function DEPT (char16) returning (setof dept) as
 .uh "Functional Expressions"
 .lp
 A
-i. functional expression
+.i functional
+.i expression
 is the name of a legal \*(PQ function,
 followed by its argument list enclosed in parentheses, e.g.:
 .(l 
@@ -310,7 +313,8 @@ Aggregate expressions are not supported in Version 2.
 .r
 .lp
 An
-i. aggregate expression
+.i aggregate
+.i expression
 represents a simple aggregate (i.e one which
 computes a single value) or an aggregate function (i.e. one which 
 computes a set
@@ -371,7 +375,8 @@ Set expressions are not supported in Version 2.
 .r
 .lp
 A
-i. set expression
+.i set
+.i expression
 defines a collection of tuples from some relation
 and uses the following syntax:
 .(l
@@ -398,7 +403,8 @@ Set expressions are not supported in Version 2.
 .r
 .lp
 A 
-.i relational_expression 
+.i relational
+.i expression 
 is an expression of the form:
 .(l
 relation_constructor binary_relation_operator relation_constructor
@@ -434,7 +440,7 @@ retrieve (dept.dname)
 .uh "Target_list"
 .lp
 A
-i. target list
+.i "target list"
 is a parenthesized, comma-separated list of one
 or more elements, each of which must be of the form:
 .(l
@@ -498,7 +504,8 @@ hierarchy by postpending the designator `*'.
 .uh "Time Expressions"
 .lp
 A
-i. time expression
+.i time
+.i expression
 is in one of two forms:
 .(l
  [date]
