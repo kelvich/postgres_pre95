@@ -100,17 +100,6 @@ typedef uint32	oid;
 #define ObjectIdIsValid(objectId) \
     ((bool) (objectId != InvalidObjectId))
 
-/* ----------
- *      note: we reserve the first 16384 object ids for internal use.
- *      oid's less than this appear in the .bki files.  the choice of
- *      16384 is completely arbitrary.
- * ----------
- */
-#define BootstrapObjectIdData 16384
-
-#define IsSystemRelation(rel) \
-    (RelationGetRelationId(rel) <= BootstrapObjectIdData)
-
 /* ----------------
  *	regproc
  * ----------------

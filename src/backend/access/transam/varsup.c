@@ -48,6 +48,14 @@
 
 #include "catalog/catname.h"
 
+/* ----------
+ *      note: we reserve the first 16384 object ids for internal use.
+ *      oid's less than this appear in the .bki files.  the choice of
+ *      16384 is completely arbitrary.
+ * ----------
+ */
+#define BootstrapObjectIdData 16384
+
 /* ----------------------------------------------------------------
  *	      variable relation query/update routines
  * ----------------------------------------------------------------
@@ -244,6 +252,10 @@ VariableRelationGetNextOid(oid_return)
 	 * we want to append a pg_database tuple.  the first time we do
 	 * this, the oid stored in pg_variable will be bogus, so we use
 	 * a bootstrap value defined at the top of this file.
+	 *
+	 * this comment no longer holds true.  This code is called before
+	 * all of the files in data/base are created and you can't rely
+	 * on system oid's to be less than BootstrapObjectIdData. mer 9/18/91
          * ----------------
          */
 	if (ObjectIdIsValid(var->nextOid))
