@@ -323,7 +323,7 @@ int hash_flags;		/* info about infoP */
 
   /* look it up in the binding table */
   location = 
-    ShmemInitStruct(name,log2(max_size)+sizeof(HHDR),&found);
+    ShmemInitStruct(name,my_log2(max_size) + sizeof(HHDR),&found);
 
   /* binding table is corrupted.  Let someone else give the 
    * error message since they have more information 
