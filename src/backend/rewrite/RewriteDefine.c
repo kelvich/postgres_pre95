@@ -121,6 +121,42 @@ ModifyActionToReplaceCurrent ( retrieve_parsetree )
  *	for now, event_object must be a single attribute
  */
 
+void ValidateRule(event_type, eobj_string, eslot_string, event_qual,
+		  action, is_instead,event_attype)
+     char *eobj_string, *eslot_string;
+     int is_instead,event_type;
+     List *action,event_qual;
+    ObjectId event_attype;
+{
+    int count;
+    char *template = "(((0 retrieve nil nil 0 nil nil nil )((#S(resdom \
+:resno 1 :restype %d :reslen %d :resname \"%s\" :reskey 0 :reskeyop 0 \
+:resjunk 0)#S(const :consttype %d :constlen 0 :constisnull true \
+:constvalue NIL :constbyval nil))) nil))";
+    count = length(*action);
+    if (((event_type == APPEND) || (event_type == DELETE)) && eslot_string)
+	elog(WARN, "'to class.attribute' rules not allowed for this event");
+    if (event_qual && !*action && is_instead)
+	elog(WARN,
+	     "event_quals on 'instead nothing' rules not currently supported");
+    if (event_type == RETRIEVE && is_instead && count > 1)
+	elog(WARN,
+	     "multiple rule actions not supported on 'retrieve instead' rules");
+    /* on retrieve to class.attribute do instead nothing is converted
+     * to 'on retrieve to class.attribute do instead
+     *        retrieve (attribute = NULL)'
+     * --- this is also a terrible hack that works well -- glass*/
+    if (is_instead && !*action && event_type == RETRIEVE) {
+	char *temp_buffer = (char *) palloc(strlen(template)+80);
+	sprintf(temp_buffer, template, event_attype,
+		get_typlen(event_attype), eslot_string,
+		event_attype);
+	*action = (List) StringToPlan(temp_buffer);
+	pfree(temp_buffer);
+    }
+}
+     
+
 DefineQueryRewrite ( args ) 
      List args;
 {
@@ -132,9 +168,9 @@ DefineQueryRewrite ( args )
     bool is_instead	        = (bool)CInteger ( nth ( 4 , args ));
     List action		= nth ( 5 , args );
     Relation event_relation 	= NULL ;
-    ObjectId ruleId[16];
+    ObjectId ruleId;
     ObjectId ev_relid		= 0;
-    char locktype[16];
+    char locktype;
     char *eobj_string		= NULL;
     char *eslot_string		= NULL;
     int event_attno 		= 0;
@@ -169,21 +205,24 @@ DefineQueryRewrite ( args )
     }
     amclose(event_relation);
     /* fix bug about instead nothing */
+    ValidateRule(CAtom(event_type), eobj_string,
+		 eslot_string, event_qual, &action,
+		 is_instead,event_attype);
     if (action == LispNil) {
 	if (!is_instead) return;	/* doesn't do anything */
-	ruleId[0] = InsertRule ( rulename, 
+	ruleId = InsertRule ( rulename, 
 				CAtom(event_type),
 				(Name)eobj_string,
 				(Name)eslot_string,
 				PlanToString(event_qual),
 				1,
 				"nil ");
-	locktype[0] = PutRelationLocks ( ruleId[j], 
+	locktype = PutRelationLocks ( ruleId,
 					ev_relid,
 					event_attno,
 					CAtom(event_type),
 					1);
-	prs2AddRelationLevelLock(ruleId[0],locktype[0],
+	prs2AddRelationLevelLock(ruleId,locktype,
 				 ev_relid,event_attno);
     }
     else {
@@ -192,7 +231,7 @@ DefineQueryRewrite ( args )
 	 * I don't use the some of the more interesting LockTypes...so
 	 * PutRelationLocks() has suddenly got much dumber -- glass
 	 */
-	ruleId[0] = InsertRule ( rulename, 
+	ruleId = InsertRule ( rulename, 
 				CAtom(event_type),
 				(Name)eobj_string,
 				(Name)eslot_string,
@@ -200,7 +239,7 @@ DefineQueryRewrite ( args )
 				is_instead,
 				PlanToString(action));
 				
-	locktype[0] = PutRelationLocks ( ruleId[0], 
+	locktype = PutRelationLocks ( ruleId,
 					ev_relid,
 					event_attno,
 					CAtom(event_type),
@@ -209,83 +248,10 @@ DefineQueryRewrite ( args )
 	j = length(action);
 	if ( j > 15 )
 	    elog(WARN,"max # of actions exceeded"); 
-	prs2AddRelationLevelLock(ruleId[0],locktype[0],
+	prs2AddRelationLevelLock(ruleId,locktype,
 				 ev_relid,event_attno);
     }
 }
-#ifdef OLD_CRAP
-	foreach ( i , action ) {
-	    List 	this_action 		= CAR(i);
-	    int 	this_action_is_instead 	= 0;
-	    int 	action_type 		= 0;	 
-	    List	action_result		= NULL;
-	    int	action_result_index	= 0;
-	    
-	    if (CDR(i) == LispNil && is_instead ) { /* CDR(i)???? */
-		this_action_is_instead = 1;
-	    }
-	
-	    action_type = root_command_type(parse_root(this_action));
-	    action_result = root_result_relation(parse_root(this_action));
-	    if ( action_type == REPLACE ) {
-		action_result_index = CInteger(action_result);
-	    }
-	    /*
-	     * if the action type is a RETRIEVE and this is a "set of"
-	     * type (i.e. "RELATION", or "foobar" where foobar is the
-	     * name of the relation, then this is a "postquel procedure"
-	     * rule.
-	     * If the attribute is of a basic type (e.g. int4, char16)
-	     * then this is a "normal" retrieve rule.
-	     * In this later case, change its action from RETRIEVE
-	     * to "REPLACE CURRENT".
-	     * NOTE: it also possible that 'event_attno' is equal to
-	     * InvalidAttributeNumber (in case of "view" rules, i.e
-	     * soemthing like "on retrieve to toyemp do...").
-	     */
-#ifdef HELL_FREEZES_OVER
-	    if (action_type == RETRIEVE && event_attype != InvalidAttributeNumber
-		&& prs2AttributeIsOfBasicType(ev_relid, event_attno)) {
-		/* transform to replace current */
-		ModifyActionToReplaceCurrent ( this_action );
-		action_type = REPLACE;
-		action_result_index = 1;
-	    }
-#endif HELL_FREEZES_OVER
-	    ruleId[j] = InsertRule ( rulename, 
-				    CAtom(event_type),
-				    (Name)eobj_string,
-				    (Name)eslot_string,
-				    PlanToString(event_qual),
-				    this_action_is_instead,
-				    PlanToString(this_action));
-
-	
-	    locktype[j] = PutRelationLocks ( ruleId[j], 
-					    ev_relid,
-					    event_attno,
-					    CAtom(event_type),
-					    action_type,
-					    action_result_index,
-					    this_action_is_instead );
-	    j += 1;
-	    if ( j > 15 )
-		elog(WARN,"max # of actions exceeded");
-	
-	} /* foreach action */
-	
-	for ( k = 0 ; k < j ; k++ ) {
-	    if ( k != 0 ) {
-		CommitTransactionCommand();
-		StartTransactionCommand();
-	    }
-	    prs2AddRelationLevelLock(ruleId[k],locktype[k],
-				     ev_relid,event_attno);
-	}
-
-    }
-}
-#endif OLD_CRAP
 ShowRuleAction(ruleaction)
      LispValue ruleaction;
 {
@@ -321,5 +287,8 @@ ShowRuleAction(ruleaction)
 	printf (" NULL command ");
     }
 }
+
+
+
 
 
