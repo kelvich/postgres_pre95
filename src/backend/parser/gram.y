@@ -2075,6 +2075,8 @@ res_target_el:
     		int resdomno;
     		Relation rd;
 
+			if (CInteger(CAR($4)) != UNKNOWNOID)
+				elog(WARN, "yyparse: string constant expected");
             val = (char *) textout((struct varlena *)
 							get_constvalue((Const)CDR($4)));
 			str = save_str = palloc(strlen(val) + MAXDIM*25);
