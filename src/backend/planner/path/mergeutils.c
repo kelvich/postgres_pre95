@@ -88,6 +88,23 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 }  /* function end  */
 
 
+dump_rel(rel)
+
+Rel rel;
+
+{
+	printf("relids: %d\n", rel->relids);
+	printf("indexed %c\n", (rel->indexed ? 't' : 'f'));
+	printf("pages %d tuples %d size %d width %d\n", rel->pages, rel->tuples,
+		   rel->size, rel->width);
+	printf("targetlist: \n");
+	lispDisplay(rel->targetlist);
+	printf("\npathlist: \n");
+	lispDisplay(rel->targetlist);
+	printf("\nclauseinfo: \n");
+	lispDisplay(rel->clauseinfo);
+}
+
 
 /*    
  *    	match-order-mergeinfo
