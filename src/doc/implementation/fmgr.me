@@ -58,17 +58,17 @@ CATALOG(pg_proc) BOOTSTRAP {
     oid         prolang;	/* procedure language */
     bool        proisinh;	/* is procedure inheritable? */
     bool        proistrusted;	/* is procedure spawned or called? */
-    bool        proiscachable;	/* is value precomputable? */
+    bool        proiscachable;/* is value precomputable? */
     int2        pronargs;	/* number of arguments */
-    bool        proretset;	
+    bool        proretset;	/* does procedure return set of tuples */
     oid         prorettype;	/* procedure return type */
     oid8        proargtypes;	/* argument types */
-    int4        probyte_pct;
-    int4        properbyte_cpu;
-    int4        propercall_cpu;
-    int4        prooutin_ratio;
-    text        prosrc;         /* VARIABLE LENGTH FIELD */
-    bytea       probin;         /* VARIABLE LENGTH FIELD */
+    int4        probyte_pct;	/* percentage of size of input */
+    int4        properbyte_cpu;	/* cost per byte of operand */
+    int4        propercall_cpu;	/* CPU time per call */
+    int4        prooutin_ratio; /* ratio of output to input sizes */
+    text        prosrc;         /* query string for postquel functions */
+    bytea       probin;         /* object file name for C procedures */
 } FormData_pg_proc;
 
 typedef FormData_pg_proc	*Form_pg_proc;
