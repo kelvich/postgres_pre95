@@ -17,8 +17,8 @@
 #include <sys/sem.h>
 
 #include "tmp/c.h"
-#include "support/shmemipc.h"
-#include "support/shmemipci.h"
+#include "shmemipc.h"
+#include "shmemipci.h"
 #include "utils/memutils.h"
 
 RcsId("$Header$");
