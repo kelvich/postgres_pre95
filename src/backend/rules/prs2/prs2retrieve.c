@@ -17,7 +17,7 @@
 #include "c.h"
 #include "log.h"
 #include "prs2.h"
-
+#include "rulescan.h"
 
 /*-------------------------------------------------------------------
  *
