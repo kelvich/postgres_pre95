@@ -53,9 +53,9 @@ the \*(PG access method interface routines.
 .pp
 The relation descriptor,
 or
-.i reldesc ,
+.i reldesc , 
 is the in-memory data structure that describes an open relation.
-The reldesc is the argument to most of the procedures that operate
+The reldesc is an argument to most of the procedures that operate
 on relations.
 Relations may be opened by name or by relation ID \*-
 either of these uniquely identifies the relation to which
@@ -252,8 +252,19 @@ The contents of the vector are described in section
 .pp
 The
 .SE rd_am
-entry in a reldesc points at an access method tuple form
-describing the access method that manages the relation.
+entry in a reldesc points at an 
+.i "access method tuple form"
+describing the access method that manages the relation\**.
+.(f
+\**
+In \*(PG, the word
+.i form
+is often used to name structures. In this 
+instance, for example, the clause 
+.i "access method tuple form" 
+is used to name a structure that describes an access method
+tuple.
+.)f
 This tuple has one attribute for each of
 the routines that implement the standard
 access method interface for the particular access method.
@@ -343,7 +354,7 @@ on an index.
 Roughly speaking,
 an operator class corresponds to the set of operators for a particular type
 (for example, floats or char strings) that can be stored in an index.
-Operator class information is stored in
+Operator class information is stored in the relation
 .RN pg_amop .
 .pp
 The structure entry
@@ -351,7 +362,7 @@ The structure entry
 is the number of support routines required by this access method.
 For example,
 when inserting keys into a btree,
-the btree access method requires a routine that compares two keys
+the btree access method requires one support routine that compares two keys
 and returns negative, zero, or positive,
 depending on whether the first key is less than, equal to, or greater than
 the second,
@@ -399,7 +410,7 @@ the programmer need not worry about how function dispatch via the
 .SE AccessMethodTupleForm
 works.
 This is handled properly for all indexed access methods by code in
-.FI access/common .
+.FI access/common.
 .sh 3 "The Relation Tuple Form (rd_rel)"
 .pp
 The reldesc for a relation includes a pointer to the
@@ -410,10 +421,10 @@ it is initialized from the data for the relation from
 .RN pg_class .
 The user-level (that is, non-system) attributes for the
 .RN pg_class
-tuple are the
+tuple constitute the
 .i "relation tuple form" .
 This structure is declared in
-.RN catalog/pg_relation.h \\**.
+.RN catalog/pg_relation.h \**
 .(f
 \**
 The class
@@ -426,6 +437,8 @@ but internally
 (as in the names of system header files),
 the name was not always changed.
 .)f
+as 
+.RN Form_pg_relation .
 The declaration is
 .(E
 CATALOG(pg_relation) BOOTSTRAP {
@@ -498,7 +511,16 @@ Both
 .SE reltuples
 and
 .SE relpages
-are used by the planner to estimate plan costs during query optimization.
+are used by the planner to estimate plan costs during query
+optimization.
+Interestingly, then, if neither 
+.SE reltuples
+nor
+.SE relpages
+have been updated by the vacuum cleaner recently,
+their incorrect values can skew
+query optimization such that queries may run for an 
+unexpectedly long time. 
 .pp
 The
 .SE relexpires
@@ -530,7 +552,11 @@ but that there no longer is.
 The vacuum cleaner restores this to the correct value when it runs,
 and defining an index on a heap relation always sets this entry to
 .i true
-for the heap.
+for the heap. 
+.SE Relhasindex
+is always 
+.i false
+for an index relation.
 .pp
 The
 .SE relisshared
@@ -681,7 +707,7 @@ The
 .SE attrelid
 entry is the object ID of the
 .RN pg_class
-tuple for the class that contains this attribute.
+tuple for the relation that contains this attribute.
 .pp
 The
 .SE attname
@@ -964,7 +990,7 @@ The number of tuples that fit in a block depend on the schema of
 the relation that the block stores,
 and the number may vary for a given relation
 (for example,
-if the relation includes variable-length attributes).
+if the tuple includes variable-length attributes).
 .pp
 A tid uniquely identifies a single tuple in a relation.
 In the current version of the system,
@@ -979,7 +1005,7 @@ the available slot is reserved for subsequent reuse.
 In fact,
 the available slot is never subsequently reused,
 but that may change sometime in the future.
-.sh 3 "Data Stored in Heap Tables"
+.sh 3 "Data Stored in Heap Relations"
 .pp
 Every heap tuple begins with a
 .SE HeapTupleData
@@ -1240,28 +1266,48 @@ but the
 they store vary from relation to relation,
 and possibly even within a relation.
 .pp
-The names of the system attributes are
-.i anchor ,
-.i chain ,
-.i cmax ,
-.i cmin ,
-.i ctid ,
-.i oid ,
-.i rlock ,
-.i tmax ,
-.i tmin ,
-.i xmax ,
-.i xmin ,
-and
-.i vtype .
-These attributes are all assigned attributes less than zero
-internally by the system.
+System attributes are all assigned attributes less than zero
+internally by the system. The 
 User-defined attributes all have attribute numbers greater than zero.
-.sh 3 "Data Stored in Index Tables"
+The names of the system attributes and they're corresponding 
+.SE HeapTupleData
+structure elements are listed in the following table\** .
+.(f
+\**
+At one time, there existed a system attribute 
+.i anchor
+which corresponded with the 
+.SE HeapTupleData
+element
+.SE t_anchor .
+.i Anchor
+was the anchor point, or complete tuple, stored in a sequence of 
+difference tuples. 
+Neither are used in the system at this time since tuple differencing
+has not yet been implemented.
+.)f
+.TS
+center allbox;
+cfI cfI
+lfC l.
+HeapTupleData element	System Attribute
+t_chain	chain
+t_cmax 	cmax
+t_cmin	cmin
+t_ctid	ctid
+t_oid	oid
+t_lock	rlock
+t_tmax	tmax
+t_tmin	tmin
+x_xmax	xmax
+t_xmin	xmin
+t_vtype	vtype
+.TE
+.sh 3 "Data Stored in Index Relations"
 .pp
 All \*(PG indices are secondary \*-
 that is,
-ordinary system and user data are stored in heap tables,
+ordinary system and user data are stored in heap relations,
 and indices store pointers into the heaps.
 All of the indexed access methods store index tuples,
 which are much smaller than heap tuples.
@@ -1278,8 +1324,8 @@ pages,
 on the other hand,
 store pointers into the heap.
 .pp
-A particular index is defined on a single heap table,
-and all the heap tids that the index stores refer to that table.
+A particular index is defined on a single heap relation,
+and all the heap tids that the index stores refer to that relation.
 Since indices support fast keyed lookup,
 the indices also store key data,
 which are typically either an attribute from the heap or
@@ -1334,7 +1380,7 @@ Rules on index tuples are not supported by the current system.
 Bits twelve through zero are the size of the tuple, in bytes.
 .pp
 Immediately following the
-.SE t_bits
+.SE t_info
 entry is the index key.
 The index key is the set of all attributes from the heap tuple
 that form the search key for this index.
@@ -1380,9 +1426,9 @@ A
 .i scan
 is the abstraction used in \*(PG to search a heap or index relation
 for tuples that satisfy some qualification.
-A
-.i "scan descriptor" ,
-or scandesc,
+A scan descriptor,
+or 
+.i scandesc ,
 is the data structure that describes an open scan.
 The qualification is stored in the scandesc in data structures called
 .i "scan keys" .
@@ -1486,7 +1532,7 @@ tuple that describes the procedure to call.
 When the procedure is called for the first time,
 the
 .RN pg_proc
-table is scanned and the appropriate function is dynamically loaded,
+relation is scanned and the appropriate function is dynamically loaded,
 if necessary.
 .pp
 The
@@ -1924,7 +1970,10 @@ The
 .SE numberOfKeys
 entry records the number of keys stored in the
 .SE keyData
-entry that follows.
+entry that follows. Currently, 
+.SE numberOfKeys 
+is hardcoded to 1 in many places since multi-key indexing is not
+supported at this time. 
 .pp
 The
 .SE keyData
@@ -2068,7 +2117,8 @@ The routines are defined in
 The interfaces are
 .(E
 void
-CatalogOpenIndices(int nIndices, char **names, Relation *ind_relns)
+CatalogOpenIndices(int nIndices, char **names, 
+		   Relation *ind_relns)
 
 void
 CatalogIndexInsert(Relation *ind_relns, int nIndices,
@@ -2315,7 +2365,15 @@ If the
 .SE b
 argument is NULL,
 then memory is allocated (via
-.SE palloc )
+.SE palloc \** )
+.(f
+\**
+.SE Palloc
+is the \*(PG memory allocator. 
+.SE Palloc
+allocates memory from memory pools, some of which perform garbage
+collection at transaction end. 
+.)f
 and the tuple is copied from the data page to the allocated memory.
 .pp
 The following code fragments show how to use the
@@ -2440,7 +2498,9 @@ will return NULL.
 At that point,
 the scan must be ended using
 .SE index_endscan .
-Subsequent calls to
+If 
+.SE index_endscan 
+is not called, any subsequent calls to
 .SE index_getnext
 on the scan will reset it to the beginning of the qualifying
 index tuples,
@@ -2854,7 +2914,8 @@ repl[0] = ' ';
 repl[1] = 'r';
 
 /* get a new tuple based on the old one, with the new salary */
-newtup = heap_modifytuple(emptup, empbuf, empreln, value, nulls, repl);
+newtup = heap_modifytuple(emptup, empbuf, empreln, value, 
+		          nulls, repl);
 
 /* replace the old tuple with the new one */
 (void) heap_replace(empreln, &emptup->t_ctid, newtup);
@@ -2864,8 +2925,9 @@ The interface for
 is
 .(E
 HeapTuple
-heap_modifytuple(HeapTuple tuple, Buffer buffer, Relation relation,
-		 Datum *replValue, char *replNull, char *repl)
+heap_modifytuple(HeapTuple tuple, Buffer buffer, 
+		 Relation relation, Datum *replValue, 
+		 char *replNull, char *repl)
 .)E
 The
 .SE tuple
@@ -3143,9 +3205,9 @@ on B-trees'', \fIACM Transactions on Database Systems\fR, 6(4),
 December 1981.
 .)f
 short-term locking for high concurrency,
-but since the underlying tables are locked at the relation level,
+but since the underlying relations are locked at the relation level,
 index updates are serialized.
-Rtree indices use two-phase table-level locking.
+Rtree indices use two-phase relation-level locking.
 .pp
 System catalogs in \*(PG are not subject to two-phase locking
 in order to improve concurrency.
