@@ -31,6 +31,7 @@
 #include "access/htup.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "parser/catalog_utils.h"
 
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
@@ -440,6 +441,8 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     bool 		leftDefined = false;
     bool		rightDefined = false;
     Name		name[4];
+    ObjectId		typeId[8];
+    int			nargs;
     
     static ScanKeyEntryData	opKey[3] = {
 	{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
@@ -490,15 +493,28 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
      * have to worry about deleting them later.
      * ----------------
      */
+    bzero(typeId, 8 * sizeof(ObjectId));
+    if (!(NameIsValid(leftTypeName))) {
+          typeId[0] = rightTypeId;
+	  nargs = 1;
+    }
+    else if (!(NameIsValid(rightTypeName))) {
+          typeId[0] = leftTypeId;
+	  nargs = 1;
+    }
+    else {
+          typeId[0] = leftTypeId;
+	  typeId[1] = rightTypeId;
+	  nargs = 2;
+    }
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
-			      (char *) NULL,
-			      (char *) NULL,
+			      nargs,
+			      typeId,
 			      (char *) NULL);
     
     if (!PointerIsValid(tup))
-	elog(WARN, "OperatorDef: operator procedure %s nonexistent",
-	     procedureName);      
+	func_error("OperatorDef", procedureName, nargs, typeId);
 
     values[ OperatorProcedureAttributeNumber-1 ] =
 	(char *) tup->t_oid;
@@ -510,34 +526,44 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
      * ----------------
      */
     if (NameIsValid(restrictionName)) { 	/* optional */
+	bzero(typeId, 8 * sizeof(ObjectId));
+	typeId[0] = OIDOID;		/* operator OID */
+	typeId[1] = OIDOID;		/* relation OID */
+	typeId[2] = INT2OID;		/* attribute number */
+	typeId[3] = 0;			/* value - can be any type  */
+	typeId[4] = INT4OID;		/* flags - left or right selectivity */
 	tup = SearchSysCacheTuple(PRONAME,
 				  (char *) restrictionName,
-				  (char *) NULL,
-				  (char *) NULL,
+				  5,
+				  typeId,
 				  (char *) NULL);
 	if (!HeapTupleIsValid(tup))
-	    elog(WARN,
-		 "OperatorDef: restriction proc %s nonexistent",
-		 restrictionName);      
+	    func_error("OperatorDef", restrictionName, 5, typeId);
 	
 	values[ OperatorRestrictAttributeNumber-1 ] = (char *) tup->t_oid;
     } else
 	values[ OperatorRestrictAttributeNumber-1 ] = (char *) InvalidObjectId;
 
     /* ----------------
-     *	find join
+     *	find join - only valid for binary operators
      * ----------------
      */
     if (NameIsValid(joinName)) { 		/* optional */
+	bzero(typeId, 8 * sizeof(ObjectId));
+	typeId[0] = OIDOID;		/* operator OID */
+	typeId[1] = OIDOID;		/* relation OID 1 */
+	typeId[2] = INT2OID;		/* attribute number 1 */
+	typeId[3] = OIDOID;		/* relation OID 2 */
+	typeId[4] = INT2OID;		/* attribute number 2 */
+
 	tup = SearchSysCacheTuple(PRONAME,
 				  (char *) joinName,
-				  (char *) NULL,
-				  (char *) NULL,
+				  5,
+				  typeId,
 				  (char *) NULL);
 	if (!HeapTupleIsValid(tup))
-	    elog(WARN,
-		 "OperatorDef: join proc %s nonexistent",
-		 joinName);      
+	    func_error("OperatorDef", joinName, 5, typeId);
+
 	values[OperatorJoinAttributeNumber-1] =	(char *) tup->t_oid;
     } else
 	values[OperatorJoinAttributeNumber-1] =	(char *) InvalidObjectId;
