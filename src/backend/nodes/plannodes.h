@@ -25,6 +25,7 @@
 #include "pg_lisp.h"
 #include "oid.h"
 #include "recursion_a.h"        /* recursion stuff that must go first */
+#include "primnodes.h"
 
 /* ----------------------------------------------------------------
  *  Executor State types are used in the plannode structures
@@ -194,6 +195,8 @@ class (Plan) public (Node) {
 #define PlanDefs \
 	inherits(Node); \
 	Cost			cost; \
+	Count			plan_size; \
+	Count			plan_width; \
 	Index			fragment; \
 	struct EState		*state; \
 	List			qptargetlist; \
@@ -441,9 +444,10 @@ class (Unique) public (Temp) {
  *	hash build node
  * ----------------
  */
-class (Hash) public (Temp) {
+class (Hash) public (Plan) {
 #define HashDefs \
-	inherits(Temp); \
+	inherits(Plan); \
+	Var			hashkey; \
 	HashState		hashstate
  /* private: */
 	HashDefs;

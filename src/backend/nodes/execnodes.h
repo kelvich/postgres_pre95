@@ -30,6 +30,7 @@
 #include "tim.h"
 #include "rel.h"
 #include "relscan.h"
+#include "executor/hashjoin.h"
 
 /* ----------------------------------------------------------------
  *	Node Function Declarations
@@ -706,6 +707,9 @@ class (MergeJoinState) public (CommonState) {
 class (HashJoinState) public (CommonState) {
       inherits(CommonState);
   /* private: */
+      HashJoinTable	hj_HashTable;
+      HashBucket	hj_CurBucket;
+      HeapTuple		hj_CurTuple;
   /* public: */
 };
 

@@ -87,6 +87,8 @@ extern void set_uniquestate ARGS((Unique node, UniqueState value));
 extern UniqueState get_uniquestate ARGS((Unique node));
 extern void set_hashstate ARGS((Hash node, HashState value));
 extern HashState get_hashstate ARGS((Hash node));
+extern void set_hashkey ARGS((Hash node, Var value));
+extern Var get_hashkey ARGS((Hash node));
 extern Plan MakePlan ARGS((Cost cost, Index fragment, struct EState *state, List qptargetlist, List qpqual, struct Plan *lefttree, struct Plan *righttree));
 extern void PrintPlan ARGS((FILE *fp, Plan node));
 extern bool EqualPlan ARGS((Plan a, Plan b));
