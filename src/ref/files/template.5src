@@ -13,8 +13,7 @@ These files contain scripts
 which direct the construction of databases.
 Note that the global1.bki and template1_local.bki files
 are installed automatically when the postgres superuser runs
-.q "createdb postgres"
-for the first time.
+.b initdb .
 These files are copied from
 .q .../src/support/{dbdb,local}.bki.
 .lp
@@ -28,8 +27,8 @@ That is,
 there is no need to
 express everything about
 your desired initial database state
-using an AMI template script,
-but the database state can be
+using a BKI template script,
+because the database state can be
 tuned interactively.
 .lp
 The system catalogs consist of classes of two types:  global and local.
@@ -54,9 +53,14 @@ If no template is specified in a
 .b createdb command,
 then the template in .../files/local1_template1.bki is used.
 .lp
-The .bki files are generated from C source code in Version 2.1.
+The .bki files are generated from C source code by an inscrutable
+set of C preprocessor macros.
+.uh BUGS
 .lp
+Release 3.0 does not permit users to have separate template
+databases.
 .uh "SEE ALSO"
 .lp
 bki(files),
-createdb(unix)
+initdb(unix),
+createdb(unix).

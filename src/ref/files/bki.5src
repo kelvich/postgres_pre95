@@ -4,38 +4,40 @@
 .XA 1 "Backend Interface (BKI)"
 .uh NAME
 .lp
- .../src/support/{dbdb,local}.bki \*- template script
+\&.../src/support/{local,dbdb}.bki \*- template scripts
 .uh DESCRIPTION
 .lp
-Backend Interface (BKI)
-template script files are used to describe
-the construction of databases.
-The backend interface is a stripped-down version of postgres
-intended for setting up the first database,
-and other administrative tasks.
-It is
-.i not
-intended for use by humans.
+Backend Interface (BKI) files are scripts that describe
+the contents of the initial \*(PP database.
+This database is constructed during system installation,
+by the
+.b initdb
+command.
+.b Initdb
+executes the \*(PP backend with a special set of flags,
+that cause it to consume the BKI scripts and bootstrap
+a database.
 .lp
-This stripped-down backend reads special ``.bki'' files.
-.q XXX.bki
-represents any arbitrary file name.
-.i Createdb
-uses this type of file to
-direct the construction of the system catalogs.
-(In addition,
-the \*(PP super-user may run scripts directly
-by running
-.b backend
-with commands that follow in the next section.)
-.b Backend
-interprets the sequence
-of commands and macro definitions
-found in template files in the manner
-similar to what is described below.
-In particular,
-this description will be easier to understand
-if the example in  .../files/global1.bki.
+These files are automatically generated from system header
+files during installation.
+They are not intended for use by humans,
+and you do not need to understand their contents in order
+to use \*(PP.
+These files are copied to .../files/local1_template1.bki
+and .../files/global1.bki during system installation.
+.lp
+All new user databases will be created by copying the template
+database that \*(PP constructs from the BKI files.
+Thus,
+a simple way to customize the template database is to
+let the \*(PP initialization script create it for you,
+and then to run the terminal monitor to make the changes
+you want.
+.lp
+The \*(PP backend
+interprets BKI files as described below.
+This description will be easier to understand
+if the example in  .../files/global1.bki is at hand.
 .lp
 Commands are composed of a command
 name followed by space separated arguments.
@@ -279,5 +281,7 @@ close pg_opclass
 .fi
 .uh "SEE ALSO"
 .lp
+initdb(unix),
 createdb(unix),
-template(files), .../src/support/backend.c
+createdb(postquel),
+template(files).
