@@ -1223,7 +1223,9 @@ sony()
     printf(", init lock %sset", (cachehdr->sjh_initlock ? "" : "not "));
 #endif /* HAS_TEST_AND_SET */
     printf("\n");
+#ifdef HAS_TEST_AND_SET
     printf("%d backends waiting on i/o\n\n", *nwaiting);
+#endif /* HAS_TEST_AND_SET */
 
     printf("cache contents:\n");
     for (i = 0; i < 64; i++) {
