@@ -50,6 +50,7 @@
 #define	PrintResultExists
 #define	PrintExistentialExists
 #define	PrintAppendExists
+#define	PrintRecursiveExists
 #define	PrintJoinExists
 #define	PrintNestLoopExists
 #define	PrintMergeJoinExists
@@ -65,6 +66,7 @@ extern void	PrintPlan();
 extern void	PrintResult();
 extern void	PrintExistential();
 extern void	PrintAppend();
+extern void	PrintRecursive();
 extern void	PrintJoin();
 extern void	PrintNestLoop();
 extern void	PrintMergeJoin();
@@ -80,6 +82,7 @@ extern bool	EqualPlan();
 extern bool	EqualResult();
 extern bool	EqualExistential();
 extern bool	EqualAppend();
+extern bool	EqualRecursive();
 extern bool	EqualJoin();
 extern bool	EqualNestLoop();
 extern bool	EqualMergeJoin();
@@ -149,17 +152,20 @@ class (Append) public (Plan) {
  *                                      are detected
  *      recurCleanupPlans       plans/utilities executed once at end
  *      recurCheckpoints        indicate which plans affect the true result
+ *
+ *	recurResultRelationName name of original result relation
  */
 
 class (Recursive) public (Plan) {
         inherits(Plan);
  /* private */
         RecursiveMethod         recurMethod;
-        Command                 recurCommand;
+        LispValue		recurCommand;
         List                    recurInitPlans;
         List                    recurLoopPlans;
         List                    recurCleanupPlans;
         List                    recurCheckpoints;
+	LispValue		recurResultRelationName;
         RecursiveState          recurState;
  /* public: */
 };
