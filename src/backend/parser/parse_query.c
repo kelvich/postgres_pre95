@@ -146,8 +146,8 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	   that are not already in the sortby list */
         foreach (i,targetlist) {
 	    LispValue tlelt = CAR(i);
-	    if ( ! member ( CADR(tlelt) , sort_clause_elts ) ) {
-		sort_clause_elts = nappend1 ( sort_clause_elts, CADR(tlelt)); 
+	    if ( ! member ( CAR(tlelt) , sort_clause_elts ) ) {
+		sort_clause_elts = nappend1 ( sort_clause_elts, CAR(tlelt)); 
 		sort_clause_ops = nappend1 ( sort_clause_ops, 
 			any_ordering_op(CADR(tlelt) ));
 	    }
@@ -290,7 +290,7 @@ ExpandAll(relname,this_resno)
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
 		/* printf("%s\n",attrname);
 		fflush(stdout);*/
-		temp = make_var ( relname, attrname);
+		temp = make_var ( relname, attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = tlen(get_id_type(type_id));
@@ -421,12 +421,12 @@ make_var ( relname, attrname)
     Var varnode;
     int vnum, attid, vartype;
     LispValue vardotfields;
-	Type rtype;
+    Type rtype;
     Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
-	Index vararrayindex = 0;
-
+    Index vararrayindex = 0;
+    
     /* if (!Quiet) {
 	printf (" now in make_Var\n"); 
 	printf ("relation = %s, attr = %s\n",relname,
@@ -459,12 +459,13 @@ make_var ( relname, attrname)
     varnode = MakeVar (vnum , attid ,
 		       vartype , vardotfields , vararrayindex ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)), 0);
+				lispCons(lispInteger(attid),LispNil)),
+		       0 );
+
     
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
 }
-
 /**********************************************************************
  make_array_ref_var
 
@@ -483,13 +484,13 @@ make_array_ref_var( relname, attrname, vararrayindex)
     Var varnode;
     int vnum, attid, typearray, typelem;
     LispValue vardotfields;
-	Type rtype;
+    Type rtype;
     Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
-	HeapTuple type_tuple;
-	TypeTupleForm type_struct;
-
+    HeapTuple type_tuple;
+    TypeTupleForm type_struct;
+    
     vnum = RangeTablePosn ( relname,0,0) ;
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
@@ -504,25 +505,25 @@ make_array_ref_var( relname, attrname, vararrayindex)
     attid = varattno (rd , attrname );
     typearray = att_typeid ( rd , attid );
 
-	type_tuple = SearchSysCacheTuple(TYPOID,
-					typearray,
-					NULL,
-					NULL,
-					NULL);
+    type_tuple = SearchSysCacheTuple(TYPOID,
+				     typearray,
+				     NULL,
+				     NULL,
+				     NULL);
     
-	if (!HeapTupleIsValid(type_tuple)) {
-	    elog(WARN, "make_array_ref_var: Cache lookup failed for type %d\n",
-		 typearray);
-	    return LispNil;
-	}
+    if (!HeapTupleIsValid(type_tuple)) {
+	elog(WARN, "make_array_ref_var: Cache lookup failed for type %d\n",
+	     typearray);
+	return LispNil;
+    }
 
 
-	/* ----------------
-	 *   get the element type from the type tuple
-	 * ----------------
-	 */
-	type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-	typelem = (type_struct)->typelem;
+    /* ----------------
+     *   get the element type from the type tuple
+     * ----------------
+     */
+    type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
+    typelem = (type_struct)->typelem;
 
     rtype = get_id_type(typelem);
     vardotfields = LispNil;                          /* XXX - fix this */
@@ -530,11 +531,13 @@ make_array_ref_var( relname, attrname, vararrayindex)
     varnode = MakeVar (vnum , attid ,
 		       typearray , vardotfields , vararrayindex ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)), typelem);
+				lispCons(lispInteger(attid),LispNil)),
+		       typelem);
     
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
 }
+
 
 
 /**********************************************************************
@@ -563,14 +566,12 @@ SkipForwardToFromList()
           ; /* empty while */
 
         if (next_token <= 0 ) {
-/*
                 printf("EOS, no from found\n");
                 fflush(stdout);
-*/
                 Ch = temp;
         }
         if (next_token == (LispValue) FROM ) {
-        /*      printf("FROM found\n");*/
+            /*  printf("FROM found\n"); */
                 fflush(stdout);
                 Ch -= 4;
                 from_list_place = Ch;
@@ -618,8 +619,19 @@ StripRangeTable()
 	temp = p_rtable;
 	
 	while(! lispNullp(temp) ) {
-		CAR(temp) = CDR (CAR (temp));
-		temp = CDR(temp);
+	    char *from_name = CString(CAR(CAR(temp)));
+
+	    /*
+	     * for current or new, we need
+	     * a marker to be present
+	     */
+
+	    if ((!strcmp ( from_name, "*CURRENT*")) ||
+		(!strcmp ( from_name, "*NEW*")) )
+	      CAR(CDR(CAR(temp))) = CAR(CAR(temp));
+	    
+	    CAR(temp) = CDR (CAR (temp));
+	    temp = CDR(temp);
 	}
 }
 
@@ -696,7 +708,6 @@ make_const( value )
 	return (temp);
 	
 }
-
 LispValue
 parser_ppreserve(temp)
      char *temp;
@@ -772,3 +783,4 @@ char *attrName;
     return(result);
 		    
 }
+
