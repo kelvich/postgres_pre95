@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include <strings.h>
 #include <time.h>
+#include <fcntl.h>
+#ifndef O_RDONLY
 #include <sys/file.h>
+#endif /* O_RDONLY */
 #include <sys/types.h>
 #include <varargs.h>
 
@@ -169,6 +172,13 @@ va_dcl
 	if (lev == WARN) {
 		ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
 		kill(getpid(), 1);	/* abort to traffic cop */
+		pause();
+		/*NOTREACHED*/
+		/*
+		 * The pause(3) is just to avoid race conditions where the
+		 * thread of control on an MP system gets past here (i.e.,
+		 * the signal is not received instantaneously).
+		 */
 	}
 
 	if (lev == FATAL) {
