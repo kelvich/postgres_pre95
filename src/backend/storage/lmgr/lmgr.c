@@ -52,7 +52,7 @@
  *	
  * ----------------
  */
-#define MaxRetries	10	/* XXX about a minute--a hack */
+#define MaxRetries	4	/* XXX about 1/4 minute--a hack */
 
 #define IntentReadRelationLock	0x0100
 #define ReadRelationLock	0x0200
@@ -341,6 +341,7 @@ RelationSetLockForRead(relation)
     int		status;		/* XXX style */
     int16	numberOfFailures;
     LockInfo	linfo;
+    TransactionId curXact;
 
     /* ----------------
      *	sanity checks
@@ -356,10 +357,17 @@ RelationSetLockForRead(relation)
 
     /* ----------------
      *	return if lock already set, otherwise set lock.
+     *  Have to make sure lock was set in current transaction
+     *  otherwise we really don't have it!! mer 9 Jul 1991
      * ----------------
      */
-    if (linfo->flags & ReadRelationLock)
+    curXact = GetCurrentTransactionId();
+    if ((linfo->flags & ReadRelationLock) &&
+	TransactionIdEquals(curXact, &linfo->transactionIdData))
+    {
 	return;
+    }
+    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
     linfo->flags |= ReadRelationLock;
     
     status = LMLock(MultiLevelLockTableId,
@@ -388,7 +396,9 @@ RelationSetLockForRead(relation)
 	numberOfFailures += 1;
 	sleep(numberOfFailures);
 	
-	elog(NOTICE, "RelationSetLockForRead: retrying");
+	elog(NOTICE, 
+		"RelationSetLockForRead %s: retrying",
+		RelationGetRelationName(relation));
 	
 	status = LMLock(MultiLevelLockTableId,
 			LockTimeout,
@@ -478,6 +488,7 @@ RelationSetLockForWrite(relation)
     int		status;
     int16	numberOfFailures;
     LockInfo	linfo;
+    TransactionId curXact;
     
     /* ----------------
      *	sanity checks
@@ -493,11 +504,18 @@ RelationSetLockForWrite(relation)
     
     /* ----------------
      *	return if lock already set, otherwise set lock.
+     *  Have to make sure lock was set in current transaction
+     *  otherwise we really don't have it!! mer 9 Jul 1991
      * ----------------
      */
-    if (linfo->flags & WriteRelationLock)
+    curXact = GetCurrentTransactionId();
+    if ((linfo->flags & WriteRelationLock) &&
+	TransactionIdEquals(curXact, &linfo->transactionIdData))
+    {
 	return;
+    }
     linfo->flags |= WriteRelationLock;
+    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
     
     status = LMLock(MultiLevelLockTableId,
 		    LockNoWait,
@@ -525,7 +543,9 @@ RelationSetLockForWrite(relation)
 	numberOfFailures += 1;
 	sleep(numberOfFailures);
 	
-	elog(NOTICE, "RelationSetLockForWrite: retrying");
+	elog(NOTICE, 
+		"RelationSetLockForWrite %s: retrying", 
+		RelationGetRelationName(relation);
 	
 	status = LMLock(MultiLevelLockTableId,
 			LockTimeout,
@@ -806,7 +826,9 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
 	numberOfFailures += 1;
 	sleep(numberOfFailures);
 	
-	elog(NOTICE, "RelationSetLockForReadPage: retrying");
+	elog(NOTICE, 
+		"RelationSetLockForReadPage %s: retrying",
+		RelationGetRelationName(relation));
 	
 	status = LMLock(PageLockTableId,
 			LockTimeout,
@@ -887,7 +909,9 @@ RelationSetLockForWritePage(relation, partition, itemPointer)
 	numberOfFailures += 1;
 	sleep(numberOfFailures);
 	
-	elog(NOTICE, "RelationSetLockForWritePage: retrying");
+	elog(NOTICE, 
+		"RelationSetLockForWritePage %s: retrying",
+		RelationGetRelationName(relation));
 	
 	status = LMLock(PageLockTableId,
 			LockTimeout,
