@@ -21,20 +21,23 @@
  *     	existing entry).
  */
 
+#include "tmp/c.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "utils/lsyscache.h"
+
 #include "planner/internal.h"
-#include "c.h"
 #include "planner/clause.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
-#include "planner/relnode.h"
-#include "planner/joininfo.h"
-#include "planner/initsplan.h"
-#include "pg_lisp.h"
-#include "lsyscache.h"
-#include "planner/tlist.h"
 #include "planner/clausesel.h"
+#include "planner/initsplan.h"
+#include "planner/joininfo.h"
+#include "planner/relnode.h"
+#include "planner/tlist.h"
 
 extern bool _enable_mergesort_;
 extern bool _enable_hashjoin_;

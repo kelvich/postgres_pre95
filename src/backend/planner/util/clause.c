@@ -25,16 +25,17 @@
  *     		get_relsatts
  */
 
-#include "c.h"
+#include "tmp/c.h"
+
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
 #include "planner/clause.h"
 #include "planner/var.h"
-#include "primnodes.a.h"
 #include "planner/clauses.h"
-#include "relation.h"
-#include "relation.a.h"
-
-
 
 /*    
  *    	pull-constant-clauses

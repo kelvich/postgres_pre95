@@ -23,11 +23,11 @@
  */
 
 #include <stdio.h>
-#include "pg_lisp.h"
-#include "planner/internal.h"
-#include "c.h"
-#include "planner/plancat.h"
 
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
+#include "planner/internal.h"
+#include "planner/plancat.h"
 
 /*    
  *    	index-info

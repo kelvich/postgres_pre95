@@ -15,18 +15,19 @@
  *     		sort-relation-paths
  *     		sort-level-result
  */
+#include "tmp/c.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "parsetree.h"
-#include "c.h"
-#include "pg_lisp.h"
-#include "planner/tlist.h"
-#include "planner/sortresult.h"
+#include "parser/parsetree.h"
 #include "planner/costsize.h"
+#include "planner/sortresult.h"
+#include "planner/tlist.h"
 
 /*    
  *    	relation-sortkeys
