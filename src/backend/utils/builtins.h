@@ -385,4 +385,20 @@ extern int32 int4inc();
 extern int32 int4larger();
 extern int32 int4smaller();
 
+/* in utils/adt/ftype.c -- mao's stuff */
+extern ObjectId fimport();
+extern int32 fexport();
+extern int32 fabstract();
+
+extern char *oidseqout();
+extern OidSeq oidseqin();
+extern bool oidseqlt();
+extern bool oidseqle();
+extern bool oidseqeq();
+extern bool oidseqge();
+extern bool oidseqgt();
+extern bool oidseqne();
+extern bool oidseqcmp();
+extern OidSeq mkoidseq();
+
 #endif !BuiltinsIncluded
