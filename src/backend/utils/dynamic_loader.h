@@ -8,7 +8,6 @@
 #ifndef Dynamic_loaderHIncluded
 #define Dynamic_loaderHIncluded 1 /* include once only */
 
-typedef char *	((*func_ptr)());
 
 func_ptr	dynamic_load();
 

@@ -102,7 +102,7 @@ ObjectId element_type;
     ObjectId typelem;
     char *string_save, *p, *q, *r;
     char **values;
-    FmgrFunction inputproc;
+    func_ptr inputproc;
     int i, nitems, dummy;
     int32 nbytes;
     char *retval;
@@ -244,7 +244,7 @@ ObjectId element_type;
     char **values;
     int32 nitems, nbytes, overall_length;
     int i, dummy;
-    FmgrFunction outputproc;
+    func_ptr outputproc;
     char delim[2];
 
     system_cache_lookup(element_type, false, &typlen, &typbyval,

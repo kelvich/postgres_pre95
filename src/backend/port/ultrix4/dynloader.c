@@ -57,7 +57,7 @@
 #include <symconst.h>
 #include <mips/cachectl.h>
 
-#include "utils/dynamic_loader.h"
+#include "utils/fmgr.h"
 
 extern char pg_pathname[];
 

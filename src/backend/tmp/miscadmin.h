@@ -111,7 +111,7 @@ extern ObjectId	    LastOidProcessed;	/* for query rewrite */
 #define	M_ADT_R		1
 #define	M_INT4_EQ_F	2
 
-#define	NMAGIC		3
+/* #define	NMAGIC		3*/
 
 #endif
 

@@ -9,7 +9,6 @@
 
 #include "access/heapam.h"
 #include "nodes/pg_lisp.h"
-#include "utils/dynamic_loader.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
 
