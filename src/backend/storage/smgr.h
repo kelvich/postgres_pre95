@@ -25,5 +25,6 @@ extern int	smgrblindwrt();
 extern int	smgrnblocks();
 extern int	smgrcommit();
 extern int	smgrabort();
+extern bool	smgriswo();
 
 #endif /* ndef _SMGR_H_ */
