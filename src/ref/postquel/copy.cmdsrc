@@ -23,7 +23,7 @@ The keyword
 change the behavior of field formatting,
 as described below.
 .i Classname
-is the name of an existing relation.
+is the name of an existing class.
 .i Direction
 is either 
 .b to
@@ -35,7 +35,7 @@ can be used so that input to
 .b copy
 can be written by an application and 
 output from the
-.b copy 
+.b copy
 command can be read by an application.
 The 
 .b binary
@@ -44,6 +44,72 @@ as ASCII text.  It is somewhat faster than the normal
 .b copy
 command, but is not generally portable, and the files generated are somewhat
 larger, although this factor is highly dependent on the data itself.
+.uh FORMAT OF OUTPUT FILES
+.lp
+When
+.b copy
+is used without the
+.b binary
+keyword, the file generated will have each instance on a line, with each
+attribute separated by tabs (\t).  Embedded tabs will be preceeded by a
+backslash character (\).  The attribute values themselves are strings generated
+by the output function associated with each attribute type.  The output
+function for a type should not try to generate the backslash character - this
+will be handled by 
+.b copy
+itself.
+.lp
+Note that on input to 
+.b copy
+backslashes are considered to be special control characters, and should be
+doubled if you want to embed a backslash, ie, the string "12\\19\\88" will be
+converted by
+.b copy
+to "12\19\88".  The actual format for each instance is
+.lp
+<attr1><tab><attr2><tab>...<tab><attrn><newline>
+.lp
+If 
+.b copy
+is sending its output to standard output instead of a file, it will send a
+period (.) followed immediately by a newline (\n), on a line by themselves,
+when it is done.  Similarly, if
+.b copy
+is reading from standard input, it will expect a period (.) followed by a
+newline (\n), as the first two characters on a line, to denote end-of-file.
+However,
+.b copy
+will do the right thing if a true EOF is encountered.
+.lp
+.b NULL
+attributes are handled simply as null strings, that is, consecutive tabs in
+the input file denote a 
+.b NULL
+attribute.
+.lp
+In the case of
+.b copy binary,
+the instance format is as follows.  Unsigned four byte integer quantities are
+called uint32 in the below description.
+.lp
+uint32 totallength (not including itself),
+uint32 number of null attributes
+[uint32 attribute number of first null attribute
+...
+uint32 attribute number of nth null attribute],
+<data>
+.lp
+.i Alignment of binary data
+On Sun 3's, 2 byte attributes are aligned on two-byte boundaries, and all
+larger attributes are aligned on four-byte boundaries.  Character attributes
+are aligned on single-byte boundaries.  On other machines, all attributes
+larger than 1 byte are aligned on four-byte boundaries.  Note that variable
+length attributes are preceeded by the attribute's length; arrays are simply
+contiguous streams of the array element type.
+.lp
+While it is possible to send and receive binary data through standard input
+and output, it is not recommended.
+.lp
 .uh "SEE ALSO"
 .lp
 append(commands),
@@ -54,14 +120,14 @@ introduction(commands).
 .A Files 
 used as arguments to the copy command must reside on the database server.
 .lp
-Copy
+.b Copy
 stops operation at the first error.
 This should not lead to problems
 in the event of a
 copy \fBfrom\fR,
 but the target relation will, of course, be partially modified
 in a
-copy \fBto\fR.
+.b copy \fBto\fR.
 .lp
 Because \*(PP operates out of a different directory 
 than the user's working directory at the time \*(PP is invoked,
@@ -70,3 +136,7 @@ the result of copying to a file
 (without additional path information)
 may yield unexpected results for the naive user.
 The full pathname should be used when specifying files to be copied.
+.lp
+b Copy
+has virtually no error checking, and a malformed input file will likely cause
+the backend to crash.
