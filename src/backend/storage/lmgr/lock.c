@@ -46,7 +46,7 @@ static MASK	BITS_ON[MAX_LOCKTYPES];
  * XXX Want to move this to this file
  * -----------------
  */
-extern bool LockingIsDisabled;
+static bool LockingIsDisabled;
 
 /* -------------------
  * hash function from (hash_fn.c)
@@ -366,7 +366,7 @@ LOCKT		lockt;
   SpinAcquire(masterLock);
 
   Assert( ltable->lockHash->hash == tag_hash);
-  lock = (LOCK *)hash_search(ltable->lockHash,(Pointer)lockName,ENTER,&found);
+  lock = (LOCK *)hash_search(ltable->lockHash,(Pointer)lockName,HASH_ENTER,&found);
 
   if (! lock)
   {
@@ -408,7 +408,7 @@ LOCKT		lockt;
   TransactionIdStore(myXid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
 
-  result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, ENTER, &found);
+  result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found);
   if (!result)
   {
     elog(NOTICE,"LockResolveConflicts: xid table corrupted");
@@ -508,7 +508,7 @@ TransactionId	xid;
   TransactionIdStore(xid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Pointer)&item, ENTER, &found)))
+	 hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found)))
   {
     elog(NOTICE,"LockResolveConflicts: xid table corrupted");
     return(STATUS_ERROR);
@@ -662,7 +662,7 @@ LOCKT	lockt;
 
   Assert( ltable->lockHash->hash == tag_hash);
   lock = (LOCK *)
-    hash_search(ltable->lockHash,(Pointer)lockName,FIND,&found);
+    hash_search(ltable->lockHash,(Pointer)lockName,HASH_FIND,&found);
 
   /* let the caller print its own error message, too.
    * Do not elog(WARN).
@@ -704,7 +704,7 @@ LOCKT	lockt;
 
   item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Pointer)&item, FIND, &found))|| !found)
+	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
   {
     SpinRelease(masterLock);
     elog(NOTICE,"LockReplace: xid table corrupted");
@@ -726,7 +726,7 @@ LOCKT	lockt;
     LOCK_PRINT("Deleting now",(&lock->tag),lockt);
     SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Pointer)&item, REMOVE, &found)) ||
+	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
 	! found)
     {
       SpinRelease(masterLock);
@@ -746,7 +746,7 @@ LOCKT	lockt;
      */
     Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
-      hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
+      hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
     SpinRelease(masterLock);
 
     if ((! lock) || (!found))
@@ -851,7 +851,7 @@ LOCKT 	lockt;
 
   item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Pointer)&item, FIND, &found))|| !found)
+	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
   {
     SpinRelease(masterLock);
     elog(NOTICE,"LockReplace: xid table corrupted");
@@ -873,7 +873,7 @@ LOCKT 	lockt;
     LOCK_PRINT("Deleting now",(&lock->tag),lockt);
     SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Pointer)&item, REMOVE, &found)) ||
+	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
 	! found)
     {
       SpinRelease(masterLock);
@@ -892,7 +892,7 @@ LOCKT 	lockt;
 
     Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
-      hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
+      hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
     SpinRelease(masterLock);
 
     if ((! lock) || (!found))
@@ -1019,7 +1019,7 @@ SHM_QUEUE	*lockQueue;
      * always remove the xidLookup entry, we're done with it now
      * ----------------
      */
-    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, REMOVE, &found)) ||
+    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, HASH_REMOVE, &found)) ||
 	!found)
     {
       SpinRelease(masterLock);
@@ -1037,7 +1037,7 @@ SHM_QUEUE	*lockQueue;
 
       Assert( ltable->lockHash->hash == tag_hash);
       lock = (LOCK *)
-	hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
+	hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
       if ((! lock) || (!found))
       {
 	SpinRelease(masterLock);
@@ -1090,4 +1090,14 @@ LockShmemSize()
 		my_log2(NBACKENDS) + sizeof(HHDR);
 
 	return size;
+}
+
+/* -----------------
+ * Boolean function to determine current locking status
+ * -----------------
+ */
+bool
+LockingDisabled()
+{
+	return LockingIsDisabled;
 }

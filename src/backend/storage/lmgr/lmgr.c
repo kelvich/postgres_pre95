@@ -70,7 +70,6 @@
 
 extern bool	TransactionInitWasProcessed;	/* XXX style */
 extern ObjectId	MyDatabaseId;
-bool   LockingIsDisabled = false;	/* XXX should be static, fix cinit */
 
 static LRelId	VariableRelationLRelId =
 { VariableRelationId, InvalidObjectId };
@@ -318,7 +317,7 @@ RelationSetLockForDescriptorOpen(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
 
     lRelId = RelationGetLRelId(relation);
@@ -355,7 +354,7 @@ RelationSetLockForRead(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled) 
+    if (LockingDisabled())
 	return;
     
     linfo = (LockInfo) relation->lockInfo;
@@ -445,7 +444,7 @@ RelationSetLockForWrite(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
     
     linfo = (LockInfo) relation->lockInfo;
@@ -494,7 +493,7 @@ RelationUnsetLockForWrite(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
 
     /* -----------------------
@@ -535,7 +534,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled) 
+    if (LockingDisabled())
 	return;
 
     linfo = (LockInfo) relation->lockInfo;
@@ -619,7 +618,7 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
     
     /* ----------------
@@ -653,7 +652,7 @@ RelationSetLockForWritePage(relation, partition, itemPointer)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
 
     /* ----------------
@@ -687,7 +686,7 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
 
     /* -----------------------
@@ -723,7 +722,7 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
+    if (LockingDisabled())
 	return;
     
     /* -----------------------
