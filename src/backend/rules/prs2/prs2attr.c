@@ -255,15 +255,33 @@ HeapTuple *newTupleP;
 		}
 	    } else {
 		replace[i] = ' ';
+		replaceValue[i] = attrValues[i].value;
+		if (attrValues[i].isNull) {
+		    replaceNull[i] = 'n';
+		} else {
+		    replaceNull[i] = ' ';
+		}
 	    }
 	}
 
 	/*
 	 * create the new tuple
 	 */
+	/**---- HACK:
+	 **
+	 ** The following call to ModifyHeapTuple does not
+	 ** do the right thing, so until somebody fixes
+	 ** this routine, I'll use 'FormHeapTuple' instead...
+
 	*newTupleP = ModifyHeapTuple( tuple, buffer,
 			    relation, replaceValue,
 			    replaceNull, replace);
+	 **
+	 **/
+    	*newTupleP = FormHeapTuple(
+			RelationGetNumberOfAttributes(relation),
+			RelationGetTupleDescriptor(relation),
+			replaceValue, replaceNull);
 	/*
 	 * free the space occupied by the arrays
 	 */
