@@ -663,7 +663,12 @@ bool *isNull;
             RETURN_NULL;
         (void) LOclose(fd);
         retval  = (char *)_ArrayCast((char *)VARDATA(v), reftype, elmlen);
-        pfree(v);
+	if ( reftype == 0) { /* not by value */
+	    char * tempdata = palloc (elmlen);
+	    bcopy (retval, tempdata, elmlen);
+	    retval = tempdata;
+	}
+	pfree(v);
         return (Datum) retval;
     }
     
