@@ -24,12 +24,12 @@
 #include <sys/types.h>
 #include "utils/exc.h"
 
-/*
+/* ----------------
  * PQArgBlock --
  *	Information (pointer to array of this structure) required
  *	for the PQfn() call.
+ * ----------------
  */
-
 typedef struct {
     int len;
     int isint;
@@ -39,9 +39,10 @@ typedef struct {
     } u;
 } PQArgBlock;
 
-/* 
+/* ----------------
  * TypeBlock --
  * 	Information about an attribute.
+ * ----------------
  */
 #define NameLength 16
 
@@ -51,9 +52,10 @@ typedef struct TypeBlock {
     int adtsize;		/* adtsize of the type */
 } TypeBlock;
 
-/*
+/* ----------------
  * TupleBlock --
  *	Data of a tuple.
+ * ----------------
  */
 #define TupleBlockSize 100
 
@@ -63,9 +65,10 @@ typedef struct TupleBlock {
     int    tuple_index;			/* current tuple index */
 } TupleBlock;
 
-/*
+/* ----------------
  * GroupBuffer --
  * 	A group of tuples with the same attributes.
+ * ----------------
  */
 typedef struct GroupBuffer {
     int no_tuples;		/* number of tuples in this group */
@@ -75,9 +78,10 @@ typedef struct GroupBuffer {
     struct GroupBuffer *next;	/* next group */
 } GroupBuffer;
 
-/* 
+/* ----------------
  * PortalBuffer --
  *	Data structure of a portal buffer.  
+ * ----------------
  */
 typedef struct PortalBuffer {
     int rule_p;			/* 1 if this is an asynchronized portal. */
@@ -86,13 +90,21 @@ typedef struct PortalBuffer {
     GroupBuffer *groups;	/* tuple groups */
 } PortalBuffer;
 
-/*
- * Define global variables used by LIBPQ.
+/* ----------------
+ * PortalEntry --
+ *	an entry in the global portal table
+ *
+ * Note: the portalcxt is only meaningful for PQcalls made from
+ *       within a postgres backend.  frontend apps should ignore it.
+ * ----------------
  */
+#define PortalNameLength 32
 
 typedef struct PortalEntry {
-    char name[NameLength];
-    PortalBuffer *portal;
+    char 	  name[PortalNameLength]; /* name of this portal */
+    PortalBuffer  *portal;	          /* tuples contained in this portal */
+    Pointer	  portalcxt;	          /* memory context (for backend) */
+    Pointer	  result;	          /* result for PQexec */
 } PortalEntry;
 
 #define MAXPORTALS 10

@@ -7,6 +7,11 @@
  * a running query (or a fixed sequence of queries).  The "blank portal" is
  * a portal with an InvalidName.  This blank portal is in existance except
  * between calls to BlankPortalAssignName and GetPortalByName(NULL).
+ *
+ * Note:
+ *	now that PQ calls can be made from within a backend, a portal
+ *	may also be used to keep track of the tuples resulting
+ *	from the execution of a query.  In this case, entryIndex 
  */
 
 #ifndef	PortalIncluded		/* Include this file only once */
@@ -47,12 +52,6 @@ struct PortalD {
 /*
  * EnablePortalManager --
  *	Enables/disables the portal management module.
- *
- * Note:
- *	...
- *
- * Exceptions:
- *	...
  */
 extern
 void
