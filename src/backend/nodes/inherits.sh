@@ -4,8 +4,8 @@
 #
 TMPDIR=${TMPDIR-/tmp}
 INHFILE=$TMPDIR/inh.$$
-TAGFILE=tags.h
-TAGTEMP=tags.temp
+TAGFILE=$OD/tags.h
+TAGTEMP=$OD/tags.temp
 OUTFILE=inh.c
 NODEFILES="nodes.h plannodes.h primnodes.h \
 relation.h execnodes.h mnodes.h lnodes.h pg_lisp.h"
