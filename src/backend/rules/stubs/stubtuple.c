@@ -129,6 +129,16 @@ LispValue qual;
     set_ecxt_outertype(econtext, NULL);
     set_ecxt_param_list_info(econtext, NULL);
 
+    /*
+     * NOTE: we must reinitialize the fcache of all Oper nodes to NULL
+     * changes the 'fcache' attribute of the operator nodes in it.
+     * So if this is a "shared" qual (for instance if it belongs to
+     * a "relation level" stub cached in the EState) then
+     * the first time we call ExecQual it will initialize the fcache
+     * then it will free the memory, and so when we try to call ExecQual
+     * for the second time it will see garbage and die a horrible death.
+     */
+    prs2ReInitQual(qual);
     qualResult = ExecQual(qual, econtext);
 
     /*
@@ -141,4 +151,21 @@ LispValue qual;
     } else {
 	return(false);
     }
+}
+
+prs2ReInitQual(list)
+LispValue list;
+{
+    LispValue t;
+
+    if (null(list))
+	return;
+
+    if (IsA(list,Oper)) {
+	set_op_fcache((Oper)list, NULL);
+	return;
+    }
+    if (consp(list))
+	foreach(t, list)
+	    prs2ReInitQual(CAR(t));
 }
