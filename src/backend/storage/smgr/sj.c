@@ -472,7 +472,7 @@ sjcacheinit()
     for (i = 0; i < nentries; i++) {
 	cur = &(SJCache[i]);
 	result = (SJHashEntry *) hash_search(SJCacheHT, &(cur->sjc_tag),
-					     ENTER, &found);
+					     HASH_ENTER, &found);
 
 	/*
 	 *  If the hash table is corrupted, or the entry is already in the
@@ -717,7 +717,7 @@ sjcreate(reln)
     item->sjc_tag.sjct_relid = (ObjectId) reln->rd_id;
     item->sjc_tag.sjct_base = (BlockNumber) 0;
 
-    entry = (SJHashEntry *) hash_search(SJCacheHT, item, ENTER, &found);
+    entry = (SJHashEntry *) hash_search(SJCacheHT, item, HASH_ENTER, &found);
 
     if (entry == (SJHashEntry *) NULL) {
 	SpinRelease(SJCacheLock);
@@ -945,7 +945,7 @@ sjfetchgrp(dbid, relid, blkno, grpno)
     tag.sjct_relid = relid;
     tag.sjct_base = blkno;
 
-    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, FIND, &found);
+    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, HASH_FIND, &found);
 
     if (entry == (SJHashEntry *) NULL) {
 	SpinRelease(SJCacheLock);
@@ -1133,7 +1133,7 @@ sjextend(reln, buffer)
 
     SpinAcquire(SJCacheLock);
 
-    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, FIND, &found);
+    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, HASH_FIND, &found);
 
     if (entry == (SJHashEntry *) NULL) {
 	SpinRelease(SJCacheLock);

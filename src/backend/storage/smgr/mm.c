@@ -175,7 +175,7 @@ mmcreate(reln)
     else
 	tag.mmrt_dbid = MyDatabaseId;
 
-    entry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &tag, ENTER, &found);
+    entry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &tag, HASH_ENTER, &found);
 
     if (entry == (MMRelHashEntry *) NULL) {
 	SpinRelease(MMCacheLock);
@@ -221,7 +221,7 @@ mmunlink(reln)
 	if (MMBlockTags[i].mmct_dbid == reldbid
 	    && MMBlockTags[i].mmct_relid == reln->rd_id) {
 	    entry = (MMHashEntry *) hash_search(MMCacheHT, &MMBlockTags[i],
-						 REMOVE, &found);
+						 HASH_REMOVE, &found);
 	    if (entry == (MMHashEntry *) NULL || !found) {
 		SpinRelease(MMCacheLock);
 		elog(FATAL, "mmunlink: cache hash table corrupted");
@@ -235,7 +235,7 @@ mmunlink(reln)
     rtag.mmrt_relid = reln->rd_id;
 
     rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &rtag,
-					    REMOVE, &found);
+					    HASH_REMOVE, &found);
 
     if (rentry == (MMRelHashEntry *) NULL || !found) {
 	SpinRelease(MMCacheLock);
@@ -292,7 +292,7 @@ mmextend(reln, buffer)
 	(*MMCurTop)++;
     }
 
-    rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &rtag, FIND, &found);
+    rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &rtag, HASH_FIND, &found);
     if (rentry == (MMRelHashEntry *) NULL || !found) {
 	SpinRelease(MMCacheLock);
 	elog(FATAL, "mmextend: rel cache hash table corrupt");
@@ -300,7 +300,7 @@ mmextend(reln, buffer)
 
     tag.mmct_blkno = rentry->mmrhe_nblocks;
 
-    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, ENTER, &found);
+    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, HASH_ENTER, &found);
     if (entry == (MMHashEntry *) NULL || found) {
 	SpinRelease(MMCacheLock);
 	elog(FATAL, "mmextend: cache hash table corrupt");
@@ -375,7 +375,7 @@ mmread(reln, blocknum, buffer)
     tag.mmct_blkno = blocknum;
 
     SpinAcquire(MMCacheLock);
-    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, FIND, &found);
+    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, HASH_FIND, &found);
 
     if (entry == (MMHashEntry *) NULL) {
 	SpinRelease(MMCacheLock);
@@ -423,7 +423,7 @@ mmwrite(reln, blocknum, buffer)
     tag.mmct_blkno = blocknum;
 
     SpinAcquire(MMCacheLock);
-    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, FIND, &found);
+    entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, HASH_FIND, &found);
 
     if (entry == (MMHashEntry *) NULL) {
 	SpinRelease(MMCacheLock);
@@ -501,7 +501,7 @@ mmnblocks(reln)
 
     SpinAcquire(MMCacheLock);
 
-    rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &rtag, FIND, &found);
+    rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, &rtag, HASH_FIND, &found);
 
     if (rentry == (MMRelHashEntry *) NULL) {
 	SpinRelease(MMCacheLock);
