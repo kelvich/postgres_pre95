@@ -1,3 +1,5 @@
+# No man pages for now
+NOMAN= true
 #
 # Pull in a Makefile.private in the obj directory
 #
@@ -104,8 +106,8 @@ clean: _PROGSUBDIR
 
 .if !target(cleandir)
 cleandir: _PROGSUBDIR
-	rm -f a.out [Ee]rrs mklog core core.${PROG} ${PROG} \
-		 ${OBJS} ${CLEANFILES} .depend ${MANALL} *.d
+	rm -f a.out [Ee]rrs mklog core core.${PROG} ${PROG} ${OBJS} ${CLEANFILES} \
+	.depend ${MANALL} *.d
 .endif
 
 # some of the rules involve .h sources, so remove them from mkdep line
@@ -214,7 +216,8 @@ _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 #
 # The following is just AWFUL.  The problem is that ${.ALLSRC} is
 # gigantic due to the cross product of the number of sources times
-# the length of ${.CURDIR}, so the whole mess is just way too big for an
+# the length of ${.CURDIR} if we are using symbolic linked obj directories
+# (that is, if we are not using a local tree), so the whole mess is just way too big for an
 # argument vector.  So we move to ${.CURDIR} and strip it off
 # the sources, then anything that is relative to the (old) current 
 # directory (doesn't have a slash in it) gets a duplicate with
@@ -229,11 +232,11 @@ _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 # marginally easier.
 #
 .if ${.CURDIR} == ".."
-        -rm -f tags; \
-        ctags -t ${.ALLSRC}; \
-        HERE=`pwd`/; \
-        sed "s, ,       $$HERE," < tags > ../tags; \
-        rm -f tags;
+	-rm -f tags; \
+	ctags -t ${.ALLSRC}; \
+	HERE=`pwd`/; \
+	sed "s,	,	$$HERE," < tags > ../tags; \
+	#rm tags
 .else
 	-cd ${.CURDIR}; \
 	    rm -f tags; \
@@ -243,7 +246,7 @@ _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 	    TOPDIR=`pwd`/; \
 	    sed "s,	,	$$TOPDIR," < tags.tmp > tags; \
 	    rm tags.tmp
-
+.endif
 .endif
 _linktags::
 .if defined(PROG)
