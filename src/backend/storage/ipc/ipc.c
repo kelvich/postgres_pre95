@@ -37,6 +37,14 @@
 
 int UsePrivateMemory = 0;
 
+#ifdef PARALLELDEBUG
+#include <usclkc.h>
+usclk_t ExclusiveLockTime;
+usclk_t SharedLockTime;
+int ExclusiveLockCount;
+int SharedLockCount;
+#endif
+
 /* ----------------------------------------------------------------
  *			exit() handling stuff
  * ----------------------------------------------------------------
@@ -797,6 +805,11 @@ SharedLock(lockid)
 SemId lockid;
 {
     SLock *slckP;
+#ifdef PARALLELDEBUG
+    usclk_t st;
+    st = getusclk();
+    SharedLockCount++;
+#endif
     slckP = &(SLockArray[lockid]);
 #ifdef LOCKDEBUG
     printf("Proc %d SharedLock(%d)\n", MyPid, lockid);
@@ -815,6 +828,9 @@ sh_try_again:
        printf("OUT: ");
        PRINT_LOCK(slckP);
 #endif
+#ifdef PARALLELDEBUG
+       SharedLockTime += (getusclk() - st);
+#endif
        return;
     case SHAREDLOCK:
        (slckP->nshlocks)++;
@@ -822,6 +838,9 @@ sh_try_again:
 #ifdef LOCKDEBUG
        printf("OUT: ");
        PRINT_LOCK(slckP);
+#endif
+#ifdef PARALLELDEBUG
+       SharedLockTime += (getusclk() - st);
 #endif
        return;
     case EXCLUSIVELOCK:
@@ -864,6 +883,11 @@ ExclusiveLock(lockid)
 SemId lockid;
 {
     SLock *slckP;
+#ifdef PARALLELDEBUG
+    usclk_t st;
+    st = getusclk();
+    ExclusiveLockCount++;
+#endif
     slckP = &(SLockArray[lockid]);
 #ifdef LOCKDEBUG
     printf("Proc %d ExclusiveLock(%d)\n", MyPid, lockid);
@@ -881,6 +905,9 @@ ex_try_again:
 #ifdef LOCKDEBUG
        printf("OUT: ");
        PRINT_LOCK(slckP);
+#endif
+#ifdef PARALLELDEBUG
+	ExclusiveLockTime += (getusclk() - st);
 #endif
 	return;
     case SHAREDLOCK:
