@@ -47,12 +47,12 @@ NOPROFILE=1
 # would need to be copied out or symlinked to.
 #
 
-HEADERFILES= port/${PORTNAME}/machine.h catalog/pg_user.h \
+HEADERFILES= port/${PORTNAME}/machine.h catalog/pg_user.h catalog/pg_lobj.h \
 	storage/execipc.h storage/ipc.h storage/ipci.h \
 	tmp/fastpath.h tmp/libpq-be.h tmp/libpq-fe.h \
 	tmp/libpq-fs.h tmp/libpq.h tmp/postgres.h tmp/pqcomm.h \
 	tmp/simplelists.h utils/dynamic_loader.h utils/exc.h \
-	utils/exception.h utils/log.h
+	utils/exception.h utils/log.h utils/geo-decls.h libpq/auth.h
 
 install-headers::
 .if ${PORTNAME} == "sparc"
@@ -68,11 +68,15 @@ install-headers::
 		then mkdir ${HEADERDIR}/tmp; fi
 	@-if [ ! -d ${HEADERDIR}/utils ]; \
 		then mkdir ${HEADERDIR}/utils; fi
+	@-if [ ! -d ${HEADERDIR}/libpq ]; \
+		then mkdir ${HEADERDIR}/libpq; fi
 .endif
 	-for i in ${HEADERFILES}; do \
 		install -c -m 444 ${.CURDIR}/../backend/$$i ${HEADERDIR}/$$i; \
 	done
 	-ln ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
+#	XXX - installing fmgr.h depends on the backend being built
+	install -c -m 444 ${.CURDIR}/../backend/obj/fmgr.h ${HEADERDIR}/fmgr.h
 	-rm -f ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME ${PORTNAME}" > ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME_${PORTNAME}" >> ${HEADERDIR}/tmp/c.h
