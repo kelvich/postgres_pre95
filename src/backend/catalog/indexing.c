@@ -48,7 +48,7 @@ char *Name_pg_attr_indices[Num_pg_attr_indices] = {AttributeNameIndexData.data,
 						   AttributeNumIndexData.data};
 char *Name_pg_proc_indices[Num_pg_proc_indices] = {ProcedureNameIndexData.data,
 						   ProcedureOidIndexData.data};
-char *Name_pg_type_indices[Num_pg_proc_indices] = {TypeNameIndexData.data,
+char *Name_pg_type_indices[Num_pg_type_indices] = {TypeNameIndexData.data,
 						   TypeOidIndexData.data};
 
 /*
