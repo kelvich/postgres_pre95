@@ -459,6 +459,7 @@ ProcessUtility(command, args)
 			elog(WARN, "unknown REMOVE parse type %d",
 				CInteger(CAR(args)));
 		}
+		break;
 			
 		/* default */
 	default:
