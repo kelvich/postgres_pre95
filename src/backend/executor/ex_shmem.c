@@ -3,35 +3,34 @@
  *	ex_shmem.c
  *	
  *   DESCRIPTION
- *	parallel executor shared memory management code
+ *	code for a specialized memory allocator to manage the shared memory
+ *	for the parallel executor
  *
  *   INTERFACE ROUTINES
- *	ExecSMInit	- initializes the shared mem meta-data
- *	ExecSMAlloc	- allocates portions of shared memory
- *	ExecSMHighAlloc	- allocates clean-permsistant shared memory
- *	ExecSMClean	- "frees" entire shared memory segment
+ *	ExecSMInit - initializes the shared mem meta-data
+ *	ExecGetSMSegment - allocates a segment of shared memory
+ *	ExecSMSegmentFree - frees a segment of shared memory
+ *	ExecSMSegmentFreeUnused	- frees unused memory in a segment
  *
  *   NOTES
- *	These routines provide a simple interface to the
- *	executor's shared memory segment.  During InitPostgres()
- *	the shared memory segment is allocated.  Later, during
- *	SlaveBackendInit(), the shared memory segment's header
- *	is initialized via ExecSMInit().  From then on the system
- *	can make use of the ExecSMAlloc(), ExecSMHighAlloc() and
- *	ExecSMClean() routines.
+ *	the key consideration is to avoid allocation overhead.  two
+ *	important reasons lead to this special memory allocator:
+ *	1. only the master backend allocates the shared memory;
+ *	2. the shared memory is used for passing querydescs and reldescs,
+ *	   which consists of small nodes.
+ *	basically, the pattern of memory allocation we are dealing with is
+ *	that the master issues a bunch of small requests then frees them
+ *	at the same time.  so here the idea is to pack these
+ *	small chunks of allocated memory into one segment.
  *
- *	ExecSMAlloc() and ExecSMClean() provide a means of
- *	allocating and recycling shared memory.  When the executor
- *	needs some amount of shared memory, it calls ExecSMAlloc()
- *	and later everything so allocated is disgarded via ExecSMClean().
+ *	memory is managed as a a linked list of variable-size segments,
+ *	efforts has been made to merge consecutive segments into
+ *	larger segments, initially the entire executor shared memory is
+ *	one segment.
  *
- *	ExecSMHighAlloc() is used to obtain shared memory that is
- *	not affected by ExecSMClean().  This is used only for very
- *	special data structures which do not grow and persist for
- *	the lifetime of the entire process group.
- *
- *	The parallel optimizer uses these routines to place plans in
- *	memory shared by the master and slave parallel backends.
+ *	the functions here only deal with segments, allocations inside
+ *	a segment is handled by specialied functions ProcGroupSMBeginAlloc(),
+ *	ProcGroupSMEndAlloc() and ProcGroupSMAlloc() in tcop/slaves.c.
  *
  *   IDENTIFICATION
  *	$Header$
@@ -42,310 +41,152 @@
 
  RcsId("$Header$");
 
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
 #include "tmp/align.h"
 #include "utils/log.h"
+#include "executor/x_shmem.h"
 
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
+static MemoryHeader FreeSMQueue;  /* queue of free SM */
+extern char *ExecutorSharedMemory;
+extern int ExecutorSharedMemorySize;
 
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-/* ----------------------------------------------------------------
- *	executor shared memory segment header definition
+/* -------------------------------
+ *	ExecSMReserve
  *
- *	After the executor's shared memory segment is allocated
- *	the initial bytes are initialized to contain 2 pointers.
- *	the first pointer points to the "low" end of the available
- *	area and the second points to the "high" end.
- *
- *	When part of the shared memory is reserved by a call to
- *	ExecSMAlloc(), the "low" pointer is advanced to point
- *	beyond the newly allocated area to the available free
- *	area.  If an allocation would cause "low" to exceed "high",
- *	then the allocation fails and an error occurrs.
- *
- *	Note:  Since no heap management is done, there is no
- *	provision for freeing shared memory allocated via ExecSMAlloc()
- *	other than wipeing out the entire space with ExecSMClean().
- * ----------------------------------------------------------------
+ *	reserve a certain number of bytes in the executor shared memory
+ *	for the global shared variables
+ * -------------------------------
  */
+char *
+ExecSMReserve(size)
+int size;
+{
+    char *p;
 
-typedef struct ExecSMHeaderData {
-    Pointer	low;		/* pointer to low water mark */
-    Pointer	high;		/* pointer to high water mark */
-} ExecSMHeaderData;
-
-typedef ExecSMHeaderData *ExecSMHeader;
-
-Pointer ExecutorSharedMemoryStart;
+    p = ExecutorSharedMemory;
+    ExecutorSharedMemory = (char*)LONGALIGN(ExecutorSharedMemory + size);
+    ExecutorSharedMemorySize -= (ExecutorSharedMemory - p);
+    return p;
+}
 
 /* --------------------------------
  *	ExecSMInit
  *
- *	This function locates the shared memory segment and
- *	initializes the low and high water marks.  This function
- *      should only be called once.
+ *	This function initializes executor shared memory.
+ *	Initially, the whole thing is a segment.
  * --------------------------------
  */
 void
 ExecSMInit()
 {
-    Pointer 	 start;	
-    Pointer 	 low;	
-    Pointer 	 high;	
-    ExecSMHeader header;
-
-    /* ----------------
-     *	get the pointer to the start of the segment
-     * ----------------
+    FreeSMQueue = (MemoryHeader)ExecutorSharedMemory;
+    /* -------------------
+     * assume sizeof(MemoryHeaderData) is multiple of sizeof(long),
+     * too lazy to put LONGALIGN() all over the places,
+     * not good for portability, eventually will put LONGALIGN() in.
+     * -------------------
      */
-    start = (Pointer) ExecGetExecutorSharedMemory();
-    if (start == NULL)
-	return;
-
-    /* ----------------
-     *	initialize the shared memory semaphore
-     * ----------------
-     */
-    I_SharedMemoryMutex();
-    
-    /* ----------------
-     *	store the pointer in our global variable
-     * ----------------
-     */
-    ExecutorSharedMemoryStart = start;
-
-    /* ----------------
-     *	calculate low and high water marks
-     * ----------------
-     */
-    low =  (Pointer) ((char *)start + sizeof(ExecSMHeaderData));
-    low =  (Pointer) LONGALIGN(low);
-    high = (Pointer) ((char *)start + ExecGetExecutorSharedMemorySize());
-
-    /* ----------------
-     *	initialize the shared memory header.
-     * ----------------
-     */
-    header = (ExecSMHeader) start;
-    header->low =  (Pointer) low;
-    header->high = (Pointer) high;
-
+    FreeSMQueue->beginaddr = ExecutorSharedMemory + sizeof(MemoryHeaderData);
+    FreeSMQueue->size = ExecutorSharedMemorySize - sizeof(MemoryHeaderData);
+    FreeSMQueue->next = NULL;
 }
 
-/* --------------------------------
- *	ExecSMClean
+/* -------------------------------
+ *	ExecGetSMSegment
  *
- *	This function resets the low water mark to its
- *	original value.
- * --------------------------------
+ *	get a free memory segment from the free memory queue
+ * -------------------------------
+ */
+MemoryHeader
+ExecGetSMSegment()
+{
+    MemoryHeader p;
+
+    if (FreeSMQueue == NULL)
+	elog(WARN, "out of shared memory segments for parallel executor.");
+    p = FreeSMQueue;
+    FreeSMQueue = FreeSMQueue->next;
+
+    return p;
+}
+
+/* ---------------------------------
+ *	mergeSMSegment
+ *
+ *	try to merge two segments, returns true if successful, false otherwise
+ * ---------------------------------
+ */
+static bool
+mergeSMSegment(lowSeg, highSeg)
+MemoryHeader lowSeg, highSeg;
+{
+    if (lowSeg == NULL || highSeg == NULL)
+	return false;
+    if ((char*)LONGALIGN(lowSeg->beginaddr + lowSeg->size) == (char*)highSeg)
+	return false;
+    return false;
+}
+
+/* ----------------------------
+ *	ExecSMSegmentFree
+ *
+ *	frees a memory segment
+ *	insert the segment into the free queue in ascending order of
+ *	the begining address
+ *	merge with neighbors if possible
+ * -----------------------------
  */
 void
-ExecSMClean()
+ExecSMSegmentFree(mp)
+MemoryHeader mp;
 {
-    ExecSMHeader header;
-    Pointer 	 start;	
-    Pointer 	 low;	
-    Pointer 	 high;	
-
-    /* ----------------
-     *	locate the shared memory header
-     * ----------------
-     */
-    start =  ExecutorSharedMemoryStart;
-    if (start == NULL)
-	return;
-    
-    /* ----------------
-     *	obtain exclusive access to the executor shared memory
-     *  allocation structures
-     * ----------------
-     */
-    P_SharedMemoryMutex();
-    
-    header = (ExecSMHeader) start;
-    
-    /* ----------------
-     *	calculate low water mark -- the high water allocations
-     *  are not affected by ExecSMClean().
-     * ----------------
-     */
-    low =  (Pointer) ((char *)start + sizeof(ExecSMHeaderData));
-    low =  (Pointer) LONGALIGN(low);
-
-    /* ----------------
-     *	initialize the shared memory header.
-     * ----------------
-     */
-    header = (ExecSMHeader) start;
-    header->low =  (Pointer) low;
-    
-    /* ----------------
-     *	release our hold on the shared memory meta-data
-     * ----------------
-     */
-    V_SharedMemoryMutex();
-}
-
-/* --------------------------------
- *	ExecSMAlloc
- *
- *	This function allocates a portion of the shared segment
- *	by returning a pointer to the present low water mark and
- *	updating the low pointer to the first long-aligned byte
- *	beyond the newly allocated object.
- * --------------------------------
- */
-Pointer
-ExecSMAlloc(size)
-    int size;
-{
-    ExecSMHeader header;
-    Pointer 	 low;	
-    Pointer 	 high;	
-    Pointer 	 newlow;	
-    
-    /* ----------------
-     *	locate the shared memory header
-     * ----------------
-     */
-    header = (ExecSMHeader) ExecutorSharedMemoryStart;
-    if (header == NULL) {
-	elog(FATAL, "ExecSMAlloc: ExecutorSharedMemoryStart is NULL!");
-	return NULL;
+    MemoryHeader prev, cur;
+    prev = NULL;
+    for (cur=FreeSMQueue; cur!=NULL; cur=cur->next) {
+	if (cur->beginaddr > mp->beginaddr)
+	    break;
+	prev = cur;
       }
-
-    /* ----------------
-     *	obtain exclusive access to the executor shared memory
-     *  allocation structures
-     * ----------------
-     */
-    P_SharedMemoryMutex();
-    
-    low =  header->low;
-    high = header->high;
-
-    /* ----------------
-     *	calculate the new low water mark
-     * ----------------
-     */
-    newlow =  (Pointer) ((char *)low + size);
-    newlow =  (Pointer) LONGALIGN(newlow);
-
-    /* ----------------
-     *	if not enough memory remains, release the semaphore
-     *  and return null.
-     * ----------------
-     */
-    if (newlow > high) {
-	elog(WARN, "ExecSMAlloc: parallel executor out of shared memory.");
-	V_SharedMemoryMutex();
-	return NULL;
-    }
-    
-    /* ----------------
-     *	update the low water mark
-     * ----------------
-     */
-    header->low = newlow;
-    
-    /* ----------------
-     *	release our hold on the shared memory meta-data
-     *  and return the allocated area
-     * ----------------
-     */
-    V_SharedMemoryMutex();
-
-    return low;
+    if (prev == NULL) {
+	FreeSMQueue = mp;
+	if (mergeSMSegment(mp, cur))
+	    mp->next = cur->next;
+	else
+	    mp->next = cur;
+      }
+    else {
+	if (mergeSMSegment(prev, mp)) {
+	    if (mergeSMSegment(prev, cur))
+		prev->next = cur->next;
+	  }
+	else {
+	    prev->next = mp;
+	    if (mergeSMSegment(mp, cur))
+		mp->next = cur->next;
+	    else
+		mp->next = cur;
+	  }
+      }
 }
 
-/* --------------------------------
- *	ExecSMHighAlloc
+#define MINFREESIZE	10*sizeof(MemoryHeaderData)
+
+/* ---------------------------
+ *	ExecSMSegmentFreeUnused
  *
- *	This function allocates a portion of the shared segment
- *	from the "top" end rather than the bottom.  Since the high
- *	water mark is never raised, these allocations are in some
- *	sence permanent.
- * --------------------------------
+ *	frees unused memory in a segment
+ * ---------------------------
  */
-Pointer
-ExecSMHighAlloc(size)
-    int size;
+void
+ExecSMSegmentFreeUnused(mp, usedsize)
+MemoryHeader mp;
+int usedsize;
 {
-    ExecSMHeader header;
-    Pointer 	 low;	
-    Pointer 	 high;	
-    Pointer 	 newhigh;	
-    
-    /* ----------------
-     *	locate the shared memory header
-     * ----------------
-     */
-    header = (ExecSMHeader) ExecutorSharedMemoryStart;
-    if (header == NULL)
-	return NULL;
+    MemoryHeader newmp;
 
-    /* ----------------
-     *	obtain exclusive access to the executor shared memory
-     *  allocation structures
-     * ----------------
-     */
-    P_SharedMemoryMutex();
-    
-    low =  header->low;
-    high = header->high;
-
-    /* ----------------
-     *	calculate the new high water mark.  Note: we use REVERSELONGALIGN
-     *  because we are allocating size bytes in the "top-down" direction.
-     *  This means we want to align the pointer to the first long word
-     *  boundry below the calculated (high - size) position.
-     * ----------------
-     */
-    newhigh =  (Pointer) ((char *)high - size);
-    newhigh =  (Pointer) REVERSELONGALIGN(newhigh);
-
-    /* ----------------
-     *	if not enough memory remains, release the semaphore
-     *  and return null.
-     * ----------------
-     */
-    if (newhigh < low) {
-	V_SharedMemoryMutex();
-	return NULL;
-    }
-    
-    /* ----------------
-     *	update the high water mark
-     * ----------------
-     */
-    header->high = newhigh;
-    
-    /* ----------------
-     *	release our hold on the shared memory meta-data
-     *  and return the allocated area
-     * ----------------
-     */
-    V_SharedMemoryMutex();
-    
-    return newhigh;
+    if (mp->size - usedsize < MINFREESIZE)
+	return;
+    newmp = (MemoryHeader)LONGALIGN(mp->beginaddr + usedsize);
+    newmp->beginaddr = (char*)newmp + sizeof(MemoryHeaderData);
+    newmp->size = mp->beginaddr + mp->size - newmp->beginaddr;
+    ExecSMSegmentFree(newmp);
 }
