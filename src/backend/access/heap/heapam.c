@@ -416,8 +416,6 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	if (BufferPut(*b, L_UN | L_SH) < 0) {
 	    elog(WARN, "heapgettup: failed BufferPut");
 	}	
-	if (BufferIsValid(*b))
-	    ReleaseBuffer(*b);
 
 	if (dir < 0)
 	    page -= pageskip;
@@ -435,7 +433,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	    return (NULL);
 	}
 
-	*b = RelationGetBuffer(relation, page, L_SH);
+	*b = ReleaseAndReadBuffer(*b, relation, page);
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
