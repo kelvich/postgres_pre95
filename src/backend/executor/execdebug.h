@@ -28,7 +28,14 @@
  *	on the decs  - cim 10/20/89
  * ----------------
  */
-#undef EXEC_TUPLECOUNT
+#define EXEC_TUPLECOUNT 1
+
+/* ----------------
+ *	EXEC_SHOWBUFSTATS controls whether or not buffer statistics
+ *	are shown for each query.  -cim 2/9/89
+ * ----------------
+ */
+#define EXEC_SHOWBUFSTATS 1
 
 /* ----------------
  *	EXEC_ASSIGNDEBUGHOOKS controls whether or not _debug_hook_id_
@@ -36,7 +43,7 @@
  *	nodes.  
  * ----------------
  */
-#undef EXEC_ASSIGNDEBUGHOOKS
+#define EXEC_ASSIGNDEBUGHOOKS 1
 
 /* ----------------
  *	EXEC_CONTEXTDEBUG turns on the printing of debugging information
@@ -87,7 +94,7 @@
  *	nest loop node by NL_printf() and ENL_printf() in nestloop.c
  * ----------------
  */
-#undef EXEC_NESTLOOPDEBUG
+#define EXEC_NESTLOOPDEBUG 1
 
 /* ----------------
  *	EXEC_PROCDEBUG is a flag which turns on debugging of
@@ -122,7 +129,7 @@
  *	the ExecMergeJoin() stuff by MJ_printf() in mergejoin.c
  * ----------------
  */
-#undef EXEC_MERGEJOINDEBUG
+#define EXEC_MERGEJOINDEBUG 1
 
 /* ----------------
  *	EXEC_MERGEJOINPFREE is a flag which causes merge joins
@@ -140,7 +147,7 @@
  *	backend. 
  * ----------------
  */
-#undef EXEC_DEBUGINTERACTIVE
+#define EXEC_DEBUGINTERACTIVE 1
 
 /* ----------------
  *	EXEC_DEBUGVARIABLEFILE is string, which if defined will
@@ -156,7 +163,7 @@
  *	replaced by something better sometime. -cim 11/2/89
  * ----------------
  */
-#undef EXEC_DEBUGVARIABLEFILE
+#define EXEC_DEBUGVARIABLEFILE "/a/postgres/cimarron/.pg_debugvars"
 
 /* ----------------------------------------------------------------
  *	#defines controlled by above definitions
