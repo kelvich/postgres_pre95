@@ -267,12 +267,14 @@ extern LispValue nreverse();
 
 extern int length();
 extern LispValue LispRemove();
+extern LispValue nLispRemove();
 extern LispValue remove_duplicates();
 extern LispValue setf();
 extern bool equal();
 
 extern LispValue  LispUnion();
 extern LispValue set_difference();
+extern LispValue nset_difference();
 extern LispValue append();
 extern LispValue LispDelete();
 extern LispValue push();
