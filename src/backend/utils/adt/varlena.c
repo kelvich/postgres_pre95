@@ -254,7 +254,7 @@ text_lt(arg1, arg2)
 		len = arg2->vl_len;
 	len -= sizeof(int32);
 
-	while (*a1p == *a2p && len != 0)
+	while (len != 0 && *a1p == *a2p)
 	{
 		a1p++;
 		a2p++;
@@ -283,7 +283,7 @@ text_le(arg1, arg2)
 		len = arg2->vl_len;
 	len -= sizeof(int32);					/* varlena! */
 
-	while (*a1p == *a2p && len != 0)
+	while (len != 0 && *a1p == *a2p)
 	{
 		a1p++;
 		a2p++;
