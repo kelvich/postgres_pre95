@@ -393,6 +393,7 @@ DefineType(name, parameters)
     Name	receiveName;
     char*	defaultValue;		/* Datum */
     bool	byValue;		/* Boolean */
+	char	delimiter;
     
     /* ----------------
      *	sanity checks
@@ -411,7 +412,7 @@ DefineType(name, parameters)
     entry = DefineListRemoveRequiredAssignment(&parameters,
 					       "internallength");
     internalLength = DefineEntryGetLength(entry);
-    
+
     /* ----------------
      * handle "[ externallength = (number | variable) ]"
      * ----------------
@@ -447,6 +448,19 @@ DefineType(name, parameters)
 	sendName = DefineEntryGetName(entry);
     }
     
+
+	/*
+	 * ----------------
+	 * handle "[ delimiter = delim]"
+	 * ----------------
+	 */
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "send");
+    delimiter = ',';
+    if (!null(entry)) {
+	delimiter = CAtom(CADR(entry));
+    }
+
     /* ----------------
      * handle "[ receive = procedure ]"
      * ----------------
@@ -501,6 +515,7 @@ DefineType(name, parameters)
 		      internalLength,	/* internal size */
 		      externalLength,	/* external size */
 		      'b',		/* type-type (base type) */
+			  delimiter,	/* array element delimiter */
 		      inputName,	/* input procedure */
 		      outputName,	/* output procedure */
 		      sendName,		/* send procedure */
