@@ -15,9 +15,10 @@
  *     		match-hashop-hashinfo
  */
 
-#include "pg_lisp.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
 #include "planner/hashutils.h"
 #include "planner/clauses.h"

@@ -9,13 +9,15 @@
  *      $Header$
  *     
  */
-#include "c.h"
-#include "postgres.h"
-#include "log.h"
-#include "pg_lisp.h"
-#include "nodes.h"
-#include "params.h"
-#include "palloc.h"
+
+#include "tmp/postgres.h"
+
+#include "rules/params.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
 
 /*-------------------------------------------------
  *

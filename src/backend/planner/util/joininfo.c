@@ -14,8 +14,8 @@
  */
 
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 #include "planner/clauses.h"
 
 /* ----------------

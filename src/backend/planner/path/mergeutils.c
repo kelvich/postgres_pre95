@@ -16,10 +16,11 @@
  *     		match-order-mergeinfo
  */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/mergeutils.h"
 #include "planner/clauses.h"
 

@@ -16,13 +16,12 @@
  *     		prune-rel-path
  */
 
-#include "pg_lisp.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/pathnode.h"
 #include "planner/prune.h"
-
-
 
 /*    
  *    	prune-joinrels

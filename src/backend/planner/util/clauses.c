@@ -32,13 +32,14 @@
 
 
 
-#include "c.h"
+#include "tmp/c.h"
+
+#include "parser/parse.h"
+#include "utils/log.h"
+
+#include "nodes/pg_lisp.h"
+
 #include "planner/clauses.h"
-#include "pg_lisp.h"
-#include "parse.h"
-#include "log.h"
-
-
 
 /*    
  *    	clause_head
