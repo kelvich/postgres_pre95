@@ -6,6 +6,10 @@
  *	Dump the returned tuples into a frontend buffer
  *
  *   INTERFACE ROUTINES
+ *	dump_type 	- Dump the attributes
+ *	dump_tuple 	- Dump a tuple
+ *	finish_dump 	- End of a command (data stream)
+ *	dump_data 	- Read and process the data stream from backend
  *
  *   NOTES
  *
@@ -16,7 +20,7 @@
 
 #include "tmp/c.h"
 
-#include "tmp/libpq.h"
+#include "tmp/libpq-fe.h"
 #include "utils/exc.h"
 
 RcsId("$Header$");
@@ -82,7 +86,7 @@ dump_tuple(values, nfields)
 	    /* Get the value length (the first four bytes are for length). */
 	    vlen = pq_getint(4) - 4;
 	    /* Allocate storage for the value. */
-	    values[i] = addValues(vlen + 1);
+	    values[i] = pbuf_addValues(vlen + 1);
 	    /* Read in the value. */
 	    pq_getnchar(values[i], 0, vlen);
 	    /* Put an end of string there to make life easier. */
@@ -129,20 +133,21 @@ dump_data(portal_name, rule_p)
 {
     char 	 id[2];
     char 	 pname[portal_name_length];
-    PortalBuffer *portal;
+    PortalEntry  *entry = NULL;
+    PortalBuffer *portal = NULL;
     GroupBuffer  *group = NULL;
-    TypeBlock 	 *types;
-    TupleBlock 	 *tuples;
+    TypeBlock 	 *types = NULL;
+    TupleBlock 	 *tuples = NULL;
 
     int ntuples = 0;	/* the number of tuples in current group */
     int nfields = 0;	/* the number of fields in current group */
-    int tuple_index = 0; /* index of next avail entry in current tuple block */
 
     strcpy(pname, portal_name);
 
     /* If portal buffer is not allocated, do it now. */
     /* if ((portal = PQparray(pname)) == NULL) */
-	portal = portal_setup(pname);
+    entry = pbuf_setup(pname);
+    portal = entry->portal;
     
     /* If an asynchronized portal, set the flag. */
     if (rule_p)
@@ -167,12 +172,12 @@ dump_data(portal_name, rule_p)
 	    
 	    /* Increment the number of tuple groups. */
 	    portal->no_groups++;
-	    group = addGroup(portal);
+	    group = pbuf_addGroup(portal);
 	    
 	    /* Read in the number of fields (attributes) for this group. */
 	    nfields = group->no_fields = pq_getint(2);
 	    if (nfields > 0) {
-	        types = group->types = addTypes(nfields);
+	        types = group->types = pbuf_addTypes(nfields);
 	        dump_type(types, nfields);
 	    }
 	    break;
@@ -181,23 +186,23 @@ dump_data(portal_name, rule_p)
 	    /* A tuple. */
 	    
 	    /* If no tuple block yet, allocate one. */
-	    if (group->tuples == NULL) {
-		tuples = group->tuples = addTuples();
-		tuple_index = 0;
-	    } 
 	    /* If the current block is full, allocate another one. */
-	    else if (tuple_index == TupleBlockSize) {
-		tuples->next = addTuples();
+	    if (group->tuples == NULL) {
+		tuples = group->tuples = pbuf_addTuples();
+		tuples->tuple_index = 0;
+	    } else if (tuples->tuple_index == TupleBlockSize) {
+		tuples->next = pbuf_addTuples();
 		tuples = tuples->next;
-		tuple_index = 0;
+		tuples->tuple_index = 0;
 	    }
 		
 	    /* Allocate space for a tuple. */
-	    tuples->values[tuple_index] = addTuple(nfields);
+	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
+	    
 	    /* Dump a tuple. */
-	    dump_tuple(tuples->values[tuple_index], nfields);
+	    dump_tuple(tuples->values[tuples->tuple_index], nfields);
 	    ntuples++;
-	    tuple_index++;
+	    tuples->tuple_index++;
 	    break;
 
 	case 'A':
@@ -211,12 +216,14 @@ dump_data(portal_name, rule_p)
 	    pq_getint(4);
 	    pq_getstr(pname, portal_name_length);
 	    pqdebug("Asynchronized portal: %s", pname);
-	    portal = portal_setup(pname);
+	    
+	    entry = pbuf_setup(pname);
+	    portal = entry->portal;
 	    portal->rule_p = 1;
 	    group = NULL;
 	    ntuples = 0;
 	    nfields = 0;
-	    tuple_index = 0;
+	    tuples = NULL;
 	    break;
 
 	case 'C':
@@ -226,6 +233,7 @@ dump_data(portal_name, rule_p)
 	    portal->no_tuples += ntuples;
 	    finish_dump();
 	    return(1);
+	    
 	  case 'E':
 	    {
 	    /* weirdness, apparently this shouldn't have happened. */
@@ -246,10 +254,6 @@ dump_data(portal_name, rule_p)
 		libpq_raise(ProtocolError, form(s));
 	    }
 	}
-	
-	if (pq_getnchar(id, 0, 1) == -1) 
-	    libpq_raise(ProtocolError,
-			form("Communication terminated by backend."));
 	
 	pqdebug("The identifier is: %c", id[0]);
     }

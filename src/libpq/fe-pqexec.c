@@ -7,13 +7,10 @@
  *	from a frontend application.
  *
  *   SUPPORT ROUTINES
- *	pqdebug, pqdebug2, read_initstr, read_remark
- *	EstablishComm, process_portal, StringPointerSet
- *	InitVacuumDemon
+ *	read_initstr, read_remark, EstablishComm, process_portal,
+ *	StringPointerSet, InitVacuumDemon
  *
  *   INTERFACE ROUTINES
- *	PQtrace		- turn on pqdebug tracing
- *	PQuntrace	- turn off pqdebug tracing
  *	PQdb 		- Return the current database being accessed. 
  *	PQsetdb 	- Make the specified database the current database. 
  *	PQreset 	- Reset the communication port with the backend. 
@@ -34,7 +31,7 @@
 
 #include "tmp/c.h"
 
-#include "tmp/libpq.h"
+#include "tmp/libpq-fe.h"
 #include "utils/exception.h"
 
 RcsId ("$Header$");
@@ -74,9 +71,6 @@ int	PQxactid = 0;		/* the transaction id of the current
 				   transaction */
 char	*PQinitstr = NULL;	/* the initialization string passed 
 				   to backend */
-int	PQtracep = 0;		/* 1 to print out debugging message */
-
-FILE    *debug_port;
 
 extern char *getenv();
 
@@ -84,25 +78,6 @@ extern char *getenv();
  *			PQ utility routines
  * ----------------------------------------------------------------
  */
-void
-pqdebug (target, msg)
-char *target, *msg;
-{
-    if (PQtracep) {
-	fprintf(debug_port, target, msg);
-	fprintf(debug_port, "\n");
-    }
-}
-
-void
-pqdebug2(target, msg1, msg2)
-char *target, *msg1, *msg2;
-{
-    if (PQtracep) {
-	printf(target, msg1, msg2);
-	printf("\n");
-    }
-}
 
 /* ----------------
  *	read_initstr
@@ -141,7 +116,7 @@ read_initstr()
 	else PQport = getenv("PGPORT");
     }
     
-    PQinitstr = addValues(initstr_length);
+    PQinitstr = pbuf_addValues(initstr_length);
     
     sprintf(PQinitstr, "%s,%s,%s,%s\n",
 	    getenv("USER"), PQdatabase, PQtty, PQoption);
@@ -233,7 +208,7 @@ process_portal(rule_p)
 	/* Process the portal commands. */
 	if (strcmp(command, "retrieve") == 0) {
 	    /* Allocate a portal buffer, if portal table is full, error. */
-	    portal_setup(pname);
+	    pbuf_setup(pname);
 	    return
 		"Cretrieve";
 	} 
@@ -318,7 +293,7 @@ InitVacuumDemon(host, database, terminal, option, port, vacuum)
     StringPointerSet(&PQport, port, "PGPORT", DefaultPort);
     StringPointerSet(&path, vacuum, "PGVACUUM", DefaultVacuum);
     
-    PQinitstr = addValues (initstr_length);
+    PQinitstr = pbuf_addValues(initstr_length);
     sprintf(PQinitstr, "%s,%s,%s,%s,%s\n", getenv ("USER"),
 	    PQdatabase, PQtty, PQoption, path);
     
@@ -336,21 +311,6 @@ InitVacuumDemon(host, database, terminal, option, port, vacuum)
  *			PQ interface routines
  * ----------------------------------------------------------------
  */
-/* --------------------------------
- *	PQtrace() / PQuntrace()
- * --------------------------------
- */
-void
-PQtrace()
-{
-    PQtracep = 1;
-}
-
-void
-PQuntrace()
-{
-    PQtracep = 0;
-}
 
 /* --------------------------------
  *	PQdb - Return the current database being accessed. 
@@ -384,7 +344,7 @@ PQreset()
     pq_close();
     PQportset = 0;
     if (PQinitstr != NULL)
-        pq_free(PQinitstr);
+        pbuf_free(PQinitstr);
     
     PQinitstr = NULL;
 }
@@ -502,33 +462,6 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 
     case '0':		/* PQFN: no return value	*/
 	return("V");
-
-    case 'E': 		/* An error, return 0.  	*/
-	pq_getstr(errormsg, error_msg_length);
-	pqdebug("%s error encountered.", errormsg);
-	/* XXX fall through??? Fix this -cim 2/9/91  */
-	
-    case 'A': 		/* Asynchronized portal. 	*/
-	pq_getint(4);	/* throw away xactid		*/
-	pqdebug("%s portal encountered.", "Asynchronized");
-	return
-	    process_portal(1);
-
-    case 'P': 		/* Synchronized (normal) portal. */
-	pq_getint(4);	/* throw away xactid		*/
-	return
-	    process_portal(0);
-
-    case 'C': 		/* Query executed successfully.  */
-	pq_getint(4);	/* throw away xactid		*/
-	pq_getstr(command, command_length);
-	pqdebug("Query command: %s", command);
-	sprintf(PQcommand, "C%s", command);
-	return
-	    PQcommand;
-
-    case 'I':   /* End of queries query */
-	return("I");
 
     default:
 	/* The backend violates the protocol. */
