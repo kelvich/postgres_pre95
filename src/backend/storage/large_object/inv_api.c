@@ -434,7 +434,7 @@ inv_read(obj_desc, buf, nbytes)
 	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset + 1;
 	if (ncopy > (nbytes - nread))
 	    ncopy = (nbytes - nread);
-	bcopy(&(fsblock->vl_dat[0]), buf, ncopy);
+	bcopy(&(fsblock->vl_dat[off]), buf, ncopy);
 
 	/* be a good citizen */
 	ReleaseBuffer(b);
@@ -589,7 +589,9 @@ inv_fetchtup(obj_desc, bufP)
     lastbyte = (int32) DatumGetInt32(d);
     d = (Datum)heap_getattr(htup, *bufP, 2, obj_desc->ofs.i_fs.hdesc, &isNull);
     fsblock = (struct varlena *) DatumGetPointer(d);
-    firstbyte = lastbyte - fsblock->vl_len - sizeof(fsblock->vl_len);
+
+    /* order of + and - is important -- these are unsigned quantites near 0 */
+    firstbyte = (lastbyte + 1 + sizeof(fsblock->vl_len)) - fsblock->vl_len;
 
     obj_desc->ofs.i_fs.lowbyte = firstbyte;
     obj_desc->ofs.i_fs.hibyte = lastbyte;
@@ -838,7 +840,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     hoff = sizeof(HeapTupleData) - sizeof(ntup->t_bits);
 
     /* add in olastbyte, varlena.vl_len, varlena.vl_dat */
-    tupsize = hoff + (3 * sizeof(int32)) + nwrite;
+    tupsize = hoff + (2 * sizeof(int32)) + nwrite;
     tupsize = LONGALIGN(tupsize);
 
     /*
