@@ -74,6 +74,7 @@
 #include <strings.h>
 #include <string.h>
 #include "catalog/syscache.h"
+#include "catalog/pg_proc.h"
 #include "catalog/pg_naming.h"
 #include "utils/rel.h"
 #include "utils/log.h"
@@ -301,7 +302,37 @@ int LOunlinkOID(fname)
 int LOisemptydir(path)
      char *path;
 {
-    return 1; /* allow unlinking of non-empty directories for now */
+    Relation namreln;
+    HeapScanDesc namscan;
+    HeapTuple htup;
+    ScanKeyEntryData skey;
+    oid pathOID;
+    int result;
+
+    if (path[0] == '/' && path[1] == '\0')
+	return (0);
+
+    if ((pathOID = FilenameToOID(path)) == InvalidObjectId)
+	return (0);
+
+    namreln = heap_openr(Name_pg_naming);
+    RelationSetLockForRead(namreln);
+
+    ScanKeyEntryInitialize(&skey, 0x0, Anum_pg_naming_parent_oid,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(pathOID));
+    namscan = heap_beginscan(namreln, false, NowTimeQual, 1, &skey);
+
+    if (HeapTupleIsValid(htup = heap_getnext(namscan, false, (Buffer *) NULL)))
+	result = 1;
+    else
+	result = 0;
+
+    /* clean up */
+    heap_endscan(namscan);
+    heap_close(namreln);
+
+    return (result);
 }
 
 /*XXX: This primitive is skew, since there are two possibilities: !exist, !dir
