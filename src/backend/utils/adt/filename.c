@@ -22,6 +22,11 @@ char *file;
     char *str, *getenv();
     int ind;
 
+/*
+ * XXX - HACK CITY --- REDO
+ *   should let the shell do expansions (shexpand)
+ */
+
     str = (char *) palloc(MAXPATHLEN * sizeof(*str));
     str[0] = '\0';
     if (file[0] == '~') {
