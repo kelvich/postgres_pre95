@@ -1,0 +1,77 @@
+$Header$
+
+There are two sections to this file:
+	- Rodrigo Fontecilla's original README file
+	- Comments added by people in the POSTGRES group.
+
+----------------------------------------------------------------------------
+Rodrigo Fontecilla's original README file
+----------------------------------------------------------------------------
+
+Dear Postgres Users:
+
+Here you have a couple of small utilities to browse your databases. 
+
+They are posthelp and xposthelp.
+
+posthelp is a standard UNIX command with some options that allow 
+you to get information on your databases and tables. Here is a sample
+of what you get: 
+
+	TABLE   = airports
+	KIND    = relation
+	INDEXED = no
+	OID     = 781728
+	RECORDS = 6867
+
+		Attribute		Type
+
+		ainit    		text    
+		factype  		text    
+		aname    		text    
+		ncity    		text    
+		state    		text    
+		elev     		int4    
+		loc      		point    
+
+
+If the table is an index you will get:
+
+	TABLE   = amtk_ind
+	KIND    = index
+	INDEXED = no
+	OID     = 4999491
+	RECORDS = 665
+	INDEX ON= amtk 
+	KEYS    = bbox  
+
+This is quite useful if you want to prepare a report on the 
+status of your database.
+
+xposthelp is an interactive X-window browser. You need XView to 
+compile it (yes, I know Motif is what most of you like but, I'm 
+stuck with XView for the time being). 
+
+Edit the Makefile so that you have the right include subdirectory. 
+Then just type 
+
+	make 
+
+Let me know what you think, if you find bugs, or if you would like 
+more features added. 
+
+My e-mail is:
+
+	rodrigo@cmsun.cmf.nrl.navy.mil
+
+Enjoy.
+
+P.S. I have been working with 4.0.1 until now, so I do not know if this 
+works with 4.1. 
+
+----------------------------------------------------------------------------
+POSTGRES group comments
+----------------------------------------------------------------------------
+xposthelp only compiles on Sun SPARC machines running SunOS 4.1.x.
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 07/21/93
