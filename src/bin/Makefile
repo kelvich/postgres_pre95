@@ -25,4 +25,10 @@ SUBDIR += fsutils s2kutils
 # so i just made it a second target in the backend Makefile.
 #
 
+.if defined(OLD_MKDIR)
+beforeinstall:
+	@-if test ! -d ${DESTDIR}${BINDIR}; \
+		then mkdir ${DESTDIR}${BINDIR}; fi
+.endif
+
 .include <postgres.subdir.mk>

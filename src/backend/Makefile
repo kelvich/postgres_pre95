@@ -216,6 +216,12 @@ LDADD+= -N
 .  endif
 .endif
 
+.if defined(OLD_MKDIR)
+beforeinstall:
+	-if test ! -d ${DESTDIR}${BINDIR}; \
+		then mkdir ${DESTDIR}${BINDIR}; fi
+.endif
+
 #
 # Install the bki files to the data directory.  We also
 # copy a version of them that has "PGUID" intact, so one
