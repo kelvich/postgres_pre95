@@ -1,0 +1,2 @@
+# This exists so the obj/Makefile.global in this
+# directory (if it exists) is included.  
