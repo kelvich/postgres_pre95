@@ -200,11 +200,11 @@ lispName(string)
     CDR(newobj) = LispNil;
 
     if (string) {
-	if (strlen(string) > sizeof(NameData)) {
-	    elog(WARN,"Name %s was longer than %d",string,sizeof(NameData));
+	if (strlen(string) + 1 > NAMEDATALEN) {
+	    elog(WARN,"Name %s was longer than %d",string,NAMEDATALEN);
 	    /* NOTREACHED */
 	}
-	newstr = (char *) palloc(sizeof(NameData)+1);
+	newstr = (char *) palloc(NAMEDATALEN);
 	newstr = strcpy(newstr,string);
     } else
       newstr = (char *)NULL;
