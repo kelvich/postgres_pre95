@@ -160,10 +160,6 @@ CLEANFILES+=	${OBJS_UTILS}
 SUBOBJS= ACCESS.o BOOTSTRAP.o COMMANDS.o EXECUTOR.o main.o MISC.o NODES.o \
 	 PARSER.o PLANNER.o PORT.o REWRITE.o RULES.o STORAGE.o TCOP.o UTILS.o
 
-.if defined(USE_DLD)
-LDADD+= -ldld 
-.endif
-
 .endif
 
 #
@@ -177,27 +173,33 @@ CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-DDATADIR='"${DATADIR}"' \
 	-DBINDIR='"${BINDIR}"' \
 	-I${.CURDIR}/. -I${.CURDIR}/obj \
+	-I${.CURDIR}/tmp \
 	-I${.CURDIR}/port/${PORTNAME}
 
+.if defined(USE_DLD)
+LDADD+= -ldld 
+.endif
+
+#
+# == BEGIN MACHINE-SPECIFIC SECTION ==
+#
+
+.if (${PORTNAME} == "linux")
+LDADD+= -lm -lipc
+.else
 .ifndef PROFILE
 LDADD+= -N 
 .endif
-
 LDADD+=	-lm -lln
-
-#
-# XXX - grot: rename tmp to something sensible
-#
-CFLAGS+= -I${.CURDIR}/tmp
-
-.if ${PORTNAME} == "ultrix4"
-CFLAGS+= -DNOFIXADE
 .endif
 
 #
-# XXX - who makes this?
+# this turns off unaligned access fixup
+# (it invokes a POSTGRES interface to syscall, it's not a DEC built-in)
 #
-CLEANFILES+= y.output
+.if (${PORTNAME} == "ultrix4")
+CFLAGS+= -DNOFIXADE
+.endif
 
 #
 # Install the bki files to the data directory.  We also
@@ -213,11 +215,7 @@ CLEANFILES+= y.output
 afterinstall: pg_id
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
-.if ${PORTNAME} == "sparc"
-#
-# 	actually, if mkdir doesn't have the -p flag.  we'll paramaterize
-# 	all this stuff in the next release so please bear with us.
-#
+.if defined(OLD_MKDIR)
 	-if test ! -d ${DESTDIR}${DATADIR}; \
 		then mkdir ${DESTDIR}${DATADIR}; fi
 	-if test ! -d ${DESTDIR}${DATADIR}/files; \
@@ -232,6 +230,7 @@ afterinstall: pg_id
 		sed "s/PGUID/$$PG_UID/" < $$bki > $$bki.sed ; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
+		rm -f $$bki.sed; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki ${DESTDIR}${DATADIR}/files/$$bki.source; \
 	done
