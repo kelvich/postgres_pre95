@@ -1051,8 +1051,11 @@ index_innerjoin (rel,clausegroup_list,index)
 					  clausegroup));
 
 	 /* add in cost for expensive functions!  -- JMH, 7/7/92 */
-	 set_path_cost((Path)pathnode, get_path_cost((Path)pathnode) + 
-		       xfunc_get_path_cost(pathnode));
+	 if (XfuncMode != XFUNC_OFF) {
+	     set_path_cost((Path)pathnode,
+			   get_path_cost((Path)pathnode) + 
+			   xfunc_get_path_cost(pathnode));
+	 }
 
 	 cg_list = nappend1(cg_list,(LispValue)pathnode);
      }

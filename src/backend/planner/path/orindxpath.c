@@ -27,6 +27,7 @@
 #include "planner/orindxpath.h"
 #include "planner/costsize.h"
 #include "planner/cfi.h"
+#include "planner/xfunc.h"
 
 /*extern List index_selectivity(); #include "cfi.h" */ 
 
@@ -99,9 +100,11 @@ create_or_index_paths (rel,clauses)
 				      CopyObject(get_clauseinfo(rel))));
 
 		    /* add in cost for expensive functions!  -- JMH, 7/7/92 */
-		    set_path_cost((Path)pathnode, 
-				  get_path_cost((Path)pathnode) + 
-				  xfunc_get_path_cost(pathnode));
+		    if (XfuncMode != XFUNC_OFF) {
+			set_path_cost((Path)pathnode, 
+				      get_path_cost((Path)pathnode) + 
+				      xfunc_get_path_cost(pathnode));
+		    }
 
 		    set_selectivity(clausenode,(Cost)CDouble(nth(2,indexinfo)));
 		    t_list = 
