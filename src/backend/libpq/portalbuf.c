@@ -53,8 +53,7 @@ RcsId ("$Header$");
 #include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 #include "utils/exc.h"
-
-/* PortalEntry *portals[MAXPORTALS]; */
+#include "utils/palloc.h"
 
 PortalEntry** portals = (PortalEntry**) NULL;
 size_t portals_array_size = 0;
@@ -79,7 +78,7 @@ portals_realloc(size)
   PortalEntry** newp;
 
   if (size < 0)
-    libpq_raise(&PortalError, form((int)"negative size passed to portals_realloc"));
+    libpq_raise(&PortalError, form("negative size passed to portals_realloc"));
 
   oldsize = portals_array_size;
 
@@ -92,7 +91,7 @@ portals_realloc(size)
   if (newp)
     portals = newp;
   else
-    libpq_raise(&PortalError, form((int)"Cannot alloc more memory in portals_realloc"));
+    libpq_raise(&PortalError, form("Cannot alloc more memory in portals_realloc"));
 
   for (i=oldsize;i<portals_array_size;i++)
     portals[i]=(PortalEntry*)NULL;
@@ -113,11 +112,11 @@ pbuf_alloc(size)
     caddr_t 	addr;
 
     if (size <= 0)
-	libpq_raise(&MemoryError, form((int)"Invalid argument to pbuf_alloc()."));
+	libpq_raise(&MemoryError, form("Invalid argument to pbuf_alloc()."));
 
     addr = (caddr_t) palloc(size);
-    if (addr == NULL)
-	libpq_raise(&MemoryError, form((int)"Cannot Allocate space."));
+    if (addr == (caddr_t) NULL)
+	libpq_raise(&MemoryError, form("Cannot Allocate space."));
 
     return (addr);
 }
@@ -136,7 +135,7 @@ pbuf_free(pointer)
   if (pointer)
     pfree(pointer);
   else
-    libpq_raise(&MemoryError, form((int)"Tried to free NULL memory pointer"));
+    libpq_raise(&MemoryError, form("Tried to free NULL memory pointer"));
     
 }
 
@@ -245,7 +244,7 @@ int *
 pbuf_addTupleValueLengths(n)
 {
     return (int *)
-	pbuf_alloc(n * sizeof (int));
+	pbuf_alloc(n * sizeof(int));
 }
 
 /* --------------------------------
@@ -452,7 +451,7 @@ pbuf_close(pname)
     int i;
 
     if ((i = pbuf_getIndex(pname)) == -1) 
-	libpq_raise(&PortalError, form((int)"Portal %s does not exist.", pname));
+	libpq_raise(&PortalError, form("Portal %s does not exist.", pname));
 
     pbuf_freePortal(portals[i]->portal);
     pbuf_freeEntry(i);
@@ -477,7 +476,7 @@ pbuf_findGroup(portal, group_index)
 
     if (group == NULL)
 	libpq_raise(&PortalError, 
-		    form((int)"Group index %d out of bound.", group_index));
+		    form("Group index %d out of bound.", group_index));
 
     return (group);
 }
@@ -500,7 +499,7 @@ pbuf_findFnumber(group, field_name)
 	    return (i);
 	
     libpq_raise(&PortalError, 
-		form((int)"Field-name %s does not exist.", field_name));
+		form("Field-name %s does not exist.", field_name));
 }
 
 /* --------------------------------
@@ -514,7 +513,7 @@ pbuf_checkFnumber(group, field_number)
 {
     if (field_number < 0 || field_number >= group->no_fields)
 	libpq_raise(&PortalError, 
-		    form((int)"Field number %d out of bound.", field_number));
+		    form("Field number %d out of bound.", field_number));
 }
 
 /* --------------------------------
