@@ -1,6 +1,5 @@
 # Makefile for pgperl.
-# $Header: /genome/src/postgres/src/contrib/pgperl/RCS/Makefile,v 1.2 92/02/07
- 16:37:46 hartzell Exp $
+# $Header$
 # Thu Aug 23 15:00:05 1990  Igor Metz <metz@iam.unibe.ch>
 # touched up to work with my configuration under postgres3.1 and perl4.x
 
