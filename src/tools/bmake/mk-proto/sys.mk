@@ -44,6 +44,8 @@ SHELL		?=	sh
 YACC		?=	yacc
 YFLAGS		?=	-d
 
+INSTALL		?=	install
+
 .c.o:
 	${CC} ${CFLAGS} -c ${.IMPSRC}
 
