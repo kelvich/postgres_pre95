@@ -443,6 +443,7 @@ or_normalize (orlist)
 	    return (orlist);
 	  
      }
+     return(NULL);
 }  /* function end   */
 
 /*    

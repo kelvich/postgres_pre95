@@ -58,6 +58,7 @@ LispValue tree ;
 	    t_list = nconc(t_list, find_all_parameters(CAR(temp)));
 	  return(t_list);
       }
+    return(NULL);
   /*
    * XXX Vector plans are not yet supported.  
 

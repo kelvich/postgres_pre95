@@ -101,6 +101,7 @@ index_info (not_first,relid)
 							      LispNil)
 							     ))))));
     }
+    return(NULL);
 }
 	       
 /*    
