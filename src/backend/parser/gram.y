@@ -126,7 +126,7 @@ experiment:
 	} 
 	OptimizableStmt
 	{
-	    HandleRetrieveRuleDef(parsetree,$4,$5,$7);
+	    HandleRetrieveRuleDef(CString($4),$5,$7,$10);
 	}
 	| ON REPLACE TO relation_name opt_qual
 	THEN DO opt_instead 
@@ -135,7 +135,7 @@ experiment:
 	}
 	OptimizableStmt
 	{
-	    HandleReplaceRuleDef(parsetree,$2,$4,$5,$7);
+	    HandleReplaceRuleDef($2,$4,$5,$7,$10);
 	}
 	;
 
