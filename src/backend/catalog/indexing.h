@@ -12,7 +12,7 @@
  * Some definitions for indices on pg_attribute
  */
 #define Num_pg_attr_indices	3
-#define Num_pg_proc_indices	2
+#define Num_pg_proc_indices	3
 #define Num_pg_type_indices	2
 #define Num_pg_name_indices	2
 #define Num_pg_class_indices	2
@@ -25,6 +25,7 @@ extern Name AttributeNameIndex;
 extern Name AttributeNumIndex;
 extern Name ProcedureNameIndex;
 extern Name ProcedureOidIndex;
+extern Name ProcedureSrcIndex;
 extern Name TypeNameIndex;
 extern Name TypeOidIndex;
 extern Name NamingNameIndex;
@@ -48,6 +49,7 @@ HeapTuple AttributeNumIndexScan  ARGS((Relation heapRelation , ObjectId relid , 
 
 HeapTuple ProcedureOidIndexScan  ARGS((Relation heapRelation, ObjectId procId));
 HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName , int nargs , ObjectId *argTypes));
+HeapTuple ProcedureSrcIndexScan ARGS((Relation heapRelation, text *procSrc));
 
 HeapTuple TypeOidIndexScan  ARGS((Relation heapRelation, ObjectId typeId));
 HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
@@ -70,6 +72,7 @@ DECLARE_INDEX(pg_attrelidind on pg_attribute using btree (attrelid oid_ops))
 
 DECLARE_INDEX(pg_procidind on pg_proc using btree (oid oid_ops));
 DECLARE_INDEX(pg_procnameind on pg_proc using btree (proname char16_ops));
+DECLARE_INDEX(pg_procsrcind on pg_proc using btree (prosrc text_ops));
 
 DECLARE_INDEX(pg_typeidind on pg_type using btree (oid oid_ops));
 DECLARE_INDEX(pg_typenameind on pg_type using btree (typname char16_ops));
