@@ -97,8 +97,22 @@ pfree_debug(file, line, pointer)
  * ----------------
  */
 void
-ExceptionalCondition()
+ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
+    const String    conditionName;
+    const Exception *exceptionP;
+    const String    detail;
+    const String    fileName;
+    const int       lineNumber;
 {
+    /*
+     * for picky compiler purposes
+     */
+    conditionName = conditionName;
+    exceptionP = exceptionP;
+    detail = detail;
+    fileName = fileName;
+    lineNumber = lineNumber;
+
     fprintf(stderr, "ExceptionalCondition called!\n");
     exit(1);
 }
