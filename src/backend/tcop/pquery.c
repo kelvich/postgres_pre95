@@ -155,6 +155,10 @@ CreateExecutorState()
     set_es_BaseId(state, 0);
     set_es_tupleTable(state, NULL);
 
+    set_es_junkFilter(state, NULL);
+    set_es_result_rel_scanstate(state, NULL);
+    set_es_result_rel_ruleinfo(state, NULL);
+
     /* ----------------
      *	return the executor state structure
      * ----------------
