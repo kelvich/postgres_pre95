@@ -99,7 +99,7 @@ END {
 }' > $TMP
 
 #AIX	cat *.u > $TMP
-#AIX	rm -f *.u
+#AIX	rm -f *.u *.o
 
 if [ $? != 0 ]; then
 	echo 'mkdep: compile failed.'
