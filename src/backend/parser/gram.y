@@ -256,7 +256,7 @@ copy_char:
   ************************************************************/
 
 CreateStmt:
-	  Create relation_name '(' dom_list ')' 
+	  Create relation_name '(' opt_dom_list ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
 		{
 			LispValue temp = LispNil;
@@ -780,7 +780,7 @@ ExecuteStmt:
 
 ReplaceStmt:
  	Replace 
-		{ SkipForwardToFromList(); }
+		{ SkipForwardToFromList(); ResdomNoIsAttrNo = 1; }
 	from_clause 
 	opt_star opt_rep_duration var_name 
 		{ CurrentRelationPtr = amopenr(CString($6)); }
@@ -788,7 +788,6 @@ ReplaceStmt:
   		{
 		    LispValue root;
 
-		    ResdomNoIsAttrNo = 1;
 		    if(RangeTablePosn(CString($6),0,0) == 0)
 		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
 					   ($6,0,$6));
@@ -1084,6 +1083,8 @@ record_qual:
 	/*EMPTY*/
 		{ NULLTREE }
 	;
+
+opt_dom_list: dom_list | {NULLTREE} ;
 
 dom_list:
 	  dom_list ',' dom		{ INC_LIST ;  }
