@@ -1255,17 +1255,22 @@ _LOtransfer(destfd, size, nitems, srcfd, isSrcLO, isDestLO)
 char **destfd, **srcfd;
 int size, nitems, isSrcLO, isDestLO;
 {
+#define MAX_READ (512 * 1024)
+#define min(a, b) (a < b ? a : b)
     struct varlena *v;
-    int tmp, inc;
+    int tmp, inc, resid;
 
     inc = nitems*size; 
-    if (isSrcLO && isDestLO) { 
-        v = (struct varlena *) LOread((int) *srcfd, inc);
-        if (VARSIZE(v) - 4 < inc) 
-            return(-1);
-        tmp = LOwrite((int) *destfd, v);    
-        pfree(v);
-    } 
+    if (isSrcLO && isDestLO && inc > 0)
+	for (tmp = 0, resid = inc;
+		 resid > 0 && (inc = min(resid, MAX_READ)) > 0; resid -= inc) { 
+	    v = (struct varlena *) LOread((int) *srcfd, inc);
+	    if (VARSIZE(v) - 4 < inc) 
+		{pfree(v); return(-1);}
+	    tmp += LOwrite((int) *destfd, v);    
+	    pfree(v);
+	
+	} 
     else if (!isSrcLO && isDestLO) {
         tmp = LO_write(*srcfd, inc, (int) *destfd);
         *srcfd = *srcfd + tmp;
@@ -1281,6 +1286,7 @@ int size, nitems, isSrcLO, isDestLO;
         *destfd += inc;
     }
     return(tmp);
+#undef MAX_READ
 }
 
 /***********************************************************************/
