@@ -41,23 +41,37 @@ eval_as_new_xact ( query )
 }
 
 void
-CreateVersion (name, bname)
+CreateVersion (name, bnamestring)
      Name     name;
-     Name     bname;
+     List     bnamestring;
 {
   LispValue tmp_list = LispNil;
   int notfirst = 0;
   int length = 0;
   char *attrname;
   LispValue i, temp;
+  Name bname;
   static char temp_buf[512];
-  static char saved_basename[sizeof(NameData)];
-  static char saved_vname[ sizeof(NameData) ];
+  static char saved_basename[512];
+  static char saved_vname[ sizeof(NameData)];
+  static char saved_snapshot[512];
 
-  bcopy ( bname , saved_basename, sizeof(NameData));
+  if ( NodeType(bnamestring) == classTag(LispStr) ) {
+    /* no time ranges */
+    bname = (Name)CString(bnamestring);
+    bcopy ( bname, saved_basename, strlen(bname));
+    *saved_snapshot = (char)NULL;
+  } else {
+    /* version is a snapshot */
+    bname = (Name)CString(CAR(bnamestring));
+    bcopy(bname,saved_basename, strlen(bname));
+    sprintf(saved_snapshot, "[\"%s\"]",
+	    CString(CADR(bnamestring)) );
+  }
+
   bcopy ( name, saved_vname, sizeof(NameData));
-
-   /*
+  
+  /*
    * Calls the routine ``GetAttrList'' get the list of attributes
    * from the base relation. 
    * Code is put here so that we only need to look up the attribute once for
@@ -65,7 +79,7 @@ CreateVersion (name, bname)
    */
 
   tmp_list = GetAttrList(bname);
-
+  
   foreach(i, tmp_list) {
     temp = CAR(i);
     attrname = CString(temp);
@@ -82,9 +96,9 @@ CreateVersion (name, bname)
   length = strlen(attr_list) + 1;
   VersionCreate (saved_vname, saved_basename);
   VersionAppend (saved_vname, saved_basename);
-  VersionDelete (saved_vname, saved_basename);
-  VersionReplace (saved_vname, saved_basename);
-  VersionRetrieve (saved_vname, saved_basename);
+  VersionDelete (saved_vname, saved_basename,saved_snapshot);
+  VersionReplace (saved_vname, saved_basename,saved_snapshot);
+  VersionRetrieve (saved_vname, saved_basename, saved_snapshot);
   bzero(attr_list,length);
 
 }
@@ -103,7 +117,7 @@ VersionCreate (vname, bname)
    */
   sprintf(query_buf, "retrieve into %s ( %s.all) where 1 =2", vname,bname);
 
-  pg_eval (query_buf); 
+  pg_eval (query_buf);  
 
   /* 
    * Creating the ``v_added'' relation 
@@ -169,7 +183,7 @@ VersionAppend (vname,bname)
 	  vname, vname, vname, attr_list);
 
   eval_as_new_xact(rule_buf); 
-/*  printf("%s\n",rule_buf); */
+/*  printf("%s\n",rule_buf);  */
 
  
 }
@@ -185,14 +199,17 @@ VersionAppend (vname,bname)
  */
 
 void
-VersionRetrieve(vname,bname)
+VersionRetrieve(vname,bname,snapshot)
     Name vname, bname;
+     char *snapshot;
 {
 
   sprintf(rule_buf, 
 	  "define rewrite rule %s_retrieve is on retrieve to %s do instead\n\
-retrieve (%s_1.oid,%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
-	  vname, vname, vname, vname, bname, bname, vname, vname, bname,bname,vname);
+retrieve (%s_1.oid,%s_1.all) from _%s in %s%s, %s_1 in (%s_added | _%s) \
+where _%s.oid !!= \"%s_del.DOID\"",
+	  vname, vname, vname, vname, bname, bname,snapshot,
+	  vname, vname, bname,bname,vname);
 
   eval_as_new_xact(rule_buf); 
 
@@ -213,8 +230,9 @@ retrieve (%s_1.oid,%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.
  */
 
 void
-VersionDelete(vname,bname)
+VersionDelete(vname,bname,snapshot)
      Name vname,bname;
+     char *snapshot;
 {
 
   sprintf(rule_buf,
@@ -223,19 +241,17 @@ delete %s_added where current.oid = %s_added.oid\n",
 	  vname,vname,vname,vname);
 
   eval_as_new_xact(rule_buf); 
-  CommitTransactionCommand();
-  StartTransactionCommand();
-
 /*  printf("%s\n",rule_buf); */
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_delete2 is on delete to %s do instead \n \
-append %s_del(DOID = current.oid) where current.oid = %s.oid \n",
-	  vname,vname,vname,bname);
+append %s_del(DOID = current.oid) from _%s in %s%s \
+where current.oid = _%s.oid \n",
+	  vname,vname,vname,bname,bname,snapshot,bname);
 
   eval_as_new_xact(rule_buf); 
 
-/*  printf("%s\n",rule_buf); */
+/*  printf("%s\n",rule_buf);  */
 
 }
 
@@ -254,8 +270,9 @@ append %s_del(DOID = current.oid) where current.oid = %s.oid \n",
  */
 
 void
-VersionReplace(vname, bname)
+VersionReplace(vname, bname,snapshot)
      Name vname,bname;
+     char *snapshot;
 {
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace1 is on replace to %s do \n\
@@ -269,8 +286,9 @@ replace %s_added(%s) where current.oid = %s_added.oid \n",
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace2 is on replace to %s do \n\
-append %s_del(DOID = current.oid) where current.oid = %s.oid\n",
-	  vname,vname,vname,bname);
+append %s_del(DOID = current.oid) from _%s in %s%s \
+where current.oid = _%s.oid\n",
+	  vname,vname,vname,bname,bname,snapshot,bname);
 
   eval_as_new_xact(rule_buf); 
 
@@ -278,29 +296,46 @@ append %s_del(DOID = current.oid) where current.oid = %s.oid\n",
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace3 is on replace to %s do instead\n\
-append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
-%s.oid\n",
-	  vname,vname, vname,attr_list,vname,bname);
+append %s_added(%s) from _%s in %s%s \
+where current.oid !!= \"%s_added.oid\" and current.oid = \
+_%s.oid\n",
+	  vname,vname, vname,attr_list,bname,bname,snapshot,vname,bname);
 
   eval_as_new_xact(rule_buf); 
 
+/*  printf("%s\n",rule_buf); */
 
 }
 
-CreateBVersion(vname,bname)
-     Name bname,vname;
+CreateBVersion(vname,bnamestring)
+     Name vname;
+     List bnamestring;
 {
     AbsoluteTime now	= NULL;
     char *timestring 	= NULL;
     static char query_buf[MAX_QUERY_LEN];
-
+    static char saved_vname[sizeof(NameData)];
+    static char bname[sizeof(NameData)];
+#ifdef BOGUS
+    Name bname;
+#endif
     now = GetCurrentTransactionStartTime();
     timestring = (char *)abstimeout(now);
 
 
+    sprintf(bname,"%s", CString(bnamestring) );
+    sprintf(saved_vname,"%s", vname);
+
+
+    if (NodeType(bnamestring) != classTag(LispStr)) {
+      elog(WARN,
+	   "Create Version:  Backward deltas of snapshots not supported yet\n");
+    }
+
     /*
      *  Rename the base relation to the version name.
      */
+
     sprintf(query_buf, "rename %s to %s", bname,vname);
     eval_as_new_xact(query_buf); 
 
@@ -309,15 +344,18 @@ CreateBVersion(vname,bname)
      *  retrieve rule can be triggered.
      */
     sprintf(query_buf, "retrieve into %s(%s.all) where 1 = 2",
-	    bname, vname);
-    eval_as_new_xact(query_buf); 
+	    bname, saved_vname);
+    eval_as_new_xact(query_buf);  
 
     /* Now to define the retrieve rule. */
 
     sprintf(query_buf,"define rewrite rule b%s_retrieve is \n\
-on retrieve to %s do instead retrieve (%s_.all) from %s_ in %s[\"%s\"]\n",
-	    vname, bname, vname,vname,vname,timestring);
-
+on retrieve to %s do instead retrieve (_%s.all) from _%s in %s[\"%s\"]\n",
+	    saved_vname, bname, saved_vname,saved_vname,
+	    saved_vname,timestring);
     eval_as_new_xact(query_buf); 
 
 }
+
+
+
