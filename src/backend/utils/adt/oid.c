@@ -3,13 +3,11 @@
  *	Functions for the built-in type ObjectId.
  */
 
-#include "c.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "palloc.h"
-
-#include "oid.h"
+#include "utils/palloc.h"
 
 
 	    /* ========== USER I/O ROUTINES ========== */

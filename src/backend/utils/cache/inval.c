@@ -3,23 +3,21 @@
  *	POSTGRES cache invalidation dispatcher code.
  */
 
-#include "c.h"
+#include "tmp/postgres.h"
 
-#include "buf.h"	/* XXX for InvalidBuffer */
-#include "cat.h"	/* XXX to support hacks below */
-#include "catcache.h"
-#include "catname.h"	/* XXX to support hacks below */
-#include "heapam.h"	/* XXX to support hacks below */
-#include "htup.h"
-#include "ipci.h"
-#include "linval.h"
-#include "log.h"
-#include "oid.h"
-#include "rel.h"
-#include "sinval.h"
-#include "syscache.h"	/* XXX to support the hacks below */
+#include "access/heapam.h"	/* XXX to support hacks below */
+#include "access/htup.h"
+#include "storage/buf.h"	/* XXX for InvalidBuffer */
+#include "storage/ipci.h"
+#include "storage/sinval.h"
+#include "utils/catcache.h"
+#include "utils/inval.h"
+#include "utils/linval.h"
+#include "utils/log.h"
+#include "utils/rel.h"
 
-#include "inval.h"
+#include "catalog/catname.h"	/* XXX to support hacks below */
+#include "catalog/syscache.h"	/* XXX to support the hacks below */
 
 RcsId("$Header$");
 
