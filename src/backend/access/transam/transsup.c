@@ -19,8 +19,6 @@
  *	This file contains support functions for the high
  *	level access method interface routines found in transam.c
  *
- *   IDENTIFICATION
- *	$Header$
  * ----------------------------------------------------------------
  */
 
@@ -535,7 +533,7 @@ TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
      */
     if (failP == NULL)
 	failP = &localfail;
-    (*failP) == false;
+    (*failP) = false;
     
     TransBlockSetXidStatus(block, xid, xstatus);
 
