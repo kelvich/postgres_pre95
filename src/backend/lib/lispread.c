@@ -36,6 +36,7 @@ RcsId("$Header$");
 #define RIGHT_PAREN (1000000 + 1)
 #define LEFT_PAREN  (1000000 + 2)
 #define PLAN_SYM    (1000000 + 3)
+#define AT_SYMBOL   (1000000 + 4)
 
 /*----------------------------------------------------------
  *
@@ -122,6 +123,8 @@ int length;
 		retval = LEFT_PAREN;
 	else if (*token == ')')
 		retval = RIGHT_PAREN;
+	else if (*token == '@')
+	        retval = AT_SYMBOL;
 	else if (*token == '\"')
 		retval = PGLISP_STR;
 	else if (*token == '.' && length == 1)
@@ -200,6 +203,8 @@ bool read_car_only;
 			break;
 		case RIGHT_PAREN:
 			this_value = LispNil;
+			break;
+ 	        case AT_SYMBOL:
 			break;
 		case PGLISP_ATOM:
 			if (!strncmp(token, "nil", 3))
