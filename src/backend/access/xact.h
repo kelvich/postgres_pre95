@@ -30,7 +30,7 @@
  * ----------------
  */
 typedef struct TransactionStateData {
-    TransactionIdData	transactionIdData;
+    TransactionId	transactionIdData;
     CommandId		commandId;
     Time		startTime;
     int			state;

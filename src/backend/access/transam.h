@@ -114,8 +114,8 @@ typedef TimeRelationContentsData *TimeRelationContents;
  */
 typedef struct VariableRelationContentsData {
    int			TransSystemVersion;
-   TransactionIdData	nextXidData;
-   TransactionIdData	lastXidData;
+   TransactionId	nextXidData;
+   TransactionId	lastXidData;
    oid			nextOid;
 } VariableRelationContentsData;
 
