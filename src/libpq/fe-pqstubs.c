@@ -121,9 +121,18 @@ ExcRaise(arg1, string,ignore,ignore2)
  * ----------------
  */
 void
-elog()
+elog(va_alist)
+    va_dcl
 {
-    fprintf(stderr, "elog called!!\n");
+    va_list ap;
+    int lev;
+    char *fmt;
+
+    va_start(ap);
+    lev = va_arg(ap, int);
+    fmt = va_arg(ap, char *);
+    va_end(ap);
+    fprintf(stderr, "FATAL: error level %d: %s\n", lev, fmt);
     exit(1);
 }
 
