@@ -48,11 +48,17 @@
 
 #define ever ; 1 ;
 #define ABS(x) (((x) > 1) ? (x) : (-(x)))
+
 #ifdef sequent
 #ifndef HUGE_VAL
 #define HUGE_VAL	1.8e+308
-#endif
-#endif
+#endif /* HUGE_VAL */
+#endif /* sequent */
+
+#ifdef linux
+#undef HUGE_VAL
+#define HUGE_VAL	MAXFLOAT
+#endif /* linux */
 
 /*
 ** xfunc_trypullup --
