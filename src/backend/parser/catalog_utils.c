@@ -136,6 +136,15 @@ int attid;
     return(rd->rd_att.data[attid-1]->atttypid);
 }
 
+
+int 
+att_attnelems(rd, attid)
+Relation rd;
+int attid;
+{
+	return(rd->rd_att.data[attid-1]->attnelems);
+}
+
 /* given type, return the type OID */
 OID
 typeid(tp)
@@ -479,6 +488,33 @@ char *string;
     op = tp->typinput;
 	typelem = tp->typelem; /* XXX - used for array_in */
     return((char *) fmgr(op, string, typelem));
+}
+
+/* Given the attribute type of an array return the arrtribute type of
+   an element of the array */
+
+ObjectId
+GetArrayElementType(typearray)
+ObjectId typearray;
+{
+	HeapTuple type_tuple;
+	TypeTupleForm type_struct_array;
+
+	type_tuple = SearchSysCacheTuple(TYPOID, typearray, NULL, NULL, NULL);
+
+    if (!HeapTupleIsValid(type_tuple))
+    elog(WARN, "GetArrayElementType: Cache lookup failed for type %d\n",
+         typearray);
+
+    /* get the array type struct from the type tuple */
+    type_struct_array = (TypeTupleForm) GETSTRUCT(type_tuple);
+
+    if (type_struct_array->typelem == InvalidObjectId) {
+    elog(WARN, "GetArrayElementType: type %s is not an array",
+        (Name)&(type_struct_array->typname.data[0]));
+    }
+
+	return(type_struct_array->typelem);
 }
 
 /* Given a typename and string, returns the internal form of that string */
