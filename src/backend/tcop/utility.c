@@ -141,7 +141,7 @@ ProcessUtility(command, args)
 	}
 		break;
 
-#if 0	  
+#if 0
 	case PURGE:
 		commandTag = "PURGE";
 		relation_purge (CAR(args),		/* relation name */
@@ -149,19 +149,91 @@ ProcessUtility(command, args)
 		break;
 
 		/* tags/date alist */
+#endif
 	case COPY:
 		commandTag = "COPY";
-		relation_transform (CAR(CARargs),
-			CADR(CAR(args)),
-			nth (2,nth (0,args))
-			,nth (0,nth (1,args))
-			,nth (1,nth (1,args))
-			,nth (1,nth (2,args))
-			,nthcdr (3,args));
+	{
+		String	relationName;
+		String	fileName;
+		String	mapName = NULL;
+		bool	isBinary = false;
+		bool	noNulls = false;
+		bool	isFrom;
+
+#ifndef	PERFECTPARSER
+		AssertArg(length(args) >= 3);
+		AssertArg(length(CAR(args)) == 3);
+		AssertArg(lispStringp(CAAR(args)));
+#endif
+		relationName = CString(CAAR(args));
+		if (!null(CADR(CAR(args)))) {
+#ifndef	PERFECTPARSER
+			AssertArg(lispIntegerp(CADR(CAR(args))));
+			AssertArg(CInteger(CADR(CAR(args))) == BINARY);
+#endif
+			isBinary = true;
+		}
+		if (!null(CADDR(CAR(args)))) {
+#ifndef	PERFECTPARSER
+			AssertArg(lispIntegerp(CADDR(CAR(args))));
+			AssertArg(CInteger(CADDR(CAR(args))) == NONULLS);
+#endif
+			noNulls = true;
+		}
+		/*
+		 * discard '("relname" [BINARY] [NONULLS])
+		 */
+		args = CDR(args);
+
+#ifndef	PERFECTPARSER
+		AssertArg(length(CAR(args)) == 2);
+		AssertArg(lispAtomp(CAAR(args)));
+		AssertArg(lispStringp(CADR(CAR(args))));
+#endif
+		if (CAtom(CAAR(args)) == FROM) {
+			isFrom = true;
+		} else {
+#ifndef	PERFECTPARSER
+			AssertArg(CAtom(CAAR(args)) == TO);
+#endif
+			isFrom = false;
+		}
+		fileName = CString(CADR(CAR(args)));
+		/*
+		 * discard '(FROM/TO "filename")
+		 */
+		args = CDR(args);
+
+#ifndef	PERFECTPARSER
+		AssertArg(length(CAR(args)) >= 1);
+		/*
+		 * Note:
+		 *	CAAR(args) is not checked to verify it is a USING int.
+		 */
+#endif
+		if (!null(CDR(CAR(args)))) {
+#ifndef	PERFECTPARSER
+			AssertArg(length(CAR(args)) == 2);
+			AssertArg(lispStringp(CADR(CAR(args))));
+#endif
+			mapName = CString(CADR(CAR(args)));
+		}
+		/*
+		 * discard '(USING ["mapName"])
+		 */
+		args = CDR(args);
+#ifndef	PERFECTPARSER
+		/*
+		 * Check the format of args (the domain list) here
+		 */
+#endif
+		PerformRelationFilter(relationName, isBinary, noNulls, isFrom,
+			fileName, mapName, args);
+	}
 		break;
 
 		/* domain list */
-
+#if 0
 	case ADD_ATTR:
 		commandTag = "ADD";
 #ifndef	PERFECTPARSER
@@ -422,26 +494,5 @@ relation_purge (relation_name,date_tags)
      /*RelationPurge (relation_name,cdr (assoc (BEFORE,date_tags)) || 0,
 		    CDR (assoc (AFTER,date_tags)) || 0)*/
      utility_end ("PURGE");
-}
-#endif
-#if 0
-LispValue
-relation_transform (relation_name,format,nonulls,
-		    direction,file_name,map_relation,domain_list)
-     LispValue relation_name,format,nonulls,direction,
-     file_name,map_relation,domain_list ;
-{
-     char *error_string = "relation-transform: ERROR: ";
-     int natts = length (domain_list);
-     bool isbinary = (null(format) ? false : true );
-     bool isnonulls = (equal (nonulls,NONULLS) ? true : false );
-     bool isfrom = (equal(direction,TO) ? false : true );
-     bool map_relation_name = (map_relation ? true : false);
-/*
-     LispValue fixed_domain_list = 
-       relation_transform_fix_domains (domain_list);
-     LispValue domain_number = vectori_long (0);
-*/
-
 }
 #endif
