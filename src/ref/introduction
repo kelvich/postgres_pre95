@@ -55,9 +55,8 @@ prototype from the late 1970s.
 As distributed, \*(PG runs on Digital Equipment Corporation computers
 based on
 .SM MIPS
-R2000 and R3000 processors (under Ultrix 4.2; a kernel bug prevents
-\*(PG from running under Ultrix 4.3) and Sun Microsystems computers
-based on
+R2000 and R3000 processors (under Ultrix 4.2 and 4.3)
+and Sun Microsystems computers based on
 .SM SPARC
 processors (under SunOS 4.1).  Work is underway to support
 Digital Equipment Corporation computers based on Alpha AXP (DECchip 21064)
@@ -95,7 +94,6 @@ Jennifer Caetta,
 Philip Chang,
 Jolly Chen,
 Ron Choi,
-Chris Demitriou,
 Bob Devine,
 Matt Dillon,
 Zelaine Fong,
@@ -116,11 +114,15 @@ Michael Olson,
 Nels Olson,
 Lay-Peng Ong,
 Carol Paxson,
+Avi Pfeffer,
 Spyros Potamianos,
 Sunita Sarawagi,
-David Sharnoff,
+David Muir Sharnoff,
 Cimarron Taylor,
-and Yongdong Wang.
+Yongdong Wang,
+Kristin Wright
+and
+Andrew Yu.
 .PP
 Marc Teitelbaum served as chief programmer for Version \*(PV and was
 responsible for overall coordination of the project.
