@@ -22,7 +22,7 @@ remove function sqrt
 .)b
 .uh "SEE ALSO"
 .lp
-define C function(commands).
+define function(commands).
 .uh BUGS
 .lp
 No support is provided for removing postquel functions.
