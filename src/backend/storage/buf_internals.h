@@ -153,8 +153,9 @@ typedef struct _bmtrace {
     int		bmt_op;
 
 #define BMT_NOTUSED	0
-#define BMT_ALLOC	1
-#define	BMT_DEALLOC	2
+#define BMT_ALLOCFND	1
+#define BMT_ALLOCNOTFND	2
+#define	BMT_DEALLOC	3
 
 } bmtrace;
 
