@@ -604,6 +604,9 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
 	      sizeof *relation->rd_att.data[0]);
 	if (att_isnull(Anum_pg_attribute_attisset, bp))
 	     relation->rd_att.data[i-1]->attisset = false;
+	if (atttup->t_lock.l_lock)
+		pfree (atttup->t_lock.l_lock);
+    pfree(atttup);
     }
 
     heap_close(attrel);
@@ -758,8 +761,11 @@ RelationBuildDesc(buildinfo)
 
     /* -------------------
      *  free the memory allocated for pg_relation_tuple
+	 *  and for lock data pointed to by pg_relation_tuple
      * -------------------
      */
+	if (pg_relation_tuple->t_lock.l_lock)
+		pfree (pg_relation_tuple->t_lock.l_lock);
     pfree((Pointer) pg_relation_tuple);
 
     MemoryContextSwitchTo(oldcxt);
