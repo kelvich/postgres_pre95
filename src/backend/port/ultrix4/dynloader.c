@@ -58,7 +58,7 @@
 #include <mips/cachectl.h>
 
 #include "tmp/c.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 
 extern char pg_pathname[];
 
