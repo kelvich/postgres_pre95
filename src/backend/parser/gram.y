@@ -40,6 +40,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "rules/params.h"
+#include "utils/lsyscache.h"
 
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
@@ -625,6 +626,10 @@ ProcedureStmt:
 
 		   QueryIsRule = true;
 		   NewOrCurrentIsReally = $6;
+		   /*
+		    * NOTE: 'CURRENT' must always have a varno
+		    * equal to 1 and 'NEW' equal to 2.
+		    */
 		   ADD_TO_RT ( MakeRangeTableEntry ( CString($6), 
 						    LispNil,
 						    "*CURRENT*" ) );
@@ -798,7 +803,12 @@ RuleStmt:
 			/* XXX - do the bogus fix to get param nodes
 			         to replace varnodes that have current 
 				 in them */
+			/*==== XXX
+			 * LET THE TUPLE-LEVEL RULE MANAGER DO
+			 * THE SUBSTITUTION....
 			SubstituteParamForNewOrCurrent ( $8 );
+			 *====
+			 */
 			$$ = lispCons ( $8, lispCons ( p_rtable, NULL ));
 		    } else {
 			$$ = nappend1 ( $8, $5 ); 
@@ -855,6 +865,10 @@ RuleBody:
 		     fix really breaks things, so I had to axe it. */
 
 	    NewOrCurrentIsReally = $4;
+	   /*
+	    * NOTE: 'CURRENT' must always have a varno
+	    * equal to 1 and 'NEW' equal to 2.
+	    */
 	    ADD_TO_RT ( MakeRangeTableEntry ( CString(CAR($4)), 
 					     LispNil,
 					     "*CURRENT*" ) );
@@ -1907,33 +1921,51 @@ make_targetlist_expr ( name , expr )
     
 }
 
-SubstituteParamForNewOrCurrent ( parsetree )
+
+/*--------------------------------------------------------------------
+ *
+ * SubstituteParamForNewOrCurrent
+ *
+ * Change all the "Var" nodes corresponding to the NEW & CURRENT relation
+ * to the equivalent "Param" nodes.
+ *
+ * NOTE: this routine used to be called from the parser, but now it is
+ * called from the tuple-level rule system (when defining a rule),
+ * and it takes an extra argument (the relation oid for the
+ * NEW/CURRENT relation.
+ * 
+ *--------------------------------------------------------------------
+ */
+SubstituteParamForNewOrCurrent ( parsetree, relid )
      List parsetree;
+     ObjectId relid;
 {
     List i = NULL;
     Name getAttrName();
+
+    /*
+     * sanity check...
+     */
+    if (relid==NULL) {
+	elog(WARN, "SubstituteParamForNewOrCurrent: wrong argument rel");
+    }
 
     foreach ( i , parsetree ) {
 	List temp = CAR(i);
 	if ( temp && IsA (temp,Var) ) {
 	    Name attrname = NULL;
-	    Relation foo = amopenr ( CString(CAR(NewOrCurrentIsReally)));
-	    if (foo==NULL) {
-		elog(WARN, "Could not open relation %s\n",
-		    CString(CAR(NewOrCurrentIsReally)));
-	    }
 
-	    if ( get_varno(temp) == 1 ) {
+	    if ( get_varno(temp) == 1) {
 		/* replace with make_param(old) */
-		attrname = getAttrName(foo, get_varattno(temp));
+		attrname = get_attname(relid, get_varattno(temp));
 		CAR(i) = (List)MakeParam (PARAM_OLD,
 				    (int32)0,
 				    attrname,
 				    get_vartype(temp));
 	    } 
-	    if ( get_varno(temp) == 2 ) {
+	    if ( get_varno(temp) == 2) {
 		/* replace with make_param(new) */
-		attrname = getAttrName(foo, get_varattno(temp));
+		attrname = get_attname(relid, get_varattno(temp));
 		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   (int32)0,
 				   attrname,
@@ -1941,6 +1973,7 @@ SubstituteParamForNewOrCurrent ( parsetree )
 	    }
 	} 
 	if (  temp && temp->type == PGLISP_DTPR ) 
-	  SubstituteParamForNewOrCurrent ( temp );
+	  SubstituteParamForNewOrCurrent ( temp , relid );
     }
 }
+
