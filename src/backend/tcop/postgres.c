@@ -54,6 +54,9 @@ extern int _reset_stats_after_query_;
  */
 int		Warnings = 0;
 int		ShowTime = 0;
+bool		DebugPrintPlan = false;
+bool		DebugPrintParse = false;
+bool		DebugPrintRewrittenParsetree = false;
 static bool	EnableRewrite = true;
 
 #ifdef	EBUG
@@ -402,7 +405,7 @@ pg_eval( query_string )
 	 *	display parse strings
 	 * ----------------
 	 */
-	if (! Quiet) {
+	if ( DebugPrintParse == true ) {
 	    printf("\ninput string is %s\n",query_string);
 	    printf("\n---- \tparser outputs :\n");
 	    lispDisplay(parsetree,0);
@@ -433,7 +436,7 @@ pg_eval( query_string )
 
     } /* foreach parsetree in the list */
 
-    if (!Quiet) {
+    if ( DebugPrintRewrittenParsetree == true ) {
 	List i;
 	printf("\n=================\n");
 	printf("  After Rewriting\n");
@@ -504,7 +507,7 @@ pg_eval( query_string )
 	     */
 	    plan = planner(parsetree);
 	    
-	    if (! Quiet) {
+	    if ( DebugPrintPlan == true ) {
 		printf("\nPlan is :\n");
 		(*(plan->printFunc))(stdout, plan);
 		printf("\n");
@@ -612,6 +615,9 @@ PostgresMain(argc, argv)
 	  /* -debug mode */
 	  /* DebugMode = true;  */
 	  flagQ = 0;
+	  DebugPrintPlan = true;
+	  DebugPrintParse = true;
+	  DebugPrintRewrittenParsetree = true;
 	  break;
 	  
       case 'C':
