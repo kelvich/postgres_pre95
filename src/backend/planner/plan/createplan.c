@@ -1013,3 +1013,31 @@ make_sort (tlist,tempid,lefttree, keycount)
     node->equalFunc = NULL;
     return(node);
 }
+
+
+/*
+ *  A unique node always has a SORT node in the lefttree.
+ */
+
+Unique
+make_unique(tlist,lefttree)
+     List tlist;
+     Plan lefttree;
+{
+    Unique node = CreateNode(Unique);
+
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qpqual (node,LispNil);
+    set_qptargetlist (node,tlist);
+    set_lefttree(node,lefttree);
+    set_righttree(node,LispNil);
+    set_tempid(node,-1);
+    set_keycount(node,0);
+
+    node->printFunc = PrintUnique;
+    node->equalFunc = NULL;
+
+    return(node);
+}
