@@ -112,6 +112,7 @@ private Sfd *SfdCache;
 private	Vfd	*VfdCache;
 
 private	Size	SizeVfdCache = 0;
+private Size	SizeSfdCache = 100;
 
 /*
  * Minimun number of file descriptors known to be free
@@ -794,15 +795,23 @@ int fileMode;
     Sfd *sfdP;
     char *fname, *filepath();
     if (SfdCache == NULL) {
-       SfdCache = (Sfd*)malloc(MAXNOFILES * sizeof(Sfd));
-       for (i=0; i<MAXNOFILES-1; i++)
+       SfdCache = (Sfd*)malloc(SizeSfdCache * sizeof(Sfd));
+       for (i=0; i<SizeSfdCache-1; i++)
 	 SfdCache[i].nextFree = i + 1;
-       SfdCache[MAXNOFILES - 1].nextFree = 0;
+       SfdCache[SizeSfdCache - 1].nextFree = 0;
     }
     sfd = SfdCache[0].nextFree;
     if (sfd == 0)  {
-       elog(WARN, "out of striped file descriptors");
-    } else {
+       SfdCache = (Sfd*)realloc(SfdCache, sizeof(Sfd)*SizeSfdCache*2);
+       Assert(SfdCache != NULL);
+       for (i = SizeSfdCache; i < 2*SizeSfdCache; i++) {
+	   SfdCache[i].nextFree = i + 1;
+	 }
+       SfdCache[0].nextFree = SizeSfdCache;
+       SfdCache[2*SizeSfdCache-1].nextFree = 0;
+       SizeSfdCache *= 2;
+       sfd = SfdCache[0].nextFree;
+      }
     SfdCache[0].nextFree = SfdCache[sfd].nextFree;
     sfdP = &(SfdCache[sfd]);
     for (i=0; i<NStriping; i++) {
@@ -811,7 +820,6 @@ int fileMode;
     }
     sfdP->curStripe = 0;
     return(sfd);
-    }
 }
 
 void
