@@ -11,71 +11,34 @@
 #     $Header$
 # ----------------------------------------------------------------
 
+# ----------------
+#       Set paths from environment or default values.
+#       The _fUnKy_..._sTuFf_ gets set when the script is installed
+#       from the default value for this build.
+#	Currently the only thing wee look for from the environment is
+#	PGDATA, PGHOST, and PGPORT
 #
-# find postgres tree
-#
-
-if (test -n "$POSTGRESHOME")
-then
-    PG=$POSTGRESHOME
-else
-    PG=/usr/postgres
-fi
-
-#
-# find monitor program
-#
-
-if (test -f "$PG/bin/monitor")
-then
-    MONITOR=$PG/bin/monitor
-elif (test -f "MONITOR=$PG/obj*/support/monitor")
-then
-    MONITOR=$PG/obj*/support/monitor
-else
-    echo "$0: can't find the monitor program!"
-    exit 1
-fi
-
-progname=$0
-
-#
-# handle pgport and pghost
-#
-
-if (test -n "$PGPORT")
-then
-    port=$PGPORT
-else
-    port=4321
-fi
-
-if (test -n "$PGHOST")
-then
-    host=$PGHOST
-else
-    host=localhost
-fi
+# ----------------
+[ -z "$PGPORT" ] && PGPORT=4321
+[ -z "$PGHOST" ] && PGHOST=localhost
+BINDIR=_fUnKy_BINDIR_sTuFf_
+PATH=$BINDIR:$PATH
 
 dbname=$USER
 
-while (test -n "$1")
+while test -n "$1"
 do
     case $1 in
-        -h) host=$2; shift;;
-        -p) port=$2; shift;;
+        -h) PGHOST=$2; shift;;
+        -p) PGPORT=$2; shift;;
          *) dbname=$1;;
     esac
     shift;
 done
 
-$MONITOR -TN -h $host -p $port -c "createdb $dbname" template1
-
-if (test $? -ne 0)
-then
+monitor -TN -h $PGHOST -p $PGPORT -c "createdb $dbname" template1 || {
     echo "$progname: database creation failed on $dbname."
     exit 1
-fi
+}
 
-# successful execution
 exit 0
