@@ -76,8 +76,10 @@
  *	we distribute to other sites.
  * ----------------
  */
+#ifdef SEQUOIA
 #define SONY_JUKEBOX
 #define MAIN_MEMORY
+#endif
 
 /* ----------------
  *	allocation debugging stuff
