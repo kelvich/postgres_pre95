@@ -70,12 +70,12 @@ index_keytest(tuple, tupdesc, scanKeySize, key)
 	}
 	
 	if (key->data[0].flags & CommuteArguments) {
-	    test = (int) fmgr(key->data[0].procedure,
-			      DatumGetPointer(key->data[0].argument),
+	    test = (int) (*(key->data[0].func))
+			     (DatumGetPointer(key->data[0].argument),
 			      datum);
 	} else {
-	    test = (int) fmgr(key->data[0].procedure,
-			      datum,
+	    test = (int) (*(key->data[0].func))
+			     (datum,
 			      DatumGetPointer(key->data[0].argument));
 	}
 

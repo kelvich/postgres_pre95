@@ -55,7 +55,7 @@ heap_satisifies(itemId, buffer, qual, nKeys, key)
     Buffer	buffer;
     TimeQual	qual;
     ScanKeySize	nKeys;
-    ScanKey	key;
+    struct skey	key;
 {
     HeapTuple	tuple;
     Relation	relation = BufferGetRelation(buffer);
@@ -89,12 +89,11 @@ heap_keytest(t, tupdesc, nkeys, keys)
     HeapTuple		t;
     TupleDescriptor 	tupdesc;
     int			nkeys;
-    struct skey		keys[];
+    struct skey keys[];
 {
     Boolean	isnull;
     DATUM	atp;
     int		test;
-    char	*fmgr();
 
     for (; nkeys--; keys++) {
 	atp = heap_getattr(t, InvalidBuffer,
@@ -105,9 +104,9 @@ heap_keytest(t, tupdesc, nkeys, keys)
 	    return false;
 	
 	if (keys->sk_flags & SK_COMMUTE)
-	    test = (int) fmgr(keys->sk_opr, keys->sk_data, atp);
+	    test = (int) (*(keys->func)) (keys->sk_data, atp);
 	else
-	    test = (int) fmgr(keys->sk_opr, atp, keys->sk_data);
+	    test = (int) (*(keys->func)) (atp, keys->sk_data);
 	
 	if (!test == !(keys->sk_flags & SK_NEGATE))
 	    return false;
@@ -174,7 +173,7 @@ keytest_tupdesc(t, tupdesc, nkeys, keys)
     HeapTuple		t;
     TupleDescriptor 	tupdesc;
     int			nkeys;
-    struct skey		keys[];
+    ScanKey keys[];
 {
     return (int)
 	heap_keytest(t, tupdesc, nkeys, keys);
