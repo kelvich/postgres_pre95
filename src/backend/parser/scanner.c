@@ -215,6 +215,7 @@ int len;
 			break;
 		case '\"':
 			in_string = !in_string;
+			*cp++ = c;
 			break;
 		}
 		cspec++;
