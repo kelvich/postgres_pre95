@@ -146,35 +146,6 @@ static	char	IsDbdb[] = {
  *	Perhaps this should be in-line code in relopen().
  */
 
-#ifdef _xprs_
-char	*
-relpath(relname, stripe)
-char	relname[];
-int	stripe;
-{
-	static	char	path[1 + 6 + 16] = "../../";
-	static	char	*appnd = path + 6;
-	static  char    *disks[] = { "",
-				      "/usr3/postgres/hong/stripe/",
-				      "/usr4/postgres/hong/stripe/",
-				      "/usr5/postgres/hong/stripe/",
-				      "/usr8/postgres/hong/stripe/"
-				     };
-	char buf[100];
-
-	if (issystem(relname))
-	   if (IsDbdb[Spp - SystemRelname]) {
-		strncpy(appnd, relname, 16);
-		return(path);
-	      }
-	   else
-		return(relname);  /* system relations are not striped */
-	else  {
-	   sprintf(buf, "%s%s", disks[stripe], relname);
-	   return(buf);
-	}
-}
-#else /* _xprs_ */
 char    *
 relpath(relname)
 char    relname[];
@@ -188,7 +159,6 @@ char    relname[];
         }
         return(relname);
 }
-#endif /* _xprs_ */
 
 /*
  *	issystem	- returns non-zero iff relname is a system catalog
