@@ -7,21 +7,21 @@
 remove rule \- removes a current rule from POSTGRES 
 .uh SYNOPSIS
 .lp
-.b "remove rule
+.b "remove [instance | rewrite] rule"
 rule_name
 .uh DESCRIPTION
 .lp
 This command drops the rule named rule_name
-from the POSTGRES system.
+from the specified POSTGRES rule system.
 POSTGRES will immediately cease enforcing
 it and will purge its definition from the system catalogs.
 .uh EXAMPLE
 .sp
 .in .5i
 .nf
-/* This example drops the rule example_1 */
+/* This example drops the rewrite rule example_1 */
 .sp
-   remove rule example_1
+   remove rewrite rule example_1
 	
 .fi
 .uh "SEE ALSO"
