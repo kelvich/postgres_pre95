@@ -23,8 +23,17 @@ RcsId("$Header$");
 
 #include "tmp/portal.h"
 
-/*
- * Global state
+/* ----------------
+ *   ALLOCFREE_ERROR_ABORT
+ *   define this if you want a core dump when you try to
+ *   free memory already freed -cim 2/9/91
+ * ----------------
+ */
+#undef ALLOCFREE_ERROR_ABORT
+
+/* ----------------
+ *   Global state
+ * ----------------
  */
 
 static Count PortalManagerEnableCount = 0;
@@ -861,10 +870,17 @@ PortalHeapMemoryFree(this, pointer)
 	HeapMemoryBlock	block = PortalHeapMemoryGetBlock(this);
 
 	AssertState(PointerIsValid(block));
-	AssertState(AllocSetContains(&block->setData, pointer));
-	/* XXX Trap(..., IllegalFreeRequest) or some such */
 
-	AllocSetFree(&block->setData, pointer);
+	if (AllocSetContains(&block->setData, pointer))
+	    AllocSetFree(&block->setData, pointer);
+	else {
+	    elog(NOTICE,
+		 "PortalHeapMemoryFree: 0x%x not in alloc set!",
+		 pointer);
+#ifdef ALLOCFREE_ERROR_ABORT
+	    Assert(AllocSetContains(&block->setData, pointer));
+#endif ALLOCFREE_ERROR_ABORT
+	}
 }
 
 static
