@@ -484,21 +484,37 @@ typeid_get_retinfunc(type_id)
         return(infunc);
 }
 
+OID
+get_typelem(type_id)
+
+OID type_id;
+
+{
+    HeapTuple     typeTuple;
+    TypeTupleForm   type;
+
+	if (!(typeTuple = SearchSysCacheTuple(TYPOID, type_id, NULL, NULL, NULL))) {
+		elog (WARN , "type name lookup of %d failed", type_id);
+	}
+    type = (TypeTupleForm) GETSTRUCT(typeTuple);
+
+    return (type->typelem);
+}
+
 char
 FindDelimiter(typename)
 char *typename;
 {
-        char delim;
-        HeapTuple     typeTuple;
-        TypeTupleForm   type;
+    char delim;
+    HeapTuple     typeTuple;
+    TypeTupleForm   type;
 
 
-	if (!(typeTuple = SearchSysCacheTuple(TYPNAME, typename))) {
-		elog (WARN , "type name lookup of %s failed", typename);
-	}
-        type = (TypeTupleForm) GETSTRUCT(typeTuple);
+    if (!(typeTuple = SearchSysCacheTuple(TYPNAME, typename))) {
+        elog (WARN , "type name lookup of %s failed", typename);
+    }
+    type = (TypeTupleForm) GETSTRUCT(typeTuple);
 
-	delim = type->typdelim;
-        return (delim);
+    delim = type->typdelim;
+    return (delim);
 }
-
