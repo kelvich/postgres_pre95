@@ -918,6 +918,8 @@ NotifyStmt: NOTIFY relation_name
 		LispValue root;
 		int x = 0;
 		    
+		elog(WARN,
+		     "notify is turned off for 4.0.1 - see the release notes");
 		if((x=RangeTablePosn(CString($2),LispNil)) == 0 )
 		  ADD_TO_RT (MakeRangeTableEntry ((Name)CString($2),
 						  LispNil,
@@ -949,6 +951,8 @@ NotifyStmt: NOTIFY relation_name
 
 ListenStmt: LISTEN relation_name 
             {
+		elog(WARN,
+		     "listen is turned off for 4.0.1 - see the release notes");
 		parser_current_rel = heap_openr(CString($2));
 		if (parser_current_rel == NULL)
 		  elog(WARN,"listen: relation %s doesn't exist",$2);

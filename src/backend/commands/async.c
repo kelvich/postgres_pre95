@@ -209,6 +209,11 @@ void Async_NotifyAtCommit()
 				   This is a transaction itself, so we
 				   don't want to loop at commit time
 				   processing */
+    /*
+     * XXX Turn off notify for 4.0.1.  Late discovery of implementation flaws.
+     */
+    return;
+#if 0
     if (reentrant)
       return;
     reentrant = 1;
@@ -253,6 +258,7 @@ void Async_NotifyAtCommit()
     if (didNotify)
 	CommitTransactionCommand();
     reentrant = 0;
+#endif
 }
 
 #if 0
