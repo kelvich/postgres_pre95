@@ -929,6 +929,8 @@ make_hashjoin(tlist,qpqual,hashclauses,lefttree,righttree)
     set_ruleinfo(node, (JoinRuleInfo) NULL);
     set_hashclauses(node,hashclauses);
     set_hashjointable(node, NULL);
+    set_hashjointablekey(node, 0);
+    set_hashjointablesize(node, 0);
     set_hashdone(node, false);
 
     return(node);
@@ -951,6 +953,8 @@ make_hash (tlist, hashkey, lefttree)
     set_qptargetlist (node,tlist);
     set_hashkey(node, hashkey);
     set_hashtable(node, NULL);
+    set_hashtablekey(node, 0);
+    set_hashtablesize(node, 0);
     set_lefttree(node,lefttree);
     set_righttree(node,LispNil);
 
