@@ -166,7 +166,7 @@ read_remark(id)
     }
     while(id[0] == 'N') {
         pq_getstr(errormsg,error_msg_length);
-        fprintf(stdout,"%s \n",&errormsg[0]+4);
+        fprintf(stderr,"%s \n",&errormsg[0]+4);
         if (pq_getnchar(id, 0, 1) == EOF)
 	   return;
     }
@@ -235,7 +235,7 @@ process_portal(rule_p)
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
 	    /* get past gunk at front of errmsg */
-	    fprintf(stdout,"%s \n", &errormsg[0] + 4);
+	    fprintf(stderr,"%s \n", &errormsg[0] + 4);
 	    strcpy(retbuf, "R");
 	    return(retbuf);
 
@@ -243,7 +243,7 @@ process_portal(rule_p)
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s notice encountered.", errormsg);
 	    /* get past gunk at front of errmsg */
-	    fprintf(stdout,"%s \n", &errormsg[0] + 4);
+	    fprintf(stderr,"%s \n", &errormsg[0] + 4);
 	    break;
 	    
         case 'T':
@@ -463,10 +463,17 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
     id[0] = '?';
 
     pq_getnchar(id, 0, 1);
-    if (id[0] == 'E') {
+    while (id[0] == 'E') {
+	int len;
         char buf[1024];
-        pq_getstr(buf,sizeof(buf));
-        printf ("Error: %s\n",buf);
+
+	if ((len = pq_getint(4)) >= sizeof(buf))
+	    len = sizeof(buf) - 1;
+	pq_getstr(buf,len);
+
+	fprintf(stderr, "Error: %s",buf);
+	if (pq_getnchar(id, 0, 1) == EOF)
+	    return ((char *) NULL);
     }
 
     read_remark(id);
@@ -506,15 +513,18 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
 	  case 'E':		/* print error and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
-	    pq_getnchar(id, 0, 1);
+	    fprintf(stderr,"%s \n", errormsg);
+	    if (pq_getnchar(id, 0, 1) == EOF)
+		return((char *) NULL);
 	    break;
 
 	  case 'N':		/* print notice and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s notice encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    pq_getnchar(id, 0, 1);
+	    if (pq_getnchar(id, 0, 1) == EOF)
+		return((char *) NULL);
 	    break;
 
 	  case '0':		/* PQFN: no return value	*/
@@ -582,10 +592,17 @@ PQfsread(fd, buf, nbytes)
     id[0] = '?';
 
     pq_getnchar(id, 0, 1);
-    if (id[0] == 'E') {
+    while (id[0] == 'E') {
+	int len;
         char buf[1024];
-        pq_getstr(buf,sizeof(buf));
-        printf ("Error: %s\n",buf);
+
+	if ((len = pq_getint(4)) >= sizeof(buf))
+	    len = sizeof(buf) - 1;
+	pq_getstr(buf,len);
+
+	fprintf(stderr, "Error: %s",buf);
+	if (pq_getnchar(id, 0, 1) == EOF)
+	    return (-1);
     }
 
     read_remark(id);
@@ -622,14 +639,14 @@ PQfsread(fd, buf, nbytes)
 	  case 'E':		/* print error and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    pq_getnchar(id, 0, 1);
 	    break;
 
 	  case 'N':		/* print notice and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s notice encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    pq_getnchar(id, 0, 1);
 	    break;
 
@@ -689,10 +706,17 @@ PQfswrite(fd, buf, nbytes)
     id[0] = '?';
 
     pq_getnchar(id, 0, 1);
-    if (id[0] == 'E') {
+    while (id[0] == 'E') {
+	int len;
         char buf[1024];
-        pq_getstr(buf,sizeof(buf));
-        printf ("Error: %s\n",buf);
+
+	if ((len = pq_getint(4)) >= sizeof(buf))
+	    len = sizeof(buf) - 1;
+	pq_getstr(buf,len);
+
+	fprintf(stderr, "Error: %s",buf);
+	if (pq_getnchar(id, 0, 1) == EOF)
+	    return (-1);
     }
 
     read_remark(id);
@@ -720,14 +744,14 @@ PQfswrite(fd, buf, nbytes)
 	  case 'E': /* print error and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    pq_getnchar(id, 0, 1);
 	    break;
 
 	  case 'N': /* print notice and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s notice encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    pq_getnchar(id, 0, 1);
 	    break;
 
@@ -801,7 +825,7 @@ PQexec(query)
 	    /* An error, return 0. */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    /* PQportset = 0;
 	       EstablishComm(); */
 	    return("R");
@@ -809,7 +833,7 @@ PQexec(query)
     	case 'N': /* print notice and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s notice encountered.", errormsg);
-	    fprintf(stdout,"%s \n", errormsg);
+	    fprintf(stderr,"%s \n", errormsg);
 	    break;
 
     	case 'A': {
@@ -882,14 +906,14 @@ PQendcopy()
 
                 pq_getstr(errormsg, error_msg_length);
                 pqdebug("%s notice encountered.", errormsg);
-                fprintf(stdout,"%s \n", errormsg);
+                fprintf(stderr,"%s \n", errormsg);
                 break;
 
             case 'E':
 
                 pq_getstr(errormsg, error_msg_length);
                 pqdebug("%s notice encountered.", errormsg);
-                fprintf(stdout,"%s \n", errormsg);
+                fprintf(stderr,"%s \n", errormsg);
                 return(0);
 
             case 'Z': /* backend finished the copy */
