@@ -37,6 +37,7 @@ RcsId("$Header$");
 #include "catalog/pg_prs2stub.h"
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_rewrite.h"
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
@@ -186,13 +187,13 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct prs2plans) - sizeof(struct varlena) },
-    { &Prs2RuleRelationName,			/* RULOID */
+    { &RewriteRelationName,			/* RULOID */
 	  1,
 	  { T_OID,
 		0,
 		0,
 		0 },
-	  sizeof(struct prs2rule) },
+	  sizeof(FormData_pg_rewrite) },
     { &Prs2StubRelationName,			/* PRS2STUB */
 	  1,
 	  { Anum_pg_prs2stub_prs2relid,
@@ -456,8 +457,7 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 	
 	tmp = palloc(size);
 	bcopy(attributeValue, tmp, size);
-	returnValue = ppreserve(tmp);
-	pfree(tmp);
+	returnValue = (LispValue)tmp;
     }
     
     LISP_GC_PROTECT(returnValue);
@@ -529,7 +529,7 @@ TypeDefaultRetrieve(typId)
 	
     }
     
-    typDefault = (struct varlena *) prestore(LISPVALUE_BYTEVECTOR(value));
+    typDefault = (struct varlena *) value;
     dataSize = VARSIZE(typDefault) - sizeof(typDefault->vl_len);
     
     /*
@@ -589,18 +589,5 @@ TypeDefaultRetrieve(typId)
     LISP_GC_ON;
     return(returnValue);
 }
- 
-#ifdef ALLEGRO
-/**** xxref:
- *           <apparently-unused>
- ****/
-LispValue
-lvTypeDefaultRetrieve(index)
-    int index;
-{
-    extern long lisp_value();
-    return((LispValue)TypeDefaultRetrieve(lisp_value(index)));
-}
-#endif
  
 #endif /* !PG_STANDALONE */
