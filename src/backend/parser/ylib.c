@@ -41,12 +41,6 @@ parser(str, l, typev, nargs)
     int yyresult;
 
     init_io();
-/*
- * Parser must now return a parse tree in C space.  Thus, it cannot
- * start/end at this high a granularity.
- *
-    startmmgr(0);
- */
 
     /* Set things up to read from the string, if there is one */
     if (strlen(str) != 0) {
@@ -55,21 +49,19 @@ parser(str, l, typev, nargs)
 	bcopy(str,TheString,strlen(str)+1);
     }
 
-    {
-      parser_init(typev, nargs);
-      yyresult = yyparse();
+    parser_init(typev, nargs);
+    yyresult = yyparse();
+
+    clearerr(stdin);
       
-      clearerr(stdin);
-      
-      if (yyresult) {	/* error */
+    if (yyresult) {	/* error */
 	CAR(l) = LispNil;
 	CDR(l) = LispNil;
 	return(-1);
-      }
-      
-      CAR(l) = CAR(parsetree);
-      CDR(l) = CDR(parsetree);
     }
+
+    CAR(l) = CAR(parsetree);
+    CDR(l) = CDR(parsetree);
 
     if (parsetree == NULL) {
 	return(-1);
@@ -824,6 +816,9 @@ LispValue HandleNestedDots(dots)
 /*
 ** setup_tlist --
 **     Build a tlist that says which attribute to project to.
+**     This routine is called by ParseFunc() to set up a target list
+**     on a tuple parameter or return value.  Due to a bug in 4.0,
+**     it's not possible to refer to system attributes in this case.
 */
 LispValue setup_tlist(attname, relid)
      Name attname;
@@ -837,6 +832,9 @@ LispValue setup_tlist(attname, relid)
     int attno;
 
     attno = get_attnum(relid, attname);
+    if (attno < 0)
+	elog(WARN, "cannot reference attribute %s of tuple params/return values for functions", attname);
+
     typeid = find_atttype(relid, attname);
     resnode = MakeResdom(1, typeid, ISCOMPLEX(typeid),
 			 tlen(get_id_type(typeid)),
