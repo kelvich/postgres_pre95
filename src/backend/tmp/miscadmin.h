@@ -273,8 +273,7 @@ BypassEnable ARGS((
 extern
 void
 InitPostgres ARGS((
-	String	path,
-	String	database
+	String	path
 ));
 
 /*
@@ -294,9 +293,8 @@ InitPostgres ARGS((
  */
 extern
 void
-InitPostgres ARGS((
-	String	path,
-	String	database
+ReinitPostgres ARGS((
+	void
 ));
 
 /*
