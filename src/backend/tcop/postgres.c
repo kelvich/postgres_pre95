@@ -589,8 +589,10 @@ pg_eval(query_string, dest)
 		Plan p;
 		List planlist;
 		LispValue x;
+		List setRealPlanStats();
 
 		planlist = get_chooseplanlist(plan);
+		planlist = setRealPlanStats(parsetree, planlist);
 		foreach (x, planlist) {
 		    p = (Plan)CAR(x);
 		    p_plan(p);
