@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.14  1993/08/10 01:46:51  marc
-    alpha port
+    Revision 1.15  1993/08/14 11:37:37  aoki
+    conditionalize mem cxt stuff so that we can use this in the frontend
 
+ * Revision 1.14  1993/08/10  01:46:51  marc
+ * alpha port
+ *
  * Revision 1.13  1992/08/18  18:27:16  mer
  * allow sequential walk of a hash table (better protocol for hash_seq)
  *
@@ -99,10 +102,13 @@
 # include	<stdio.h>
 # include	<sys/types.h>
 # include	<string.h>
-# include	"nodes/mnodes.h"
 # include	"tmp/postgres.h"
 # include	"utils/hsearch.h"
+#ifndef FRONTEND
+# include	"nodes/mnodes.h"
 # include	"utils/mcxt.h"
+#endif /* !FRONTEND */
+# include	"utils/palloc.h"
 # include	"utils/log.h"
 
 /*
@@ -127,6 +133,9 @@ SEG_OFFSET seg_alloc ARGS((HTAB *hashp ));
 int bucket_alloc ARGS((HTAB *hashp ));
 int my_log2 ARGS((int num ));
 
+typedef long * ((*dhalloc_ptr)());
+
+#ifndef FRONTEND
 /* ----------------
  * memory allocation routines
  *
@@ -164,6 +173,13 @@ DynaHashFree(ptr)
 
 #define MEM_ALLOC	DynaHashAlloc
 #define MEM_FREE	DynaHashFree
+
+#else /* FRONTEND */
+
+#define	MEM_ALLOC	palloc
+#define	MEM_FREE	pfree
+
+#endif /* FRONTEND */
 
 /* ----------------
  * Internal routines
@@ -235,7 +251,7 @@ int	flags;
 	} else {
 	  /* setup hash table defaults */
 
-	  hashp->alloc	  = MEM_ALLOC;
+	  hashp->alloc	  = (dhalloc_ptr) MEM_ALLOC;
 	  hashp->dir	  = NULL;
 	  hashp->segbase  = NULL;
 
