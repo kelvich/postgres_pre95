@@ -1037,15 +1037,21 @@ ExecEvalOr(orExpr, econtext, isNull)
     List   clause;
     Datum  const_value;
     bool   isDone;
- 
+	Boolean IsNull;
+
+	IsNull = false; 
     clauses = (List) get_orclauseargs(orExpr);
  
     /* ----------------
+	 *  we use three valued logic functions here...
      *	we evaluate each of the clauses in turn,
      *  as soon as one is true we return that
-     *  value.  If none are true then we return
-     *  the value of the last clause evaluated, which
-     *  should be false. -cim 8/31/89
+     *  value.  If none is true and  none of the
+	 *  clauses evaluate to NULL we return
+     *  the value of the last clause evaluated (which
+     *  should be false) with *isNull set to false else 
+	 *  if none is true and at least one clause evaluated
+	 *  to NULL we set *isNull flag to true -  
      * ----------------
      */
     foreach (clause, clauses) {
@@ -1061,21 +1067,25 @@ ExecEvalOr(orExpr, econtext, isNull)
 				   &isDone);
 	
 	/* ----------------
-	 *  if the expression evaluates to null, then we just
-	 *  cascade the null back to whoever called us.
+	 *  if the expression evaluates to null, then we 
+	 *  remember it in the local IsNull flag, if none of the
+	 *  clauses are true then we need to set *isNull
+	 *  to true again.
 	 * ----------------
 	 */
 	if (*isNull)
-	    return const_value;
+		IsNull = *isNull;
 	
 	/* ----------------
-	 *   if we have a non-false result, then we return it.
+	 *   if we have a true result, then we return it.
 	 * ----------------
 	 */
 	if (! ExecCFalse(DatumGetInt32(const_value)))
 	    return const_value;
     }
-    
+
+	/* IsNull is true if at least one clause evaluated to NULL */	
+	*isNull = IsNull;
     return const_value;
 }
 
@@ -1097,15 +1107,18 @@ ExecEvalAnd(andExpr, econtext, isNull)
     List   clause;
     Datum  const_value;
     bool   isDone;
+	Boolean IsNull;
+
+	IsNull = false;
  
     clauses = (List) get_andclauseargs(andExpr);
  
     /* ----------------
      *	we evaluate each of the clauses in turn,
-     *  as soon as one is true we return that
-     *  value.  If none are true then we return
+     *  as soon as one is false we return that
+     *  value.  If none are false or NULL then we return
      *  the value of the last clause evaluated, which
-     *  should be false. -cim 8/31/89
+     *  should be true. 
      * ----------------
      */
     foreach (clause, clauses) {
@@ -1121,12 +1134,14 @@ ExecEvalAnd(andExpr, econtext, isNull)
 				   &isDone);
 	
 	/* ----------------
-	 *  if the expression evaluates to null, then we just
-	 *  cascade the null back to whoever called us.
+	 *  if the expression evaluates to null, then we 
+	 *  remember it in IsNull, if none of the clauses after
+	 *  this evaluates to false we will have to set *isNull
+	 *  to true again.
 	 * ----------------
 	 */
 	if (*isNull)
-	    return const_value;
+	    IsNull = *isNull;
 	
 	/* ----------------
 	 *   if we have a false result, then we return it, since the
@@ -1137,6 +1152,7 @@ ExecEvalAnd(andExpr, econtext, isNull)
 	    return const_value;
     }
 
+	*isNull = IsNull;
     return const_value;
 }
  
