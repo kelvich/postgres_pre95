@@ -1192,10 +1192,6 @@ PostgresMain(argc, argv)
 	extern void IPCPrivateMemoryKill();
 	
 	if (! Quiet)
-	    puts("\tInitializing Executor Shared Memory...");
-	ExecSMInit();
-	
-	if (! Quiet)
 	    puts("\tInitializing Slave Backends...");
 	SlaveBackendsInit();
 
