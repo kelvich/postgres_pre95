@@ -9,8 +9,8 @@
  *	$Header$
  */
 
-#ifndef C_H
-#define C_H
+#ifndef	C_H		/* Include this file only once */
+#define C_H	1
 
 /*
  * Begin COMPILER DEPENDENT section
@@ -147,10 +147,16 @@ typedef char	*Pointer;
 
 
 /*
+ * BoolIsValid --
+ *	True iff bool is valid.
+ */
+#define	BoolIsValid(boolean)	((boolean) == false || (boolean) == true)
+
+/*
  * PointerIsValid --
  *	True iff pointer is valid.
  */
-#define PointerIsValid(pointer)	((pointer) != NULL)
+#define PointerIsValid(pointer)	(bool)((pointer) != NULL)
 
 /*
  * PointerIsInBounds --
@@ -451,29 +457,112 @@ free ARGS((
  */
 typedef char	*String;
 
+/*
+ * StringIsValid --
+ *	True iff string is valid.
+ */
+#define	StringIsValid(string)	PointerIsValid(string)
+
+/*
+ * Exception Handling definitions
+ */
+
+typedef String	ExcMessage;
+typedef struct Exception {
+	ExcMessage	message;
+} Exception;
+
+extern Exception	FailedAssertion;
+extern Exception	BadArg;
+extern Exception	BadState;
+
 extern
 void
-AssertionFailed ARGS((
-	const String	assertionName,
+ExceptionalCondition ARGS((
+	const String	conditionName,
+	const Exception	*exceptionP,
+	const String	details,
 	const String	fileName,
 	int		lineNumber
 ));
 
 /*
- * Assert --
- *	Assert the given expression to be true.
+ * Trap --
+ *	Generates an exception if the given condition is true.
  *
  * Note:
  *	The trailing else is used to allow this macro to be used in
  *	single statement if, while, for, and do expressions, e.g.
  *
+ *		if (tapeCount < 3)
+ *			Trap(fd == -1, FailedFileOpen);
+ *
  *		if (requests > 0)
  *			Assert(!QueueIsEmpty(queue));
+ *
+ *		if (!beenHere)
+ *			AssertArg(PointerIsValid(initP));
+ *
+ *		if (beenHere)
+ *			AssertState(ModuleInitialized)
  */
-#define Assert(expression) \
-	if (!(expression)) \
-		AssertionFailed(CppAsString(expression), __FILE__, __LINE__); \
+#define Trap(condition, exception) \
+	if (condition) \
+		ExceptionalCondition(CppAsString(condition), &(exception), \
+			(String)NULL, __FILE__, __LINE__); \
 	else
+
+#define Assert(condition) \
+	Trap(!(condition), FailedAssertion)
+
+#define AssertArg(condition) \
+	Trap(!(condition), BadArg)
+
+#define AssertState(condition) \
+	Trap(!(condition), BadState)
+
+extern
+String
+form ARGS((
+	String	format,...
+));
+
+/*
+ * LogTrap --
+ *	Generates an exception with a message if the given condition is true.
+ *
+ * Note:
+ *	The trailing else is used to allow this macro to be used in
+ *	single statement if, while, for, and do expressions, e.g.
+ *
+ *		if (slowPointer)
+ *			LogTrap(!PointerIsValid(pointer), NoMoreMemory,
+ *				("size 0x%x", size));
+ *
+ *		if (requests > 0)
+ *			LogAssert(!QueueIsEmpty(queue), ("req. %d", requests));
+ *
+ *		if (PointerIsSlowPointer(pointer))
+ *			LogAssertArg(pointer >= &end, ("ptr 0x%x", pointer));
+ *
+ *		if (!slowPointer)
+ *			LogAssertState(IsStackable(Current),
+ *				("state %d", typeof(current)))
+ */
+#define LogTrap(condition, exception, printArgs) \
+	if (condition) \
+		ExceptionalCondition(CppAsString(condition), &(exception), \
+			form printArgs, __FILE__, __LINE__); \
+	else
+
+#define LogAssert(condition, printArgs) \
+	LogTrap(!(condition), FailedAssertion, printArgs)
+
+#define LogAssertArg(condition, printArgs) \
+	LogTrap(!(condition), BadArg, printArgs)
+
+#define LogAssertState(condition, printArgs) \
+	LogTrap(!(condition), BadState, printArgs)
 
 /*
  * Max --
@@ -517,6 +606,4 @@ AssertionFailed ARGS((
 
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
-
-#endif  /* !defined(C_H)	*/
-
+#endif	/* !defined(C_H) */
