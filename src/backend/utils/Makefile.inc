@@ -23,11 +23,11 @@ GENFMGRTABFILES= fmgr.h fmgrtab.c
 # in a higher directory level.
 #
 ${GENFMGRTABFILES}: ${GENFMGRTAB} ${CATD}/pg_proc.h
-	sh ${SHOPTS} ${GENFMGRTAB} ${BKIOPTS} ${CATD}/pg_proc.h; \
-	rm -f ${UTILD}/fmgr.h; \
-	ln -s ${.CURDIR}/obj/fmgr.h ${UTILD}
+	sh ${SHOPTS} ${GENFMGRTAB} ${BKIOPTS} ${CATD}/pg_proc.h
 
 ${UTILD}/fmgr.h: ${GENFMGRTABFILES}
+	rm -f ${.TARGET}; \
+	ln -s ${.CURDIR}/obj/fmgr.h ${.TARGET}
 
 .depend: ${GENFMGRTABFILES}
 
