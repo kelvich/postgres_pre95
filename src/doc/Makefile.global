@@ -2,14 +2,19 @@
 # $Header$
 #
 
-.SUFFIXES: .cat .ps .me
+.SUFFIXES: .cat .ps .me .eps .fig
 
 NROFF=nroff
 
 GROFF=groff -set
+
+FIG2DEV=fig2dev
 
 .me.cat:
 	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
 
 .me.ps:
 	${GROFF} -me -Tps ${.IMPSRC} > ${.TARGET}
+
+.fig.eps:
+	${FIG2DEV} -L ps < ${.IMPSRC} > ${.TARGET}
