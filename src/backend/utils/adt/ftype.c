@@ -389,6 +389,7 @@ fabstract(name, foid, blksize, offset, size)
     int32 offset;
     int32 size;
 {
+    File vfd;
     char *buf;
     f262desc *f;
     int blkno;
@@ -402,7 +403,7 @@ fabstract(name, foid, blksize, offset, size)
     buf = (char *) palloc(size);
 
     /* open the base object for reading */
-    f262desc = f262open(foid);
+    f = f262open(foid);
 
     /* create the abstraction */
     blkno = 0;
