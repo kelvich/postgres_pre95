@@ -76,7 +76,7 @@ IPCKey		PostgresIpcKey;
 String	PostgresPath = NULL;
 String	PostgresDatabase = NULL;
 
-extern int Debugfile, Ttyfile, Dblog, Slog;
+extern int Debugfile, Ttyfile;
 extern int Portfd, Packfd, Pipefd;
 
 extern BackendId	MyBackendId;
@@ -446,37 +446,8 @@ InitStdio()
 	    else
 	        elog(FATAL, "Did you run initdb yet??");
 	}
-	
-	Slog = SYSLOG_FD;
-/*	Packfd = 5; 	Packfd not used see below */
-	Dblog = DBLOG_FD;
-	Pipefd = 7;
-	
-/*
- *	Already done after postgres command line args processing
- *
- *	Portfd = 4;
- *	pq_init(Portfd);
- */
-	    
-/* ---------------------------
- *  It looks like Packfd was used to allow comm. between the postmaster
- *  and the backend, since this never really happens we don't really need
- *  it.... -mer 2/20/91
- * ---------------------------
- *	read(Packfd, (char *)&pack, sizeof(pack));
- *	bcopy(pack.data, (char *)&Ident, sizeof(Ident));
- */
-    } 
-
-#ifdef GO_SLOW
-    if (!isatty(fileno(stdout)) && !isatty(fileno(stderr))) {
-	setbuf(stdout, (char *)NULL);
-	setbuf(stderr, (char *)NULL);
     }
-#endif GO_SLOW
 
-    Dblog = dup(Debugfile);
     Err_file = ErrorFileOpen();
 }
 
