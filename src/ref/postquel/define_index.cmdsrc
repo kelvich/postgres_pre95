@@ -23,11 +23,6 @@ type_class\-1
 { , attname\-i
 type_class\-i }
 .b )
-[
-.b "with ("
-parameter-list
-.b )
-]
 .uh DESCRIPTION
 .lp
 This command constructs an index
@@ -39,8 +34,7 @@ keyword is absent,
 the
 .i classname
 class is indexed.
-In contrast,
-when
+When
 .b archive
 is present,
 an index is created
@@ -50,53 +44,83 @@ class.
 .lp
 .i Am-name
 is the name of the access method which is used for the index.
+.lp
 The key fields for the index are specified as a collection of
-attribute names and associated classes.
-A class is used to indicate the collection of
-functions and operators which the access method
-should use to manipulate the index.
+attribute names and associated
+.i "operator classes" .
+An operator class is used to specify the operators
+to be used for a particular index.
+For example,
+a btree index on four-byte integers would use the
+.i int4_ops
+class;
+this operator class includes comparison functions for
+four-byte integers.
 .lp
-Predefined type classes are:
+\*(PP release 3.0 provides btree and rtree access methods
+for secondary indices.
+The operator classes defined on btrees are
 .(l
-int2_ops	float4_ops
-int4_ops	float8_ops	
-area_ops	oid_ops
+int2_ops	char_ops
+int4_ops	char16_ops
+int24_ops	oid_ops
+int42_ops	text_ops
+floag4_ops	abstime_ops
+float8_ops
 .)l
-All are defined for the normal comparison operators ( <, <=, =, >, >=).
-.lp
-New classes can be added dynamically by making an insertion in the
-pg_opclass class in the system catalogs.
-Operators can be associated with a class by making insertions in the pg_amop class
-in the system catalogs.
-.lp
 The
-.i parameter-list
-specifies access method specific performance parameters
-such as the fill-factor to be used
-when loading the pages of the index
-or the minimum and maximum number of
-pages to allocate.
+.i int24_ops
+operator class is useful for constructing indices on int2 data,
+and doing comparisons against int4 data in query qualifications.
+Similarly,
+.i int42_ops
+support indices on int4 data that is to be compared against int2
+data in queries.
 .lp
-Version 2.1 of \*(PP comes with a standard B-tree access method, a linear hashing
-access method and a R-tree access method.
-In addition, users are encouraged to
-write their own.
-To define a new access method, the functions indicated in the pg_am relation
-must be written.  Unfortunately there is no documentation to support
-an access method writer; hence he should look carefully at the source code
-for the B-tree access method included with POSTGRES. 
-.uh EXAMPLE
+The operator classes defined on rtrees are
+.(l
+box_ops	poly_ops
+bigbox_ops
+.)l
+Both of these support indices on the
+.q box
+datatype in \*(PP.
+The difference between them is that
+.i bigbox_ops
+scales box coordinates down,
+to avoid floating point exceptions from doing
+multiplication,
+addition,
+and subtraction on very large floating-point coordinates.
+If the field on which your rectangles lie is about 20,000
+units square or larger,
+you should use
+.i bigbox_ops .
+The
+.i poly_ops
+operator class supports rtree indices on
+.q polygon
+data.
+.uh EXAMPLES
 .lp
 Create a btree index on the emp class using the age attribute.
 .(b
-define index emp-index on emp using btree (age int4_ops)
+define index empindex on emp using btree (age int4_ops)
+.)b
+.lp
+Create a btree index on employee name.
+.(b
+define index empname on emp using btree (name char16_ops)
+.)b
+.lp
+Create an rtree index on the bounding rectangle of cities.
+.(b
+define index cityrect on city using rtree (boundbox box_ops)
 .)b
 .uh BUGS
 .lp
-Archives are not supported in Version 2.1.
+Archive indices are not supported in Version 2.1.
 .lp
 There should be an access method designers guide.
 .lp
-The 
-.i parameter-list
-is not supported in Version 2.1.
+Indices may only be defined on a single key.
