@@ -971,6 +971,7 @@ int fileMode;
 	fname = filepath(fileName, i);
 	if ((sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode)) < 0)
 	    return ((File) sfdP->vfd[i]);
+	pfree(fname);
     }
     sfdP->curStripe = 0;
     sfdP->seekPos = 0;
