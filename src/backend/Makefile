@@ -241,7 +241,9 @@ afterinstall: pg_id
 		PG_UID=`./pg_id`;; \
 	esac ;\
 	for bki in ${BKIFILES}; do \
-		sed -e "s/postgres PGUID/$$POSTGRESLOGIN $$PG_UID/" \
+		sed \
+		    -e "s/postgres PGUID/$$POSTGRESLOGIN $$PG_UID/" \
+		    -e "s/PGUID/$$PG_UID/" \
 		    < $$bki > $$bki.sed ; \
 		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
