@@ -37,9 +37,9 @@ In other words,
 this is
 .b unsupported
 software.
-.uh "POSTGRES DISTRIBUTION"
+.uh "\*(PP DISTRIBUTION"
 .sp
-This reference describes Version \*(PV of POSTGRES.  The POSTGRES software is
+This reference describes Version \*(PV of \*(PP.  The \*(PP software is
 about 190,000 lines of C code, and is available for 
 SUN 4 class machines, for DECstation 3100 and 5000 machines and for
 the SEQUENT Symmetry machine.
@@ -60,7 +60,7 @@ University of
 California Version of \*(II, a relational prototype
 from the late 1970s.
 .sp
-.uh "POSTGRES DOCUMENTATION"
+.uh "\*(PP DOCUMENTATION"
 .lp
 This
 reference describes the functionality of Version \*(PV
@@ -91,7 +91,7 @@ Next,
 Section 6 continues with a description of
 a method by which applications may execute functions in \*(PP
 with very high performance.
-Section 7 describes the internal Postgres interface for accessing
+Section 7 describes the internal \*(PP interface for accessing
 large objects. 
 The reference concludes with Section 8,
 a collection of

@@ -12,14 +12,14 @@ load \*- dynamically load an object file
 .uh DESCRIPTION
 .lp
 .b Load
-loads an object (or ".o") file into Postgres's address space.  Once a file
+loads an object (or ".o") file into \*(PP's address space.  Once a file
 is loaded, all functions in that file can be accessed.  This function is
 used in support of ADT's.
 .lp
 If a file is not loaded using the 
 .b load
 command, the file will be loaded automatically the first time the function
-is called by Postgres.
+is called by \*(PP.
 .b Load
 can also be used to reload an object file if it has been edited and recompiled.
 Only objects created from C language files are supported at this time.
@@ -37,9 +37,9 @@ Functions in loaded object files should not call functions in other object
 files loaded through the 
 .b load
 command, meaning, for example, that all functions in file A should call
-each other, functions in the standard or math libraries, or in Postgres itself.
+each other, functions in the standard or math libraries, or in \*(PP itself.
 They should not call functions defined in a different loaded file B.  This is
-because if B is reloaded, the Postgres loader is not "smart" enough to relocate
+because if B is reloaded, the \*(PP loader is not "smart" enough to relocate
 the calls from the functions in A into the new address space of B.  If B is
 not reloaded, however, there will not be a problem.
 .lp
@@ -53,6 +53,6 @@ takes from a few seconds on Suns and Sparcs to several minutes on DECstations.
 On DECstations, you must use the "-G O" option when compiling object files to
 be loaded.
 .lp
-Note that if you are porting Postgres to a new platform, the
+Note that if you are porting \*(PP to a new platform, the
 .b load
 command will have to work in order to support ADT's.

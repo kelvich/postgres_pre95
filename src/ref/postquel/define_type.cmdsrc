@@ -116,11 +116,11 @@ Two generalized builtin functions,
 and
 .b array_out,
 exist for quick creation of variable length array types.  These functions
-operate on any existing Postgres type.
+operate on any existing \*(PP type.
 .lp
 .uh "LARGE OBJECT TYPES"
 .lp
-A "regular" Postgres type can only be 8K bytes in length.  If you need
+A "regular" \*(PP type can only be 8K bytes in length.  If you need
 a larger type, then you will want to create a Large Object type.  The
 interface for these types is discussed at length in Section 7, the Large
 Object Backend Interface.  The length of all large object types is always

@@ -18,8 +18,7 @@ Only users with ``usesuper'' set in the pg_user class can create
 new \*(PP users.  As shipped, the user ``postgres'' can create users.
 .sp
 .i Username
-is the name of the POSTGRES user
-to be created.
+is the name of the \*(PP user to be created.
 The name must be unique
 among all \*(PP users.
 .sp
@@ -57,5 +56,5 @@ not do anything with \*(PP at all.
 The user already exists.
 .uh BUGS
 .lp
-Postgres userid's and usernames should not have anything to do with the
+\*(PP userid's and usernames should not have anything to do with the
 constraints of Unix.

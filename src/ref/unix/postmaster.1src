@@ -1,10 +1,10 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
 .SP POSTMASTER UNIX 6/14/90
-.XA 1 "The Postgres Postmaster"
+.XA 1 "The \*(PP Postmaster"
 .uh "NAME"
 .lp
-postmaster \*- run the Postgres postmaster
+postmaster \*- run the \*(PP postmaster
 .uh "SYNOPSIS"
 .lp
 postmaster [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
@@ -25,7 +25,7 @@ starting any libpq application including the terminal monitor.  Alternatively
 you may set the environment variable PGPORT to the specified port and all
 libpq applications will use it instead of the default.
 .lp
-\fIbackend_pathname\fR is the full pathname of the Postgres backend you
+\fIbackend_pathname\fR is the full pathname of the \*(PP backend you
 wish to use.
 .lp
 \fIdeug_level\fR determines the amount of debugging output the backend will
@@ -38,7 +38,7 @@ a few terse debugging output messages to the tty on which it was started.
 .lp
 This command will start up a postmaster on the default port (4321) and 
 will expect to use the default path to the 
-postgres backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
+\*(PP backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
 This is the simplest and most common way to start the postmaster.
 .sp
 .lp

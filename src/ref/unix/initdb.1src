@@ -21,7 +21,7 @@ the the environment variable, POSTGRESHOME.  For example,
 setenv POSTGRESHOME /usr/postgres
 .ft P
 .)l
-Postgres also supports
+\*(PP also supports
 data striping by allowing a database spread across multiple directories.
 The user can specify multiple directories in POSTGRESHOME separated by
 ':'.  For example,

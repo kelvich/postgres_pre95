@@ -12,8 +12,8 @@
 libpq \*- programmer's interface to \*(PP
 .uh DESCRIPTION
 .lp
-LIBPQ is the programmer's interface to Postgres.  LIBPQ is a set of
-library routines which allow queries to pass to the Postgres back-end
+LIBPQ is the programmer's interface to \*(PP.  LIBPQ is a set of
+library routines which allow queries to pass to the \*(PP back-end
 and instances to return through an IPC channel.
 .lp
 This version of the documentation is based on the C library.
@@ -29,9 +29,9 @@ database names into an application program:
 .bu
 \fBPGHOST\fR sets the default server name.
 .bu
-\fBPGDATABASE\fR sets the default Postgres database name.
+\fBPGDATABASE\fR sets the default \*(PP database name.
 .bu
-\fBPGPORT\fR sets the default communication port with the POSTGRES back-end.
+\fBPGPORT\fR sets the default communication port with the \*(PP back-end.
 .bu
 \fBPGTTY\fR sets the tty on the PQhost back-end on which debugging messages are displayed.
 .)l
@@ -41,11 +41,11 @@ the programmer:
 .lp
 .(1
 .nf
-char	*PQhost ;	/* the server on which POSTGRES back-end
+char	*PQhost ;	/* the server on which \*(PP back-end
 			   is running. */
 
 char	*PQport = NULL ;	/* The communication port with the
-				   POSTGRES back-end. */
+				   \*(PP back-end. */
 
 char	*PQtty;		/* The tty on the PQhost back-end on which
 			   back-end messages are displayed. */
@@ -84,7 +84,7 @@ char * PQdb ()
 .)1
 .fi
 .lp
-Returns the name of the POSTGRES database
+Returns the name of the \*(PP database
 being accessed, or NIL if no database is open.
 Only one database can be accessed at a time.  The database
 name is a string limited to 16 characters.
@@ -113,7 +113,7 @@ by the libpq buffer.
 .nf
 
 .(1
-PQfn \*- Send a function call to the POSTGRES backend.
+PQfn \*- Send a function call to the \*(PP backend.
 
 char *PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 	int fnid;
@@ -124,12 +124,12 @@ char *PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 	int nargs;
 
 .fi
-PQfn provides access to the POSTGRES fastpath facility, a trapdoor into
+PQfn provides access to the \*(PP fastpath facility, a trapdoor into
 the system internals.  See \fBFASTPATH\fR.
 .nf
 
 .(1
-PQexec \*- Submit a query to POSTGRES.  
+PQexec \*- Submit a query to \*(PP.  
 
 char *	PQexec (query)
 	char	* query;
@@ -150,7 +150,7 @@ to the application program.
 
 .uh "PORTAL FUNCTIONS"
 .lp
-A portal is a POSTGRES buffer from which instances can be fetched.
+A portal is a \*(PP buffer from which instances can be fetched.
 Each portal has a string name (currently limited to 16 bytes).
 A portal is initialized by submitting a retrieve statement
 using the PQexec function, for example:
@@ -351,7 +351,7 @@ list that has been handled to prevent further handling by you.
 .lp
 The
 .i copy
-command in POSTGRES has options to read from or write to the network
+command in \*(PP has options to read from or write to the network
 connection used by LIBPQ.  Therefore, functions are necessary to access
 this network connection directly so applications may take full advantage
 of this capability.
@@ -423,7 +423,7 @@ length will be silently truncated.
 .nf
 /*
  * testlibpq.c \*-
- * 	Test the C version of Libpq, the POSTGRES frontend library.
+ * 	Test the C version of Libpq, the \*(PP frontend library.
  */
 #include <stdio.h>
 #include "libpq.h"

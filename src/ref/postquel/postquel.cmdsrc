@@ -97,7 +97,7 @@ There are six types of
 .i constants
 for use in \*(PQ.
 They are described below.
-.uh  "Character Constants"
+.uh "Character Constants"
 .lp
 Single
 .i "character constants"
@@ -130,7 +130,7 @@ values
 range from \(mi2147483647
 to +2147483647.
 This will vary depending on the operating system and host machine.
-.uh  "Floating Point Constants"
+.uh "Floating Point Constants"
 .lp
 .i "Floating point constants"
 consist of an integer part, a decimal point, and
@@ -153,7 +153,7 @@ approximately
 .if t \(mi10\x'-0.2v'\u\s-3\&38\s0\d to 10\u\x'-0.2v'\s-3\&38\s0\d
 and a precision of 17 decimal digits.
 This will vary depending on the operating system and host machine.
-.uh "Constants of Postgres User Defined Types"
+.uh "Constants of \*(PP User Defined Types"
 .lp
 A constant of an
 .i arbitrary
@@ -168,7 +168,7 @@ indicated type.
 .uh "Array constants"
 .lp
 .i "Array constants"
-are arrays of any Postgres type, including other arrays, string constants,
+are arrays of any \*(PP type, including other arrays, string constants,
 etc.  The general format of an array constant is the following:
 .(l
 "{<val1><delim><val2<delim>}"
@@ -244,7 +244,7 @@ or
 New and current can only appear in the action portion of a rule, while other instance
 variables can be used in any POSTQUEL command. 
 .i Composite_field
-is a field of of one of the POSTGRES composite types indicated in the 
+is a field of of one of the \*(PP composite types indicated in the 
 .b information
 (POSTQUEL) section,
 while successive

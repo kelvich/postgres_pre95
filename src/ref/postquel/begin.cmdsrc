@@ -13,7 +13,7 @@ begin \*- begins a transaction
 .lp
 This command begins a user transaction which \*(PP will guarantee
 is serializable with respect to all concurrently executing transactions.
-Postgres uses two-phase locking to perform this task.  If the transaction
+\*(PP uses two-phase locking to perform this task.  If the transaction
 is committed, \*(PP will ensure that all updates are done or none
 of them are done.
 Transactions have the standard
