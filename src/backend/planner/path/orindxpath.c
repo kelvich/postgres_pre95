@@ -59,14 +59,14 @@ create_or_index_paths (rel,clauses)
 	  /* lists of index nodes returned by (get_index) will be 'nil'). */
 
 	  if(valid_or_clause (clausenode) &&
-	     get_index (clausenode)) {
+	     get_indexids (clausenode)) {
 	       LispValue temp = LispNil;
 	       LispValue index_list = LispNil;
 	       bool index_flag = true;
 
 	       index_list = get_indexids(clausenode);
 	       foreach(temp,index_list) {
-		    if (!identity(temp)) 
+		    if (!temp) 
 		      index_flag = false;
 	       }
 	       if (index_flag) {   /* used to be a lisp every function */
@@ -81,7 +81,7 @@ create_or_index_paths (rel,clauses)
 
 		    set_pathtype (pathnode,INDEX_SCAN);
 		    set_parent (pathnode,rel);
-		    set_indexqual (pathnode,list (clausenode));
+		    set_indexqual (pathnode,lispCons(clausenode,LispNil));
 		    set_indexid (pathnode,nth (0,indexinfo));
 		    set_cost (pathnode,nth (1,indexinfo));
 		    set_selectivity (clausenode,nth (2,indexinfo));
@@ -133,8 +133,9 @@ best_or_subclause_indices (rel,subclauses,indices,
      LispValue t_list = LispNil;
      if ( null (subclauses) ) {
 	  t_list = 
-	    list (nreverse (examined_indexids),subcost,
-		  nreverse (selectivities));
+	    lispCons (nreverse (examined_indexids),
+		      lispCons(subcost,
+			       lispCons(nreverse (selectivities),LispNil)));
      } 
      else {
 	  LispValue indexinfo = 
@@ -200,13 +201,14 @@ best_or_subclause_index (rel,subclause,indices)
 	       flag = _SELEC_CONSTANT_RIGHT_;
 	  } 
 	  pagesel = index_selectivity (nth (0,get_indexid (rel)),
-				       get_class (index),
-				       list (opno),
+				       get_classlist (index),
+				       lispCons (opno,LispNil),
 				       getrelid (get_relid (rel),
 						 _query_range_table_),
-				       list (attno),
-				       list (value),
-				       list (flag),1);
+				       lispCons (attno,LispNil),
+				       lispCons (value,LispNil),
+				       lispCons (flag,LispNil),
+				       1);
 	  subcost = cost_index (nth (0,get_indexid (index)),
 				floor (nth (0,pagesel)),
 				(int)(CAR (pagesel)),
@@ -218,8 +220,9 @@ best_or_subclause_index (rel,subclause,indices)
 		
 	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
 	       /* XXX - this used to be "list "(CAR(get....index),.." */
-	       t_list = list (get_indexid (index),
-			      subcost,CADR(pagesel));
+	       t_list = lispCons (get_indexid (index),
+				  lispCons(subcost,
+					   lispCons(CADR(pagesel))));
 	  } 
 	  else {
 	       t_list = bestrest;

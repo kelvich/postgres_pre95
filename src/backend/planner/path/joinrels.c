@@ -23,16 +23,6 @@
 #include "joininfo.h"
 
 
-/*  These are functions defined in relation.l but not in relation.c.
- *  They need to either be converted, or replaced by their 
- *  equivalent new functions.
- */
-extern LispValue get_other_rels();  /*
-				     * The OtherRels field is a list of 
-				     * relids used in the join clause
-				     */
-extern LispValue get_join_list();    /* returns a list of relids to which
-				      
 /*    
  *    	find-join-rels
  *    
@@ -60,8 +50,8 @@ find_join_rels (outer_rels)
      LispValue t_list = LispNil;
      
      foreach (outer_rel,outer_rels) {
-	  if (find_clause_joins (outer_rel,get_join_info (outer_rel)))
-	    temp = find_clause_joins (outer_rel,get_join_info (outer_rel));
+	  if (find_clause_joins (outer_rel,get_joininfo (outer_rel)))
+	    temp = find_clause_joins (outer_rel,get_joininfo (outer_rel));
 	  else
 	    temp = find_clauseless_joins (outer_rel,_query_relation_list_);
 	  t_list = nconc(t_list,temp);   /*  XXX is this right?  */
@@ -100,11 +90,12 @@ LispValue outer_rel,joininfo_list ;
      LispValue t_list = LispNil;
      
      foreach(joininfo,joininfo_list) {
-	  LispValue other_rels = get_other_rels (joininfo);
+	  LispValue other_rels = get_otherrels (joininfo);
 	  if ( 1 == length (other_rels) ) {
-	       temp_node = list (init_join_rel(outer_rel,
-					       get_rel(car (other_rels)),
-					       joininfo));
+	       temp_node = lispCons(init_join_rel(outer_rel,
+						  get_rel(CAR(other_rels)),
+						  joininfo),
+				    LispNil);
 	       t_list = nconc(t_list,temp_node);
 	  } 
 	  else {
@@ -139,9 +130,11 @@ find_clauseless_joins (outer_rel,inner_rels)
 
      foreach(inner_rel,inner_rels) {
 	  if ( !member(get_relid(inner_rel),get_relids (outer_rel))) {
-	       temp_node = list (init_join_rel(outer_rel,
-					       get_rel(get_relid (inner_rel)),
-					       LispNil));
+	       temp_node = lispCons (init_join_rel(outer_rel,
+						   get_rel(get_relid 
+							   (inner_rel)),
+						   LispNil),
+				     LispNil);
 	       t_list = nconc(t_list,temp_node);
 	  } 
 	  else {
@@ -180,29 +173,29 @@ init_join_rel (outer_rel,inner_rel,joininfo)
 	/*    the results together. */
 
      LispValue new_outer_tlist = 
-       new_join_tlist (get_tlist (outer_rel)	    /*   XXX 1-based attnos */
+       new_join_tlist (get_targetlist (outer_rel)	    /*   XXX 1-based attnos */
 	               ,get_relids (inner_rel),1);
      LispValue new_inner_tlist = 
-       new_join_tlist (get_tlist (inner_rel)    /*   XXX 1-based attnos */
+       new_join_tlist (get_targetlist  (inner_rel)    /*   XXX 1-based attnos */
 		       ,get_relids (outer_rel),
 		       length (new_outer_tlist) - 1);
 
-     set_relids (joinrel,append1 (get_relids (outer_rel),
+     set_relids (joinrel,nappend1 (get_relids (outer_rel),
 				  get_relid (inner_rel)));
-     set_tlist (joinrel,nconc (new_outer_tlist,new_inner_tlist));
+     set_targetlist (joinrel,nconc (new_outer_tlist,new_inner_tlist));
 
      if ( joininfo) {
-	  set_clause_info (joinrel,get_clause_info (joininfo));
+	  set_clauseinfo (joinrel,get_clauseinfo (joininfo));
      };
 
      /* XXX - let form, maybe incorrect */
      joinrel_joininfo_list = 
        new_joininfo_list (new_joininfo_list(LispNil,
-					    get_join_info (outer_rel),
+					    get_joininfo (outer_rel),
 					    get_relids (inner_rel)),
-			  get_join_info (inner_rel),
+			  get_joininfo (inner_rel),
 			  get_relids (outer_rel));
-     set_join_info (joinrel,joinrel_joininfo_list);
+     set_joininfo (joinrel,joinrel_joininfo_list);
 
      return(joinrel);
 
@@ -239,18 +232,19 @@ new_join_tlist (tlist,other_relids,first_resdomno)
 	LispValue temp_node = LispNil;
 	LispValue t_list = LispNil;
 
-	LispValue join_list = get_join_list (xtl);
+	LispValue join_list = get_joinlist (xtl);
 	bool in_final_tlist = null (join_list);
 	LispValue future_join_list = LispNil;
 	if ( join_list ) {
 	     future_join_list = set_difference (join_list,other_relids);
 	} 
 	foreach(xtl,tlist) {
-	     if ( or (in_final_tlist,future_join_list) ) {
+	     if ( in_final_tlist || future_join_list)  {
 		  temp_node = 
-		    list (create_tl_element (tl_expr(get_tlelement (xtl)),
-					     incf (resdomno),
-					     future_join_list));
+		    lispCons (create_tl_element (get_expr(get_entry (xtl)),
+						 resdomno++,
+						 future_join_list),
+			      LispNil);
 		  t_list = nconc(t_list,temp_node);
 	     } 
 	     else {
@@ -290,7 +284,7 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
      LispValue joininfo = LispNil;
 	foreach (joininfo, joininfo_list) {
 	     LispValue new_otherrels = 
-	       set_difference (get_other_rels (joininfo),join_relids);
+	       set_difference (get_otherrels (joininfo),join_relids);
 	     JInfo other_joininfo;
 	     if ( new_otherrels ) {
 		  other_joininfo = 
@@ -298,14 +292,14 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
 	     } 
 
 	     if (other_joininfo) {
-		  set_clause_info (other_joininfo,
-				   Lispunion(get_clause_info (joininfo),
-					  get_clause_info (other_joininfo)));
+		  set_clauseinfo (other_joininfo,
+				   LispUnion(get_clauseinfo (joininfo),
+					  get_clauseinfo (other_joininfo)));
 	     } 
 	     else {
 		  other_joininfo = CreateNode (JInfo);
-		  set_other_rels (other_joininfo,new_otherrels);
-		  set_clause_info (other_joininfo,get_clause_info (joininfo));
+		  set_otherrels (other_joininfo,new_otherrels);
+		  set_clauseinfo (other_joininfo,get_clauseinfo (joininfo));
 		  set_mergesortable (other_joininfo,
 				     get_mergesortable (joininfo));
 		  set_hashjoinable (other_joininfo,

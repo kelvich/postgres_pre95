@@ -22,19 +22,10 @@
 #include "relation.a.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "tags.h"
+#include "parse.h"
 
-extern LispValue number_list();
-/*
-extern LispValue expand_targetlist();
-extern LispValue replace_matching_resname();
-extern LispValue new_relation_targetlist();
-*/
-
-#define CONST 1      /*  temporary stuff   */
-#define VAR 2
-#define APPEND 3
-#define REPLACE 4
-
+extern LispValue number_list();  /* XXX should #include temp.h in l-lisp */
 
 /*    
  *    	preprocess-targetlist
@@ -53,12 +44,13 @@ extern LispValue new_relation_targetlist();
 
 List
 preprocess_targetlist (tlist,command_type,result_relation,range_table)
-     LispValue command_type,result_relation;
      List tlist;
+     int command_type;
+     LispValue result_relation;
      List range_table ;
 {
      List expanded_tlist = NULL;
-     ObjectId relid = LispNil;
+     LispValue relid = LispNil;
      LispValue t_list = LispNil;
      LispValue temp = LispNil;
 
@@ -77,7 +69,7 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      /*    was mapCAR  */
      
      foreach (temp,expanded_tlist) {
-	  t_list = nappend1(t_list,fix_opids (temp));
+	  t_list = nappend1(t_list,fix_opids (CAR(temp)));
      }
 
      return(t_list);
@@ -108,35 +100,38 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
 
 LispValue
 expand_targetlist (tlist,relid,command_type,result_relation)
-     LispValue tlist,relid,command_type,result_relation ;
+     List tlist;
+     LispValue relid;
+     int command_type;
+     LispValue result_relation ;
 {
-     int node_type;
-
-     switch (command_type) {
-	case APPEND : 
-	  { 
-		 node_type = CONST;
-	    }
-	  break;
-	  
-	case REPLACE : 
-	    { 
-		 node_type = VAR;
-	    }
-	  break;
-     } 
-
-     if(node_type) {
+    int node_type;
+    
+    switch (command_type) {
+      case APPEND : 
+	{ 
+	    node_type = T_Const;
+	}
+	break;
+	
+       case REPLACE : 
+	 { 
+	     node_type = T_Var;
+	 }
+	break;
+    } 
+    
+    if(node_type) {
 	  return (replace_matching_resname (new_relation_targetlist 
-				                    (relid,
-						     result_relation,
-						     node_type),
-				    tlist));
+					    (relid,
+					     result_relation,
+					     node_type),
+					    tlist));
 	  
-     } 
-     else 
-	  return (tlist);
-
+      } 
+    else 
+       return (tlist);
+    
 }  /* function end   */
 
 
@@ -188,7 +183,8 @@ replace_matching_resname (new_tlist,old_tlist)
 
 LispValue
 new_relation_targetlist (relid,rt_index,node_type)
-     LispValue relid,rt_index,node_type ;
+     LispValue relid,rt_index;
+     NodeTag node_type ;
 {
      LispValue attno = LispNil;
      LispValue t_list = LispNil;
@@ -202,7 +198,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 
 	  switch (node_type) {
 	       
-	     case CONST:
+	     case T_Const:
 		 { 
 		      struct varlena *typedefault = get_typdefault (atttype);
 		      int temp ;
@@ -223,12 +219,13 @@ new_relation_targetlist (relid,rt_index,node_type)
 		      t_list = nappend1(t_list,temp3);
 		      break;
 		   } 
-	       case VAR:
+	       case T_Var:
 		 { 
 		      Var temp;
 		      temp = MakeVar (rt_index,attno,atttype,
 				       LispNil,LispNil,
-				       list (rt_index,attno));
+				       lispCons (rt_index,
+						 lispCons(attno,LispNil)));
 		      t_list = nappend1(t_list,temp);
 		      break;
 		 }

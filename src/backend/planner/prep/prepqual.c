@@ -41,12 +41,12 @@ preprocess_qualification (qual,tlist)
 {
   LispValue cnf_qual = cnfify (qual);
   LispValue existential_qual = 
-    update_clauses (lispCons (_query_result_relation_,
+    update_clauses (lispCons (lispInteger(_query_result_relation_),
 			  update_relations (tlist)),
 		    cnf_qual,_query_command_type_);
   if ( existential_qual ) 
-    return (list (set_difference (cnf_qual,existential_qual),
-		  existential_qual));
+    return (lispCons (set_difference (cnf_qual,existential_qual),
+		      lispCons(existential_qual,LispNil)));
   else 
     return (lispCons (cnf_qual,lispCons(existential_qual,LispNil)));
 
@@ -95,7 +95,8 @@ cnfify (qual)
 	if(and_clause (newqual)) 
 	  return (remove_ands (newqual));
 	else 
-	  return (remove_ands (make_andclause (list (newqual))));
+	  return (remove_ands (make_andclause (lispCons (newqual,
+							 LispNil))));
     }
     return (LispNil);
 } /*  function end   */
@@ -450,7 +451,11 @@ distribute_args (item,args)
 
     foreach (temp,args) {
       t_list = nappend1(t_list,
-		     make_orclause(or_normalize(pull_ors(list(item,temp)))));
+			make_orclause(or_normalize(pull_ors(lispCons(item,
+								     lispCons
+								     (temp,
+								      LispNil)
+								     )))));
     }
     return (make_andclause (t_list));
   }

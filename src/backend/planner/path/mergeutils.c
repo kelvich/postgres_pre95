@@ -55,8 +55,8 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       CInfo xmergeinfo = 
 		 match_order_mergeinfo (merge_ordering,mergeinfo_list);
 	       Expr clause = get_clause (clauseinfo);
-	       LispValue leftop = get_leftop (clause);
-	       LispValue rightop = get_rightop (clause);
+	       Var leftop = get_leftop (clause);
+	       Var rightop = get_rightop (clause);
 	       JoinKey keys;
 	       
 	       if(equal (inner_relid,get_varno (leftop))) {
@@ -68,7 +68,7 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 
 	       if ( null (xmergeinfo)) {
 		    xmergeinfo = CreateNode (CInfo);
-		    set_mergesortorder(xmergeinfo,ordering(merge_ordering));
+		    set_mergesortorder(xmergeinfo,merge_ordering);
 		    push (xmergeinfo,mergeinfo_list);
 	       }
 	       push (clause,joinmethod_clauses (xmergeinfo));
@@ -103,9 +103,9 @@ match_order_mergeinfo (ordering,mergeinfo_list)
      bool temp2 ;
      foreach(xmergeinfo, mergeinfo_list) {
 	  xmergeorder = get_mergesortorder(xmergeinfo);
-	  temp1 =(bool)( mergeorder_p(ordering) &&
+	  temp1 =(bool)( IsA(ordering,MergeOrder) &&
 			equal_merge_merge_ordering(ordering,xmergeorder));
-	  temp2 = (bool) (!mergeorder_p(ordering) &&
+	  temp2 = (bool) (!IsA(ordering,MergeOrder) &&
 			  equal_path_merge_ordering(ordering,xmergeorder));
 	  if (temp1 || temp2)
 	    return((CInfo)xmergeinfo);

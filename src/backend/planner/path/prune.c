@@ -85,7 +85,7 @@ prune_joinrel (rel,other_rels)
 	       t_list = nconc(t_list, LispNil);  /* XXX is this right ? */
 	  } 
 	  else {
-	       temp_node = list (other_rel);
+	       temp_node = lispCons(other_rel,LispNil);
 	       t_list = nconc(t_list,temp_node);
 	  } 
      }
@@ -135,17 +135,18 @@ LispValue rel_list ;
 /*  .. find-rel-paths, prune-rel-paths	 */
 
 Path
-prune_rel_path (rel,unordered_path)
-     LispValue rel,unordered_path ;
+prune_rel_path (rel,unorderedpath)
+     Rel rel ;
+     Path unorderedpath ;
 {
      /* XXX - let form, maybe incorrect */
      Path cheapest = set_cheapest (rel,get_pathlist (rel));
-     if (!(eq (unordered_path,cheapest))) {
-	  set_unordered_path (rel,LispNil);
-	  set_pathlist (rel,LispDelete(unordered_path,get_pathlist (rel)));
+     if (!(eq (unorderedpath,cheapest))) {
+	  set_unorderedpath (rel,LispNil);
+	  set_pathlist (rel,LispDelete(unorderedpath,get_pathlist (rel)));
      } 
      else {
-	  set_unordered_path (rel,unordered_path);
+	  set_unorderedpath (rel,unorderedpath);
      } 
      
      return(cheapest);

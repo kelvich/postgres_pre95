@@ -26,6 +26,8 @@
 
 #include "c.h"
 #include "internal.h"
+#include "relation.h"
+#include "relation.a.h"
 #include "costsize.h"
 /*
 extern LispValue compute_targetlist_width();
@@ -33,7 +35,7 @@ extern LispValue compute_attribute_width();
 extern LispValue page_size();
 */
 
-extern int _cost_weirdness_;
+#define _cost_weirdness_ 0
 
 #define INNER 0
 #define OUTER 1
@@ -438,7 +440,7 @@ compute_rel_size (rel)
      LispValue rel ;
 {
 	int temp;
-	temp = get_tuples(rel) * product_selec(get_clause_info(rel));
+	temp = get_tuples(rel) * product_selec(get_clauseinfo(rel));
 	return ((int)floor(temp));
 }
 
@@ -458,7 +460,7 @@ compute_rel_width (rel)
      LispValue rel ;
 {
 
-     return (compute_targetlist_width(get_actual_tlist(get_tlist (rel))));
+     return (compute_targetlist_width(get_actual_tlist(get_targetlist (rel))));
 }
 
 /*    
@@ -524,12 +526,12 @@ compute_attribute_width (tlistentry)
 
 int
 compute_joinrel_size (joinrel)
-     LispValue joinrel ;
+     Join joinrel ;
 {
 	int temp = 1;
-	temp = temp * get_size(get_parent(get_outerpath(joinrel)));
-	temp = temp * get_size(get_aprent(get_innerpath(joinrel)));
-	temp = temp * product_selec(get_clause_info(joinrel));
+	temp = temp * get_size(get_parent(get_outerjoinpath(joinrel)));
+	temp = temp * get_size(get_parent(get_innerjoinpath(joinrel)));
+	temp = temp * product_selec(get_clauseinfo(joinrel));
 	return(floor(temp));
 	
 }

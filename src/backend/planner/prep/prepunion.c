@@ -161,7 +161,9 @@ first_matching_rt_entry (rangetable,flag)
 
 Append
 plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
-     LispValue rt_index,flag,root,tlist,qual,rangetable ;
+     Index  rt_index;
+     int flag;
+     LispValue root,tlist,qual,rangetable ;
 {
     switch (flag) {
 	
@@ -180,10 +182,13 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	    primary_plan = init_query_planner (root,tlist,qual);
 	    _query_is_archival_ = true;
 	    archive_plan = init_query_planner (root,tlist,qual);
-	    return (MakeAppend (list (primary_plan,archive_plan),
+	    return (MakeAppend (lispCons(primary_plan,
+					 lispCons(archive_plan,LispNil)),
 				rt_index,
-				list (rt_fetch (rt_index,rangetable),
-				      rt_fetch (rt_index,rangetable)),
+				lispCons(rt_fetch (rt_index,rangetable),
+					 lispCons(rt_fetch (rt_index,
+							    rangetable),
+						  LispNil)),
 				get_qptargetlist (primary_plan)));
 	    
 	}
@@ -203,7 +208,8 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 		    
 	      case INHERITANCE :
 		union_relids = 
-		      find_all_inheritors (list (rt_relid (rt_entry)),
+		      find_all_inheritors (lispCons(rt_relid (rt_entry),
+						    LispNil),
 					   LispNil);
 		break;
 
@@ -285,19 +291,27 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 					     /* XX temporary for inheritance */
 					     CAR (rt_relid(rt_entry)),
 					     relid,
-					     list(new_root,
-						  copy_seq_tree(tlist),
-						  copy_seq_tree(qual)));
+					     lispCons(new_root,
+						      lispCons(copy_seq_tree
+							       (tlist),
+							       lispCons
+							       (copy_seq_tree
+								(qual),
+								LispNil))));
     else 
       new_parsetree = fix_parsetree_attnums (rt_index, 
 					     rt_relid(rt_entry),
 					     relid,
-					     list(new_root,
-						  copy_seq_tree(tlist),
-						  copy_seq_tree(qual)));
+					     lispCons(new_root,
+						      lispCons(copy_seq_tree
+							       (tlist),
+							       lispCons
+							       (copy_seq_tree
+								(qual)))));
 
 
-    return (cons (list (planner (new_parsetree),new_rt_entry),
+    return (lispCons (lispCons (planner (new_parsetree),
+				lispCons(new_rt_entry,LispNil)),
 		  plan_union_query (CDR (relids),
 				    rt_index,rt_entry,
 				    root,tlist,qual,rangetable)));

@@ -58,8 +58,8 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	  if (hashjoinop ) {
 	       CInfo xhashinfo;
 	       Expr clause = get_clause (clauseinfo);
-	       LispValue leftop = get_leftop (clause);
-	       LispValue rightop = get_rightop (clause);
+	       Var leftop = get_leftop (clause);
+	       Var rightop = get_rightop (clause);
 	       JoinKey keys;
 	       xhashinfo = 
 		 match_hashop_hashinfo (hashjoinop,hashinfo_list);
@@ -76,7 +76,7 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	       if ( null(xhashinfo)) {
 		    xhashinfo = CreateNode(CInfo);
 		    set_hashjoinoperator(xhashinfo,
-					 make_hashinfo(op(hashjoinop)));
+					 MakeCInfo(hashjoinop));
 		    push (xhashinfo,hashinfo_list);
 	       }
 	       push (clause,joinmethod_clauses (xhashinfo));

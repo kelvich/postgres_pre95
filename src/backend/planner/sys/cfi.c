@@ -22,6 +22,7 @@
  *     		function-index-info
  */
 
+#include <stdio.h>
 #include "pg_lisp.h"
 #include "internal.h"
 #include "c.h"
@@ -119,26 +120,28 @@ index_info (not_first,relid)
 	 *     and operator classes into lists.  Only include the 
 	 *     actual keys in the list, i.e., no 0's.
 	 */
-	 
+	
 	/*    Keys over which we're indexing: */
-
-	 for (i = _MAX_KEYS_+3 ; i > 2; --i ) 
+	
+	for (i = _MAX_KEYS_+3 ; i > 2; --i ) 
 	  ikey = lispCons(lispInteger(indexinfo[i]),ikey);
-
+	
 	/*    Operators used by the index (for ordering purposes): */
-
+	
 	for (i = _MAX_KEYS_+18 ; i > 10; --i ) 
 	  iord = lispCons(lispInteger(indexinfo[i]),iord);
-
+	
 	/*    Classes of the AM operators used by index: */
-
+	
 	for (i = _MAX_KEYS_+25 ; i > 18; --i ) 
 	  am_ops = lispCons(lispInteger(indexinfo[i]),iord);
-
-	return(list (lispInteger(indexinfo[0]),
-		     lispInteger(indexinfo[1]),
-		     lispInteger(indexinfo[2]),
-		     lispInteger(indexinfo[3]),ikey,iord,am_ops));
+	
+	return(lispCons (lispInteger(indexinfo[0]),
+		 lispCons(lispInteger(indexinfo[1]),
+		  lispCons(lispInteger(indexinfo[2]),
+		   lispCons(lispInteger(indexinfo[3]),
+		    lispCons(ikey,lispCons(iord,lispCons(am_ops,LispNil)
+					   )))))));
     }
 }
 	       
@@ -226,8 +229,8 @@ LispValue
 find_inheritance_children (relation_oid)
      LispValue relation_oid ;
 {
-     CAR (InheritanceGetChildren (relation_oid,
-				  list (LispNil)));
+    return( CAR (InheritanceGetChildren (relation_oid,
+					 lispList())));
 }
 
 /*    
@@ -244,8 +247,8 @@ LispValue
 find_version_parents (relation_oid)
      LispValue relation_oid ;
 {
-     CAR (VersionGetParents (relation_oid,
-			     list (LispNil)));
+    return( CAR (VersionGetParents (relation_oid,
+				    lispList())));
 }
 
 /*    

@@ -93,8 +93,9 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
 		
      }
      if ( length (matched_joinkeys) == length (pathkeys) ) {
-	  t_list = list (nreverse (matched_joinkeys),
-			 nreverse (matched_joinclauses));
+	  t_list = lispCons (nreverse (matched_joinkeys),
+			     lispCons(nreverse (matched_joinclauses),
+				      LispNil));
      } 
      return(t_list);
 
@@ -118,7 +119,7 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
      int temp;
      bool flag = false;
      foreach(path_subkey,pathkey) {
-	  if (temp = position(path_subkey,joinkeys,test(var_equal),
+	  if (temp = position(path_subkey,joinkeys,var_equal,
 			      extract_subkey(joinkeys, which_subkey))) {
 	       flag = true;
 	  }
@@ -233,8 +234,9 @@ extract_path_keys (joinkeys,tlist,which_subkey)
 
      foreach(xjoinkey,joinkeys) {
 	  temp_node =
-	    list (matching_tlvar (extract_subkey (xjoinkey,
-						  which_subkey),tlist));
+	    lispCons (matching_tlvar (extract_subkey (xjoinkey,
+						      which_subkey),tlist),
+		      LispNil);
 	  t_list = nappend1(t_list,temp_node);
      }
      return(t_list);
@@ -278,8 +280,10 @@ new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
      foreach(outer_pathkey,outer_pathkeys) {
 	  
 	  temp_node = 
-	    list (new_join_pathkey (outer_pathkey,
-				    outer_pathkey,join_rel_tlist,joinclauses));
+	    lispCons (new_join_pathkey (outer_pathkey,
+					outer_pathkey,
+					join_rel_tlist,joinclauses),
+		      LispNil);
 	  t_list = nconc(t_list,temp_node);
      }
      return(t_list);
@@ -324,8 +328,9 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 
 	  if ( tlist_key ) {
 	       if (member(tlist_key,matched_subkeys))
-		 newly_considered_subkeys = list(lispCons(tlist_key,
-							  matched_subkeys));
+		 newly_considered_subkeys = lispCons(lispCons(tlist_key,
+							      matched_subkeys),
+						     LispNil);
 	  } 
 	  else {
 	       newly_considered_subkeys = matched_subkeys;
@@ -376,7 +381,7 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
 	  if(tlist_other_var && 
 	     !(member (tlist_other_var,considered_subkeys))) {
 	       push (tlist_other_var,considered_subkeys);
-	       temp = list (tlist_other_var);
+	       temp = lispCons (tlist_other_var,LispNil);
 	       t_list = nconc(t_list,temp);
 	  } 
 	  else
