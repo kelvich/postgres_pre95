@@ -1583,9 +1583,13 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
 	 *	so we know to delete the tuple associated
 	 *      with the saved tupleid.. see what ExecutePlan
 	 *      does with the returned tuple.. -cim 9/21/89
+	 *
+	 *      It could also happen in queries like:
+	 *	    retrieve (foo.all) where bar.a = 3
 	 * ----------------
 	 */
 	CXT1_printf("ExecTargetList: context is %d\n", CurrentMemoryContext);
+	*isDone = true;
 	return (HeapTuple) palloc(1);
     }
 
