@@ -551,22 +551,7 @@ typedef	long	XID;
 
 #define OID	oid
 #define	REGPROC	oid		/* for now */
-
-#if defined(sun) || defined(sequent) || defined(mips)
 typedef	char	*DATUM;
-#else
-typedef	union {
-	char	*da_cprt;
-	short	*da_shprt;
-	long	*da_lprt;
-	char	**da_cpprt;
-	struct	{
-		char	s_c;
-		double	s_d;
-	}	*da_stptr;
-	long	da_long;
-}		DATUM;
-#endif
 
 
 /* ----------------------------------------------------------------
