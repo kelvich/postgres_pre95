@@ -18,7 +18,7 @@
 .\" provided "as is" without express or implied warranty.
 .\" 
 .\" ----------------------------------------------------------------
-.\"	POSTGRES version 2 setup instructions
+.\"	POSTGRES version 4.0.1 setup instructions
 .\"
 .\" ----------------------------------------------------------------
 .de RV
@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 3.1
+C-Only Release 4.0.1
 .sp 0.25v
 .ce 0
 .sp
@@ -139,13 +139,9 @@ Microsystems 3/xx family of
 processors with SunOS 3.4, or 3.5, and 4.0, and Sparc architecture machines
 (Sparcstation and Sun 4) running SunOS 4.0 and higher.  Postgres is also
 supported on DECstations 3100's and 5000's running Ultrix 4.0 and higher.
-Tested but unsupported ports for DECstation Ultrix lower than 4.0 and Sequent
-Symmetry machines running Dynix are included.  These ports are unsupported for
-the following reasons: the old Ultrix dynamic loader is quite buggy, and the
-standard
-.i make
-on the
-Sequent Symmetry cannot compile Postgres.  
+Tested but unsupported ports for DECstation Ultrix lower than 4.0
+are included.  These ports are unsupported for
+the following reasons: the old Ultrix dynamic loader is quite buggy.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
 and you will require at least 45 megabytes of disk space
@@ -158,18 +154,13 @@ See the section on compilation for details.
 .pp
 The DECstation version requires a kernel which allows 4 megabytes of
 shared memory.
-To compile the Sequent Symmetry port, you will have to obtain
-a System V Release 3 compatible
-.i make.
-Consult your Sequent representative
-for details.
 .sh 2 "Software"
 .pp
 This implementation of \*(PG is completely in C.
 The distribution contains no Lisp or C++ code.
 .sh 2 "Distribution tape"
 .pp
-These instructions assume you have a \*(PG Version 3
+These instructions assume you have a \*(PG Version 4.0.1
 distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
 format)
 or a \*(PG tar file.
@@ -209,9 +200,7 @@ This is the version of
 .i make
 that is installed in both the BSD and SysV environments on Suns,
 so this should pose no problems on these platforms.  We have no
-problems on DECstations either.  However, we have had a great deal
-of difficulty on Sequent Symmetry machines, so we advise that you
-obtain a Sun-compatible make for these platforms.
+problems on DECstations either.
 .sh 3 "Disk Partition"
 .pp
 \*(PG requires 45 megabytes of disk space,
@@ -371,7 +360,7 @@ Login as postgres.
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v3r1.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v4r0r1.tar.Z" will appear in your \*(PG home directory.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
@@ -384,21 +373,21 @@ Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
 For the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v3r1.tar.Z
+postgres-v4r0r1.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompress postgres-v3r1.tar.Z
+% uncompress postgres-v4r0r1.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v3r1.tar
+postgres-v4r0r1.tar
 .pp
 Extract \*(PG from the tar file, using the "extract, verbose, file"
 options:
 .pp
-% tar xvf postgres-v3r1.tar
+% tar xvf postgres-v4r0r1.tar
 .pp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
@@ -545,23 +534,6 @@ After adding these lines, run
 over the configuration file,
 install the new kernel, and reboot.
 .sp
-.sh 3 "Kernel reconfiguration for Sequent Symmetry machines"
-.pp
-In order to reconfigure your kernel,
-you will have to become root
-and add some lines to /usr/sys/conf (your kernel config file)
-.sp
-The following line should be added to /sys/conf/KERNEL:
-.sp
-.(l
-options         SVSEMA
-.)l
-.pp
-After adding this line,
-run config over the config file,
-install the new kernel,
-and reboot.
-.sp
 .\" ----------------
 .tm    Compiling
 .\" ----------------
@@ -593,7 +565,6 @@ dec	\- DS3100 running Ultrix LOWER than 4.0
 ultrix4	\- DS3100, 5000, 5500, etc. running Ultrix 4.0 or higher
 sun	\- Sun 3 running SunOS 3.4 or 3.5
 sunos4	\- Sun 3 running SunOS 4.0 or higher
-seq	\- Sequent Symmetry running Dynix
 sparc	\- Sparcstation or Sun 4
 .)l
 The
@@ -922,6 +893,9 @@ destroydb	\- destroys postgres databases
 ipcclean		\- frees up garbage shared memory from failed backends
 pg_version	\- make version numbers for createdb
 pg_id		\- gets user id's for createdb
+pg_uid		\- gets postgres user id for initializing the template database
+pagedoc		\- disk page doctor
+shmemdoc		\- shared memory buffer pool doctor
 .)l
 .sh 1 "Optional Installation"
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
@@ -1101,10 +1075,10 @@ makefile, run
 and then it will either print or create a printable file.  Note that if the
 makefile uses \fBgrn\fR and you do not have access to this utility, you can
 use the \fBeatgrn\fR script here as well.
-.sh 2 "The 3.1 Release Notes"
+.sh 2 "The 4.0.1 Release Notes"
 .pp
-The Postgres 3.1 Release Notes are in the file
-\fB~postgres/doc/release3.1.me\fR.
+The Postgres 4.0.1 Release Notes are in the file
+\fB~postgres/doc/release4.0.1.me\fR.
 Before working extensively with Postgres, you should read this file to
 find new features, known bugs, and other useful information about this
 release.
@@ -1112,7 +1086,7 @@ release.
 As described above, you can print this file by typing
 .pp
 .(l
-% \fBprint ~postgres/doc/release3.1.me\fR
+% \fBprint ~postgres/doc/release4.0.1.me\fR
 .)l
 .\" ----------------
 .tm    Miscellaneous
@@ -1134,7 +1108,7 @@ and a script showing the bug.
 .sh 2 "Known Bugs List"
 .pp
 A Known Bugs List with suggested workarounds is maintained on the machine
-\fBpostgres.berkeley.edu\fR in the file \fBpub/postgres-v3r1.bugs\fR.  The
+\fBpostgres.berkeley.edu\fR in the file \fBpub/postgres-v4r0r1.bugs\fR.  The
 Internet address of this machine is \fB128.32.149.1\fR, and if you cannot
 access Postgres, this file can be sent to you via e-mail.
 .sh 2 "Consulting"
