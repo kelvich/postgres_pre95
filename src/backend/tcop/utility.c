@@ -631,14 +631,10 @@ ProcessUtility(command, args, commandString, dest)
 	    
 	    char *filename;
 	    filename = CString(CAR(args));
-	    if (*filename != '/') {
-		elog(WARN, "Use full pathname for LOAD command.");
-	    }
-		
-		closeAllVfds();
-		if ((fp = fopen(filename, "r")) == NULL) {
+
+	    closeAllVfds();
+	    if ((fp = fopen(filename, "r")) == NULL)
 		elog(WARN, "LOAD: could not open file %s", filename);
-	    }
 	    
 	    fclose(fp);
 	    load_file(filename);
