@@ -2449,7 +2449,7 @@ _copyLispVector(from, to, alloc)
      * ----------------
      */
     if (from->val.veci == NULL)
-	newnode->val.veci == NULL;
+	newnode->val.veci = NULL;
     else {
 	/* ----------------
 	 *  XXX am unsure about meaning of "size" field of vectori
