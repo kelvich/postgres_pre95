@@ -116,7 +116,9 @@ typedef struct BufferDesc {
     unsigned		refcount;
     char		sb_dbname[16];
     char		sb_relname[16];
+#ifdef mips
     char		sb_pad[60];
+#endif /* mips */
 #ifdef HAS_TEST_AND_SET
     slock_t		io_in_progress_lock;
 #endif /* HAS_TEST_AND_SET */
@@ -783,7 +785,7 @@ showbufd(i)
 	    &(d->sb_dbname[0]), &(d->sb_relname[0]));
 #ifdef HAS_TEST_AND_SET
     printf("\tiolock 0xlx\n", d->io_in_progress_lock);
-#endif
+#endif /* HAS_TEST_AND_SET */
 }
 
 bufdescs()
@@ -1205,7 +1207,7 @@ sony()
     SJCacheHeader *cachehdr;
 #ifndef HAS_TEST_AND_SET
     int *nwaiting = (int *) SJNWaiting;
-#endif
+#endif /* ndef HAS_TEST_AND_SET */
 
     cachehdr = (SJCacheHeader *) SJHeader;
     cache = (SJCacheItem *) SJCache;
@@ -1223,9 +1225,9 @@ sony()
     printf(", init lock %sset", (cachehdr->sjh_initlock ? "" : "not "));
 #endif /* HAS_TEST_AND_SET */
     printf("\n");
-#ifdef HAS_TEST_AND_SET
+#ifndef HAS_TEST_AND_SET
     printf("%d backends waiting on i/o\n\n", *nwaiting);
-#endif /* HAS_TEST_AND_SET */
+#endif /* ndef HAS_TEST_AND_SET */
 
     printf("cache contents:\n");
     for (i = 0; i < 64; i++) {
