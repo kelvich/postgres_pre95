@@ -725,6 +725,8 @@ Param _readParam()
 	char 	*token;
 	int length;
 
+	local_node = (Param) palloc(sizeof(struct _Param));
+
 	token = lsptok(NULL, &length);      /* get :paramid */
 	token = lsptok(NULL, &length);      /* now read it */
 
