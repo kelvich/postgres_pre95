@@ -20,7 +20,6 @@
 
 #include "tmp/postgres.h"
 
-#include "executor/recursion_a.h" /* recursion stuff that must go first - JRB */
 #include "nodes/primnodes.h"
 #include "nodes/pg_lisp.h"
 #include "nodes/nodes.h"              /* bogus inheritance system */
