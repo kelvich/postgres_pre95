@@ -41,6 +41,7 @@ static NameData	AttributeNumIndexData  = { "pg_attnumind" };
 static NameData AttributeRelidIndexData= { "pg_attrelidind" };
 static NameData	ProcedureNameIndexData = { "pg_procnameind" };
 static NameData	ProcedureOidIndexData  = { "pg_procidind" };
+static NameData	ProcedureSrcIndexData  = { "pg_procsrcind" };
 static NameData	TypeNameIndexData      = { "pg_typenameind" };
 static NameData	TypeOidIndexData       = { "pg_typeidind" };
 static NameData NamingNameIndexData    = { "pg_namingind" };
@@ -53,6 +54,7 @@ Name	AttributeNumIndex  = &AttributeNumIndexData;
 Name	AttributeRelidIndex= &AttributeRelidIndexData;
 Name	ProcedureNameIndex = &ProcedureNameIndexData;
 Name	ProcedureOidIndex  = &ProcedureOidIndexData;
+Name	ProcedureSrcIndex  = &ProcedureSrcIndexData;
 Name	TypeNameIndex      = &TypeNameIndexData;
 Name	TypeOidIndex       = &TypeOidIndexData;
 Name	NamingNameIndex    = &NamingNameIndexData;
@@ -64,8 +66,8 @@ char *Name_pg_attr_indices[Num_pg_attr_indices] = {AttributeNameIndexData.data,
 						   AttributeNumIndexData.data,
 						   AttributeRelidIndexData.data};
 char *Name_pg_proc_indices[Num_pg_proc_indices] = {ProcedureNameIndexData.data,
-						   ProcedureOidIndexData.data};
-char *Name_pg_type_indices[Num_pg_type_indices] = {TypeNameIndexData.data,
+						   ProcedureOidIndexData.data,
+						   ProcedureSrcIndexData.data};char *Name_pg_type_indices[Num_pg_type_indices] = {TypeNameIndexData.data,
 						   TypeOidIndexData.data};
 char *Name_pg_name_indices[Num_pg_name_indices] = {NamingNameIndexData.data,
 						   NamingParentIndexData.data};
@@ -441,6 +443,49 @@ ProcedureNameIndexScan(heapRelation, procName, nargs, argTypes)
 	
     index_endscan(sd);
     index_close(idesc);
+
+    return tuple;
+}
+
+HeapTuple
+ProcedureSrcIndexScan(heapRelation, procSrc)
+    Relation heapRelation;
+    text *procSrc;
+{
+    Relation idesc;
+    IndexScanDesc sd;
+    ScanKeyEntryData skey;
+    GeneralRetrieveIndexResult indexRes;
+    HeapTuple tuple;
+    Buffer buffer;
+
+    ScanKeyEntryInitialize(&skey,
+			   (bits16)0x0,
+			   (AttributeNumber)Anum_pg_proc_prosrc,
+		           (RegProcedure)TextEqualRegProcedure,
+			   (Datum)procSrc);
+
+    idesc = index_openr((Name)ProcedureSrcIndex);
+    sd = index_beginscan(idesc, false, 1, (ScanKey)&skey);
+
+    indexRes = AMgettuple(sd, ForwardScanDirection);
+    if (GeneralRetrieveIndexResultIsValid(indexRes))
+    {
+	ItemPointer iptr;
+
+	iptr = GeneralRetrieveIndexResultGetHeapItemPointer(indexRes);
+	tuple = heap_fetch(heapRelation, NowTimeQual, iptr, &buffer);
+	pfree(indexRes);
+    }
+    else
+	tuple = (HeapTuple)NULL;
+
+    if (HeapTupleIsValid(tuple)) {
+	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
+
+    index_endscan(sd);
 
     return tuple;
 }
