@@ -21,26 +21,29 @@
  *     		join-references
  *     		tlist-temp-references
  */
+#include "tmp/c.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "parser/parse.h"
+
+#include "utils/log.h"
+#include "tmp/nodeFuncs.h"
 
 #include "planner/internal.h"
-#include "planner/tlist.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "pg_lisp.h"
 #include "planner/clause.h"
 #include "planner/clauseinfo.h"
 #include "planner/clauses.h"
-#include "planner/var.h"
-#include "c.h"
-#include "log.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "planner/setrefs.h"
-#include "nodeFuncs.h"
 #include "planner/keys.h"
-#include "parse.h"
+#include "planner/setrefs.h"
+#include "planner/tlist.h"
+#include "planner/var.h"
 
 /*     
  *     	NESTING LEVEL REFERENCES

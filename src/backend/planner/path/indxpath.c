@@ -14,17 +14,22 @@
  *      EXPORTS
  *     		find-index-paths
  */
+#include <math.h>
 
-#include "pg_lisp.h";
-#include "relation.h"
-#include "relation.a.h"
+#include "tmp/postgres.h"
+#include "access/att.h"
+
+#include "nodes/pg_lisp.h";
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "utils/lsyscache.h"
+
 #include "planner/internal.h";
 #include "planner/indxpath.h"
 #include "planner/clauses.h"
-#include "lsyscache.h"
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
-#include <math.h>
 #include "planner/costsize.h"
 #include "planner/pathnode.h"
 
