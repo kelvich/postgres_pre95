@@ -10,11 +10,11 @@
  *	the structure rather than the base of the list node.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "simplelists.h"
+#include "tmp/simplelists.h"
 
 #define NODE	SLNode
 #define LIST	SLList

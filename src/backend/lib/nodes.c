@@ -3,13 +3,16 @@
  *	Single inheritance hierachy of tagged node code.
  * $Header$
  */
+#include "tmp/c.h"
 
-#include "nodes.h"
-#include "palloc.h"
-#include "c.h"
-#include "log.h"
-#include "relation.h"
-#include "primnodes.h"
+RcsId("$Header$");
+
+#include "utils/palloc.h"
+#include "utils/log.h"
+
+#include "nodes/nodes.h"
+#include "nodes/relation.h"
+#include "nodes/primnodes.h"
 
 void
 SetNodeType(thisNode, tag)

@@ -41,6 +41,7 @@ $CAT > $CTMP1 << 'EOF'
 #define CppConcat(a,b)CppIdentity(a)b
 
 #define	ACCESSORS(_nodetype_,_fieldname_,_fieldtype_) \
+extern void CppConcat(set_,_fieldname_) ARGS((_nodetype_ node, _fieldtype_ value)); \
 void \
 CppConcat(set_,_fieldname_)(node, value) \
 	_nodetype_	node; \
@@ -49,6 +50,7 @@ CppConcat(set_,_fieldname_)(node, value) \
 	NODEAssertArg(IsA(node,_nodetype_)); \
 	node->_fieldname_ = value; \
 } \
+extern _fieldtype_ CppConcat(get_,_fieldname_) ARGS((_nodetype_ node)); \
 _fieldtype_ \
 CppConcat(get_,_fieldname_)(node) \
 	_nodetype_	node; \
