@@ -225,14 +225,26 @@ compute_selec (clauses,or_selectivities)
 {
     double s1 = 0;
     LispValue clause = CAR (clauses);
-    if(null (clauses)) {
-	s1 = 1.0;
-    } 
-    else if 
-      /* If s1 has already been assigned by an index, use that value. */
-      (or_selectivities) {
-	    s1 = (int) CAR (or_selectivities);
-	} 
+
+    if(null (clauses)) 
+     {
+	 s1 = 1.0;
+     }
+    /* If s1 has already been assigned by an index, use that value. */ 
+    else if (or_selectivities)
+     {
+	 s1 = (int) CAR (or_selectivities);
+     } 
+    else if (IsA(CAR(clause),Func))  /* this isn't an Oper, it's a Func!! */
+     {
+	 /*
+	 ** This is not an operator, so we guess at the selectivity.  
+	 ** THIS IS A HACK TO GET V4 OUT THE DOOR.  FUNCS SHOULD BE
+	 ** ABLE TO HAVE SELECTIVITIES THEMSELVES.
+	 **     -- JMH 7/9/92
+	 */
+	   s1 = 0.1;
+     }
     else if (1 == NumRelids ((Expr)clause)) {
 
 	/* ...otherwise, calculate s1 from 'clauses'. 
@@ -252,16 +264,8 @@ compute_selec (clauses,or_selectivities)
 	else
 	  relid = lispInteger(_SELEC_VALUE_UNKNOWN_);
 	
-	/*
-	** If there's no operator associated with this function, we guess
-	** at the selectivity.  THIS IS A HACK TO GET V4 OUT THE DOOR.
-	**     -- JMH 7/9/92
-	*/
-	if (oprrest == (RegProcedure) NULL) 
-	  s1 = 0.5;
-	else /* There is an operator associated, so get its selectivity */
-	  s1 = (double)restriction_selectivity (oprrest,
-						opno,
+	s1 = (double)restriction_selectivity (oprrest,
+					      opno,
 					      CInteger(relid),
 					      CInteger(CADR (relattvals)),
 					      (char*)CInteger((CADDR(relattvals))),
@@ -289,21 +293,12 @@ compute_selec (clauses,or_selectivities)
 	    relid2 = translate_relid(CADDR(relsatts));
 	 else
 	   relid2 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
-
-	 /*
-	 ** If there's no operator associated with this function, we guess
-	 ** at the selectivity.  THIS IS A HACK TO GET V4 OUT THE DOOR.
-	 **     -- JMH 7/9/92
-	 */
-	 if (oprjoin == (RegProcedure) NULL) 
-	   s1 = 0.5;
-	 else /* There is an operator associated, so get its selectivity */
-	   s1 = (double)join_selectivity (oprjoin,
-					  opno,
-					  CInteger(relid1),
-					  CInteger(CADR (relsatts)),
-					  CInteger(relid2),
-					  CInteger(CADDR (CDR (relsatts))));
+	 s1 = (double)join_selectivity (oprjoin,
+					opno,
+					CInteger(relid1),
+					CInteger(CADR (relsatts)),
+					CInteger(relid2),
+					CInteger(CADDR (CDR (relsatts))));
      }
     
     /*    A null clause list eliminates no tuples, so return a selectivity 
