@@ -61,6 +61,7 @@ typedef struct JBHashEntry {
 
 #define JBCACHESIZE	100			/* one entry per platter */
 #define PGJBFORMAT	"POSTGRES_FMT"		/* format string for jb_open */
+#define JBRETRY		3			/* # times to retry writes */
 
 /*
  *  JBPlatDesc -- Description of an open platter in the jukebox.
@@ -98,6 +99,7 @@ static void		_pgjb_connect();
 static JBPlatDesc	*_pgjb_getplatdesc();
 static JBHashEntry	*_pgjb_hashget();
 static BlockNumber	_pgjb_findoffset();
+static int		_pgjb_retry();
 static int		_pgjb_mdblockrd();
 static void		_pgjb_mdblockwrt();
 
@@ -558,8 +560,14 @@ pgjb_wrtextent(item, relblocks, buf)
 				  nblocks);
 
 		if (status < 0) {
-		    elog(NOTICE, "_pgjb_wrtextent: write failed");
-		    return (SM_FAIL);
+		    status = _pgjb_retry(jbp->jbpd_platter,
+					 &(buf[startoff]),
+					 group->sjgd_jboffset + startblk,
+					 nblocks);
+		    if (status < 0) {
+			elog(NOTICE, "_pgjb_wrtextent: write failed");
+			return (SM_FAIL);
+		    }
 		}
 
 		nblocks = 0;
@@ -576,13 +584,76 @@ pgjb_wrtextent(item, relblocks, buf)
 			  nblocks);
 
 	if (status < 0) {
-	    elog(NOTICE, "_pgjb_wrtextent: write failed");
-	    return (SM_FAIL);
+	    /* silent retry */
+	    status = _pgjb_retry(jbp->jbpd_platter,
+				 &(buf[startoff]),
+				 group->sjgd_jboffset + startblk,
+				 nblocks);
+
+	    if (status < 0) {
+		elog(NOTICE, "_pgjb_wrtextent: write failed");
+		return (SM_FAIL);
+	    }
 	}
     }
 
     return (SM_SUCCESS);
 }
+
+static int
+_pgjb_retry(jbplatter, buf, ploffset, nblocks)
+    JBPLATTER *jbplatter;
+    char *buf;
+    int ploffset;
+    int nblocks;
+{
+    int i, j;
+    int status;
+    int off;
+    char *vrfybuf;
+
+    elog(NOTICE, "write at platter offset %d failed, retrying...", ploffset);
+    vrfybuf = (char *) palloc(JBBLOCKSZ);
+
+    for (i = 0; i < nblocks; i++) {
+	off = i * JBBLOCKSZ;
+
+	for (j = 0; j < JBRETRY; j++) {
+
+	    /* first, try to read this block */
+	    status = jb_read(jbplatter, vrfybuf, ploffset + i, 1);
+
+	    if (status < 0) {
+		/* if read fails, try to write the block */
+		status = jb_write(jbplatter, &buf[off], ploffset + i, 1);
+
+		/* if write succeeded, get set to verify */
+		if (status == 0) {
+		    status = jb_read(jbplatter, vrfybuf, ploffset + i, 1);
+
+		    /* 'break' is for the for (j = 0; ...) loop */
+		    if (status == 0)
+			break;
+		}
+	    }
+	}
+
+	/* on success, verify */
+	if (status == 0) {
+	    if (bcmp(&buf[off], vrfybuf, JBBLOCKSZ) != 0) {
+		pfree (vrfybuf);
+		return (-1);
+	    }
+	}
+    }
+
+    /* by here, we managed to squeeze all the blocks out after all */
+    pfree(vrfybuf);
+    elog(NOTICE, "retry succeeded");
+
+    return (0);
+}
+
 /*
  *  pgjb_rdextent() -- Read an extent off of a platter.
  *
