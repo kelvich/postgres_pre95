@@ -147,7 +147,6 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 	int instead;
 
 	if (!IsInstead(rule_lock)) continue;
-	if (null(rule)) continue;
 	work = nappend1(work, rule_lock);
     }
     if (work != LispNil) {
@@ -160,6 +159,7 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 	    int modified = FALSE;
 	    rule = RuleIdGetActionInfo (prs2OneLockGetRuleId(rule_lock),
 					&foo);
+	    if (null(rule)) continue;
 	    relation_level = (prs2OneLockGetAttributeNumber(rule_lock) == -1);
 	    ApplyRetrieveRule(parsetree, rule,rt_index,relation_level,
 			      prs2OneLockGetAttributeNumber(rule_lock),
