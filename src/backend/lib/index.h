@@ -26,7 +26,7 @@ void UpdateIndexRelation ARGS((ObjectId indexoid , ObjectId heapoid , FuncIndexI
 void InitIndexStrategy ARGS((AttributeNumber numatts , Relation indexRelation , ObjectId accessMethodObjectId ));
 void index_create ARGS((Name heapRelationName , Name indexRelationName , FuncIndexInfo *funcInfo , ObjectId accessMethodObjectId , AttributeNumber numatts , AttributeNumber attNums [], ObjectId classObjectId [], uint16 parameterCount , Datum parameter [], LispValue predicate ));
 void index_destroy ARGS((ObjectId indexId ));
-void FormIndexDatum ARGS((AttributeNumber numberOfAttributes , AttributeNumber attributeNumber [], HeapTuple heapTuple , TupleDescriptor heapDescriptor , Buffer buffer , Datum *datum , char *null , FuncIndexInfoPtr fInfo ));
+void FormIndexDatum ARGS((AttributeNumber numberOfAttributes , AttributeNumber attributeNumber [], HeapTuple heapTuple , TupleDescriptor heapDescriptor , Buffer buffer , Datum *datum , char *nulls , FuncIndexInfoPtr fInfo ));
 int UpdateStats ARGS((Relation whichRel , long reltuples ));
 void FillDummyExprContext ARGS((ExprContext econtext , TupleTableSlot slot , TupleDescriptor tupdesc , Buffer buffer ));
 void DefaultBuild ARGS((Relation heapRelation , Relation indexRelation , AttributeNumber numberOfAttributes , AttributeNumber attributeNumber [], IndexStrategy indexStrategy , uint16 parameterCount , Datum parameter [], FuncIndexInfoPtr funcInfo , LispValue predicate ));
