@@ -51,7 +51,7 @@ elog(lev, fmt, p0, p1, p2, p3, p4, p5)
 int	lev;
 char	*fmt;
 {
-	char		buf[256], line[256];
+	char		buf[ELOG_MAXLEN], line[ELOG_MAXLEN];
 	register char	*bp, *cp;
 	extern	int	errno, sys_nerr;
 	extern	char	*sys_errlist[], *ctime(), *sprintf();
