@@ -26,6 +26,8 @@
 
 #include "lib/catalog.h"
 
+#include "storage/fd.h"		/* for O_ */
+
 /* ----------------------------------------------------------------
  *	ExecScanTemps(node)
  *
