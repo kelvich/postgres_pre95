@@ -592,12 +592,8 @@ HeapTupleSatisfiesNow(tuple)
 			}
 		}
 
-		if (TransactionIdIsValid(tuple->t_xmax)) {
-			return (false);
-		}
-
 		/*
-		 * note: this call is VERY expensive - requires a log table lookup.
+		 * this call is VERY expensive - requires a log table lookup.
 		 */
 
 		if (!TransactionIdDidCommit(tuple->t_xmin)) {
