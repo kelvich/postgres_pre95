@@ -80,9 +80,6 @@ The postmaster takes from zero to seven arguments
 to tune its behavior.
 Supplying arguments is necessary only if you intend to run multiple sites
 or a non-default site.
-Please refer to the file
-.q .../help/geninfo
-if this may be of interest.
 .lp
 The
 .ul
@@ -92,56 +89,13 @@ be executed directly from the shell by
 the postgres super user (with the database name as an argument).
 However, doing this bypasses the shared buffer pool and lock table
 associated with a postmaster/site,
-so this is not recommended in a multiuser, active, site
-unless the guidelines in
-.q .../help/multi
-are followed.
-(To help prevent this from occuring,
-we suggest that the files
-.q .../bin/postgres
-and
-.q .../src/tcop/postgres
-be
-.b chmod (1)'d
-to mode 751.
-The makefiles produce a setuid
-.q postgres
-binary by default.)
+so this is not recommended in a multiuser site.
 .lp
 .uh NOTATION
 .lp
 .q .../
 at the front of file names is used to represent the path
 to the postgres user's home directory.
-.\" SYNOPSIS section
-.\" .br
-.\" This section indicates the form of the command (statement).
-.\" The conventions which are used are as follows:
-.\" .lp
-.\" Bold face names are
-.\" used to indicate reserved keywords.
-.\" .lp
-.\" Lower case words indicate generic types of information which must
-.\" be supplied by the user;
-.\" legal values for these names are described in the DESCRIPTION section.
-.\" .lp
-.\" Square brakets ( [] ) indicate that the enclosed item is optional.
-.\" .lp
-.\" Braces ( {} ) indicate an optional item which may be repeated.
-.\" In some cases they indicate simple (non-repeated) grouping;
-.\" the usage should be clear from context.
-.\" .lp
-.\" When these conventions are insufficient to fully specify
-.\" the legal format of a command a more general form is given
-.\" and the allowable subsets are specified in the DESCRIPTION section.
-.\" .lp
-.\" To start using \*(II you must be entered as an
-.\" \*(II user; this is done by the
-.\" \*(II administrator who will enter
-.\" you in the ``users'' file (see users(files)).
-.\" To start using ingres
-.\" see the section on ingres(unix),
-.\" quel(quel), and monitor(quel).
 Anything in brackets ([ and ]) is optional.
 Anything in braces ({ and }) can be repeated 0 or more times.
 Parentheses are used to group boolean expressions.
