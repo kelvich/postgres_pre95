@@ -405,8 +405,6 @@ check_conn_and_db()
 	elog(FATAL,&string[1]);
 	break;
     case 'R':
-	if(Verbose)
-	    fprintf(stdout, "Sorry! Have a nice day!\n");
 	handle_exit(1);
 	break;
     }
@@ -419,7 +417,7 @@ check_conn_and_db()
 welcome()
 {
     if (Verbose) {
-	fprintf(stdout,"Welcome to the C POSTGRES terminal monitor\n");
+	fprintf(stdout,"Welcome to the POSTGRES terminal monitor\n");
     }
 }
 
@@ -875,9 +873,6 @@ int exit_status;
 
 {
     int unlink_status;
-
-    if (Verbose)
-	fprintf(stdout,"I live to serve you.\n");
 
     if (!RunOneCommand) 
 	{
