@@ -21,7 +21,9 @@
 #include "utils/large_object.h"
 #include "utils/log.h"
 
-char *JO_path(char *name) {      /* get the real path name */
+char *JO_path(name)
+    char *name;
+{      /* get the real path name */
     char *path, *jtemp;
 
     if (*name != '/')
@@ -37,7 +39,9 @@ char *JO_path(char *name) {      /* get the real path name */
 }
 
 
-char *JO_arch(char *name) {
+char *JO_arch(name)
+    char *name;
+{
     char *jarch, *jtemp;
 
     jtemp = (char *)palloc(strlen(name) + 2);
@@ -62,7 +66,9 @@ char *JO_arch(char *name) {
 }
 
 
-int JO_get(char *name) {
+int JO_get(name)
+    char *name;
+{
     char sysbuf[160];
     int status;
 
@@ -77,7 +83,9 @@ int JO_get(char *name) {
     return status;
 }
 
-int JO_put(char *name) {
+int JO_put(name)
+    char *name;
+{
     char sysbuf[160];
     int status;
 
@@ -92,7 +100,9 @@ int JO_put(char *name) {
     return status;
 }
 
-int JO_clean(char *path) {
+int JO_clean(path)
+    char *path;
+{
 
     unlink(path);  /* remove file from unix, only jaquith should have it */
 }

@@ -751,19 +751,10 @@ PostgresMain(argc, argv)
     signal(SIGPIPE, die);
     signal(SIGUSR1, quickdie);
     {
-      extern void Async_NotifyHandler(void);
+      extern void Async_NotifyHandler ARGS((void));
       
       signal(SIGUSR2, Async_NotifyHandler);
     }
-    /*
-     * Turn off async portals for 4.0.1
-     */
-#if 0
-    {				/* asynchronous notification */
-	extern void Async_NotifyFrontEnd();
-	signal(SIGUSR2, Async_NotifyFrontEnd);
-    }
-#endif
 
 #ifdef PARALLELDEBUG
     usclk_init();
