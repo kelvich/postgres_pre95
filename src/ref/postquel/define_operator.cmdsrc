@@ -10,7 +10,7 @@ define operator \*- define a new user operator
 .b "define operator"
 operator_name
 .b "( procedure ="
-proc_name
+func_name
 [
 .b ", precedence ="
 number ] [
@@ -52,22 +52,17 @@ The user who defines an operator becomes its owner.
 .lp
 The name of the operator,
 .i operator_name ,
-can be composed of alphabetic characters
-or symbols, but not a combination
-of the two (i.e.,
-.b A
-is valid,
-but
-.b ^A^
-is not).
+can be composed of symbols only. 
 Also, the
-.i proc_name
-procedure
-must have been previously defined and must have one
+.i func_name
+function
+must have been previously defined using 
+.b define C function
+and must have one
 or two arguments.
 The types of the arguments for the operator 
 and the type of the
-answer are as defined by the procedure.
+answer are as defined by the function.
 .b Precedence
 refers to the order that multiple instances of the same
 operator are evaluated.
@@ -116,16 +111,17 @@ an expression which contains this operator arbitrarily.
 .\" .)l
 The commutator operator is present so that \*(PP can reverse
 the order of the operands if it wishes.
-For example, the operator area-less-than, ALT,
-would have a commutator operator, area-greater-than, AGT.
-Hence, the query optimizer could freely convert:
+For example, the operator area-less-than, >>>,
+would have a commutator operator, area-greater-than, <<<.
+Suppose that an operator, area-equal, ===, exists, as well as an area
+not equal, !==.  Hence, the query optimizer could freely convert:
 .(l
-\*(lq0,0,1,1\*(rq::box ALT MYBOXES.description
+\*(lq0,0,1,1\*(rq::box >>> MYBOXES.description
 .)l
 .in .5i
 to
 .(l
-MYBOXES.description AGT \*(lq0,0,1,1\*(rq::box
+MYBOXES.description <<< \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 This allows the execution code to always use the latter representation
@@ -133,12 +129,12 @@ and simplifies the query optimizer somewhat.
 .sp
 The negator operator allows the query optimizer to convert
 .(l
-not MYBOXES.description AE \*(lq0,0,1,1\*(rq::box
+not MYBOXES.description === \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 to
 .(l
-MYBOXES.description NAE \*(lq0,0,1,1\*(rq::box
+MYBOXES.description !== \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 .sp
@@ -153,12 +149,12 @@ algorithm along the lines of [SHAP86]; however, it must know whether this
 strategy is applicable.  For example, a hash-join algorithm is usable for
 a clause of the form:
 .(l
-MYBOXES.description AE MYBOXES2.description
+MYBOXES.description === MYBOXES2.description
 .)l
 .in .5i
 but not for a clause of the form:
 .(l
-MYBOXES.description ALT MYBOXES2.description.
+MYBOXES.description <<< MYBOXES2.description.
 .)l
 .in .5i
 The
@@ -172,11 +168,11 @@ operators indicate to the query optimizer whether merge-sort is a
 usable join strategy
 and what operators should be used to
 sort the two operand relations.
-For the AE clause above, the optimizer must
-sort both relations using the operator, ALT.
+For the === clause above, the optimizer must
+sort both relations using the operator, <<<.
 On the other hand, merge-sort is not usable with the clause: 
 .(l
-MYBOXES.description ALT MYBOXES2.description
+MYBOXES.description <<< MYBOXES2.description
 .)l
 If other join strategies are found to be practical,
 \*(PP will change
@@ -190,14 +186,17 @@ be worth the complexity involved.
 The last two pieces of the specification are present so the query 
 optimizer can estimate result sizes.  If a clause of the form:
 .(l
-MYBOXES.description ALT \*(lq0,0,1,1\*(rq::box
+MYBOXES.description <<< \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 is present in the qualification, 
 then \*(PP may have to 
 estimate the fraction of the tuples in MYBOXES
 that satisfy the clause.  The function res_proc must
-be a registered function which accepts one argument of the correct
+be a registered function (meaning it is already defined using
+.b define C function
+)
+which accepts one argument of the correct
 data type and returns a floating point number.  The query optimizer
 simply calls this function, passing the parameter \*(lq0,0,1,1\*(rq and
 multiplies the result by the relation size to get the desired expected number
@@ -211,12 +210,12 @@ relations involved to compute the desired expected result size.
 .sp
 The difference between the function
 .(l
-my-procedure-1 (MYBOXES.description, \*(lq0,0,1,1\*(rq::box)
+my_procedure_1 (MYBOXES.description, \*(lq0,0,1,1\*(rq::box)
 .)l
 .in .5i
 and the operator
 .(l
-MYBOXES.description AE \*(lq0,0,1,1\*(rq::box
+MYBOXES.description === \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 is that \*(PP attempts to optimize operators and can decide to 
@@ -232,16 +231,16 @@ while operators are restricted to one or two.
 /* The following command defines a new operator, area-equality,
    for the BOX data type. */
 
-define operator AE (
-	procedure = area-equal-procedure,
+define operator === (
+	procedure = area_equal_procedure,
 	precedence = 30,
 	associativity = left,
-	commutator = AE,
-	negator = ANE,
-	restrict = area-restriction-procedure,
+	commutator = ===,
+	negator = !==,
+	restrict = area_restriction_procedure,
 	hashes,
 	join = area-join-procedure,
-	sort = ALT, ALT)
+	sort = <<<, <<<)
 .\"	arg is (box, box)
 .)b
 .uh "SEE ALSO"
