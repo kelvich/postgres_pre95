@@ -98,7 +98,8 @@ static void		_pgjb_connect();
 static JBPlatDesc	*_pgjb_getplatdesc();
 static JBHashEntry	*_pgjb_hashget();
 static BlockNumber	_pgjb_findoffset();
-static int		_pgjb_mdblock();
+static int		_pgjb_mdblockrd();
+static void		_pgjb_mdblockwrt();
 
 /* routines declared elsewhere */
 extern HTAB		*ShmemInitHash();
@@ -463,8 +464,9 @@ _pgjb_getplatdesc(plname, plid)
  */
 
 int
-pgjb_wrtextent(item, buf)
+pgjb_wrtextent(item, relblocks, buf)
     SJCacheItem *item;
+    int relblocks;
     char *buf;
 {
     SJGroupDesc *group;
@@ -497,7 +499,6 @@ pgjb_wrtextent(item, buf)
     group = (SJGroupDesc *) buf;
 
     if (!(item->sjc_gflags & SJC_ONPLATTER)) {
-	item->sjc_gflags &= ~SJC_DIRTY;
 	item->sjc_gflags |= SJC_ONPLATTER;
 	nblocks = 1;
 	startoff = 0;
@@ -514,21 +515,41 @@ pgjb_wrtextent(item, buf)
      *  data that needs to be written.
      *
      *	We batch these writes up, and submit a single request for as many
-     *  adjacent blocks as we can.
+     *  adjacent blocks as we can.  We have to be careful to put the last
+     *  block in the relation on magnetic disk, not on the optical platter.
+     *  That complicates the loop below substantially.
      */
 
     for (i = 0; i < SJGRPSIZE; i++) {
-	if (item->sjc_flags[i] & SJC_DIRTY) {
+	if (MUST_FLUSH(item->sjc_flags[i])
+	    && ((item->sjc_tag.sjct_base + i + 1) < relblocks)) {
+
 	    if (nblocks == 0) {
 		startblk = (i * (BLCKSZ / JBBLOCKSZ)) + 1;
 		startoff = (i * BLCKSZ) + JBBLOCKSZ;
 	    }
 
+	    item->sjc_flags[i] |= SJC_ONPLATTER;
 	    nblocks += (BLCKSZ / JBBLOCKSZ);
 
-	    item->sjc_flags[i] &= ~SJC_DIRTY;
-	    item->sjc_flags[i] |= SJC_ONPLATTER;
 	} else {
+
+	    /*
+	     *  If this is the last block in the relation, then we need
+	     *  to put it on magnetic disk.
+	     */
+
+	    if (MUST_FLUSH(item->sjc_flags[i])
+		&& ((item->sjc_tag.sjct_base + i + 1) == relblocks)) {
+
+		_pgjb_mdblockwrt(item, relblocks, buf);
+	    }
+
+	    /*
+	     *  If there are bytes waiting to go out to the platter,
+	     *  write them.
+	     */
+
 	    if (nblocks > 0) {
 		/* got some blocks -- write them */
 		status = jb_write(jbp->jbpd_platter,
@@ -592,6 +613,7 @@ pgjb_rdextent(item, buf)
     int i;
     int status;
     int nblocks;
+    int jboffset;
 
     /* be sure we have a connection */
     VRFY_CONNECT();
@@ -640,10 +662,10 @@ pgjb_rdextent(item, buf)
 
 	for (i = 0; i < SJGRPSIZE; i++) {
 
+	    jboffset = item->sjc_jboffset + (i * (BLCKSZ / JBBLOCKSZ)) + 1;
 	    status = jb_read(jbp->jbpd_platter,
 			     &(buf[(i * BLCKSZ) + JBBLOCKSZ]),
-			     item->sjc_jboffset + (i * SJGRPSIZE) + 1,
-			     SJGRPSIZE);
+			     jboffset, BLCKSZ / JBBLOCKSZ);
 
 	    if (status < 0) {
 		item->sjc_flags[i] = SJC_MISSING;
@@ -662,12 +684,12 @@ pgjb_rdextent(item, buf)
 	reln = (Relation) RelationIdGetRelation(item->sjc_tag.sjct_relid);
 
 	if (reln == (Relation) NULL)
-	    elog(WARN, "_pgjb_mdblock: can't find reldesc for %d",
+	    elog(WARN, "_pgjb_mdblockrd: can't find reldesc for %d",
 		       item->sjc_tag.sjct_relid);
 
 	nblocks = sjnblocks(reln);
-	if (nblocks >= (item->sjc_tag.sjct_base + SJGRPSIZE + 1)) {
-	    if (_pgjb_mdblock(reln, item, buf, nblocks - 1) == SM_FAIL)
+	if (nblocks <= (item->sjc_tag.sjct_base + SJGRPSIZE + 1)) {
+	    if (_pgjb_mdblockrd(reln, item, buf, nblocks - 1) == SM_FAIL)
 		return (SM_FAIL);
 	}
 
@@ -690,14 +712,51 @@ pgjb_rdextent(item, buf)
 }
 
 /*
- *  _pgjb_mdblock -- Get a particular block off of magnetic disk.
+ *  _pgjb_mdblockwrt -- Write a particular block to the magnetic disk.
+ *
+ *	The highest-numbered block for any relation is always stored on
+ *	magnetic disk.  This routine pushes it out.  It either returns
+ *	successfully or exits.  XXX -- right now, dies holding locks.
+ */
+
+static void
+_pgjb_mdblockwrt(item, relblocks, buf)
+    SJCacheItem *item;
+    int relblocks;
+    char *buf;
+{
+    SJGroupDesc *group;
+    File vfd;
+    int which;
+    int offset;
+    char path[SJPATHLEN];
+
+    which = (relblocks - 1) % SJGRPSIZE;
+    offset = (which * BLCKSZ) + JBBLOCKSZ;
+    group = (SJGroupDesc *) buf;
+    sprintf(&(path[0]), "../%s/%s",
+	    &(group->sjgd_dbname.data[0]), &(group->sjgd_relname.data[0]));
+
+    if ((vfd = PathNameOpenFile(&(path[0]), O_RDWR, 0666)) < 0)
+	elog(FATAL, "_pgjb_mdblockwrt: can't open %s", &(path[0]));
+
+    if (FileSeek(vfd, 0L, L_SET) != 0L)
+	elog(FATAL, "_pgjb_mdblockwrt: can't seek to 0 on %s", &(path[0]));
+
+    if (FileWrite(vfd, &buf[offset], BLCKSZ) < 0)
+	elog(FATAL, "_pgjb_mdblockwrt: write failed on %s", &(path[0]));
+
+    (void) FileClose(vfd);
+}
+/*
+ *  _pgjb_mdblockrd -- Read a particular block off of magnetic disk.
  *
  *	The highest-numbered block for any relation is always stored on
  *	magnetic disk.  This routine reads it in.
  */
 
 static int
-_pgjb_mdblock(reln, item, buf, blkno)
+_pgjb_mdblockrd(reln, item, buf, blkno)
     Relation reln;
     SJCacheItem *item;
     char *buf;
@@ -710,18 +769,18 @@ _pgjb_mdblock(reln, item, buf, blkno)
     offset = (which * BLCKSZ) + JBBLOCKSZ;
 
     if (FileSeek(reln->rd_fd, 0L, L_SET) != 0L) {
-	elog(NOTICE, "_pgjb_mdblock: cannot seek");
+	elog(NOTICE, "_pgjb_mdblockrd: cannot seek");
 	return (SM_FAIL);
     }
 
 
     if (FileRead(reln->rd_fd, &(buf[offset]), BLCKSZ) <= 0) {
-	elog(NOTICE, "_pgjb_mdblock: can't get block off mag disk");
+	elog(NOTICE, "_pgjb_mdblockrd: can't get block off mag disk");
 	return (SM_FAIL);
     }
 
     /* it's heeeere... */
-    item->sjc_flags[which] &= SJC_CLEAR;
+    item->sjc_flags[which] &= ~SJC_MISSING;
 
     return (SM_SUCCESS);
 }

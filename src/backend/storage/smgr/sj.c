@@ -129,14 +129,12 @@ extern Relation	RelationIdGetRelation();
  *  sjinit() -- initialize the Sony jukebox storage manager.
  *
  *	We need to find (or establish) the mag-disk buffer cache metadata
- *	in shared memory and open the cache on mag disk.  If this code is
- *	executed by the postmaster, we'll create (but not populate) the
- *	cache memory.  The first backend to run that touches the cache
- *	initializes it.  All other backends running simultaneously will
- *	only wait for this initialization to complete if they need to get
- *	data out of the cache.  Otherwise, they'll return successfully
- *	immediately after attaching the cache memory, and will let their
- *	older sibling do all the work.
+ *	in shared memory and open the cache on mag disk.  The first backend
+ *	to run that touches the cache initializes it.  All other backends
+ *	running simultaneously will only wait for this initialization to
+ *	complete if they need to get data out of the cache.  Otherwise,
+ *	they'll return successfully immediately after attaching the cache
+ *	memory, and will let their older sibling do all the work.
  */
 
 int
@@ -154,7 +152,7 @@ sjinit()
     /*
      *  First attach the shared memory block that contains the disk
      *  cache metadata.  At the end of this block in shared memory is
-     *  the 
+     *  the hash table we use to do fast lookup on groups in the cache.
      */
 
     SpinAcquire(SJCacheLock);
@@ -799,17 +797,26 @@ _sjgetgrp()
     if (item->sjc_oid != InvalidObjectId)
 	_sjhashop(&(item->sjc_tag), HASH_REMOVE, &found);
 
-    /* if there are no writes to force to the jukebox, we're done */
+    /*
+     *  See if we need to flush the group to the jukebox.  If we're working
+     *  with an entirely new item (the corresponding cache slot is empty),
+     *  dbid == relid == base == 0, so we can ignore the flags.  Otherwise,
+     *  we check every flags entry in the group descriptor to see if anyone
+     *  wants to get flushed.
+     */
+
     dirty = false;
-    if (!(item->sjc_gflags & SJC_DIRTY)) {
-	for (i = 0; i < SJGRPSIZE; i++) {
-	    if (item->sjc_flags[i] & SJC_DIRTY) {
-		dirty = true;
-		break;
+    if (item->sjc_tag.sjct_dbid != 0 || item->sjc_tag.sjct_relid != 0) {
+	if (MUST_FLUSH(item->sjc_gflags)) {
+	    dirty = true;
+	} else {
+	    for (i = 0; i < SJGRPSIZE; i++) {
+		if (MUST_FLUSH(item->sjc_flags[i])) {
+		    dirty = true;
+		    break;
+		}
 	    }
 	}
-    } else {
-	dirty = true;
     }
 
     if (!dirty)
@@ -841,7 +848,7 @@ _sjgetgrp()
     base = item->sjc_tag.sjct_base;
 
     for (i = 0; i < SJGRPSIZE; i++) {
-	if (item->sjc_flags[i] & SJC_DIRTY) {
+	if (MUST_FLUSH(item->sjc_flags[i])) {
 	    offset = (i * BLCKSZ) + JBBLOCKSZ;
 	    DirtyBufferCopy(dbid, relid, base + i, &(SJCacheBuf[offset]));
 	}
@@ -849,23 +856,7 @@ _sjgetgrp()
 
     nblocks = _sjfindnblocks(&(item->sjc_tag));
 
-    /* if necessary, put the highest block in the relation on mag disk */
-    if ((item->sjc_tag.sjct_base + SJGRPSIZE + 1) >= nblocks) {
-	grpoffset = ((nblocks - 1) % SJGRPSIZE);
-
-	if (item->sjc_flags[grpoffset] & SJC_DIRTY) {
-
-	    /* COMPLETELY bogus.  Won't work with any sort of sharing. */
-	    reln = RelationIdGetRelation(item->sjc_tag.sjct_relid);
-	    loc = FileSeek(reln->rd_fd, 0L, L_SET);
-	    where = JBBLOCKSZ + ((nblocks - 1) * BLCKSZ);
-	    FileWrite(reln->rd_fd, &(SJCacheBuf[where]), BLCKSZ);
-
-	    item->sjc_flags[grpoffset] &= ~SJC_DIRTY;
-	}
-    }
-
-    if (pgjb_wrtextent(item, &(SJCacheBuf[0])) == SM_FAIL) {
+    if (pgjb_wrtextent(item, nblocks, &(SJCacheBuf[0])) == SM_FAIL) {
 	_sjunwait_io(item);
 	elog(FATAL, "_sjfree:  cannot free group.");
     }
@@ -1063,21 +1054,6 @@ _sjrdextent(item)
 		   item->sjc_tag.sjct_dbid, item->sjc_tag.sjct_relid,
 		   item->sjc_tag.sjct_base, item->sjc_plid);
     }
-
-    /* XXX debug */
-    {
-	int i;
-	char *p;
-
-	p = &(SJCacheBuf[JBBLOCKSZ]);
-
-	for (i = 0; i < SJGRPSIZE; i++) {
-	    if (!(item->sjc_flags[i] & SJC_MISSING))
-		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
-
-	    p += BLCKSZ;
-	}
-    }
 }
 
 /*
@@ -1199,21 +1175,6 @@ _sjwritegrp(item, grpno)
     if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos)
 	return (SM_FAIL);
 
-    /* XXX debug */
-    {
-	int i;
-	char *p;
-
-	p = &(SJCacheBuf[JBBLOCKSZ]);
-
-	for (i = 0; i < SJGRPSIZE; i++) {
-	    if (!(item->sjc_flags[i] & SJC_MISSING))
-		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
-
-	    p += BLCKSZ;
-	}
-    }
-
     nbytes = SJBUFSIZE;
     buf = &(SJCacheBuf[0]);
     while (nbytes > 0) {
@@ -1290,19 +1251,11 @@ sjextend(reln, buffer)
      *  missing'.  Once we've done this, we must hold the extend lock
      *  until end of transaction, since the number of allocated blocks no
      *  longer matches the block count visible to other backends.
-     *
-     *  The check of DIRTY and ONPLATTER in case of not MISSING is to handle
-     *  the case where some other backend started to do the extend, then
-     *  aborted.  In fact, this is probably an error, and the code to handle
-     *  it may not work correctly; should think more about this.
      */
 
     if (!(item->sjc_flags[grpoffset] & SJC_MISSING)) {
-	if (item->sjc_flags[grpoffset] & SJC_DIRTY
-	    || item->sjc_flags[grpoffset] & SJC_ONPLATTER) {
-	    SpinRelease(SJCacheLock);
-	    elog(WARN, "sjextend: cache botch: next block in group present");
-	}
+	SpinRelease(SJCacheLock);
+	elog(WARN, "sjextend: cache botch: next block in group present");
     } else {
 	item->sjc_flags[grpoffset] &= ~SJC_MISSING;
     }
@@ -1320,59 +1273,16 @@ sjextend(reln, buffer)
     bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
 
     /*
-     *  It's the highest-numbered block in this relation, and it's dirty,
-     *  now.  NOTE:  by doing this, we've just changed the number of blocks
-     *  in the relation.  We need to hold the extend lock on this reln
-     *  until end of transaction, since no one will be able to see the new
-     *  block until then.
-     */
-
-    item->sjc_flags[grpoffset] |= SJC_DIRTY;
-
-    /*
-     *  Since we just added a new block to the relation, the old highest-
-     *  numbered block is about to become a candidate for movement to the
-     *  optical disk jukebox.  Until now, it's been cached on magnetic
-     *  disk.  We need to mark it dirty.
+     *  It's the highest-numbered block in this relation, and it's not on
+     *  the platter yet.
      *
-     *  There are two possibilities:  if the old block is in the same
-     *  extent as the new block, then we can just mark it dirty directly,
-     *  since we have that group already.  If this is a brand-new extent,
-     *  then we need to instantiate the extent that precedes it, and mark
-     *  the highest-numbered block in that extent dirty.
+     *  NOTE:  by doing this, we've just changed the number of blocks in the
+     *  relation.  We need to hold the extend lock on this reln until end
+     *  of transaction, since no one will be able to see the new block until
+     *  then.
      */
 
-    if (grpoffset == 0) {
-
-	/*
-	 *  Hard case -- we just allocated a new extent.  We need to
-	 *  instantiate the previous extent and mark the block dirty
-	 *  there.  This is complicated enough to wrap up in a separate
-	 *  routine.
-	 */
-
-	if (nblocks > 0)
-	    _sjdirtylast(tag.sjct_dbid, tag.sjct_relid, nblocks - 1);
-
-    } else {
-
-	/*
-	 *  Easy case -- old block is in this extent.  Decrement the
-	 *  offset and mark the block dirty.  It is bad news if the
-	 *  old highest-numbered block is on a platter or missing; these
-	 *  should never happen.
-	 */
-
-	grpoffset--;
-	if (item->sjc_flags[grpoffset] & SJC_MISSING
-	    || item->sjc_flags[grpoffset] & SJC_ONPLATTER) {
-
-	    elog(WARN, "sjextend: old 'last block' not writable");
-	}
-
-	/* okay, mark it dirty */
-	item->sjc_flags[grpoffset] |= SJC_DIRTY;
-    }
+    item->sjc_flags[grpoffset] |= SJC_CLEAR;
 
     /* finally, write out the extent with the new block in it */
     if (_sjwritegrp(item, grpno) == SM_FAIL) {
@@ -1387,82 +1297,6 @@ sjextend(reln, buffer)
     _sjregnblocks(&tag);
 
     return (SM_SUCCESS);
-}
-
-/*
- *  _sjdirtyblock() -- Mark the requested block in a relation dirty.
- *
- *	When we extend a relation, it gets a new last block.  The last
- *	block of every relation is always stored on magnetic disk, so
- *	when we do an extend, we need to mark the old last block dirty.
- *	This will guarantee that it gets kicked out to the optical
- *	platter later, and that the new last block can be safely written
- *	to the magnetic disk file for caching the relation's last block.
- */
-
-static void
-_sjdirtylast(dbid, relid, blkno)
-    ObjectId dbid;
-    ObjectId relid;
-    int blkno;
-{
-    OffsetNumber base;
-    int grpno;
-    int i;
-    long seekpos;
-    long loc;
-    int nbytes;
-    char *buf;
-    int which;
-    SJCacheItem *item;
-
-    base = ((blkno / SJGRPSIZE) * SJGRPSIZE);
-    which = (blkno % SJGRPSIZE);
-    item = _sjfetchgrp(dbid, relid, base, &grpno);
-
-    SpinAcquire(SJCacheLock);
-    SET_IO_LOCK(item);
-
-    /* mark it dirty */
-    if ((item->sjc_flags[which] & SJC_MISSING)
-	|| (item->sjc_flags[which] & SJC_ONPLATTER)) {
-
-	_sjunwait_io(item);
-	_sjunpin(item);
-
-	elog(WARN, "_sjdirtyblock: old 'last block' not writable");
-    }
-
-    item->sjc_flags[which] |= SJC_DIRTY;
-
-    /* just need to update the metadata file */
-    seekpos = grpno * sizeof(*item);
-
-    if ((loc = FileSeek(SJMetaVfd, seekpos, L_SET)) != seekpos) {
-	_sjunwait_io(item);
-	_sjunpin(item);
-	elog(WARN, "_sjdirtyblock: cache metadata file seek failed");
-    }
-
-    nbytes = sizeof(*item);
-    buf = (char *) item;
-    while (nbytes > 0) {
-	i = FileWrite(SJMetaVfd, buf, nbytes);
-
-	if (i < 0) {
-	    _sjunwait_io(item);
-	    _sjunpin(item);
-	    elog(WARN, "_sjdirtyblock: cache metadata file write failed");
-	}
-
-	nbytes -= i;
-	buf += i;
-    }
-
-    _sjunwait_io(item);
-    _sjunpin(item);
-
-    FileSync(SJMetaVfd);
 }
 
 static int
@@ -1503,21 +1337,6 @@ _sjreadgrp(item, grpno)
 
 	elog(NOTICE, "_sjreadgrp: trashed cache");
 	return (SM_FAIL);
-    }
-
-    /* XXX debug */
-    {
-	int i;
-	char *p;
-
-	p = &(SJCacheBuf[JBBLOCKSZ]);
-
-	for (i = 0; i < SJGRPSIZE; i++) {
-	    if (!(item->sjc_flags[i] & SJC_MISSING))
-		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
-
-	    p += BLCKSZ;
-	}
     }
 
     return (SM_SUCCESS);
@@ -1563,7 +1382,7 @@ _sjnewextent(reln, base)
     SET_IO_LOCK(item);
 
     /* set flags on item, initialize group descriptor block */
-    item->sjc_gflags = SJC_DIRTY;
+    item->sjc_gflags = SJC_CLEAR;
     for (i = 0; i < SJGRPSIZE; i++)
 	item->sjc_flags[i] = SJC_MISSING;
 
@@ -1727,8 +1546,6 @@ sjread(reln, blocknum, buffer)
     offset = ((blocknum % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
     bcopy(&(SJCacheBuf[offset]), buffer, BLCKSZ);
 
-    _sjbuftrap(blocknum, buffer);
-
     _sjunwait_io(item);
     _sjunpin(item);
 
@@ -1747,8 +1564,6 @@ sjwrite(reln, blocknum, buffer)
     int offset;
     int grpno;
     int which;
-
-    _sjbuftrap(blocknum, buffer);
 
     if (reln->rd_rel->relisshared)
 	reldbid = (ObjectId) 0;
@@ -1771,7 +1586,6 @@ sjwrite(reln, blocknum, buffer)
     }
 
     item->sjc_flags[which] &= ~SJC_MISSING;
-    item->sjc_flags[which] |= SJC_DIRTY;
 
     SET_IO_LOCK(item);
 
@@ -1830,6 +1644,7 @@ sjnblocks(reln)
     Relation reln;
 {
     SJCacheTag tag;
+    int nblocks;
 
     if (reln->rd_rel->relisshared)
 	tag.sjct_dbid = (ObjectId) 0;
@@ -1838,7 +1653,7 @@ sjnblocks(reln)
 
     tag.sjct_relid = reln->rd_id;
 
-    _sjfindnblocks(&tag);
+    tag.sjct_base = (BlockNumber) _sjfindnblocks(&tag);
 
     return ((int) (tag.sjct_base));
 }
@@ -1861,8 +1676,7 @@ _sjfindnblocks(tag)
     while ((nbytes = FileRead(SJBlockVfd, &mytag, sizeof(mytag))) > 0) {
 	if (mytag.sjct_dbid == tag->sjct_dbid
 	    && mytag.sjct_relid == tag->sjct_relid) {
-	    tag->sjct_base = mytag.sjct_base;
-	    return;
+	    return (mytag.sjct_base);
 	}
     }
 
@@ -2077,8 +1891,7 @@ _sjdump()
 	       item->sjc_oid);
 	printf("         ");
 	for (j = 0; j < SJGRPSIZE; j++) {
-	    printf("[%d %c%c%c]", j,
-	    	   (item->sjc_flags[j] & SJC_DIRTY ? 'd' : '-'),
+	    printf("[%d %c%c]", j,
 	    	   (item->sjc_flags[j] & SJC_MISSING ? 'm' : '-'),
 	    	   (item->sjc_flags[j] & SJC_ONPLATTER ? 'o' : '-'));
 	}
@@ -2111,25 +1924,4 @@ SJInitSemaphore(key)
 #endif /* ndef HAS_TEST_AND_SET */
 }
 
-#include "storage/bufpage.h"
-
-_sjbuftrap(blkno, page)
-    OffsetNumber blkno;
-    Page page;
-{
-    HeapTuple htup;
-
-    if (PageIsEmpty(page) || ((PageHeader) page)->pd_lower == 0)
-	return;
-
-    htup = (HeapTuple) PageGetItem(page, PageGetItemId(page, 0));
-
-    if (ItemPointerGetBlockNumber(&(htup->t_ctid)) != blkno)
-	_sjtrap();
-}
-
-_sjtrap()
-{
-    elog(NOTICE, "got that puppy");
-}
 #endif /* SONY_JUKEBOX */
