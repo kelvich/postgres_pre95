@@ -744,29 +744,53 @@ int lockid;
     return;
 }
 
+#ifdef LOCKDEBUG
+extern int MyPid;
+#define PRINT_LOCK(LOCK) printf("(locklock = %d, flag = %d, nshlocks = %d, \
+shlock = %d, exlock =%d)\n", LOCK->locklock, \
+LOCK->flag, LOCK->nshlocks, LOCK->shlock, \
+LOCK->exlock)
+#endif
+
 void
 SharedLock(lockid)
 SemId lockid;
 {
     SLock *slckP;
     slckP = &(SLockArray[lockid]);
+#ifdef LOCKDEBUG
+    printf("Proc %d SharedLock(%d)\n", MyPid, lockid);
+    printf("IN: ");
+    PRINT_LOCK(slckP);
+#endif
+sh_try_again:
     S_LOCK(&(slckP->locklock));
     switch (slckP->flag) {
     case NOLOCK:
        slckP->flag = SHAREDLOCK;
        slckP->nshlocks = 1;
+       S_LOCK(&(slckP->exlock));
        S_UNLOCK(&(slckP->locklock));
+#ifdef LOCKDEBUG
+       printf("OUT: ");
+       PRINT_LOCK(slckP);
+#endif
        return;
     case SHAREDLOCK:
        (slckP->nshlocks)++;
        S_UNLOCK(&(slckP->locklock));
+#ifdef LOCKDEBUG
+       printf("OUT: ");
+       PRINT_LOCK(slckP);
+#endif
        return;
     case EXCLUSIVELOCK:
        (slckP->nshlocks)++;
        S_UNLOCK(&(slckP->locklock));
        S_LOCK(&(slckP->shlock));
-       SharedLock(lockid);
-       return;
+       (slckP->nshlocks)--;
+       S_UNLOCK(&(slckP->shlock));
+       goto sh_try_again;
      }
 }
 
@@ -776,6 +800,11 @@ SemId lockid;
 {
     SLock *slckP;
     slckP = &(SLockArray[lockid]);
+#ifdef LOCKDEBUG
+    printf("Proc %d SharedUnlock(%d)\n", MyPid, lockid);
+    printf("IN: ");
+    PRINT_LOCK(slckP);
+#endif
     S_LOCK(&(slckP->locklock));
     (slckP->nshlocks)--;
     if (slckP->nshlocks == 0) {
@@ -783,6 +812,10 @@ SemId lockid;
        S_UNLOCK(&(slckP->exlock));
      }
     S_UNLOCK(&(slckP->locklock));
+#ifdef LOCKDEBUG
+       printf("OUT: ");
+       PRINT_LOCK(slckP);
+#endif
     return;
 }
 
@@ -792,18 +825,30 @@ SemId lockid;
 {
     SLock *slckP;
     slckP = &(SLockArray[lockid]);
+#ifdef LOCKDEBUG
+    printf("Proc %d ExclusiveLock(%d)\n", MyPid, lockid);
+    printf("IN: ");
+    PRINT_LOCK(slckP);
+#endif
+ex_try_again:
     S_LOCK(&(slckP->locklock));
     switch (slckP->flag) {
     case NOLOCK:
 	slckP->flag = EXCLUSIVELOCK;
+	S_LOCK(&(slckP->exlock));
+	S_LOCK(&(slckP->shlock));
 	S_UNLOCK(&(slckP->locklock));
+#ifdef LOCKDEBUG
+       printf("OUT: ");
+       PRINT_LOCK(slckP);
+#endif
 	return;
     case SHAREDLOCK:
     case EXCLUSIVELOCK:
 	S_UNLOCK(&(slckP->locklock));
 	S_LOCK(&(slckP->exlock));
-	ExclusiveLock(lockid);
-	return;
+	S_UNLOCK(&(slckP->exlock));
+	goto ex_try_again;
       }
 }
 
@@ -812,7 +857,14 @@ ExclusiveUnlock(lockid)
 SemId lockid;
 {
     SLock *slckP;
+    int i;
+
     slckP = &(SLockArray[lockid]);
+#ifdef LOCKDEBUG
+    printf("Proc %d ExclusiveUnlock(%d)\n", MyPid, lockid);
+    printf("IN: ");
+    PRINT_LOCK(slckP);
+#endif
     S_LOCK(&(slckP->locklock));
     /* -------------
      *  give favor to read processes
@@ -820,13 +872,18 @@ SemId lockid;
      */
     slckP->flag = NOLOCK;
     if (slckP->nshlocks > 0) {
-	slckP->nshlocks = 0;
-	S_UNLOCK(&(slckP->shlock));
+	while (slckP->nshlocks > 0)
+	   S_UNLOCK(&(slckP->shlock));
       }
     else {
-      S_UNLOCK(&(slckP->exlock));
+      S_UNLOCK(&(slckP->shlock));
      }
+    S_UNLOCK(&(slckP->exlock));
     S_UNLOCK(&(slckP->locklock));
+#ifdef LOCKDEBUG
+       printf("OUT: ");
+       PRINT_LOCK(slckP);
+#endif
     return;
 }
 #endif /* sequent */
