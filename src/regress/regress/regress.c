@@ -191,8 +191,7 @@ circle_in(str)
 char	*str;
 {
 	double	atof(), tmp;
-	char	*strcpy(), *p,
-		*coord[NARGS], buf2[1000];
+	char	*p, *coord[NARGS], buf2[1000];
 	int	i, fd;
 	CIRCLE	*result;
 
