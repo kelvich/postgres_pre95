@@ -24,6 +24,78 @@
 
 #include "tmp/miscadmin.h"
 
+/*
+ * EnableAbortEnvVarName --
+ *	Enables system abort iff set to a non-empty string in environment.
+ */
+#define EnableAbortEnvVarName	"POSTGRESABORT"
+
+typedef String	EnvVarName;
+extern String getenv ARGS((EnvVarName name));
+
+/* ----------------------------------------------------------------
+ *		some of the 19 ways to leave postgres
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *	ExitPostgres
+ * ----------------
+ */
+void
+ExitPostgres(status)
+    ExitStatus	status;
+{
+#ifdef	__SABER__
+    saber_stop();
+#endif
+    exitpg(status);
+}
+
+/* ----------------
+ *	AbortPostgres
+ * ----------------
+ */
+void
+AbortPostgres()
+{
+    String abortValue = getenv(EnableAbortEnvVarName);
+
+#ifdef	__SABER__
+    saber_stop();
+#endif
+
+    if (PointerIsValid(abortValue) && abortValue[0] != '\0')
+	abort();
+    else
+	exitpg(FatalExitStatus);
+}
+
+/* ----------------
+ *	StatusBackendExit
+ * ----------------
+ */
+void
+StatusBackendExit(status)
+    int	status;
+{
+    /* someday, do some real cleanup and then call the LISP exit */
+    /* someday, call StatusPostmasterExit if running without postmaster */
+    exitpg(status);
+}
+
+/* ----------------
+ *	StatusPostmasterExit
+ * ----------------
+ */
+void
+StatusPostmasterExit(status)
+    int	status;
+{
+    /* someday, do some real cleanup and then call the LISP exit */
+    exitpg(status);
+}
+
 /* ----------------------------------------------------------------
  *	processing mode support stuff (used to be in pmod.c)
  * ----------------------------------------------------------------

@@ -3,19 +3,22 @@
  *	postinit.c
  *	
  *   DESCRIPTION
- *	main postgres initialization routines
+ *	postgres initialization utilities
  *
  *   INTERFACE ROUTINES
- *	InitializePostgres()
  *	InitPostgres()
- *	ReinitPostgres()
  *
  *   NOTES
  *	InitializePostgres() is the function called from PostgresMain
  *	which does all non-trival initialization, mainly by calling
- *	all the other initialization functions.   If you feel the
- *	need to add more initialization code, it should be done
- *	in InitializePostgres() or someplace lower.  Do not start
+ *	all the other initialization functions.  InitializePostgres()
+ *	is only used within the "postgres" backend and so that routine
+ *	is in tcop/postgres.c  InitPostgres() is needed in cinterface.a
+ *	because things like the bootstrap backend program need it. Hence
+ *	you find that in this file...
+ *
+ *	If you feel the need to add more initialization code, it should be
+ *	done in InitializePostgres() or someplace lower.  Do not start
  *	putting stuff in PostgresMain - if you do then someone
  *	will have to clean it up later, and it's not going to be me!
  *	-cim 10/3/90
@@ -67,15 +70,6 @@ extern bool override;
 extern int Quiet;
 
 /*
- * EnableAbortEnvVarName --
- *	Enables system abort iff set to a non-empty string in environment.
- */
-#define EnableAbortEnvVarName	"POSTGRESABORT"
-
-typedef String	EnvVarName;
-extern String getenv ARGS((EnvVarName name));
-
-/*
  * XXX PostgresPath and PostgresDatabase belong somewhere else.
  */
 String	PostgresPath = NULL;
@@ -107,69 +101,6 @@ extern void BufferManagerFlush();
 #define private
 #endif	/* !defined(EBUG) */
 #endif	/* !defined(private) */
-
-/* ----------------------------------------------------------------
- *		some of the 19 ways to leave postgres
- * ----------------------------------------------------------------
- */
-
-/* ----------------
- *	ExitPostgres
- * ----------------
- */
-void
-ExitPostgres(status)
-    ExitStatus	status;
-{
-#ifdef	__SABER__
-    saber_stop();
-#endif
-    exitpg(status);
-}
-
-/* ----------------
- *	AbortPostgres
- * ----------------
- */
-void
-AbortPostgres()
-{
-    String abortValue = getenv(EnableAbortEnvVarName);
-
-#ifdef	__SABER__
-    saber_stop();
-#endif
-
-    if (PointerIsValid(abortValue) && abortValue[0] != '\0')
-	abort();
-    else
-	exitpg(FatalExitStatus);
-}
-
-/* ----------------
- *	StatusBackendExit
- * ----------------
- */
-void
-StatusBackendExit(status)
-    int	status;
-{
-    /* someday, do some real cleanup and then call the LISP exit */
-    /* someday, call StatusPostmasterExit if running without postmaster */
-    exitpg(status);
-}
-
-/* ----------------
- *	StatusPostmasterExit
- * ----------------
- */
-void
-StatusPostmasterExit(status)
-    int	status;
-{
-    /* someday, do some real cleanup and then call the LISP exit */
-    exitpg(status);
-}
 
 /* ----------------------------------------------------------------
  *			InitPostgres support
@@ -695,120 +626,6 @@ ReinitPostgres()
     InitPostgres(NULL);	
 }
 
-/* ----------------------------------------------------------------
- *	InitializePostgres
- *
- *	This routine should only be called once (by the "master"
- *  	backend).  Put "re-initialization" type stuff someplace else!
- *  	-cim 10/3/90
- * ----------------------------------------------------------------
- */
-bool InitializePostgresCalled = false;
-
-void
-InitializePostgres(DatabaseName)
-    String    DatabaseName;	/* name of database to use */
-{
-    /* ----------------
-     *	sanity checks
-     *
-     *  Note: we can't call elog yet..
-     * ----------------
-     */
-    if (InitializePostgresCalled) {
-	fprintf(stderr, "InitializePostgresCalled more than once!\n");
-	exitpg(1);
-    } else
-	InitializePostgresCalled = true;
-
-    /* ----------------
-     *	set processing mode appropriately depending on weather or
-     *  not we want the transaction system running.  When the
-     *  transaction system is not running, all transactions are
-     *  assumed to have successfully committed and we never go to
-     *  the transaction log.
-     *
-     *  The way things seem to work: we start in InitProcessing and
-     *  change to NormalProcessing after InitPostgres() is done.  But
-     *  if we run with the wierd override flag, then it means we always
-     *  run in "BootstrapProcessing" mode.
-     *
-     * XXX the -C version flag should be removed and combined with -O
-     * ----------------
-     */
-    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-
-    /* ----------------
-     *	if fmgr() is called and the desired function is not
-     *  in the builtin table, then we call the desired function using
-     *  the routine registered in EnableDynamicFunctionManager().
-     *  That routine (fmgr_dynamic) is expected to dynamically
-     *  load the desired function and then call it.
-     *
-     *  dynamic loading only works after EnableDynamicFunctionManager()
-     *  is called.
-     *
-     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
-     * ----------------
-     */
-    if (! Quiet)
-	puts("\tEnableDynamicFunctionManager()..");
-    EnableDynamicFunctionManager(fmgr_dynamic);
-        	
-    /* ----------------
-     *	initialize portal file descriptors
-     *
-     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
-     * ----------------
-     */
-    if (IsUnderPostmaster == true) {
-	if (Portfd < 0) {
-	    fprintf(stderr,
-		    "Postmaster flag set, but no port number specified\n");
-	    exitpg(1);
-	}
-	pinit();
-    }
-    
-    /* ****************************************************
-     *	InitPostgres()
-     *
-     *  Do all the general initialization.  Anything that can be
-     *  done more than once should go in InitPostgres().
-     * ****************************************************
-     */
-    if (! Quiet)
-	puts("\tInitPostgres()..");
-    InitPostgres(DatabaseName);
-
-    /* ----------------
-     *  Initialize the Master/Slave shared memory allocator,
-     *	fork and initialize the parallel slave backends, and
-     *  register the Master semaphore/shared memory cleanup
-     *  procedures.
-     *
-     *  This may *NOT* happen more than once so we can't
-     *  put this in InitPostgres() -cim 10/5/90
-     * ----------------
-     */
-    if (ParallelExecutorEnabled()) {
-	extern void IPCPrivateSemaphoreKill();
-	extern void IPCPrivateMemoryKill();
-	
-	if (! Quiet)
-	    puts("\tInitializing Executor Shared Memory...");
-	ExecSMInit();
-	
-	if (! Quiet)
-	    puts("\tInitializing Slave Backends...");
-	SlaveBackendsInit();
-
-	if (! Quiet)
-	    puts("\tRegistering Master IPC Cleanup Procedures...");
-	ExecSemaphoreOnExit(IPCPrivateSemaphoreKill);
-	ExecSharedMemoryOnExit(IPCPrivateMemoryKill);
-    }
-}
 
 /* ----------------------------------------------------------------
  *		traps to catch calls to obsolete routines
