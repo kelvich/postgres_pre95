@@ -156,6 +156,7 @@ class (Rel) public (Node) {
   /* used solely by indices: */
 	List	classlist;
 	List	indexkeys;
+	oid	indproc;
   /* used by various scans and joins: */
 	List	ordering;
 	List	clauseinfo;
