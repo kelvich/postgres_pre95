@@ -100,7 +100,7 @@ extern Relation 	heap_open();
 extern Relation 	heap_openr();
 extern void		heap_close();
 extern HeapTuple	heap_fetch();
-extern RuleLock 	heap_insert();
+extern ObjectId 	heap_insert();
 extern RuleLock 	heap_delete();
 extern RuleLock 	heap_replace();
 extern char *   	heap_getattr();
