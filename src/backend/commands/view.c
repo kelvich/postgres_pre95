@@ -42,15 +42,80 @@ attname ( relname , attnum )
     return ( varname );
 }
 
-/*	DefineVirtualRelation
+/*---------------------------------------------------------------------
+ * DefineVirtualRelation
+ *
+ * Create the "view" relation.
+ * `DefineRelation' does all the work, we just provide the correct
+ * arguments!
+ *
+ * If the relation already exists, then 'DefineRelation' will abort
+ * the xact...
+ *---------------------------------------------------------------------
+ */
+DefineVirtualRelation (relname , tlist )
+Name relname;
+List tlist;
+{
+    List attrList, t, element;
+    List parameters;
+    TLE	entry;
+    Resdom  res;
+    Name resname;
+    ObjectId restype;
+    Name restypename;
+
+    /*
+     * create a list with one entry per attribute of this relation.
+     * Each entry is a two element list. The first element is the
+     * name of the attribute (a string) and the second the name of the type
+     * (NOTE: a string, not a type id!).
+     */
+    attrList = LispNil;
+    if (!null(tlist)) {
+	foreach (t, tlist ) {
+	    /*
+	     * find the names of the attribute & its type
+	     */
+	    entry = get_entry((TL)t);
+	    res   = get_resdom(entry);
+	    resname = get_resname(res);
+	    restype = get_restype(res);
+	    restypename = tname(get_id_type(restype));
+	    element = lispCons(lispString(restypename), LispNil);
+	    element = lispCons(lispString(resname), element);
+	    attrList = nappend1(attrList, element);
+	}
+    } else {
+	elog ( WARN, "attempted to define virtual relation with no attrs");
+    }
+
+    /*
+     * now create the parametesr for keys/inheritance etc.
+     * All of them are nil...
+     */
+    parameters = LispNil;
+    parameters = lispCons(LispNil, parameters);	/* keys */
+    parameters = lispCons(LispNil, parameters);	/* inheritance stuff */
+    parameters = lispCons(LispNil, parameters);	/* is indexable */
+    parameters = lispCons(LispNil, parameters);	/* archive type */
+
+    /*
+     * finally create the relation...
+     */
+    DefineRelation(relname, parameters, attrList);
+}    
+
+#ifdef BOGUS
+-------------------------------------------------------------------------
+/*	DefineVirtualRelation2
  *	- takes a relation name and a targetlist
  *	and generates a string "create relation ( ... )"
  *	by taking the attributes and types from the tlist
  *	and reconstructing the attr-list for create.
  *	then calls "pg-eval" to evaluate the creation,
  */
-  
-DefineVirtualRelation ( relname , tlist )
+DefineVirtualRelation2 ( relname , tlist )
      Name relname;
      List tlist;
 {
@@ -83,40 +148,7 @@ DefineVirtualRelation ( relname , tlist )
 	elog ( WARN, "attempted to define virtual relation with no attrs");
     pg_eval(querybuf);
 }    
-
-#ifdef BOGUS
-void 
-sprint_tlist ( addr_of_target, tlist, rt )
-     String *addr_of_target;
-     List tlist;
-     List rt;
-{
-    static char temp_buffer[8192];
-    char *index = 0;
-    List i = NULL;
-
-    foreach ( i , tlist ) {
-	List 	this_tle	= CAR(i);
-	Resdom 	this_resdom 	= NULL;
-	List	this_expr 	= NULL;
-	char	*this_resname 	= NULL;
-	char	*this_restype 	= NULL;
-
-	this_expr = tl_expr(tle);
-	this_resdom = (Resdom)tl_resdom(tle);
-
-	Assert ( IsA(this_resdom,Resdom));
-
-	this_resname = get_resname(this_resdom);
-	this_resexpr = expr_to_string ( );
-
-	sprintf ( (temp_buffer + index) , "%s = %s::%s",
-		  this_resname,
-		  this_resexpr,
-		  this_restype );
-
-    }
-}
+-------------------------------------------------------------------------
 #endif BOGUS
 
 List
@@ -360,21 +392,19 @@ List view_parse;
     view_tlist = parse_targetlist( view_parse );
 
     /*
-     * Create the "view" relation (if it does not already exist).
+     * Create the "view" relation
+     * NOTE: if it already exists, the xaxt will be aborted.
      */
-    if ( getreldesc (view_name) == NULL ) {
-	DefineVirtualRelation (view_name ,view_tlist);
-	/*
-	 * The relation we have just created is not visible
-	 * to any other commands running with the same transaction &
-	 * command id.
-	 * So, increment the command id counter (but do NOT pfree any
-	 * memory!!!!)
-	 */
-	CommandCounterIncrement();
-    } else {
-	elog(WARN, "relation '%s' already exists!", view_name);
-    }
+    DefineVirtualRelation (view_name ,view_tlist);
+
+    /*
+     * The relation we have just created is not visible
+     * to any other commands running with the same transaction &
+     * command id.
+     * So, increment the command id counter (but do NOT pfree any
+     * memory!!!!)
+     */
+    CommandCounterIncrement();
 
     /*
      * The range table of 'view_parse' does not contain entries
