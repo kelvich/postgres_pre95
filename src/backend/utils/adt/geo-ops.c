@@ -915,15 +915,24 @@ point_in(str)
 	char	*str;
 {
 	double	atof();
-	char	*coord[POINTNARGS], *p;
+	char	*coord[POINTNARGS], *p, *r;
 	int	i;
 	POINT	*result;
 
 	if (str == NULL)
 		elog(WARN, "Bad (Null) point external representation");
-	for (i = 0, p = str; *p && i < POINTNARGS && *p != RDELIM; p++)
-		if (*p == DELIM || (*p == LDELIM && !i))
-			coord[i++] = p + 1;
+
+	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
+		elog (WARN, "Bad point external representation '%s'",str);
+	for (i = 0, p++; *p && i < POINTNARGS-1 && *p != RDELIM; p = r+1)
+		if ((r = (char *)index(p, DELIM)) == (char *)NULL)
+			elog (WARN, "Bad point external representation '%s'",str);
+		else	
+			coord[i++] = p;
+	if ((r = (char *)index(p, RDELIM)) == (char *)NULL)
+		elog (WARN, "Bad point external representation '%s'",str);
+	coord[i++] = p;
+
 	if (i < POINTNARGS - 1)
 		elog(WARN, "Bad point external representation '%s'",str);
 	result = PALLOCTYPE(POINT);
@@ -931,7 +940,6 @@ point_in(str)
 	result->y = atof(coord[1]);
 	return(result);
 }
-
 
 char *
 point_out(pt)
