@@ -792,6 +792,14 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 		}
 	    }
 	}
+	/*
+	 *  In a query block, we want to increment the command counter
+	 *  between queries so that the effects of early queries are
+	 *  visible to subsequent ones.
+	 */
+
+	if (parsetree_list != LispNil)
+	     CommandCounterIncrement();
     }
 }
     
