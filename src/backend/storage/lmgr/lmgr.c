@@ -360,29 +360,6 @@ RelationSetLockForRead(relation)
     else
         linfo = (LockInfo) relation->lockInfo;
 
-    /* ----------------
-     *	return if lock already set, otherwise set lock.
-     *  Have to make sure lock was set in current transaction
-     *  otherwise we really don't have it!! mer 9 Jul 1991
-     * ----------------
-     */
-    curXact = GetCurrentTransactionId();
-    if (TransactionIdEquals(curXact, &linfo->transactionIdData))
-    {
-	if (linfo->flags & ReadRelationLock) 
-            return;
-	linfo->flags |= ReadRelationLock;
-    }
-    else
-    {
-        TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
-	/* ---------------
-	 * use &= to clear all bits from previous xacts
-	 * ---------------
-	 */
-        linfo->flags &= ReadRelationLock;
-    }
-    
     MultiLockReln(linfo, READ_LOCK);
 }
 
@@ -422,12 +399,6 @@ RelationUnsetLockForRead(relation)
             "Releasing a lock on %s with invalid lock information",
             RelationGetRelationName(relation));
     }
-
-    /* -----------------
-     * We will no longer have this lock
-     * -----------------
-     */
-    linfo->flags &= ~ReadRelationLock;
 
     MultiReleaseReln(linfo, READ_LOCK);
 }
@@ -477,25 +448,6 @@ RelationSetLockForWrite(relation)
     else
         linfo = (LockInfo) relation->lockInfo;
 
-    /* ----------------
-     *	return if lock already set, otherwise set lock.
-     *  Have to make sure lock was set in current transaction
-     *  otherwise we really don't have it!! mer 9 Jul 1991
-     * ----------------
-     */
-    curXact = GetCurrentTransactionId();
-    if (TransactionIdEquals(curXact, &linfo->transactionIdData))
-    {
-	if (linfo->flags & WriteRelationLock) 
-            return;
-	linfo->flags |= WriteRelationLock;
-    }
-    else
-    {
-        TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
-        linfo->flags &= WriteRelationLock;
-    }
-
     MultiLockReln(linfo, WRITE_LOCK);
 }
 
@@ -534,12 +486,6 @@ RelationUnsetLockForWrite(relation)
             "Releasing a lock on %s with invalid lock information",
             RelationGetRelationName(relation));
     }
-
-    /* -----------------
-     * We will no longer have this lock
-     * -----------------
-     */
-    linfo->flags &= ~WriteRelationLock;
 
     MultiReleaseReln(linfo, WRITE_LOCK);
 }
