@@ -40,7 +40,18 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 
+#include "access/heapam.h"
 #include "access/transam.h"
+
+#include "catalog/catname.h"
+
+/* ----------
+ *	note: we reserve the first 16384 object ids for internal use.
+ *	oid's less than this appear in the .bki files.  the choice of
+ *	16384 is completely arbitrary.
+ * ----------
+ */
+static oid BootstrapObjectIdData = 16384;
 
 /* ----------------------------------------------------------------
  *	      variable relation query/update routines
@@ -223,8 +234,22 @@ VariableRelationGetNextOid(oid_return)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    if (PointerIsValid(oid_return))
-	(*oid_return) = var->nextOid;
+    if (PointerIsValid(oid_return)) {
+
+        /* ----------------
+         * nothing up my sleeve...  what's going on here is that this code
+	 * is guaranteed never to be called until all files in data/base/
+	 * are created, and the template database exists.  at that point,
+	 * we want to append a pg_database tuple.  the first time we do
+	 * this, the oid stored in pg_variable will be bogus, so we use
+	 * a bootstrap value defined at the top of this file.
+         * ----------------
+         */
+	if (ObjectIdIsValid(var->nextOid))
+	    (*oid_return) = var->nextOid;
+	else
+	    (*oid_return) = BootstrapObjectIdData;
+    }
 
     ReleaseBuffer(buf);
 }
@@ -445,18 +470,6 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
     oid nextoid;		
 
     /* ----------------
-     *	if we are running during bootstrap time, then don't go to the
-     *  disk.. instead allocate the block from the set of special oids
-     *  reserved for this time..
-     * ----------------
-     */
-    if (! RelationIsValid(VariableRelation)) {
-	if (PointerIsValid(oid_return))
-	    GetNextBootstrapObjectIdBlock(oid_return, oid_block_size);
-	return;
-    }
-
-    /* ----------------
      *	SOMEDAY obtain exclusive access to the variable relation page
      * ----------------
      */
@@ -528,14 +541,15 @@ GetNewObjectId(oid_return)
 	 * ----------------
 	 */
 	if (! RelationIsValid(VariableRelation))
-	    oid_block_size = 1;
+	    VariableRelation =
+		RelationNameOpenHeapRelation(VariableRelationName);
 	
 	/* ----------------
 	 *	get a new block of prefetched object ids.
 	 * ----------------
 	 */
 	GetNewObjectIdBlock(&next_prefetched_oid, oid_block_size);
-	
+
 	/* ----------------
 	 *	now reset the prefetched_oid_count.
 	 * ----------------
