@@ -267,6 +267,7 @@ int operation;
     LispValue queryDescriptor;
     LispValue res1, res2, res3, result;
     EState executorState;
+	TupleDescriptor foo; /* XXX Hack for making copy of tuple descriptor */
 
     queryDescriptor = prs2MakeQueryDescriptorFromPlan(actionPlan);
 
@@ -276,6 +277,10 @@ int operation;
 
     res1 = ExecMain(queryDescriptor, executorState,
 		    lispCons(lispInteger(EXEC_START), LispNil));
+
+	foo = palloc(sizeof(TupleDescriptorData));  /* XXX Massive Hack */
+	*foo = * ((TupleDescriptor) CADR(res1));    /* XXX to make copy of tuple */
+	CADR(res1) = foo;                           /* XXX descriptor */
 
     res2 = ExecMain(queryDescriptor, executorState,
 		    lispCons(lispInteger(operation), LispNil));
