@@ -33,12 +33,16 @@ LispValue parsetree;
 
 #define DB_PARSE(foo) 
 
+void fixupsets();
+void define_sets();
+
 parser(str, l, typev, nargs)
      char *str;
      LispValue l;
      ObjectId *typev;
      int nargs;
 {
+    LispValue parse, savetree;
     int yyresult;
 
     init_io();
@@ -61,14 +65,92 @@ parser(str, l, typev, nargs)
 	return(-1);
     }
 
-    CAR(l) = CAR(parsetree);
-    CDR(l) = CDR(parsetree);
+    /* Fixing up sets calls the parser, so it reassigns the global
+     * variable parsetree. So save the real parsetree.
+     */
+    savetree = parsetree;
+    foreach (parse, savetree) {  /* savetree is really a list of parses */
+	 fixupsets(CAR(parse));  /* find set definitions embedded in query */
+    }
 
-    if (parsetree == NULL) {
+    CAR(l) = CAR(savetree);
+    CDR(l) = CDR(savetree);
+
+    if (savetree == NULL) {
 	return(-1);
     } else {
 	return(0);
     }
+}
+
+void
+fixupsets(parse)
+LispValue parse;
+{
+     if (parse == NULL)
+	  return;
+     if (atom(CAR(parse)))  /* utility */
+	  return;
+     if (LISPVALUE_INTEGER(CAR(CDR(CAR(parse)))) != APPEND)
+	  return;
+     define_sets (parse);
+}
+
+/* Recursively find all of the Consts in the parsetree.  Some of
+ * these may represent a set.  The value of the Const will be the
+ * query (a string) which defines the set.  Call SetDefine to define
+ * the set, and store the OID of the new set in the Const instead.
+ */
+void
+define_sets (clause)
+     LispValue clause ;
+{
+     ObjectId setoid;
+     Type t = type("oid");
+     ObjectId typeoid = typeid(t);
+     Size oidsize = tlen(t);
+     bool oidbyval = tbyval(t);
+
+	if (null (clause) ) {
+	  return;
+        } else if (IsA(clause,LispList)) {
+	     define_sets(CAR(clause));
+	     define_sets(CDR(clause));
+	} else if (IsA(clause,Const)) {
+	     if (get_constisnull((Const)clause) || 
+                !get_constisset((Const)clause)) {
+		  return;
+	     }
+	     setoid = SetDefine(get_constvalue((Const)clause),
+			    get_id_typname(get_consttype((Const)clause)));
+	     set_constvalue((Const)clause, setoid);
+	     set_consttype((Const)clause,typeoid);
+	     set_constlen((Const)clause,oidsize);
+	     set_constbyval((Const)clause,oidbyval);
+	} else if ( IsA(clause,Iter) ) {
+	      define_sets(get_iterexpr((Iter)clause));
+	} else if (single_node (clause)) {
+	     return;
+	} else if (or_clause (clause)) {
+	     LispValue temp;
+	     /* mapcan */
+	     foreach (temp,get_orclauseargs(clause) ) {
+		  define_sets(CAR(temp));
+	     }
+	} else if (is_funcclause (clause)) {
+	     LispValue temp;
+	     /* mapcan */
+	     foreach(temp,get_funcargs(clause)) {
+		  define_sets(CAR(temp));
+	     }
+	} else if (IsA(clause,ArrayRef)) {
+	    define_sets(get_refassgnexpr((ArrayRef)clause));
+	} else if (not_clause (clause)) {
+	    define_sets (get_notclausearg (clause));
+	} else if (is_clause (clause)) {
+	    define_sets ((LispValue)get_leftop (clause));
+	    define_sets ((LispValue)get_rightop (clause));
+       }
 }
 
 LispValue
@@ -190,7 +272,8 @@ parser_typecast ( expr, typename )
 	}
     }
     
-    adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, tbyvalue(tp));
+    adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, tbyvalue(tp), 
+                      0 /* not a set */);
 
     if (string_palloced)
 	pfree(const_string);
@@ -285,7 +368,8 @@ parser_typecast2 ( expr, tp)
 	}
     }
     
-    adt = MakeConst ( (ObjectId)typeid(tp), (Size)len, (Datum)lcp , 0 , 0/*was omitted*/);
+    adt = MakeConst ( (ObjectId)typeid(tp), (Size)len, (Datum)lcp , 0 , 
+                      0/*was omitted*/, 0 /* not a set */);
     /*
       printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
       len,cp);
@@ -351,9 +435,10 @@ int4varout ( an_array )
  
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
 List
-ParseFunc ( funcname , fargs )
+ParseFunc ( funcname , fargs, curr_resno )
      char *funcname;
      List fargs;
+     int *curr_resno;
 {
     OID rettype = (OID)0;
     OID funcid = (OID)0;
@@ -378,6 +463,8 @@ ParseFunc ( funcname , fargs )
     bool exists;
     extern LispValue p_rtable;
     extern void make_arguments();
+    bool attisset = false;
+    ObjectId toid;
 
     if (fargs)
      {
@@ -407,9 +494,16 @@ ParseFunc ( funcname , fargs )
 	      relid = RelationGetRelationId(rd);
 	      heap_close(rd);
 	      if ((attnum = get_attnum(relid, (Name) funcname)) 
-		  != InvalidAttributeNumber)
-		return((LispValue)(make_var(oldname, funcname)));
-	      else		/* drop through */;
+		  != InvalidAttributeNumber) {
+		   /* If the attr isn't a set, just make a var for it.  If
+		    * it is a set, treat it like a function and drop through.
+		    */
+/*		   if (!(attisset = get_attisset(relid, funcname))) {
+*/
+			return((LispValue)(make_var(oldname, funcname)));
+/*		   }
+*/
+	      } else		/* drop through - attr is a set */;
 	  }
 	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
 		  IsA(CDR(CAR(fargs)),Iter) && 
@@ -441,6 +535,33 @@ ParseFunc ( funcname , fargs )
 			     "Function %s has bad returntype %d", 
 			     funcname, argtype);
 	       }
+	      else		/* drop through */;
+	  }
+	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
+		  IsA(CDR(CAR(fargs)),Var))
+	 {
+	      /* The argument is a set, so this is either a projection
+	       * or a function call on this set.
+	       */
+	      attisset = true;
+	      toid = (ObjectId)CInteger(first_arg_type);
+	      rd = heap_openr(tname(get_id_type(toid)));
+	      if (RelationIsValid(rd)) {
+		   relname = RelationGetRelationName(rd);
+		   heap_close(rd);
+	      } else
+		   elog(WARN,
+			"Type %s is not a relation type",
+			tname(get_id_type(toid)));
+	      argrelid = typeid_get_relid(toid);
+	      /* A projection contains either an attribute name or the
+	       * word "all".
+	       */
+	      if (((attnum = get_attnum(argrelid, (Name) funcname)) 
+		  == InvalidAttributeNumber) && strcmp(funcname, "all"))
+	      {
+		   elog(WARN, "Functions on sets are not yet supported");
+	      }
 	      else		/* drop through */;
 	  }
 	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
@@ -501,7 +622,8 @@ ParseFunc ( funcname , fargs )
 
 
     /*
-    ** If we dropped through to here it's really a function.
+    ** If we dropped through to here it's really a function (or a set, which
+    ** is implemented as a function.)
     ** extract arg type info and transform relation name arguments into
     ** varnodes of the appropriate form.
     */
@@ -512,7 +634,6 @@ ParseFunc ( funcname , fargs )
     foreach ( i , fargs ) 
      {
 	 List pair = CAR(i);
-	 ObjectId toid;
 	 
 	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
@@ -537,23 +658,22 @@ ParseFunc ( funcname , fargs )
 	      rd = heap_openr(relname);
 	      relid = RelationGetRelationId(rd);
 	      heap_close(rd);
-	      toid = typeid(type(relname));
-
+	      
 	      /*
 	       *  for func(relname), the param to the function
 	       *  is the tuple under consideration.  we build a special
-	       *  VarNode to reflect this -- it has varno set to the correct
-	       *  range table entry, but has varattno == 0 to signal that the
-	       *  whole tuple is the argument.
+	       *  VarNode to reflect this -- it has varno set to the 
+	       *  correct range table entry, but has varattno == 0 to 
+	       *  signal that the whole tuple is the argument.
 	       */
-
+	      toid = typeid(type(relname));		   
 	      rplacd(pair, (LispValue)MakeVar(vnum, 0, toid,
 					      lispCons(lispInteger(vnum),
 						       lispCons(lispInteger(0),
 								LispNil)),
 					      0 /* varslot */));
 	  }
-	 else
+	 else if (!attisset)  /* set functions don't have parameters */
 	  {
 	      toid = CInteger(CAR(pair));
 	  }
@@ -569,14 +689,32 @@ ParseFunc ( funcname , fargs )
      *  types to the function.  if func_get_detail returns true,
      *  the function exists.  otherwise, there was an error.
      */
+    if (attisset) { /* we know all of these fields already */
+	 /* We create a funcnode with a placeholder function SetEval.
+	  * SetEval() never actually gets executed.  When the function
+	  * evaluation routines see it, they use the funcid projected
+	  * out from the relation as the actual function to call.
+	  * Example:  retrieve (emp.mgr.name)
+	  * The plan for this will scan the emp relation, projecting
+	  * out the mgr attribute, which is a funcid.  This function
+	  * is then called (instead of SetEval) and "name" is projected
+	  * from its result.
+	  */
+	 funcid = SetEvalRegProcedure;
+	 rettype = toid;
+	 retset = true;
+	 true_oid_array = oid_array;
+	 exists = true;
+    } else {
+	 exists = func_get_detail(funcname, nargs, oid_array, &funcid,
+				  &rettype, &retset, &true_oid_array);
+    }
 
-    exists = func_get_detail(funcname, nargs, oid_array, &funcid,
-			     &rettype, &retset, &true_oid_array);
     if (!exists)
 	elog(WARN, "no such attribute or function %s", funcname);
 
     /* got it */
-    funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL, LispNil, LispNil);
+    funcnode = MakeFunc(funcid, rettype, false, 0, NULL, LispNil, LispNil);
 
     /* perform the necessary typecasting */
     make_arguments(nargs, fargs, oid_array, true_oid_array);
@@ -595,6 +733,18 @@ ParseFunc ( funcname , fargs )
 
     if (typeid_get_relid(rettype) == InvalidObjectId)
 	set_func_tlist(funcnode, (LispValue)setup_base_tlist(rettype));
+
+    /* For sets, we want to make a targetlist to project out this
+     * attribute of the set tuples.
+     */
+    if (attisset) {
+	 if (!strcmp(funcname, "all")) {
+	      set_func_tlist(funcnode, ExpandAll(relname, curr_resno));
+	 } else {
+	      set_func_tlist(funcnode, (LispValue)setup_tlist(funcname,argrelid));
+	      rettype = find_atttype(argrelid, funcname);
+	 }
+    }
 
     retval = lispCons((LispValue) funcnode, fargs);
 
@@ -817,8 +967,9 @@ MakeFromClause ( from_list, base_rel )
 **    Given a nested dot expression (i.e. (relation func ... attr), build up
 ** a tree with of Iter and Func nodes.
 */
-LispValue HandleNestedDots(dots)
+LispValue HandleNestedDots(dots, curr_resno)
      List dots;
+     int *curr_resno;
 {
     List mutator_iter;
     LispValue retval = LispNil;
@@ -829,15 +980,24 @@ LispValue HandleNestedDots(dots)
 		  lispCons(MakeList
 			   (lispInteger(get_paramtype((Param)CAR(dots))),
 			    CAR(dots), -1),
-			   LispNil));
+			   LispNil),
+		  curr_resno);
     else
       retval = ParseFunc(CString(CADR(dots)), 
 			 lispCons(lispCons(lispAtom("relation"), 
 					   CAR(dots)),
-				  LispNil));
+				  LispNil),
+			 curr_resno);
 
-    foreach (mutator_iter, CDR(CDR(dots)))
-      retval = ParseFunc(CString(CAR(mutator_iter)), lispCons(retval, LispNil));
+    foreach (mutator_iter, CDR(CDR(dots))) {
+/*	 if (lispAtomp(CAR(mutator_iter)) && 
+               (LISPVALUE_INTEGER(CAR(mutator_iter)) == ALL))
+	      retval = ParseFunc("all", lispCons(retval, LispNil));
+	 else
+*/	      retval = ParseFunc(CString(CAR(mutator_iter)), 
+                                         lispCons(retval, LispNil),
+				 curr_resno);
+    }
 
     return(retval);
 }
@@ -859,13 +1019,16 @@ LispValue setup_tlist(attname, relid)
     Var varnode;
     ObjectId typeid;
     int attno;
+    bool attisset;
 
     attno = get_attnum(relid, attname);
     if (attno < 0)
 	elog(WARN, "cannot reference attribute %s of tuple params/return values for functions", attname);
 
     typeid = find_atttype(relid, attname);
-    resnode = MakeResdom(1, typeid, ISCOMPLEX(typeid),
+    attisset = get_attisset(relid, attname);
+    resnode = MakeResdom(1, typeid, 
+			 attisset ? false : ISCOMPLEX(typeid),
 			 tlen(get_id_type(typeid)),
 			 get_attname(relid, attno),
 			 NULL	/* reskey   */,
