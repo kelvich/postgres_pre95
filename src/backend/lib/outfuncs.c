@@ -799,8 +799,11 @@ _outParam(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :paramtype %ld", node->paramtype);
 	appendStringInfo(str,buf);
+
+	appendStringInfo(str, " :param_tlist ");
 	s = lispOut(node->param_tlist);
 	appendStringInfo(str, s);
+	pfree(s);
 
 }
 
