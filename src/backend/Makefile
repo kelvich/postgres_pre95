@@ -257,7 +257,7 @@ afterinstall: pg_id
 	mkdep ${MKDEP} ${CFLAGS:M-[ID]*} ${.IMPSRC}; \
 	mv .depend ${.PREFIX}.d
 
-DSRCS+= ${SRCS:S/.c/.d/g}
+DSRCS+= ${SRCS:M*.c:S/.c/.d/g}
 
 depend: .depend
 .depend: ${DSRCS}
