@@ -48,9 +48,9 @@ int		NStriping = 1;  /* default no striping */
  * ----------------
  */
 #ifndef TCOP_DONTUSENEWLINE
-int UseNewLine = 0;  /* Use EOF as query delimiters */
-#else
 int UseNewLine = 1;  /* Use newlines query delimiters (the default) */
+#else
+int UseNewLine = 0;  /* Use EOF as query delimiters */
 #endif TCOP_DONTUSENEWLINE
 
 /* ----------------
