@@ -266,6 +266,7 @@ List cl;
     }
 }
 
+#ifdef	_xprs_
 void
 printjoininfo (ind,jl)
 char *ind;
@@ -285,6 +286,7 @@ List jl;
 	printclauseinfo (strcat(indent, "	"),get_jinfoclauseinfo(j));
     }
 }
+#endif	/* defined(_xprs_) */
 
 void
 printpath (ind,p)
@@ -390,8 +392,10 @@ List rl;
 	printpathlist (strcat(indent,"	"),get_pathlist (r));
 	printf("%sClauseInfo:	\n",indent);
 	printclauseinfo (strcat(indent,"	"),get_clauseinfo (r));
+#ifdef	_xprs_
 	printf("%sJoinInfo:	",indent);
 	printjoininfo (strcat(indent,"	"),get_joininfo (r));
+#endif	/* defined(_xprs_) */
      }
 }
 
