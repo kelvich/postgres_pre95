@@ -1386,7 +1386,7 @@ int FileStat(file,stbuf)
 {
     int ret;
     struct stat ustatbuf;
-    ret = fstat(VfdCache[file].fd,&ustatbuf);
+    ret = fstat(VfdCache[SfdCache[file].vfd[0]].fd,&ustatbuf);
     if (ret >= 0) {
 	stbuf->st_mode = ustatbuf.st_mode;
 	stbuf->st_uid = ustatbuf.st_uid;
