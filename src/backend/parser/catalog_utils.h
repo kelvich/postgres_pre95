@@ -2,10 +2,10 @@
 #define _P_CATALOG_UTILS_H \
   "$Header$"
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
-#include "htup.h"
-#include "rel.h"
+#include "access/htup.h"
+#include "rules/rel.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
     
