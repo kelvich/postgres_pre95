@@ -1,3 +1,9 @@
+#
+#
+#  To run the regression tests type 'bmake runtest'
+#
+#
+
 .include <postgres.global.mk>
 
 #
