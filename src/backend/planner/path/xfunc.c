@@ -1,20 +1,19 @@
 /*     
- *      FILE
- *     	xfunc
- *     
- *      DESCRIPTION
- *     	Routines to handle expensive function optimization
- *     
- */
+**      FILE
+**     	xfunc
+**     
+**      DESCRIPTION
+**     	Routines to handle expensive function optimization
+**     
+*/
 
 
 /*     
- *      EXPORTS
- *              xfunc_rellist_sortprds
-**              xfunc_cinfo_compare
+**      EXPORTS
 **              xfunc_clause_compare
 **              xfunc_disjunct_sort
- */
+**              xfunc_trypullup
+*/
 
 #include <strings.h>
 
@@ -28,39 +27,27 @@
 #include "catalog/syscache.h"
 #include "planner/xfunc.h"
 #include "planner/clausesel.h"
+#include "planner/relnode.h"
 #include "parser/parse.h"
+#include "planner/keys.h"
+#include "planner/tlist.h"
 #include "lib/lispsort.h"
+#include "lib/copyfuncs.h"
 #include "access/heapam.h"
 
+#define ever ; 1 ;
+
 /*
-** xfunc_rellist_sortprds
-**    Given a list of Rel nodes, sort the clauseinfo for each
-** according to cost/(1-selectivity)
-**
-**  modifies: clauselist for each Rel
+** Comparison function for lispsort() on a list of CInfo's.
+** arg1 and arg2 should really be of type (CInfo *)  
 */
-void xfunc_rellist_sortprds(rels)
-    LispValue rels;
-{
-    LispValue temp;
-    int i;
-
-    for(temp = rels, i = 0; temp != LispNil; temp = CDR(temp), i++)
-    {
-      set_clauseinfo((Rel)CAR(temp), lisp_qsort((LispValue) get_clauseinfo((Rel)CAR(temp)), xfunc_cinfo_compare));
-    }
-
-    return;
-}
-
-/* arg1 and arg2 should really be of type (CInfo *)  */
 int xfunc_cinfo_compare(arg1, arg2)
     void *arg1;
     void *arg2;
 {
     CInfo info1 = *(CInfo *) arg1;
     CInfo info2 = *(CInfo *) arg2;
-    int retval;
+
     LispValue clause1 = (LispValue) get_clause(info1),
               clause2 = (LispValue) get_clause(info2);
     
@@ -68,10 +55,9 @@ int xfunc_cinfo_compare(arg1, arg2)
 }
 
 /*
-** xfunc_clause_compare: comparison function for qsort() that compares two 
+** xfunc_clause_compare: comparison function for lispsort() that compares two 
 ** clauses based on expense/(1 - selectivity)
 ** arg1 and arg2 are really pointers to clauses.
-** !!! WILL THIS NEED TO DISTINGUISH BETWEEN LOCAL AND JOIN PRD's??
 */
 int xfunc_clause_compare(arg1, arg2)
     void *arg1;
@@ -81,21 +67,12 @@ int xfunc_clause_compare(arg1, arg2)
     LispValue clause2 = *(LispValue *) arg2;
     double measure1,  /* total cost of clause1 */ 
            measure2;  /* total cost of clause2 */
-    int i;
-    double retval;
-    double denom;
     int infty1 = 0, infty2 = 0;
 
-    retval = compute_clause_selec(clause1, LispNil);
-    denom = 1.0 - retval;
-    if (denom)
-      measure1 = xfunc_expense(clause1) / denom;
-    else infty1 = 1;
-    retval = compute_clause_selec(clause2, LispNil);
-    denom = 1.0 - retval;
-    if (denom)
-      measure2 = xfunc_expense(clause2) / denom;
-    else infty2 = 1;
+    measure1 = xfunc_measure(clause1);
+    if (measure1 == -1.0) infty1 = 1;
+    measure2 = xfunc_measure(clause2);
+    if (measure2 == -1.0) infty2 = 1;
 
     if (infty1 || infty2)
      {
@@ -111,9 +88,26 @@ int xfunc_clause_compare(arg1, arg2)
     else return(1);
 }
 
+/*
+** calculate expense/(1-selectivity).  Returns -1 if selectivity = 1 
+** (note that expense >= 0, and selectivity <=1 by definition, so this will 
+** never calculate a negative number except -1.)
+*/
+double xfunc_measure(clause)
+     LispValue clause;
+{
+    double selec, denom;
+
+    selec = compute_clause_selec(clause, LispNil);
+    denom = 1.0 - selec;
+    if (denom)
+      return(xfunc_expense(clause) / denom);
+    else return(-1.0);
+}
 
 /*
-** Recursively find expense of a clause
+** Recursively find expense of a clause.  See comment below for calculating
+** the expense of a function.
 */
 double xfunc_expense(clause)
     LispValue clause;
@@ -121,13 +115,12 @@ double xfunc_expense(clause)
     HeapTuple tupl; /* the pg_proc tuple for each function */
     Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
     int width = 0;  /* byte width of the field referenced by each clause */
-
     double cost = 0;
     LispValue tmpclause;
 
     if (IsA(clause,Const) || IsA(clause,Var)) /* base case */
       return(0);
-    else if (fast_is_clause(clause))
+    else if (fast_is_clause(clause)) /* cost is sum of operands' costs */
       return(xfunc_expense(CAR(CDR(clause))) + 
 	     xfunc_expense(CAR(CDR(CDR(clause)))));
     else if (fast_is_funcclause(clause))
@@ -174,7 +167,7 @@ double xfunc_expense(clause)
 		);
      }
 
-    else if (fast_not_clause(clause))
+    else if (fast_not_clause(clause)) /* cost is cost of operand */
       return(xfunc_expense(CDR(clause)));
 
     else if (fast_or_clause(clause))
@@ -201,21 +194,23 @@ double xfunc_expense(clause)
 int xfunc_width(clause)
      LispValue clause;
 {
-    Relation relptr;
-    ObjectId reloid;
-    HeapTuple tupl;
-    Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
+    Relation relptr;   /* a structure to hold the open pg_attribute table */
+    ObjectId reloid;   /* oid of pg_attribute */
+    HeapTuple tupl;    /* structure to hold a cached tuple */
+    Form_pg_proc proc; /* structure to hold the pg_proc tuple */
     int retval = 0;
     LispValue tmpclause;
 
     if (IsA(clause,Const))
      {
+	 /* base case: width is the width of this constant */
 	 retval = ((Const) clause)->constlen;
 	 goto exit;
      }
     else if (IsA(clause,Var))
      {
-	 /* find width of the attribute */
+	 /* base case: width is width of this attribute, as stored in
+	    the pg_attribute table */
 	 relptr = amopenr ((Name) "pg_attribute");
 	 reloid = RelationGetRelationId ( relptr );
 	 
@@ -254,27 +249,222 @@ int xfunc_width(clause)
 
 
 /*
-** xfunc_dopullup --
-**    move a particular clause from child to parent
+** xfunc_trypullup --
+**    check each path within a relation, and do all the pullups needed for it.
 */
-int xfunc_dopullup(child, parent, clause)
-    LispValue child;
-    LispValue parent;
-    LispValue clause;
-{
 
+void xfunc_trypullup(rel)
+     Rel rel;
+{
+    LispValue y;            /* list ptr */
+    CInfo maxcinfo;         /* The CInfo to pull up, as calculated by
+			       xfunc_shouldpull() */
+    JoinPath curpath;       /* current path in list */
+    Rel outerrel, innerrel;
+    LispValue form_relid();
+    int clausetype;
+
+    foreach(y, get_pathlist(rel))
+     {
+	 curpath = (JoinPath)CAR(y);
+	 
+	 /* find Rels for inner and outer operands of curpath */
+	 innerrel = get_parent((Path) get_innerjoinpath(curpath));
+	 outerrel = get_parent((Path) get_outerjoinpath(curpath));
+	 
+	 /*
+	 ** for each operand, attempt to pullup predicates until first 
+	 ** failure.
+	 */
+	 for(ever)
+	  {
+	      /* No, the following should NOT be '=='  !! */
+	      if (clausetype = xfunc_shouldpull(get_innerjoinpath(curpath),
+				   curpath, &maxcinfo))
+		xfunc_pullup(get_innerjoinpath(curpath),
+			     curpath, maxcinfo, INNER, clausetype);
+	      else break;
+	  }
+	 for(ever)
+	  {
+	      /* No, the following should NOT be '=='  !! */
+	      if (clausetype = xfunc_shouldpull(get_outerjoinpath(curpath), 
+				   curpath, &maxcinfo))
+		xfunc_pullup(get_outerjoinpath(curpath),
+			     curpath, maxcinfo, OUTER, clausetype);
+	      else break;
+	  }
+     }
+}
+
+/*
+** xfunc_pullup --
+**    move clause from child to parent. 
+*/
+void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
+     Path childpath;
+     JoinPath parentpath;
+     CInfo cinfo;         /* clause to pull up */
+     int whichchild;      /* whether child is INNER or OUTER of join */
+     int clausetype;      /* whether clause to pull is join or local */
+{
+    /* remove clause from childpath */
+    if (clausetype == XFUNC_LOCPRD)
+     {
+	 set_locclauseinfo(childpath, 
+			   LispRemove(cinfo, get_locclauseinfo(childpath)));
+     }
+    else
+     {
+	 set_pathclauseinfo
+	   ((JoinPath)childpath,
+	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)childpath)));
+     }
+
+    /* Fix all vars in the clause 
+       to point to the right varno and varattno in parentpath */
+    xfunc_fixvars(get_clause(cinfo), get_parent(childpath), whichchild);
+
+    /* add clause to parentpath */
+    set_locclauseinfo(parentpath, 
+		      lispCons(cinfo, get_locclauseinfo(parentpath)));
+}
+
+/*
+** xfunc_fixvars --
+** After pulling up a clause, we must walk its expression tree, fixing Var 
+** nodes to point to the right correct varno (either INNER or OUTER, depending
+** on which child the clause was pulled from), and the right varattno in the 
+** target list of the child's former relation.  If the target list of the
+** child Rel does not contain the attribute we need, we add it.
+*/
+void xfunc_fixvars(clause, rel, varno)
+     LispValue clause;  /* clause being pulled up */
+     Rel rel;           /* rel it's being pulled from */
+     int varno;         /* whether rel is INNER or OUTER of join */
+{
+    LispValue tmpclause;  /* temporary variable */
+    TL member;            /* tlist member corresponding to var */
+
+    if (IsA(clause,Const)) return;
+    else if (IsA(clause,Var))
+     {
+	 /* here's the meat */
+	 member = tlistentry_member((Var)clause, get_targetlist(rel));
+	 if (member == LispNil)
+	  {
+	      /* 
+	       ** The attribute we need is not in the target list,
+	       ** so we have to add it.
+	       **
+	       ** Note: the last argument to add_tl_element() may be wrong,
+	       ** but it doesn't seem like anybody uses this field
+	       ** anyway.  It's definitely supposed to be a list of relids,
+	       ** so I just figured I'd use the ones in the clause.
+	       */
+	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
+	      member = tlistentry_member((Var)clause, get_targetlist(rel));
+	  }
+	 ((Var)clause)->varno = varno;
+	 ((Var)clause)->varattno = get_resno(get_resdom(get_entry(member)));
+     }
+    else if (fast_is_clause(clause))
+     {
+	 xfunc_fixvars(CAR(CDR(clause)), rel, varno);
+	 xfunc_fixvars(CAR(CDR(CDR(clause))), rel, varno);
+     }
+    else if (fast_is_funcclause(clause))
+      for (tmpclause = CDR(clause); tmpclause != LispNil; 
+	   tmpclause = CDR(tmpclause))
+	xfunc_fixvars(CAR(tmpclause), rel, varno);
+    else if (fast_not_clause(clause))
+      xfunc_fixvars(CDR(clause), rel, varno);
+    else if (fast_or_clause(clause))
+      for (tmpclause = CDR(clause); tmpclause != LispNil; 
+	   tmpclause = CDR(tmpclause))
+	xfunc_fixvars(CAR(tmpclause), rel, varno);
+    else
+     {
+	 elog(WARN, "Clause node of undetermined type");
+     }
 }
 
 /*
 ** xfunc_shouldpull --
-**    decide whether to pull up a clause from parent to child.
+**    find clause with most expensive measure, and decide whether to pull it up
+** from child to parent.
+**
+** Returns:  0 if nothing left to pullup
+**           XFUNC_LOCPRD if a local predicate is to be pulled up
+**           XFUNC_JOINPRD if a secondary join predicate is to be pulled up
 */
-int xfunc_shouldpull(child, parent, clause)
-    LispValue child;
-    LispValue parent;
-    LispValue clause;
+int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
+     Path childpath;
+     JoinPath parentpath;
+     CInfo *maxcinfopt;  /* Out: pointer to clause to pullup */
 {
+    LispValue clauselist, tmplist;      /* lists of clauses */
+    CInfo maxcinfo;                     /* clause to pullup */
+    double tmpmeasure, maxmeasure = 0;  /* measures of clauses */
+    double joinselec = 0;               /* selectivity of the join predicates */
+    int retval = XFUNC_LOCPRD;
 
+    clauselist = get_locclauseinfo(childpath);
+
+    if (clauselist != LispNil)
+     {
+	 /* find clause in clause list with maximum measure */
+	 for (tmplist = clauselist,
+	      maxcinfo = (CInfo) CAR(tmplist),
+	      maxmeasure = xfunc_measure(get_clause(maxcinfo));
+	      tmplist != LispNil;
+	      tmplist = CDR(tmplist))
+	   if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
+	       > maxmeasure)
+	    {
+		maxcinfo = (CInfo) CAR(tmplist);
+		maxmeasure = tmpmeasure;
+	    }
+     }
+
+	 
+    /* If child is a join path, and there are multiple join clauses,
+       see if any join clause has even higher measure */
+    if (length((get_parent(childpath))->relids) > 1
+	&& length(get_pathclauseinfo((JoinPath)childpath)) > 1)
+      for (tmplist = get_pathclauseinfo((JoinPath)childpath);
+	   tmplist != LispNil;
+	   tmplist = CDR(tmplist))
+	if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
+	    > maxmeasure)
+	 {
+	     maxcinfo = (CInfo) CAR(tmplist);
+	     maxmeasure = tmpmeasure;
+	     retval = XFUNC_JOINPRD;
+	 }
+
+    if (maxmeasure == 0)  /* no expensive clauses */
+      return(0);
+
+    /*
+    ** Pullup over join if clause is higher measure than join.
+    ** Note that the cost of a secondary join clause is only what's
+    ** calculated by xfunc_expense(), since the actual joining is paid for
+    ** by the primary join clause
+    */
+    joinselec = compute_clause_selec(get_clause
+				     ((CInfo) CAR
+				      (get_pathclauseinfo(parentpath))), 
+				     LispNil);
+    if (joinselec != 1.0 &&
+	xfunc_measure(get_clause(maxcinfo)) > 
+	(get_path_cost(parentpath)/(1.0 - joinselec)))
+     {
+	 *maxcinfopt = maxcinfo;
+	 return(retval);
+     }
+
+    else return(FALSE);
 
 }
 
@@ -297,7 +487,7 @@ void xfunc_disjunct_sort(clause_list)
 
 /*
 ** xfunc_disjunct_compare: comparison function for qsort() that compares two 
-** disjuncts based on expense
+** disjuncts based on expense.
 ** arg1 and arg2 are really pointers to disjuncts
 */
 int xfunc_disjunct_compare(arg1, arg2)
@@ -308,7 +498,6 @@ int xfunc_disjunct_compare(arg1, arg2)
     LispValue disjunct2 = *(LispValue *) arg2;
     double measure1,  /* total cost of disjunct1 */ 
            measure2;  /* total cost of disjunct2 */
-    int i;
 
     measure1 = xfunc_expense(disjunct1);
     measure2 = xfunc_expense(disjunct2);
