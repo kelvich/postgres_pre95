@@ -33,6 +33,7 @@
 /* require ("nodeDefs");*/
 
 /* declare (localf (clause_head)); */
+#include "c.h"
 #include "clauses.h"
 #include "pg_lisp.h"
 
@@ -193,14 +194,14 @@ get_op (clause)
  *    
  *    	Returns the left operand of a clause of the form (op expr expr)
  *    	or (op expr)
- *    
+ *      NB: it is assumed (for now) that all expr must be Var nodes    
  */
 
-LispValue
+Var
 get_leftop (clause)
      LispValue clause ;
 {
-     return(nth (1,clause));
+     return((Var)nth (1,clause));
 }
 
 /*    
@@ -210,11 +211,11 @@ get_leftop (clause)
  *    
  */
 
-LispValue
+Var
 get_rightop (clause)
      LispValue clause ;
 {
-     return(nth (2,clause));
+     return((Var)nth (2,clause));
 }
 
 /*    	-------- FUNC clause macros
