@@ -13,6 +13,7 @@
 
 #include "tmp/c.h"
 #include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
 
 /*
  * CreateQueryDesc --
@@ -141,7 +142,9 @@ void
 PerformPortalFetch ARGS((
 	String	name,		/* XXX PortalName */
 	bool	goForward,
-	Count	count
+	Count	count,
+	String tag,
+        CommandDest dest
 ));
 
 /*
@@ -151,7 +154,8 @@ PerformPortalFetch ARGS((
 extern
 void
 PerformPortalClose ARGS((
-	String	name		/* XXX PortalName */
+	String	name,		/* XXX PortalName */
+	CommandDest dest		 
 ));
 
 /*

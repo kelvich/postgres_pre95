@@ -18,7 +18,7 @@ extern
 void
 CreateVersion ARGS(( 
 		    Name  name,
-		    Name  bname));
+		    List bname));
 
 /*
  *  Creates the deltas.
@@ -52,8 +52,9 @@ VersionAppend ARGS((
 extern
 void
 VersionRetrieve ARGS((
-		    Name  vname,
-		    Name  bname));
+		      Name  vname,
+		      Name  bname,
+		      char *snapshot));
 
 /*
  * Rule governing the delete semantics for versions.
@@ -62,7 +63,8 @@ extern
 void
 VersionDelete ARGS((
 		    Name  vname,
-		    Name  bname));
+		    Name  bname,
+		    char *snapshot));
 
 /*
  * Rule governing the update semantics for versions.
@@ -70,7 +72,8 @@ VersionDelete ARGS((
 extern
 void
 VersionReplace ARGS((
-		    Name  vname,
-		    Name  bname));
+		     Name  vname,
+		     Name  bname,
+		     char *snapshot));
     
 #endif

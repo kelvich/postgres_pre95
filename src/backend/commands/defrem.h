@@ -78,7 +78,7 @@ DefineCFunction ARGS((
 extern
 void
 RemoveFunction ARGS((
-	Name	name;
+	Name	name
 ));
 
 /*
@@ -107,7 +107,7 @@ DefineType ARGS((
 extern
 void
 RemoveType ARGS((
-	Name	name;
+	Name	name
 ));
 
 /*
@@ -137,9 +137,9 @@ DefineOperator ARGS((
 extern
 void
 RemoveOperator ARGS((
-	Name	name;
-	Name	type1;
-	Name	type2;
+	Name	name,
+	Name	type1,
+	Name	type2
 ));
 
 #endif	/* !defined(DefRemIncluded) */

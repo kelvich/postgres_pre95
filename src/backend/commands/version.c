@@ -137,11 +137,11 @@ CreateVersion (name, bnamestring)
   }
 
   length = strlen(attr_list) + 1;
-  VersionCreate (saved_vname, saved_basename);
-  VersionAppend (saved_vname, saved_basename);
-  VersionDelete (saved_vname, saved_basename,saved_snapshot);
-  VersionReplace (saved_vname, saved_basename,saved_snapshot);
-  VersionRetrieve (saved_vname, saved_basename, saved_snapshot);
+  VersionCreate ((Name) saved_vname, (Name) saved_basename);
+  VersionAppend ((Name) saved_vname, (Name) saved_basename);
+  VersionDelete ((Name) saved_vname, (Name) saved_basename,saved_snapshot);
+  VersionReplace ((Name) saved_vname, (Name) saved_basename,saved_snapshot);
+  VersionRetrieve ((Name) saved_vname, (Name) saved_basename, saved_snapshot);
 
 }
 

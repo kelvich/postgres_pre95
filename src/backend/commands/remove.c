@@ -105,7 +105,8 @@ SingleOpOperatorRemove(typeOid)
 	static 		attnums[3] = { 7, 8, 9 }; /* left, right, return */
 	register	i;
 	
-	ScanKeyEntryInitialize(&key[0], 0, 0, ObjectIdEqualRegProcedure, typeOid);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key[0],
+			       0, 0, ObjectIdEqualRegProcedure, (Datum)typeOid);
 	rdesc = heap_openr(OperatorRelationName->data);
 	for (i = 0; i < 3; ++i) {
 		key[0].sk_attnum = attnums[i];
@@ -151,7 +152,8 @@ AttributeAndRelationRemove(typeOid)
 	 * XXX should check for duplicate relations
 	 */
 
-	ScanKeyEntryInitialize(&key[0], 0, 3, ObjectIdEqualRegProcedure, typeOid);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key[0],
+			       0, 3, ObjectIdEqualRegProcedure, (Datum)typeOid);
 
 	oidptr = (struct oidlist *) palloc(sizeof(*oidptr));
 	oidptr->next = NULL;
@@ -169,8 +171,10 @@ AttributeAndRelationRemove(typeOid)
 	heap_close(rdesc);
 	
 
-	ScanKeyEntryInitialize(&key[0], ObjectIdAttributeNumber,
-						   ObjectIdEqualRegProcedure, 0);
+	ScanKeyEntryInitialize((ScanKeyEntry) &key[0], 0,
+            /*bug fix from prototyping, unknown bug ---^ */
+			       ObjectIdAttributeNumber,
+			       ObjectIdEqualRegProcedure, (Datum)0);
 	optr = oidptr;
 	rdesc = heap_openr(RelationRelationName->data);
 	while (PointerIsValid((char *) optr->next)) {

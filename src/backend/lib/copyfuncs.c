@@ -36,6 +36,7 @@
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "storage/lmgr.h"
+#include "utils/palloc.h"
 
 #include "nodes/execnodes.h"
 #include "nodes/nodes.h"

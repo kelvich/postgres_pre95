@@ -49,7 +49,6 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "access/tqual.h"
 
-#include "commands/command.h"
 #include "commands/copy.h"
 #include "tcop/dest.h"
 #include "storage/buf.h"
@@ -63,6 +62,7 @@ RcsId("$Header$");
 #include "utils/rel.h"
 
 #include "nodes/pg_lisp.h"
+#include "commands/command.h"
 
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
@@ -106,7 +106,7 @@ PortalCleanup(portal)
      *	set proper portal-executor context before calling ExecMain.
      * ----------------
      */
-    context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
+    context = MemoryContextSwitchTo((MemoryContext) PortalGetHeapMemory(portal));
     PortalExecutorHeapMemory = (MemoryContext)
 	PortalGetHeapMemory(portal);
 
@@ -167,7 +167,7 @@ PerformPortalFetch(name, forward, count, tag, dest)
      * 	switch into the portal context
      * ----------------
      */
-    context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
+    context = MemoryContextSwitchTo((MemoryContext)PortalGetHeapMemory(portal));
 
     AssertState(context == (MemoryContext) PortalGetHeapMemory(GetPortalByName(NULL)));
 
@@ -214,7 +214,7 @@ PerformPortalFetch(name, forward, count, tag, dest)
      * do what is possible across transaction boundries.
      * ----------------
      */
-    (void) MemoryContextSwitchTo(PortalGetHeapMemory(GetPortalByName(NULL)));
+    (void) MemoryContextSwitchTo((MemoryContext)PortalGetHeapMemory(GetPortalByName(NULL)));
 }
 
 /* --------------------------------
@@ -389,8 +389,11 @@ PerformAddAttribute(relationName, schema)
     newAttributes = length(schema);
     
     relrdesc = heap_openr(RelationRelationName);
-	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
-                           Character16EqualRegProcedure, (DATUM)relationName);
+	ScanKeyEntryInitialize((ScanKeyEntry) &key[0],
+			       (bits16) NULL,
+			       (AttributeNumber) RelationNameAttributeNumber,
+			       (RegProcedure) Character16EqualRegProcedure,
+			       (Datum)relationName);
     relsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, key);
     reltup = heap_getnext(relsdesc, 0, &buf);
     if (!PointerIsValid(reltup)) {
@@ -423,11 +426,17 @@ PerformAddAttribute(relationName, schema)
     
     attrdesc = heap_openr(AttributeRelationName);
     
-    ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
-			   ObjectIdEqualRegProcedure, (DATUM) reltup->t_oid);
+    ScanKeyEntryInitialize((ScanKeyEntry)&key[0], 
+			   (bits16) NULL,
+			   (AttributeNumber) AttributeRelationIdAttributeNumber,
+			   (RegProcedure)ObjectIdEqualRegProcedure,
+			   (Datum) reltup->t_oid);
     
-    ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
-                           Character16EqualRegProcedure, (DATUM) NULL);
+    ScanKeyEntryInitialize((ScanKeyEntry) &key[1],
+			   (bits16) NULL,
+			   (AttributeNumber) AttributeNameAttributeNumber,
+                           (RegProcedure)Character16EqualRegProcedure,
+			   (Datum) NULL);
     
     attributeD.attrelid = reltup->t_oid;
     attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */

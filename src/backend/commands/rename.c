@@ -21,7 +21,6 @@ RcsId("$Header$");
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 
-#include "commands/command.h"
 #include "commands/copy.h"
 
 #include "executor/execdefs.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
@@ -31,6 +30,8 @@ RcsId("$Header$");
 
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"
+#include "tcop/dest.h"
+#include "commands/command.h"
 
 #include "utils/excid.h"
 #include "utils/log.h"
@@ -78,8 +79,8 @@ renameatt(relname, oldattname, newattname)
 		     relname);
 		return;
 	}
-	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
-						   Character16EqualRegProcedure, (DATUM) relname);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key[0], NULL, RelationNameAttributeNumber,
+						   Character16EqualRegProcedure, (Datum) relname);
 	relrdesc = heap_openr(RelationRelationName);
 	relsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, key);
 	reltup = heap_getnext(relsdesc, 0, (Buffer *) NULL);
@@ -93,10 +94,10 @@ renameatt(relname, oldattname, newattname)
 	heap_endscan(relsdesc);
 	heap_close(relrdesc);
 
-	ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
-	                       Integer32EqualRegProcedure, reltup->t_oid);
-	ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
-	                       Character16EqualRegProcedure, oldattname);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key[0], NULL, AttributeRelationIdAttributeNumber,
+	                       Integer32EqualRegProcedure, (Datum)reltup->t_oid);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key[1], NULL, AttributeNameAttributeNumber,
+	                       Character16EqualRegProcedure, (Datum)oldattname);
 	attrdesc = heap_openr(AttributeRelationName);
 	attsdesc = heap_beginscan(attrdesc, 0, NowTimeQual, 2, key);
 	oldatttup = heap_getnext(attsdesc, 0, (Buffer *) NULL);
@@ -174,8 +175,8 @@ renamerel(oldrelname, newrelname)
 	}
 	relrdesc = heap_openr(RelationRelationName);
 
-	ScanKeyEntryInitialize(&key, NULL, RelationNameAttributeNumber,
-	                       Character16EqualRegProcedure, (DATUM) oldrelname);
+	ScanKeyEntryInitialize((ScanKeyEntry)&key, NULL, RelationNameAttributeNumber,
+	                       Character16EqualRegProcedure, (Datum) oldrelname);
 
 	oldsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, &key);
 	oldreltup = heap_getnext(oldsdesc, 0, (Buffer *) NULL);

@@ -166,7 +166,7 @@ _vc_getrels(p)
 	    continue;
 
 	/* get a relation list entry for this guy */
-	old = MemoryContextSwitchTo(portalmem);
+	old = MemoryContextSwitchTo((MemoryContext)portalmem);
 	if (vrl == (VRelList) NULL) {
 	    vrl = cur = (VRelList) palloc(sizeof(VRelListData));
 	} else {
@@ -327,7 +327,7 @@ _vc_vacheap(p, curvrl, onerel)
 	    htup = (HeapTuple) PageGetItem(page, itemid);
 	    tupgone = false;
 
-	    if (htup->t_tmin == 0 && TransactionIdIsValid(htup->t_xmin)) {
+	    if (htup->t_tmin == 0 && TransactionIdIsValid((TransactionId)htup->t_xmin)) {
 		if (TransactionIdDidAbort(htup->t_xmin)) {
 		    _vc_reaptid(p, curvrl, blkno, offind);
 		    pgchanged = true;
@@ -338,7 +338,7 @@ _vc_vacheap(p, curvrl, onerel)
 		}
 	    }
 
-	    if (TransactionIdIsValid(htup->t_xmax)) {
+	    if (TransactionIdIsValid((TransactionId)htup->t_xmax)) {
 		if (TransactionIdDidAbort(htup->t_xmax)) {
 		    PointerStoreInvalidTransactionId(htup->t_xmax);
 		    pgchanged = true;
@@ -640,7 +640,7 @@ _vc_reaptid(p, curvrl, blkno, offind)
 
     /* allocate a VTidListData entry in the portal memory context */
     pmem = PortalGetVariableMemory(p);
-    old = MemoryContextSwitchTo(pmem);
+    old = MemoryContextSwitchTo((MemoryContext) pmem);
     newvtl = (VTidList) palloc(sizeof(VTidListData));
     MemoryContextSwitchTo(old);
 
@@ -662,7 +662,7 @@ _vc_free(p, vrl)
     PortalVariableMemory pmem;
 
     pmem = PortalGetVariableMemory(p);
-    old = MemoryContextSwitchTo(pmem);
+    old = MemoryContextSwitchTo((MemoryContext)pmem);
 
     while (vrl != (VRelList) NULL) {
 
@@ -729,7 +729,7 @@ _vc_archive(archrel, htup)
 {
     double ignore;
 
-    doinsert(archrel, htup, &ignore);
+    doinsert(archrel, htup);
 }
 
 bool
