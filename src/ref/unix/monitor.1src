@@ -138,6 +138,11 @@ tty:		PGTTY
 options:		PGOPTION
 .)l
 .sp
+.lp
+If PGOPTION is specified, then the options it contains are
+parsed
+.i before
+any command-line options.
 .uh "RETURN VALUE"
 .lp
 When executed with the
