@@ -32,6 +32,7 @@
 #define MEM_INDX_RULE_LOCK	'm'
 
 typedef struct IndexTupleData {
+	uint16		t_size;		/* size of this index tuple */
         char            t_locktype;     /* type of rule lock representation*/
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
