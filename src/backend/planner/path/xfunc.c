@@ -17,7 +17,7 @@
 **              xfunc_clause_compare
 **              xfunc_disjunct_sort
 */
-
+#include <math.h>      /* for HUGE_VAL */
 #include <strings.h>
 
 #include "nodes/pg_lisp.h"
@@ -45,6 +45,10 @@
 #include "tcop/dest.h"
 
 #define ever ; 1 ;
+#define ABS(x) (((x) > 1) ? (x) : (-(x)))
+#ifdef sequent
+#define HUGE_VAL	1.8e+308
+#endif
 
 /*
 ** xfunc_trypullup --
@@ -171,11 +175,22 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     if (primjoinclause != LispNil)
      {
 	 joinselec = compute_clause_selec(primjoinclause, LispNil);
+
+	 /* the following block of code assumes no function caching */
+	 if (whichchild = INNER)
+	   joinselec *= 
+	     get_tuples(get_parent((Path)get_outerjoinpath(parentpath)));
+	 else
+	   joinselec *=
+	     get_tuples(get_parent((Path)get_innerjoinpath(parentpath)));
+
 	 joincost = xfunc_expense_per_tuple(parentpath, whichchild) 
 	   + xfunc_expense(primjoinclause);
-	 if (joinselec != 1.0 &&
-	     xfunc_measure(get_clause(maxcinfo)) > 
-	     (joincost / (1.0 - joinselec)))
+	 
+	 if ((joincost != 0 &&
+	      xfunc_measure(get_clause(maxcinfo)) > 
+	      ((joinselec - 1.0) / joincost))
+	     || (joincost == 0 && joinselec < 0))
 	  {
 	      *maxcinfopt = maxcinfo;
 	      return(retval);
@@ -280,21 +295,18 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
 }
 
 /*
-** calculate expense/(1-selectivity).  Returns -1 if selectivity = 1 
-** (note that expense >= 0, and selectivity <=1 by definition, so this will 
-** never calculate a negative number except -1.)
+** calculate -(1-selectivity)/cost. 
 */
 Cost xfunc_measure(clause)
      LispValue clause;
 {
-    Cost selec;  /* selectivity of clause */
-    Cost denom;  /* denominator of expression (i.e. 1 - selec) */
+    Cost selec = compute_clause_selec(clause, LispNil); 
+    Cost cost = xfunc_expense(clause);
 
-    selec = compute_clause_selec(clause, LispNil);
-    denom = 1.0 - selec;
-    if (denom)  /* be careful not to divide by zero! */
-      return(xfunc_expense(clause) / denom);
-    else return(-1.0);
+    if (cost == 0) 
+      if (selec > 1) return(HUGE_VAL);
+    else return(-(HUGE_VAL));
+    return((selec - 1)/cost);
 }
 
 /*
