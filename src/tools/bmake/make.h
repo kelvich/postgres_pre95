@@ -329,9 +329,11 @@ extern int debug;
 #define	DEBUG_TARG	0x0100
 #define	DEBUG_VAR	0x0200
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(_AIX)
+/* ANSI cpp */
 #define CONCAT(a,b)	a##b
 #else
+/* Reiser cpp */
 #define I(a)	  	a
 #define CONCAT(a,b)	I(a)b
 #endif /* __STDC__ */
