@@ -9,12 +9,12 @@
 #
 
 .if ( ${PORTNAME} == "ultrix4" )
-CFLAGS+= -Dvoid="char *" -Dconst= -DHAS_SYMDEF
+CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB
 SRCS+= strdup.c
 .endif
 
 .if ( ${PORTNAME} == "sparc" )
-CFLAGS+= -Dvoid="char *" -Dconst= -DHAS_SYMDEF -DNEED_STRINGS
+CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB -DNEED_STRINGS
 LDFLAGS+= -assert nodefinitions
 SRCS+= strerror.c setenv.c
 .endif
@@ -28,12 +28,12 @@ CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
 .endif
 
 .if ( ${PORTNAME} == "hpux" )
-CFLAGS+= -Dconst= -DHAS_SYMDEF -D_BSD
+CFLAGS+= -Dconst= -DUSE_RANLIB -D_BSD
 SRCS+= setenv.c
 .endif
 
 .if ( ${PORTNAME} == "aix" )
-CFLAGS+= -DHAS_AIA -D_BSD
+CFLAGS+= -DUSE_AIA -D_BSD
 SRCS+= setenv.c
 LDADD+= -lbsd
 .endif

@@ -11,8 +11,8 @@ PORTNAME=ultrix4
 # void/const are broken in some compilers
 OLD_CC=-Dvoid="char *" -Dconst=
 
-# has __.SYMDEF in ranlibs
-HAS_RANLIB=-DHAS_SYMDEF
+# old ranlib format (has __.SYMDEF)
+AR_TYPE=-DUSE_RANLIB
 
 # <string.h> doesn't contain <strings.h>
 NEED_STRINGS=
@@ -22,7 +22,7 @@ NEED_STRINGS=
 # probably need that.  (you want "union wait" to be defined.)
 BSD_WAIT3=
 
-CONFIGS= ${OLD_CC} ${HAS_RANLIB} ${NEED_STRINGS} ${BSD_WAIT3}
+CONFIGS= ${OLD_CC} ${AR_TYPE} ${NEED_STRINGS} ${BSD_WAIT3}
 
 #
 # stuff missing from the library
