@@ -1,3 +1,3 @@
-SUBDIR= backend libpq bin
+SUBDIR= backend libpq bin regress
 
 .include <postgres.subdir.mk>
