@@ -215,7 +215,7 @@ typedef char	*Pointer;
  *	be referenced outside this file.  On other cpp's it
  *	produces  A  B.
  */
-#define _private_CppIdentity(x)x
+#define _priv_CppIdentity(x)x
 
 /*
  * CppAsString --
