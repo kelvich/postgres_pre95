@@ -338,11 +338,11 @@ targetlist_resdom_numbers (targetlist)
      LispValue targetlist ;
 {
     LispValue element;
-    LispValue result;
+    LispValue result = LispNil;
     
-    for(element = targetlist; element != LispNil; element = CDR(element)) 
+    foreach (element,targetlist)
       result = nappend1 (result, 
-			 lispInteger(get_resno (get_resdom (CAR(element)))));
+			 lispInteger(get_resno(get_resdom(CAR(element)))));
     
     return (result);
 }
