@@ -34,10 +34,13 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.12  1992/03/30 00:10:43  mer
-    cut down on calls to hash functions by saving some state
-    .,
+    Revision 1.13  1992/08/18 18:27:16  mer
+    allow sequential walk of a hash table (better protocol for hash_seq)
 
+ * Revision 1.12  1992/03/30  00:10:43  mer
+ * cut down on calls to hash functions by saving some state
+ * .,
+ *
  * Revision 1.11  1992/03/05  23:25:29  mer
  * feeble attempt at speed up
  *
@@ -684,7 +687,14 @@ HTAB		*hashp;
     char *destAddr;
 
     if (hashp == NULL)
+    {
+	/*
+	 * reset static state
+	 */
+	curBucket = 0;
+	curElem = NULL;
 	return NULL;
+    }
 
     hctl = hashp->hctl;
     for (; curBucket <= hctl->max_bucket; curBucket++) {
