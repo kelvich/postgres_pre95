@@ -541,9 +541,8 @@ make_var ( relname, attrname)
  **********************************************************************/
 
 LispValue
-make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
+make_array_ref_var( relname, attrname, indirect_list)
      Name relname, attrname;
-     Index vararrayindex;
      List indirect_list;  /* has indirection - e.g. arrayname[i][j][k] */ 
 {
     Var varnode;
@@ -554,8 +553,11 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
     extern LispValue p_rtable;
     extern int p_last_resno;
     HeapTuple type_tuple;
-    TypeTupleForm type_struct, type_struct2;
+    TypeTupleForm type_struct_array, type_struct_element;
     List vararraylist = LispNil;
+    bool done = false;
+    bool entering = true;
+    int indirect_num;
     
     vnum = RangeTablePosn ( relname,0,0) ;
     if (vnum == 0) {
@@ -570,6 +572,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
     rd = amopenr ( relname );
     attid = varattno (rd , attrname );
     typearray = att_typeid ( rd , attid );
+    vardotfields = LispNil;                          /* XXX - fix this */
 
     type_tuple = SearchSysCacheTuple(TYPOID,
 				     typearray,
@@ -585,106 +588,60 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 
 
     /* ----------------
-     *   get the element type from the type tuple
+     *   get the array type struct from the type tuple
      * ----------------
      */
-    type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-    vardotfields = LispNil;                          /* XXX - fix this */
-/*    if (!(type_struct)->typbyval){ */
-    if (indirect_list != LispNil){
+    type_struct_array = (TypeTupleForm) GETSTRUCT(type_tuple);
+   
+    while (!done) {
     	type_tuple = SearchSysCacheTuple(TYPOID,
-					 (type_struct)->typelem,
+					 (type_struct_array)->typelem,
 					 NULL,
 					 NULL,
 					 NULL);
-   
-  	if (!HeapTupleIsValid(type_tuple)) {
-		elog(WARN, 
-		"make_array_ref_var: Cache lookup failed for type %d\n",
-		     typearray);
-		return LispNil;
-    	}
-    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
-        vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
-					(type_struct2)->typlen,
-					(type_struct2)->typbyval,
-					(int) vararrayindex,
-					0,
-					(type_struct)->typlen),
-				LispNil); 
-	indirect_list = CDR(indirect_list);
-
-      	while (indirect_list != LispNil){
-		type_struct = type_struct2;
-    		type_tuple = SearchSysCacheTuple(TYPOID,
-						 (type_struct)->typelem,
-						 NULL,
-						 NULL,
-						 NULL);
     
-    		if (!HeapTupleIsValid(type_tuple)) {
-			elog(WARN, 
-			"make_array_ref_var: Cache lookup failed for type %d\n",
-			     typearray);
-			return LispNil;
-    		}
-    		type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
-		vararraylist = lispCons(vararraylist,
-					MakeArray ((type_struct)->typelem,
-       	                        		 (type_struct2)->typlen,
-       	                        		 (type_struct2)->typbyval,
-       	                        		 lispInteger(CAR(indirect_list)),
-       	                      			 0, 
-					 	 (type_struct)->typlen));
-		indirect_list = CDR(indirect_list);
-      	}
-	if ((type_struct)->typelem != InvalidObjectId)
-	{
-		type_struct = type_struct2;
-	    	type_tuple = SearchSysCacheTuple(TYPOID,
-						 (type_struct)->typelem,
-						 NULL,
-						 NULL,
-						 NULL);
-   
-   		if (!HeapTupleIsValid(type_tuple)) {
-			elog(WARN, 
-			"make_array_ref_var: Cache lookup failed for type %d\n",
-			     typearray);
-			return LispNil;
-    		}
-    		type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
-/*
-		vararraylist = lispCons(vararraylist,
-					MakeArray ((type_struct)->typelem,
-       	                        		 (type_struct2)->typlen,
-       	                        		 (type_struct2)->typbyval,
-       	                        		 lispInteger(CAR(indirect_list)),
-       	                			 0, 
-					 	 (type_struct)->typlen));
-*/
-	}
-    } else{
-    	type_tuple = SearchSysCacheTuple(TYPOID,
-					 (type_struct)->typelem,
-					 NULL,
-					 NULL,
-					 NULL);
-   
-  	if (!HeapTupleIsValid(type_tuple)) {
+    	if (!HeapTupleIsValid(type_tuple)) {
 		elog(WARN, 
 		"make_array_ref_var: Cache lookup failed for type %d\n",
 		     typearray);
 		return LispNil;
     	}
-    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
-        vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
-					(type_struct2)->typlen,
-					(type_struct2)->typbyval,
-					(int) vararrayindex,
-					0,
-					(type_struct)->typlen),
-				LispNil); 
+    	type_struct_element = (TypeTupleForm) GETSTRUCT(type_tuple);
+#ifdef FOOFOO
+	if (entering)
+	{
+		indirect_num = vararrayindex;
+		entering = false;
+	}
+	else
+	{
+	}
+#endif
+		indirect_num = CInteger(CAR(indirect_list));
+		indirect_list = CDR(indirect_list);
+
+	vararraylist = nappend1(vararraylist,
+				MakeArray((type_struct_array)->typelem,
+					  (type_struct_element)->typlen,
+					  (type_struct_element)->typbyval,
+					  indirect_num,
+					  0,
+					  (type_struct_array)->typlen));
+
+	if (indirect_list != NULL &&
+	    type_struct_element->typelem == InvalidObjectId)
+	{
+		elog(WARN, "array does not have that many elements");
+	}
+	else if (indirect_list == NULL ||
+		 type_struct_element->typelem == InvalidObjectId)
+	{
+		done = true;
+	}
+	else
+	{
+		type_struct_array = type_struct_element;
+	}
     }
 
     varnode = MakeVar (vnum , attid ,
@@ -693,9 +650,8 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 				lispCons(lispInteger(attid),LispNil))
 		       );
     
-    rtype = get_id_type((type_struct2)->typelem);
-    return ( lispCons ( lispInteger ( typeid (rtype ) ),
-		       varnode ));
+    rtype = get_id_type((type_struct_array)->typelem);
+    return ( lispCons ( lispInteger ( typeid (rtype ) ), varnode ));
 }
 
 
