@@ -28,6 +28,12 @@
 #define QdGetFeature(queryDesc)      (List) CAR(CDR(CDR(CDR(CDR(queryDesc)))))
 #define QdGetDest(queryDesc) \
     (CommandDest) CInteger(CAR(CDR(CDR(CDR(CDR(CDR(queryDesc)))))))
+#define QdGetArguments(queryDesc) \
+    (List) CAR(CDR(CDR(CDR(CDR(CDR(CDR(queryDesc)))))))
+#define QdGetTypes(queryDesc) \
+    (List) CAR(CDR(CDR(CDR(CDR(CDR(CDR(CDR(queryDesc))))))))
+#define QdGetNargs(queryDesc) \
+    (int) CInteger(CAR(CDR(CDR(CDR(CDR(CDR(CDR(CDR(CDR(queryDesc))))))))))
 
 #define QdSetState(queryDesc, s) \
     (CAR(CDR(CDR(CDR(queryDesc)))) = (List) s)
