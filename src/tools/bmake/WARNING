@@ -1,0 +1,28 @@
+$Header$
+
+WARNING!
+
+The archive support code in this version of "make" assumes that the
+you are using the old-style "portable ar(5)" archive format that is
+found in (e.g.) 4.x BSD UNIX (or SunOS 4 and HP-UX).  This format does
+not have built-in support for random-access and uses a special
+__.SYMDEF entry to mark its table of contents (i.e., after ranlib(1)
+has been run over it).
+
+ULTRIX and Alpha OSF/1 use the MIPS ranlib format.  This format uses
+the string __________E to mark its table of contents.  This is not
+supported.  However, the same basic portable ar(5) file format is
+used.
+
+AIX uses the AIX Indexed Archive (AIA) format, which is nice in that
+it allows for variable-length ar_hdr's.  (No more 16-character
+filename limits!)  Unfortunately, this completely breaks all code that
+walks the archive assuming that the portable ar(5) format is used.
+
+The bottom line is that bmake should work ok on any system, except for
+the archive-walking code.  This code will work fine on BSD-like
+systems, work tolerably on systems that use the portable ar(5) format,
+and completely break on systems like AIX that have their own ar(5)
+formats.  Since we don't use the archive-walking feature, we have no
+great interest in fixing this code to support random systems that we
+do not own (e.g., RS/6000s) but will be happy to receive any fixes.
