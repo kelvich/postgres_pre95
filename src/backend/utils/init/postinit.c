@@ -59,42 +59,9 @@
 #include "catalog/catname.h"
 #include "catalog/pg_database.h"
 
-#include "tmp/miscadmin.h"
+static IPCKey		PostgresIpcKey;
 
-/* ----------------
- *	global variables & stuff
- *	XXX clean this up! -cim 10/5/90
- * ----------------
- */
-    
-extern bool	override;
-extern int	Quiet;
-extern char	*DataDir;
-IPCKey		PostgresIpcKey;
-
-/*
- * XXX PostgresPath and PostgresDatabase belong somewhere else.
- */
-String	PostgresPath = NULL;
-String	PostgresDatabase = NULL;
-
-extern int Debugfile, Ttyfile;
-extern int Portfd, Packfd, Pipefd;
-
-extern BackendId	MyBackendId;
-extern BackendTag	MyBackendTag;
-extern NameData		MyDatabaseNameData;
-extern Name		MyDatabaseName;
-
-extern bool		MyDatabaseIdIsInitialized;
-extern ObjectId		MyDatabaseId;
-extern bool		TransactionInitWasProcessed;
-
-/* extern struct	bcommon	Ident;	No longer needed */
-
-extern int	Debug_file, Err_file, Noversion;
-
-extern int on_exitpg();
+extern char *DataDir;
 
 #ifndef	private
 #ifndef	EBUG
@@ -432,34 +399,7 @@ forcesharedmemory:
 void
 InitStdio()
 {
-    extern char *DBName;
-
-    /* ----------------
-     *	this appears to be a funky variable used with the IN and OUT
-     *  macros for controlling the error message indent level.
-     * ----------------
-     */
-    ElogDebugIndentLevel = 0;
-
-    /* ----------------
-     *	old socket initialization crud starts here
-     * ----------------
-     */
-    Ttyfile = 0;
-    Debugfile = Debug_file = DebugFileOpen();
-
-    if (IsUnderPostmaster) {
-	if (!ValidPgVersion(".") || !ValidPgVersion(DataDir))
-	{
-	    elog(NOTICE, "InitStdio: Can't locate PG_VERSION for %s", DBName);
-	    if (strcmp(DBName, "template1"))
-	        elog(FATAL, "Did you run createdb on %s yet??", DBName);
-	    else
-	        elog(FATAL, "Did you run initdb yet??");
-	}
-    }
-
-    Err_file = ErrorFileOpen();
+	(void) DebugFileOpen();
 }
 
 /* --------------------------------
@@ -511,6 +451,7 @@ InitPostgres(name)
      */
     AssertState(!PostgresIsInitialized);
 
+#if 0
     /* ----------------
      *	EnableTrace is poorly understood by the current postgres
      *  implementation people.  Since none of us know how it really
@@ -520,6 +461,7 @@ InitPostgres(name)
      * ----------------
      */
     EnableTrace(false);
+#endif
 
     /* ----------------
      *	Memory system initialization.
@@ -572,11 +514,13 @@ InitPostgres(name)
 	 */
 	myPath[0] = '\0';
 	
-	if (! bootstrap)
-	    if (! DatabaseMetaGunkIsConsistent(name, myPath))
-		if (! Noversion)
-		    elog(FATAL,
-			 "InitPostgres: ! DatabaseMetaGunkIsConsistent");
+	if (! bootstrap &&
+	    ! DatabaseMetaGunkIsConsistent(name, myPath) &&
+	    ! Noversion) {
+		elog(NOTICE, "InitPostgres: could not locate valid PG_VERSION\n");
+		elog(NOTICE, "files for %s and %s.", DataDir, name);
+		elog(FATAL,  "Have you run initdb/createdb and set PGDATA properly?");
+	}
 	
 	(void) strncpy(myName, name, sizeof(myName));
 
@@ -685,58 +629,4 @@ InitPostgres(name)
 	SetProcessingMode(NormalProcessing);
     if (testFlag || lockingOff)
 	LockDisable(true);
-}
-
-/* --------------------------------
- *	ReinitPostgres
- *
- *	It is not clear how this routine is supposed to work, or under
- *	what circumstances it should be called.  But hirohama wrote it
- *	for some reason so it's still here.  -cim 10/3/90
- * --------------------------------
- */
-void
-ReinitPostgres()
-{
-    /* assumes exception handling initialized at least once before */
-    AssertState(PostgresIsInitialized);
-
-    /* reset all modules */
-
-    EnablePortalManager(false);
-    EnableMemoryContext(false);
-
-    EnableExceptionHandling(false);
-    EnableTrace(false);
-
-    /* now reinitialize */
-    PostgresIsInitialized = false;	/* does it matter where this goes? */
-    InitPostgres(NULL);	
-}
-
-
-/* ----------------------------------------------------------------
- *		traps to catch calls to obsolete routines
- * ----------------------------------------------------------------
- */
-/* ----------------
- *	cinit
- * ----------------
- */
-bool
-cinit()
-{
-    fprintf(stderr, "cinit called! eliminate this!!\n");
-    AbortPostgres();
-}
-
-/* ----------------
- *	cinit2
- * ----------------
- */
-bool
-cinit2()
-{
-    fprintf(stderr, "cinit2 called! eliminate this!!\n");
-    AbortPostgres();
 }
