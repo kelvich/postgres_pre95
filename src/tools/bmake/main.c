@@ -359,15 +359,19 @@ main(argc, argv)
 		path = _PATH_OBJDIR;
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode) &&
 	    lstat(path, &sb) == 0) {
+#ifdef notdef
 		if (S_ISDIR(sb.st_mode))
 			curdir = "..";
 		else {
+#endif
 			curdir = emalloc((u_int)MAXPATHLEN + 2);
 			if (!getcwd(curdir, MAXPATHLEN)) {
 				(void)fprintf(stderr, "make: %s.\n", curdir);
 				exit(2);
 			}
+#ifdef notdef
 		}
+#endif
 		if (chdir(path)) {
 			(void)fprintf(stderr, "make: %s: %s.\n",
 			    path, strerror(errno));
