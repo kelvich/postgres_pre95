@@ -15,12 +15,16 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "catalog/pg_index.h"
 #include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/relation.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
 
 #include "commands/defrem.h"
 #include "planner/prepqual.h"
 #include "planner/clause.h"
+#include "lib/copyfuncs.h"
 
 #define IsFuncIndex(ATTR_LIST) (listp(CAAR(ATTR_LIST)))
 

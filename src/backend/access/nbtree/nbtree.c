@@ -25,7 +25,7 @@
 #include "access/funcindex.h"
 
 #include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
+#include "nodes/plannodes.h"
 
 #include "executor/x_qual.h"
 #include "executor/x_tuples.h"
