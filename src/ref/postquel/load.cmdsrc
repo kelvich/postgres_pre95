@@ -42,14 +42,6 @@ not "smart" enough to relocate the calls from the functions in A into
 the new address space of B.  If B is not reloaded, however, there will
 not be a problem.
 .PP
-On diskless platforms or when running across NFS,
-.BR load
-can take two or three minutes or more, depending on network traffic.
-On diskful platforms,
-.BR load
-takes from a few seconds on Suns and Sparcs to several minutes on
-DECstations.
-.PP
 On DECstations, you must use 
 .IR /bin/cc
 with the \*(lq-G 0\*(rq option when compiling object files to be
