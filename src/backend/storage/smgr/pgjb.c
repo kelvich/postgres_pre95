@@ -519,6 +519,7 @@ pgjb_rdextent(item, buf)
     char *buf;
 {
     JBPlatDesc *jbp;
+    SJGroupDesc *group;
     char *plname;
     int i;
     int status;
@@ -576,6 +577,14 @@ pgjb_rdextent(item, buf)
 	for (i = 0; i < SJGRPSIZE; i++)
 	    item->sjc_flags[i] = SJC_ONPLATTER;
     }
+
+    /* record OID of group on platter in item */
+    group = (SJGroupDesc *) buf;
+    item->sjc_oid = group->sjgd_groupoid;
+
+    /* sanity check */
+    if (group->sjgd_magic != SJGDMAGIC || group->sjgd_version != SJGDVERSION)
+	return (SM_FAIL);
 
     return (SM_SUCCESS);
 }
