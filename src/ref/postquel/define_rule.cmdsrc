@@ -27,7 +27,7 @@ action
 .b Define
 .b rule
 is used to define a new rule.
-There ar etwo implementations of the rules
+There are two implementations of the rules
 system, one 
 based on 
 .b query
@@ -37,9 +37,15 @@ and the other based on
 processing.  In general, the tuple system is more efficient
 if there are many rules on a single table, each covering a small
 subset of the tuples.  The rewrite system is more
-efficient if large scope rules are being defined.  In the long run
-POSTGRES will automatically decide which rules system to use; in the
-meantime the user must manually choose.
+efficient if large scope rules are being defined.  inversion 2 the user
+can optionally choose which rule system to use by specifying 
+.i rewrite
+or
+.i tuple
+in the command.  If the user does not specify which system to use, POSTGRES
+defaults to using the tuple level system.  In the long run
+POSTGRES will automatically decide which rules system to use and the possibility
+of user selection will be removed.
 .lp
 Here, event is one of:
 .(l
@@ -146,3 +152,14 @@ postquel(postquel).
 Exceptions are not implemented in Version 2
 .lp
 The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.
+.lp
+The rewrite system currently processes only a subset of the rule set.  Specifically, it
+can only accept rules of the form:
+.(l
+on retrieve ...
+then do [instead] retrieve ...
+
+or
+on retrieve ....
+then do replace current ...
+.)l
