@@ -571,7 +571,8 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		for(;;) {	/* Get rid of loop?  Just use first index? */
 			IndexTuple	indexTuple;
 
-			result = IndexScanGetGeneralRetrieveIndexResult(scan,0);
+			result = IndexScanGetGeneralRetrieveIndexResult(scan,
+									1);
 			if (!GeneralRetrieveIndexResultIsValid(result))
 				break;
 
