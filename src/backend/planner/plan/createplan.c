@@ -162,10 +162,25 @@ create_scan_node(best_path,tlist)
      /*Extract the relevant clauses from the parent relation and replace the */
      /* operator OIDs with the corresponding regproc ids. */
 
+    /*
+    ** CHANGE: now that local predicate clauses are copied into paths 
+    ** in find_rel_paths() and then (possibly) pulled up in xfunc_trypullup(),
+    ** we get the relevant clauses from the path itself, not its parent
+    ** relation.   --- JMH, 6/15/92
+    */
+
      Scan node;
+
+/*  Old version (pre 6/15/92)
+**   LispValue scan_clauses = fix_opids(get_actual_clauses
+**					(get_clauseinfo 
+**					 (get_parent
+**					  (best_path))));
+*/
+     /* New version (6/15/92) */
      LispValue scan_clauses = fix_opids(get_actual_clauses
-					(get_clauseinfo 
-					 (get_parent(best_path))));
+					(get_locclauseinfo(best_path)));
+
      switch(get_pathtype(best_path)) {
 
 	case T_SeqScan : 
@@ -255,6 +270,15 @@ create_join_node(best_path,origtlist,tlist)
 	  elog(WARN,"create_join_node: unknown node type",
 		get_pathtype((Path)best_path));
      } 
+
+     /*
+     ** Expensive function pullups may have pulled local predicates
+     ** into this path node.  Put them in the qpqual of the plan node.
+     **        -- JMH, 6/15/92
+     */
+     nappend1(get_qpqual((Plan) retval), 
+	      fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
+
      set_parallel((Plan)retval, 1);
      return(retval);
 
