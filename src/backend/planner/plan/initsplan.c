@@ -336,8 +336,8 @@ initialize_join_clause_info(rel_list)
 		clauseinfo = (CInfo)CAR(z);
 		clause = (LispValue)get_clause(clauseinfo);
 		if( join_clause_p(clause) ) {
-		    MergeOrder sortop;
-		    ObjectId hashop;
+		    MergeOrder sortop = (MergeOrder)NULL;
+		    ObjectId hashop = (ObjectId)NULL;
 
 		    if( _enable_mergesort_ ) 
 		      sortop = mergesortop(clause);
