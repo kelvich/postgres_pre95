@@ -22,10 +22,12 @@
 #include "planner/keys.h"
 #include "catalog/pg_proc.h"
 #include "tcop/pquery.h"
+#include "tcop/tcopprot.h"
 #include "rules/params.h"
 #include "fmgr.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_language.h"
 #include "access/heapam.h"
@@ -49,6 +51,13 @@ typedef struct local_es {
 
 #define LAST_POSTQUEL_COMMAND(es) ((es)->next == (execution_state *)NULL)
 
+static execution_state *init_execution_state ARGS((FunctionCachePtr fcache, char *args[]));
+static List postquel_start ARGS((execution_state *es));
+static TupleTableSlot postquel_getnext ARGS((execution_state *es));
+static List postquel_end ARGS((execution_state *es));
+static void postquel_sub_params ARGS((execution_state *es, int nargs, char *args[], bool *nullV));
+static Datum postquel_execute ARGS((execution_state *es, FunctionCachePtr fcache, LispValue fTlist, char **args, bool *isNull));
+
 Datum
 ProjectAttribute(TD, tlist, tup,isnullP)
      TupleDescriptor TD;
@@ -67,7 +76,7 @@ ProjectAttribute(TD, tlist, tup,isnullP)
 				     TD,
 				     isnullP);
     if (*isnullP)
-	return NULL;
+	return (Datum) NULL;
 
     valueP = datumCopy(val,
 		       TD->data[attrno-1]->atttypid,
@@ -76,6 +85,7 @@ ProjectAttribute(TD, tlist, tup,isnullP)
     return valueP;
 }
 
+static
 execution_state *
 init_execution_state(fcache, args)
      FunctionCachePtr fcache;
@@ -139,7 +149,7 @@ init_execution_state(fcache, args)
 	    	paramLI->kind = PARAM_NUM;
 	    	paramLI->id = i+1;
 	    	paramLI->isnull = false;
-	    	paramLI->value = NULL;
+	    	paramLI->value = (Datum) NULL;
 	    }
 	    paramLI->kind = PARAM_INVALID;
 	}
@@ -153,6 +163,7 @@ init_execution_state(fcache, args)
     return newes;
 }
 
+static
 List
 postquel_start(es)
     execution_state *es;
@@ -161,6 +172,7 @@ postquel_start(es)
 		    lispCons(lispInteger(EXEC_START), LispNil));
 }
 
+static
 TupleTableSlot
 postquel_getnext(es)
     execution_state *es;
@@ -174,6 +186,7 @@ postquel_getnext(es)
     return (TupleTableSlot) ExecMain(es->qd, es->estate, feature);
 }
 
+static 
 List
 postquel_end(es)
     execution_state *es;
@@ -186,6 +199,7 @@ postquel_end(es)
     return res3;
 }
 
+static
 void
 postquel_sub_params(es, nargs, args, nullV)
     execution_state  *es;
@@ -259,6 +273,7 @@ copy_function_result(fcache, resultSlot)
 		   true);
 }
 
+static
 Datum
 postquel_execute(es, fcache, fTlist, args, isNull)
     execution_state  *es;
