@@ -308,6 +308,39 @@ RangeTablePosn ( rangevar , options )
 		return(0);
 }
 
+/* given range variable, return id of variable */
+List
+RangeTablePositions ( rangevar , options )
+     char *rangevar;
+     List options;
+{
+    int index = 1;
+    extern LispValue p_rtable;
+    LispValue temp = p_rtable;
+    List list_of_positions = NULL;
+    int inherit = 0;
+    int timerange = 0;
+    
+    index = 1;
+    temp = p_rtable;
+
+    while ( ! lispNullp (temp )) {
+
+	if ( (! strcmp ( CString ( CAR( CAR (temp ))),
+			rangevar ) ) &&
+	    (inherit == inherit) &&
+	    (timerange == timerange)) {
+	    
+	    list_of_positions = lispCons ( lispInteger ( index ),
+					  list_of_positions );
+	}
+	temp = CDR(temp);
+	index++;
+    }
+
+    return(list_of_positions);
+}
+
 /* Given a typename and value, returns the ascii form of the value */
 
 char *
