@@ -28,7 +28,6 @@
 
 extern void die();
 extern void handle_warn();
-extern bool InteractiveBackend();
 
 /* XXX - I'm not sure if these should be here, but the be/fe comms work 
    when I do - jeff, maybe someone can figure out where they should go*/
@@ -105,7 +104,7 @@ main(argc, argv)
     int		setjmp(), chdir();
     char	*getenv();
 
-    char	*parser_input = malloc(8192);
+    char	parser_input[MAX_PARSE_BUFFER];
     List	parser_output;
 
     bool	watch_parser =  true;
@@ -219,6 +218,8 @@ main(argc, argv)
     puts("\nPOSTGRES backend interactive interface");
     puts("$Revision$ $Date$");
 
+    parser_output = lispList();
+
     for (;;) {
 	/* ----------------
 	 *   start the current transaction
@@ -232,38 +233,14 @@ main(argc, argv)
 	 *   get input from the user
 	 * ----------------
 	 */
-		/*
-		 * allocate a new "list" each time, since it is may be
-		 * stored in a named portal and should not suddenly its
-		 * contents
-		 */
-		parser_output = lispList();
-
 	if (IsUnderPostmaster == true)
 	  SocketBackend(parser_input, parser_output);
 	else {
-	    /*
-	     *  InteractiveBackend returns false on EOF.
-	     */
-	    if (!InteractiveBackend(parser_input, parser_output)) {
-
-	        if (! Quiet)
-		    puts("EOF");
-
-		AbortCurrentTransaction();
-		exit (0);
-	    }
+	    InteractiveBackend(parser_input, parser_output);
 	    lispDisplay(parser_output,0);
 	}
-
 	if (! Quiet)
 	    printf("\ninput string is %s\n",parser_input);
-
-	/* ----------------
-	 *   parse the input
-	 * ----------------
-	 */
-	parser(parser_input, parser_output);
 
 	if (! Quiet) {
 	    printf("---- \tparser outputs :\n");
@@ -393,8 +370,8 @@ ReturnToFrontEnd( data, fid, rettype)
  */
 
 SocketBackend(inBuf, parseList)
-char *inBuf;
-LispValue parseList;
+     char *inBuf;
+     LispValue parseList;
 {
     char *qtype = "?";
     int pq_qid;
@@ -404,9 +381,15 @@ LispValue parseList;
     switch(*qtype) {
     case 'Q':
 	pq_qid = getpint(4);
-	getpstr(inBuf, 8192);
+	getpstr(inBuf, MAX_PARSE_BUFFER);
 	if (!Quiet)
 	    printf("Received Query: %s\n", inBuf);
+	if (inBuf == NULL) {
+	    if (! Quiet)
+		puts("EOF");
+	    AbortCurrentTransaction();
+	    exit(0);
+	}
 	parser(inBuf,parseList);
 	break;
     case 'F':	/* function, not supported at the moment */
@@ -421,18 +404,22 @@ LispValue parseList;
 
 /*
  *  InteractiveBackend() Is called for user interactive connections
+ *  MODIFIES:	parseList
  */
 
-bool
 InteractiveBackend(inBuf, parseList)
-char *inBuf;
-LispValue parseList;
+     char *inBuf;
+     LispValue parseList;
 {
     printf ("> ");
-    if (gets(inBuf) == (char *) NULL)
-	return (false);
+    gets(inBuf);
+    if (inBuf == NULL) {
+	if (! Quiet)
+	  puts("EOF");
+	AbortCurrentTransaction();
+	exit(0);
+    }
     parser(inBuf, parseList);
-    return (true);
 }
 
 
