@@ -11,6 +11,13 @@
 
 /*---------------------------------------------------------------------
  *
+ * IDENTIFICATION:
+ * $Header$
+ *
+ */
+
+/*---------------------------------------------------------------------
+ *
  * createExplainRelation
  *
  * create the relation wehre the output of the explain command
