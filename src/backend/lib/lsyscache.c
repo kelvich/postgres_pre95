@@ -480,8 +480,13 @@ get_relstub (relid, no, islastP)
 	 * NOTE:
 	 * skip the 4 first bytes to get the actual
 	 * varlena struct
+	 *
+	 * This was only need because we used to store the size twice
+	 * which I have now fixed -mer 2 April 1992
+	 *
+	 * relstub = (struct varlena *) PSIZESKIP( & (prs2stubStruct->prs2stub) );
 	 */
-	relstub = (struct varlena *) PSIZESKIP( & (prs2stubStruct->prs2stub) );
+	relstub = (struct varlena *) &(prs2stubStruct->prs2stub);
 	retval = (struct varlena *)palloc(VARSIZE( relstub ));
 	bcopy(relstub, retval, VARSIZE( relstub ));
 	if (prs2stubStruct->prs2islast)
