@@ -474,6 +474,23 @@ _outSort(str, node)
 
 }
 
+void
+_outAgg(str, node)
+	StringInfo str;
+	Agg node;
+{
+	char buf[500];
+	sprintf(buf, "agg");
+	appendStringInfo(str,buf);
+	_outPlanInfo(str,(Plan)node);
+
+	sprintf(buf, " :tempid %ld", node->tempid);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :keycount %d", node->keycount);
+	appendStringInfo(str,buf);
+}
+
+
 /*
  *  For some reason, unique is a subclass of Temp.
  */
