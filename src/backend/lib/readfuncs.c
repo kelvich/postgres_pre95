@@ -49,6 +49,7 @@ extern Datum readValue();
  *	node creator declarations
  * ----------------
  */
+extern Agg		RMakeAgg();
 extern Append 		RMakeAppend();
 extern CInfo 		RMakeCInfo();
 extern Const 		RMakeConst();
@@ -602,6 +603,29 @@ _readSort()
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
+
+	return(local_node);
+}
+
+Agg
+_readAgg()
+{
+	Agg             local_node;
+	char            *token;
+	int length;
+
+	local_node = RMakeAgg();
+	_getPlan(local_node);
+
+	token = lsptok(NULL, &length);                  /* eat :tempid */
+	token = lsptok(NULL, &length);                  /* get tempid */
+
+	local_node->tempid = atol(token);
+
+	token = lsptok(NULL, &length);                  /* eat :keycount */
+	token = lsptok(NULL, &length);                  /* get keycount */
+
+	local_node->tempid = atoi(token);
 
 	return(local_node);
 }
