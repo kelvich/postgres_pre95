@@ -770,19 +770,32 @@ void main()
 .SH "SAMPLE PROGRAM 3"
 .(C M
 /*
- * Testing of binary portal interface.
+ * Test program for the binary portal interface.
  * 
- * Do the following at the monitor:
+ * Create a test database and do the following at the monitor:
  *
- *	* create test1 (i = int4,d = float4,p = polygon) \eg
- *	* append test1 (i = 7, d=3.567,
- *	  p="(1.0,2.0,3.0,4.0)"::polygon) \eg
+ *	* create test1 (i = int4, d = float4, p = polygon)\eg
+ *	* append test1 (i = 1, d = 3.567,
+ *	  p = "(3.0,4.0,1.0,2.0)"::polygon)\eg
+ *	* append test1 (i = 2, d = 89.05,
+ *	  p = "(4.0,3.0,2.0,1.0)"::polygon)\eg
  *
  * adding as many tuples as desired.
  *
- * Start up this program.
- *
- * The contents of test1 should be printed.
+ * Start up this program.  The contents of class "test1" should be
+ * printed, e.g.:
+
+tuple 0: got
+         i=(4 bytes) 1,
+         d=(4 bytes) 3.567000,
+         p=(72 bytes) 2 points,
+                 boundbox=(hi=3.000000,4.000000 / lo=1.000000,2.000000)
+tuple 1: got
+         i=(4 bytes) 2,
+         d=(4 bytes) 89.05000,
+         p=(72 bytes) 2 points,
+                 boundbox=(hi=4.000000,3.000000 / lo=2.000000,1.000000)
+
  */
 #include "tmp/simplelists.h"
 #include "tmp/libpq.h"
@@ -790,22 +803,20 @@ void main()
 
 void main()
 {
-    extern int PQAsyncNotifyWaiting;
-    PQNotifyList *l;
     PortalBuffer *portalbuf;
     char *res;
-    int ngroups,tupno, grpno, ntups, nflds;
-    PQsetdb(getenv("USER"));
+    int ngroups, tupno, grpno, ntups, nflds;
 
+    PQsetdb("test");	/* change this to your database name */
     PQexec("begin");
-    res = (char *)PQexec("retrieve iportal junk (test1.all)");
+    res = (char *) PQexec("retrieve iportal junk (test1.all)");
     if (*res == 'E') {
-	fprintf(stderr,"%s\enfailed",++res);
+	fprintf(stderr,"\nError: %s\n",++res);
 	goto exit_error;
     }
-    res = (char *)PQexec("fetch all in junk");
+    res = (char *) PQexec("fetch all in junk");
     if (*res != 'P') {
-	fprintf(stderr,"\enno portal");
+	fprintf(stderr,"\nError: no portal\n");
 	goto exit_error;
     }
     /* get tuples in relation */
@@ -814,28 +825,40 @@ void main()
     for (grpno = 0; grpno < ngroups; grpno++) {
 	ntups = PQntuplesGroup(portalbuf, grpno);
 	if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 3) {
-	    fprintf(stderr, "expected 3 attributes, got %d\en", nflds);
+	    fprintf(stderr, "\nError: expected 3 attributes, got %d\n", nflds);
 	    goto exit_error;
 	}
 	for (tupno = 0; tupno < ntups; tupno++) {
-	    int *bla1;
-	    char *bla2;
-	    POLYGON *bla3;
-	    bla1 = (int *)PQgetvalue(portalbuf,tupno,0);
-	    bla2 = PQgetvalue(portalbuf,tupno,1);
-	    bla3 = PQgetvalue(portalbuf,tupno,2)-4;
+	    int *ival;		/* 4 bytes */
+	    float *fval;	/* 4 bytes */
+	    unsigned plen;
+	    POLYGON *pval;
 
-	    printf ("got i=%d(%d bytes),\e
- d=(%f)(%d bytes)|%x|%x|%x|%x\en\e
- Polygon(%d bytes) %d points (%f,%f,%f,%f)\en",
-		    *bla1,PQgetlength(portalbuf,tupno,0),
-		    *((float *)bla2),
-		    PQgetlength(portalbuf,tupno,1),
-		    *bla2,*(bla2+1),*(bla2+2),*(bla2+3),
-		    PQgetlength(portalbuf,tupno,2),
-		    bla3->npts,
-		    bla3->boundbox.xh,bla3->boundbox.yh,
-		    bla3->boundbox.xl,bla3->boundbox.yl);
+	    ival = (int *) PQgetvalue(portalbuf, tupno, 0);
+	    fval = (float *) PQgetvalue(portalbuf, tupno, 1);
+	    plen = PQgetlength(portalbuf, tupno, 2);
+	    if (!(pval = (POLYGON *) palloc(plen + sizeof(long)))) {
+		fprintf(stderr, "\nError: palloc returned zero bytes\n");
+		goto exit_error;
+	    }
+	    pval->size = plen + sizeof(long);
+	    bcopy(PQgetvalue(portalbuf, tupno, 2), (char *) &pval->npts, plen);
+	    printf ("tuple %d: got\n\e
+\t i=(%d bytes) %d,\n\e
+\t d=(%d bytes) %f,\n\e
+\t p=(%d bytes) %d points,\n\e
+\t\t boundbox=(hi=%f,%f / lo=%f,%f)\n",
+		    tupno,
+		    PQgetlength(portalbuf, tupno, 0),
+		    *ival,
+		    PQgetlength(portalbuf, tupno, 1),
+		    *fval,
+		    PQgetlength(portalbuf, tupno, 2),
+		    pval->npts,
+		    pval->boundbox.xh,
+		    pval->boundbox.yh,
+		    pval->boundbox.xl,
+		    pval->boundbox.yl);
 	}
     }
     PQexec("end");
