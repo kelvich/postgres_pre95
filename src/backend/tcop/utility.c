@@ -92,7 +92,7 @@ ProcessUtility(command, args)
 		 */
 	case CREATE:
 		commandTag = "CREATE";
-		DefineRelation(CAR(args),	/*  relation name */
+		DefineRelation(CString(CAR(args)),	/*  relation name */
 			CADR(args),		/*  parameters */
 			CDR(CDR(args)));	/*  schema */
 		break;
