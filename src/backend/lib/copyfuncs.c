@@ -1316,9 +1316,17 @@ _copyOper(from, to, alloc)
      * ----------------
      */
     newnode->opno = 	   from->opno;
+    newnode->opid = 	   from->opid;
     newnode->oprelationlevel = from->oprelationlevel;
     newnode->opresulttype =    from->opresulttype;
     newnode->opsize = 	   from->opsize;
+
+    /*
+     * NOTE: shall we copy the cache structure or just the pointer ?
+     * Alternatively we can set 'op_fcache' to NULL, in which
+     * case the executor will initialize it when it needs it...
+     */
+    newnode->op_fcache =   from->op_fcache;
     
     (*to) = newnode;
     return true;
