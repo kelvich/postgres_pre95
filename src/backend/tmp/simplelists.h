@@ -6,32 +6,33 @@
  *	$Header$
  */
 
-#ifndef SimpleListsIncluded
-#define SimpleListsIncluded
+#ifndef SIMPLELISTS_H
+#define SIMPLELISTS_H
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#define SetNode	struct _SetNode
-#define SetList	struct _SetList
+#define SLNode	struct _SetNode
+#define SLList	struct _SetList
 
 #define NODE_MAGIC  0x41424344
 #define LIST_MAGIC  0x45464748
 
-SetNode {
-    SetNode *sn_Next;	/* Next node or &sn_Term	*/
-    SetNode *sn_Prev;	/* Previous node or &sn_Head	*/
-    SetList *sn_List;
-    ulong    sn_Magic;
+SLNode {
+    SLNode  *sn_Next;	/* Next node or &sn_Term	*/
+    SLNode  *sn_Prev;	/* Previous node or &sn_Head	*/
+    SLList  *sn_List;	/* node's list or NULL		*/ 
+    uint32   sn_Magic;	/* NODE_MAGIC			*/
 };
 
-SetList {
-    SetNode *sl_Head;	/* First node or &sn_Term	*/
-    SetNode *sl_Term;	/* Terminator == NULL		*/
-    SetNode *sl_Tail;	/* Last node or &sn_Head	*/
+SLList {
+    SLNode *sl_Head;	/* First node or &sn_Term	*/
+    SLNode *sl_Term;	/* Terminator == NULL		*/
+    SLNode *sl_Tail;	/* Last node or &sn_Head	*/
     Offset  sl_Offset;	/* structural offset.		*/
-    ulong   sl_Magic;
+    uint32  sl_Magic;	/* LIST_MAGIC			*/
+    uint32  sl_Pad0;	/* pad byte for 8 char align.	*/
 };
 
 extern void SetNewList();
@@ -47,7 +48,7 @@ extern void *SetRemHead();
 extern void *SetRemTail();
 extern void SetInsertAfter();
 extern void SetInsertBefore();
-extern SetList *SetGetList();
+extern SLList *SetGetList();
 
 #endif
 
