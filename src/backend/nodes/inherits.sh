@@ -81,13 +81,12 @@ $AWK 'BEGIN { i = -1 }\
 # ----------------
 $RM -f $SLOTFILE
 $CAT $NODEFILES | \
-$EGREP -v '(^#|^[ 	/]*\*|typedef|extern|Defs)'  | \
-$SED \
-    -e '/\/\*/,/\*\//D' \
-    -e 's/;//' \
-    -e 's/	/ /g' \
-    -e 's/  */ /g' \
-    -e 's/\\//' | \
+$EGREP -v '(^#|typedef|extern|Defs)'  | \
+$AWK '/\/\*/,/\*\// { next; } { print; }' | \
+$SED -e 's/;//' \
+     -e 's/	/ /g' \
+     -e 's/  */ /g' \
+     -e 's/\\//' | \
 $AWK '
 # ----------------
 #	ORS and OFS are the output field and record separators
@@ -107,7 +106,7 @@ BEGIN {
 #	extract class information into the classes[] array.
 #	i is the slot number of the next slot we scan..
 # ----------------
-/class /,/{/ 	{ 
+/class /,/\{/ 	{ 
 	class = substr($2,2,length($2)-2); 
 	classes[ nc++ ] = class;
         i = 1;
@@ -122,14 +121,14 @@ BEGIN {
 #	whole[ class x ] contains the entire declaration for slot x
 #	parents[ class ] contains the parent class names
 # ----------------
-/{/,/}/ {
+/\{/,/\}/ {
 	if (inside == 0)
 		next;
 
-        if ($1 ~ /{/)
+        if ($1 ~ /\{/)
 		next;
 
-	if ($1 ~ /}/) {
+	if ($1 ~ /\}/) {
 		decl[ class 0 ] = i;
 		i = 1;
 		inside = 0;

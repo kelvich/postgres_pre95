@@ -144,7 +144,7 @@ inside == 1 {
 # ----
 #  ignore a leading brace line..
 # ----
-        if ($1 ~ /{/)
+        if ($1 ~ /\{/)
 		next;
 
 # ----

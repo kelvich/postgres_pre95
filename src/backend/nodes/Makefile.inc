@@ -12,15 +12,16 @@ ND= ${.CURDIR}/nodes
 #
 # IMPORTANT: nodes.h MUST come first (so it's first in the tags.h file)
 #
-NODESFILES= ${ND}/nodes.h ${ND}/plannodes.h ${ND}/primnodes.h \
-	${ND}/relation.h ${ND}/execnodes.h ${ND}/mnodes.h ${ND}/pg_lisp.h \
+NODESSRC= ${ND}/nodes.h ${ND}/plannodes.h ${ND}/primnodes.h \
+	${ND}/relation.h ${ND}/execnodes.h ${ND}/mnodes.h ${ND}/pg_lisp.h
+NODESFILES= ${NODESSRC} \
 	${ND}/execnodes.a.h ${ND}/plannodes.a.h ${ND}/primnodes.a.h  \
 	${ND}/relation.a.h
 INHERITS= ${ND}/inherits.sh
 INHERITSFILES= tags.h inh.c slots
 
 ${INHERITSFILES}: ${INHERITS} ${NODESFILES}
-	sh ${SHOPTS} ${INHERITS} ${NODESFILES}
+	sh ${SHOPTS} ${INHERITS} ${NODESSRC}
 
 #
 # These files are generated from the corresponding .h files
