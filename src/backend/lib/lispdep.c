@@ -84,6 +84,15 @@ CAtom(lv)
   }
 }
 
+double
+CDouble(lval)
+     LispValue lval;
+{
+    if (lval != NULL && lval->type == PGLISP_FLOAT)
+      return(lval->val.flonum);
+    elog(WARN,"error : bougs float");
+    return((double)0);
+}
 int
 CInteger(lval)
      LispValue lval;
@@ -425,8 +434,9 @@ append(list,lispObject)
      }
      for (p = newlist; CDR(p) != LispNil; p = CDR(p))
        ;
-     CDR(p) = lispList();
-     CAR(CDR(p)) = lispObject;
+     /* CDR(p) = lispList();
+	CAR(CDR(p)) = lispObject; */
+     CDR(p) = lispObject;
      return(newlist);
 
 }
@@ -826,10 +836,21 @@ find(foo,bar,test, key)
 
 LispValue
 some(foo,bar)
-     LispValue foo,bar;
+     bool(*foo)();
+     LispValue bar;
 {
-    elog(WARN,"unsupported function");
-    return(foo);
+    LispValue i = LispNil;
+    LispValue temp = LispNil;
+
+    elog(NOTICE,"some called");
+
+    foreach(i,bar) {
+	temp =CAR(i);
+	if ((*foo)(temp))
+	  return(temp);
+    }
+    return(LispNil);
+    
 }
 
 LispValue
