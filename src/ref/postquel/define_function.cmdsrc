@@ -14,17 +14,17 @@ define function \(em define a new function
 .\"	[ \fB, trusted\fP ]
 	[ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
 	[ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
-	[ \fB, outin_ratio = \fP percentage]
-	[ \fB, byte_pct = \fP percentage]
+	[ \fB, outin_ratio = \fP percentage ]
+	[ \fB, byte_pct = \fP percentage ]
 	\fB)\fP
-    \fBarg is (\fP type-1  { \fB,\fP type-n } \fB)\fP
-    \fBas\fP {"/full/path/filename.o" | "list-of-postquel-queries"}
+    [ \fBarg is (\fP type-1  { \fB,\fP type-n } \fB)\fP ]
+    \fBas\fP {"/full/path/to/objectfile" | "list-of-postquel-queries"}
 .)l
 .SH "DESCRIPTION"
 With this command, a \*(PG user can register a function with \*(PG.
 Subsequently, this user is treated as the owner of the function.
 .PP
-When defining the function, the input data types,
+When defining a function with arguments, the input data types,
 .IR type-1 ,
 .IR type-2 ,
 \&...,
@@ -35,6 +35,9 @@ must be specified, along with the language, which may be
 .IR "\*(lqc\*(rq"
 or
 .IR "\*(lqpostquel\*(rq" .
+(The
+.IR "arg is"
+clause may be left out if the function has no arguments.)
 The input types may be base or complex types.  The output type may be
 specified as a base type, complex type, or 
 .IR "setof <type>".
