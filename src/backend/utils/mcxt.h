@@ -123,6 +123,23 @@ MemoryContextGetName ARGS((
 ));
 
 /*
+ * PointerGetAllocSize --
+ *	Returns size of aligned allocated memory given pointer to it.
+ *
+ * Note:
+ *	none
+ *
+ * Exceptions:
+ *	???
+ *	BadArgumentsErr if firstTime is true for subsequent calls.
+ */
+extern
+Size
+PointerGetAllocSize ARGS((
+	Pointer	pointer
+));
+
+/*
  * MemoryContextSwitchTo --
  *	Returns the current context; installs the given context.
  *
@@ -138,6 +155,11 @@ MemoryContext
 MemoryContextSwitchTo ARGS((
 	MemoryContext	context
 ));
+
+/*
+ * START HERE
+ *	Add routines to move memory between contexts.
+ */
 
 /*
  * CreateGlobalMemory --
