@@ -113,6 +113,14 @@ SRCS:=
 .if defined (BIGOBJS)
 OBJS_UTILS:= ${SRCS:S/.c/.o/g}
 SRCS_UTILS:= ${SRCS}
+SRCS:=
+.endif
+
+# the following to to get HEADERS from tmp/ (for ctags)
+
+.include "${.CURDIR}/tmp/Makefile.inc"
+
+.if defined (BIGOBJS)
 SRCS:=	${SRCS_ACCESS} ${SRCS_BOOTSTRAP} ${SRCS_COMMANDS} ${SRCS_EXECUTOR} \
 	${SRCS_MAIN} ${SRCS_MISC} ${SRCS_NODES} ${SRCS_PARSER} \
 	${SRCS_PLANNER} ${SRCS_PORT} ${SRCS_REWRITE} ${SRCS_RULES} \
@@ -190,9 +198,6 @@ CFLAGS+= -DNOFIXADE
 # XXX - who makes this?
 #
 CLEANFILES+= y.output
-
-# TODO: include tmp/*.h and port/?/*.h files in $HEADERS
-
 
 #
 # Install the bki files to the data directory.  We also
