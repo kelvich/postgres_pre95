@@ -265,7 +265,7 @@ ExecInitMaterial(node, estate, parent)
      *	create the temporary relation
      * ----------------
      */
-    len = length(get_qptargetlist((Plan) node));
+    len = ExecTargetListLength(get_qptargetlist((Plan) node));
     tempDesc = 	ExecCreatR(len, tupType, -1);
     
     /* ----------------

@@ -399,7 +399,7 @@ ExecInitSort(node, estate, parent)
      *	create the temporary relations
      * ----------------
      */
-    len = 		length(get_qptargetlist((Plan) node));
+    len = 		ExecTargetListLength(get_qptargetlist((Plan) node));
     tempDesc = 		ExecCreatR(len, tupType, tempOid);
     sortedDesc = 	ExecCreatR(len, tupType, sortOid);
     

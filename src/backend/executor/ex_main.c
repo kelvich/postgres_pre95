@@ -370,9 +370,9 @@ InitPlan(operation, parseTree, plan, estate)
      *	   if we are creating a relation with "retrieve into")
      * ----------------
      */
-    tupType =    ExecGetTupType(plan); 		/* tuple descriptor */
+    tupType =    ExecGetTupType(plan);             /* tuple descriptor */
     targetList = get_qptargetlist(plan);
-    len = 	 length(targetList); 		/* number of attributes */
+    len = 	 ExecTargetListLength(targetList); /* number of attributes */
 
     /* ----------------
      *    now that we have the target list, initialize the junk filter

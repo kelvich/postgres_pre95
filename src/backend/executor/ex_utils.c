@@ -372,7 +372,7 @@ ExecAssignProjectionInfo(node, commonstate)
     Pointer	 	tupValue;
 	
     targetList =  get_qptargetlist(node);
-    len = 	  length(targetList);
+    len = 	  ExecTargetListLength(targetList);
     tupValue =    (Pointer) ExecMakeTLValues(len);
 
     projInfo = 	MakeProjectionInfo(targetList, len, tupValue,
@@ -713,7 +713,7 @@ QueryDescGetTypeInfo(queryDesc)
     targetList = 	    get_qptargetlist(plan);
     
     return (List)
-	MakeList(lispInteger(length(targetList)), tupleType, -1);
+	MakeList(lispInteger(ExecTargetListLength(targetList)), tupleType, -1);
 }
 
 /* ----------------------------------------------------------------
