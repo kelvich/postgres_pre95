@@ -152,7 +152,21 @@ private	nfile = 0;
  *      \more---/                    \--less--/
  *
  */
+void
+_dump_lru()
+{
+    int mru = VfdCache[0].lruLessRecently;
+    Vfd *vfdP = &VfdCache[mru];
 
+    printf("MOST %d ", mru);
+    while (mru != 0)
+    {
+	mru = vfdP->lruLessRecently;
+	vfdP = &VfdCache[mru];
+    	printf("%d ", mru);
+    }
+    printf("LEAST\n");
+}
 void
 EnableFDCache(enable)
 int enable;
@@ -221,6 +235,7 @@ Delete (file)
 	Vfd	*fileP;
 
 	DO_DB(printf("DEBUG:	Delete %d (%s)\n",file,VfdCache[file].fileName));
+	DO_DB(_dump_lru());
 
 	Assert(file != 0);
 
@@ -229,6 +244,8 @@ Delete (file)
 		VfdCache[file].lruMoreRecently;
 	VfdCache[fileP->lruMoreRecently].lruLessRecently =
 		VfdCache[file].lruLessRecently;
+
+	DO_DB(_dump_lru());
 }
 
 
@@ -277,6 +294,7 @@ Insert(file)
 	Vfd	*vfdP;
 
 	DO_DB(printf("DEBUG:	Insert %d (%s)\n",file,VfdCache[file].fileName));
+	DO_DB(_dump_lru());
 
 	vfdP = &VfdCache[file];
 
@@ -284,6 +302,8 @@ Insert(file)
 	vfdP->lruLessRecently = VfdCache[0].lruLessRecently;
 	VfdCache[0].lruLessRecently = file;
 	VfdCache[vfdP->lruLessRecently].lruMoreRecently = file;
+
+	DO_DB(_dump_lru());
 }
 
 int
@@ -468,12 +488,23 @@ void
 FileInvalidate(file)
     File file;
 {
+    Sfd *sfdP;
+    int i;
+    int n;
+
     /* avoid work if we can */
     if (file < 0)
 	return;
 
-    if (!FileIsNotOpen(file))
-	LruDelete(file);
+    sfdP = &SfdCache[file];
+
+    n = NStriping;
+    if (StripingMode == 1) n *= 2;
+    for (i=0; i<n; i++)
+    {
+	if (!FileIsNotOpen(sfdP->vfd[i]))
+	    LruDelete(sfdP->vfd[i]);
+    }
 }
 
 void
