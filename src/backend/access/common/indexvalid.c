@@ -24,6 +24,7 @@
 
 RcsId("$Header$");
 
+#include "executor/execdebug.h"
 #include "access/genam.h"
 #include "access/iqual.h"
 #include "access/itup.h"
@@ -142,6 +143,8 @@ ikeytest_tupdesc(tuple, tupdesc, scanKeySize, key)
 	index_keytest(tuple, tupdesc, scanKeySize, key);
 }
 
+int	NIndexTupleProcessed;
+
 bool
 ikeytest(tuple, relation, scanKeySize, key)
     IndexTuple	tuple;
@@ -152,6 +155,7 @@ ikeytest(tuple, relation, scanKeySize, key)
     TupleDescriptor tupdesc;
     tupdesc = RelationGetTupleDescriptor(relation);
     
+    IncrIndexProcessed();
     return
 	index_keytest(tuple, tupdesc, scanKeySize, key);
 }
