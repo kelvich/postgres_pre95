@@ -119,7 +119,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT VACUUM PARALLEL
+		STDIN STDOUT VACUUM PARALLEL AGGREGATE 
 
 /* precedence */
 %nonassoc Op
@@ -161,6 +161,7 @@ query:
 stmt :
 	  AttributeAddStmt
 	| ATTACH_AS attach_args /* what are the args ? */
+	| AggregateStmt
 	| ClosePortalStmt
 	| ClusterStmt
 	| CopyStmt
@@ -658,6 +659,14 @@ ProcedureStmt:
 		   QueryIsRule = false;
 		}
 	;
+AggregateStmt:
+
+	DEFINE AGGREGATE def_rest 
+	{
+	    $$ = lispCons( KW(aggregate), $3);
+	    $$ = lispCons( KW(define), $$);
+	}
+	;
 
  /**********************************************************************
 
@@ -721,7 +730,7 @@ RemoveStmt:
 	;
 
 remove_type:
-	  Function | Type | Index | RuleType | VIEW;
+	  Function | Aggregate | Type | Index | RuleType | VIEW ;
 
 RuleType:
 	 newruleTag RULE
@@ -1762,10 +1771,11 @@ agg_res_target_el:
 		   $$ = lispCons(resnode,lispCons(varnode,LispNil));
 	 }
 
-aggregate:
+agg:
 	name  '{' agg_res_target_el agg_where_clause '}'
 	{
 		 LispValue query2;
+		 LispValue varnode = $3;
 		 $3 = lispCons($3, LispNil);
 		 query2 = MakeRoot(1, KW(retrieve), LispNil,
 		 p_rtable, p_priority, p_ruleinfo, LispNil,
@@ -1775,15 +1785,15 @@ aggregate:
 		 query2 = nappend1 (query2, $3);
 		 query2 = nappend1 (query2, $4);
 		 /* query2 now retrieves the subquery within the
-		  * aggregate brackets.
-		  * this will be the aggregate node's outer child.
+		  * agg brackets.
+		  * this will be the agg node's outer child.
 		  */
 
-		  $$ = ParseAgg(CString($1), query2, $3);
+		  $$ = ParseAgg(CString($1), query2, varnode);
 
 		  /*paramlist = search_quals($4, aggnode);*/
 		  /*$$ = nappend1($$, $4);*/
-		  /* (rettype, "aggregate",aggname, query, tlist, -1) */
+		  /* (rettype, "agg",aggname, query, tlist, -1) */
 	}
 
 res_target_list:
@@ -1824,13 +1834,13 @@ res_target_list:
 	;
 
 res_target_el:
-		Id '=' aggregate
+		Id '=' agg
 	{
 		 int type_id;
 		 int resdomno,  type_len;
 		 List temp = LispNil;
 	     type_id = CInteger(CAR($3));
-	     type_len = tlen(type_id);
+	     type_len = tlen(get_id_type(type_id));
 	     resdomno = p_last_resno++;
 	     temp = lispCons (MakeResdom(resdomno,
 					type_id,
@@ -1974,6 +1984,7 @@ SpecialRuleRelation:
 	;
 
 Function:		FUNCTION	{ $$ = yylval ; } ;
+Aggregate:		AGGREGATE	{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
 Key:			KEY		{ $$ = yylval ; } ;
