@@ -324,6 +324,7 @@ _sjcacheinit()
     int nbytes, nread;
     int nentries;
     int nblocks;
+    int start, stop;
     int i;
     SJCacheItem *cur;
     SJHashEntry *result;
@@ -336,7 +337,11 @@ _sjcacheinit()
     }
 
     /* suck in the metadata */
+    if (FileSeek(SJMetaVfd, 0L, L_SET) != 0)
+	elog(FATAL, "cannot seek on jukebox metadata cache");
+
     nbytes = SJCACHESIZE * sizeof(SJCacheItem);
+    bzero((char *) SJCache, nbytes);
     nread = FileRead(SJMetaVfd, (char *) SJCache, nbytes);
 
     /* be sure we got an integral number of entries */
@@ -377,59 +382,32 @@ _sjcacheinit()
      *  the allocated extents, in order.  The free list head is the first
      *  unallocated extent, and its tail is the last allocated one.  This
      *  list is doubly-linked and is not circular.
+     *
+     *  The bizarre loop, and the way that start and stop are set, are
+     *  to allow me to do this in a single loop.  Trust me, this is simpler
+     *  than the six special cases I used to have here.
      */
 
-    if (nentries == SJCACHESIZE || nentries == 0) {
-	cur = &(SJCache[i]);
-	cur->sjc_freeprev = i - 1;
+    start = nentries;
+    stop = ((nentries - 1) + SJCACHESIZE) % SJCACHESIZE;
 
-	if (i == SJCACHESIZE - 1) {
-	    cur->sjc_freenext = -1;
-	} else {
-	    cur->sjc_freenext = i + 1;
-	}
-
-	/* list head, tail pointers */
-	SJHeader->sjh_freehead = 0;
-	SJHeader->sjh_freetail = SJCACHESIZE - 1;
-    } else {
-	for (i = 0; i < nentries; i++) {
-	    cur = &(SJCache[i]);
-
-	    if (i == 0)
-		cur->sjc_freeprev = SJCACHESIZE - 1;
-	    else
-		cur->sjc_freeprev = i - 1;
-
-	    if (i == nentries - 1)
-		cur->sjc_freenext = -1;
-	    else
-		cur->sjc_freenext = i + 1;
-	}
-
-	for (i = nentries; i < SJCACHESIZE; i++) {
-	    cur = &(SJCache[i]);
-
-	    /* mark this as unused by setting oid to invalid object id */
-	    cur->sjc_oid = InvalidObjectId;
-
-	    if (i == nentries)
-		cur->sjc_freeprev = -1;
-	    else
-		cur->sjc_freeprev = i - 1;
-
-	    if (i == SJCACHESIZE - 1)
-		cur->sjc_freenext = 0;
-	    else
-		cur->sjc_freenext = i + 1;
-	}
-
-	/* list head, tail pointers */
-	SJHeader->sjh_freehead = nentries;
-	SJHeader->sjh_freetail = nentries - 1;
+    i = start;
+    for (;;) {
+	cur = &SJCache[i];
+	cur->sjc_freeprev = ((i - 1) + SJCACHESIZE) % SJCACHESIZE;
+	cur->sjc_freenext = ((i + 1) + SJCACHESIZE) % SJCACHESIZE;
+	i = (i + 1) % SJCACHESIZE;
+	if (i == start)
+	    break;
     }
 
+    /* fix up the list's endpoints */
+    SJCache[start].sjc_freeprev = -1;
+    SJCache[stop].sjc_freenext = -1;
+
     /* set up cache metadata header struct */
+    SJHeader->sjh_freehead = start;
+    SJHeader->sjh_freetail = stop;
     SJHeader->sjh_nentries = 0;
     SJHeader->sjh_flags = SJH_INITED;
 }
@@ -579,7 +557,15 @@ int
 sjcreate(reln)
     Relation reln;
 {
+    SJCacheItem *item;
+    SJGroupDesc *group;
     SJCacheTag tag;
+    ObjectId dbid;
+    ObjectId relid;
+    File vfd;
+    int grpno;
+    int i;
+    char *path;
 
     /*
      *  If the cache is in the process of being initialized, then we need
@@ -616,8 +602,20 @@ sjcreate(reln)
 
     _sjregnblocks(&tag);
 
-    /* return a fake file descriptor */
-    return (0);
+    /* last thing to do is to create the mag-disk file to hold last page */
+    if (reln->rd_rel->relisshared) {
+	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
+	sprintf(path, "%s/%.16s", DataDir, &(reln->rd_rel->relname.data[0]));
+    } else {
+	path = (char *) palloc(sizeof(NameData) + 1);
+	sprintf(path, "%.16s", &(reln->rd_rel->relname.data[0]));
+    }
+
+    vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);
+
+    pfree(path);
+
+    return (vfd);
 }
 
 /*
@@ -1447,13 +1445,7 @@ int
 sjunlink(reln)
     Relation reln;
 {
-    /*
-     *  Even though we can't really unlink the relation, we return
-     *  success here, so that users can destroy tables (remove the
-     *  pg_class pointers to them).
-     */
-
-    return (SM_SUCCESS);
+    return (SM_FAIL);
 }
 
 /*
@@ -1593,14 +1585,23 @@ int
 sjopen(reln)
     Relation reln;
 {
-    /* return a fake fd */
-    return (0);
+    char *path;
+    int fd;
+    extern char *relpath();
+
+    path = relpath(&(reln->rd_rel->relname.data[0]));
+
+    fd = FileNameOpenFile(path, O_RDWR, 0600);
+
+    return (fd);
 }
 
 int
 sjclose(reln)
     Relation reln;
 {
+    FileClose(reln->rd_fd);
+
     return (SM_SUCCESS);
 }
 
