@@ -106,7 +106,7 @@ AllocSetInit(set, mode, limit)
 	AllocMode	mode;
 	Size		limit;
 {
-	AssertArg(AllocSetIsValid(set));
+	AssertArg(PointerIsValid(set));
 	AssertArg((int)DynamicAllocMode <= (int)mode);
 	AssertArg((int)mode <= (int)BoundedAllocMode);
 
@@ -219,7 +219,7 @@ AllocSetRealloc(set, pointer, size)
 }
 
 Count
-AllocSetStep(set, function)
+AllocSetIterate(set, function)
 	AllocSet	set;
 	void		(*function) ARGS((AllocPointer pointer));
 {
@@ -303,5 +303,5 @@ void
 AllocSetDump(set)
 	AllocSet	set;
 {
-	AllocSetStep(set, AllocPointerDump);
+	AllocSetIterate(set, AllocPointerDump);
 }
