@@ -24,7 +24,6 @@
  *
  * Note:
  *	Assumes heap tuple is valid.
- *	Assumes buffer is invalid or associated with the heap tuple.
  */
 extern
 RuleLock
@@ -39,9 +38,15 @@ HeapTupleGetRuleLock ARGS((
  *
  * Note:
  *	Assumes heap tuple is valid.
+ * NOTE #2: SOS !
+ *	XXX: if the previous old lock was a memory pointer,
+ *	then this old lock is pfreed !!!!!
+ * NOTE #3: SOS !
+ *      XXX: NO copy of the 'lock' or 'tuple' is made!
+ *
  */
 extern
-HeapTuple
+void
 HeapTupleSetRuleLock ARGS((
 	HeapTuple	tuple,
 	Buffer		buffer,
@@ -50,22 +55,19 @@ HeapTupleSetRuleLock ARGS((
 
 /*
  * HeapTupleStoreRuleLock --
- *	Stores the rule lock of a heap tuple into a heap relation.
+ *	If a tuple has a "main memory" rule lock (i.e. a RuleLock)
+ * 	thn it stores this lock to the relation (in the same page
+ * 	as the tuple if possible).
+ *	Finally the tuple is linked to this new "disk" lock.
  *
- *	If the tuple had a valid lock, then it is physically deleted.
- *	Then the new lock is stored on the same frame as the tuple, if
- *	possible.  Finally, the tuple is linked to the new lock.
- *
- * Note:
- *	Assumes heap tuple is valid.
- *	Assumes buffer is valid.
+ *	NOTE: (*DANGER*, DANGER Mr. Robinson......)
+ *	XXX:the old (main memory) lock is pfreed!!!!!!
  */
 extern
 void
 HeapTupleStoreRuleLock ARGS((
 	HeapTuple	tuple;
 	Buffer		buffer;
-	RuleLock	lock;
 ));
 
 #endif	/* !defined(RAcIncluded) */
