@@ -136,7 +136,7 @@ static bool Params_ok = false;
 %left  	'[' ']' 
 %nonassoc TYPECAST
 %nonassoc REDUCE
-%token PARAM
+%token PARAM AS
 %%
 
 queryblock:
@@ -605,80 +605,45 @@ MergeStmt:
 
  /************************************************************
 	QUERY:
-		define c function ...
-		define postquel function <func-name> '(' rel-name ')'
-		returns <ret-type> is <postquel-optimizable-stmt>
-	TREE:
-		(define cfunction) ... XXX - document this
-
-		postquel function:
-
-		(define pfunction "func-name" "rel-name" <ret-type-oid>
-		 "postquel-optimizable-stmt")
+                define function <fname>
+                       (language = <lang>, returntype = <typename> 
+                        [, arch_pct = <percentage | pre-defined>]
+                        [, disk_pct = <percentage | pre-defined>]
+                        [, byte_pct = <percentage | pre-defined>]
+                        [, perbyte_cpu = <int | pre-defined>]
+                        [, percall_cpu = <int | pre-defined>]
+                        [, iscachable])
+                        arg is (<type-1> { , <type-n>})
+                        as <filename or code in language as appropriate>
 
   ************************************************************/
- 
+
+Executable: OptimizableStmt 
+               {
+		   $$ = $1;
+ 	       }
+            | SCONST
+               {
+		   $$ = $1;
+	       };
+		    
+
 ProcedureStmt:
 
-	DEFINE C_FN FUNCTION def_rest
-		{
-		   $$ = lispCons (KW(cfunction) , $4 ); 
-		   $$ = lispCons (KW(define) , $$ ); 
+        DEFINE FUNCTION def_rest AS 
+                {
+		    /* so current and new can be used in definition of 
+		       postquel functions */
+		    QueryIsRule = true;
 		}
-	| DEFINE POSTQUEL FUNCTION name '(' relation_name ')' 
-    	  RETURNS relation_name IS
-		{
-		   extern char *Ch;
-		   char *bogus = NULL;
-		   int x = strlen(Ch);
-
-		   QueryIsRule = true;
-		   NewOrCurrentIsReally = $6;
-		   /*
-		    * NOTE: 'CURRENT' must always have a varno
-		    * equal to 1 and 'NEW' equal to 2.
-		    */
-		   ADD_TO_RT ( MakeRangeTableEntry ( CString($6), 
-						    LispNil,
-						    "*CURRENT*" ) );
-		   ADD_TO_RT ( MakeRangeTableEntry ( CString($6), 
-						    LispNil,
-						    "*NEW*" ));
-		   p_last_resno = 4;
-		   bogus = (char *) palloc(x+1);
-		   bogus = strcpy ( bogus, Ch );
-		   $10 = lispString(bogus);
-		}
-	  OptimizableStmt
-		{
-		   $$ = lispCons ( $10, LispNil );
-		   $$ = lispCons ( $6 , $$ );
-		   $$ = lispCons ( $4, $$ );
-		   $$ = lispCons ( KW(pfunction), $$ );
-		   $$ = lispCons ($1, $$ );
-		   QueryIsRule = false;
-		}
-	| DEFINE P_FUNCTION name '(' def_list ')'
-               {
-                  param_type_init($5);
-            }
-    	  RETURNS def_elem IS
-          {
-	      Params_ok = true;
-          }
-              OptimizableStmt
-         {
-
-	     $$ = lispCons($12, LispNil);
-	     $$ = lispCons($9, $$ );
-	     $$ = lispCons($5, $$ );
-	     $$ = lispCons($3, $$);
-	     $$ = lispCons(KW(postquel), $$);
-	     $$ = lispCons($1, $$);
-	     Params_ok = false;
-	 };
-    
-
+        Executable
+                {
+		    QueryIsRule = false;
+		    $$ = lispCons($6, LispNil);
+		    $$ = lispCons($3, $$);
+		    $$ = lispCons(KW(function), $$);
+		    $$ = lispCons(KW(define), $$);
+		};
 AggregateStmt:
 
 	DEFINE AGGREGATE def_rest 
