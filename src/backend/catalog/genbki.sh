@@ -17,11 +17,7 @@
 # 	$Header$
 # ----------------------------------------------------------------
 
-# -----------------
-# check for options i.e. -D defines for cpp
-# -----------------
 BKIOPTS=''
-set - `getopt D: $*`
 if [ $? != 0 ]
 then
     echo `basename $0`: Bad option
@@ -32,6 +28,7 @@ for opt in $*
 do
     case $opt in
     -D) BKIOPTS="$BKIOPTS -D$2"; shift; shift;;
+    -D*) BKIOPTS="$BKIOPTS $1";shift;;
     --) shift; break;;
     esac
 done
@@ -92,7 +89,7 @@ raw == 1 	{ print; next; }
 	next;
 }
 
-/^DEFINE_INDEX\(/ {
+/^DECLARE_INDEX\(/ {
 # ----
 #  end any prior catalog data insertions before starting a define index
 # ----
@@ -102,9 +99,11 @@ raw == 1 	{ print; next; }
 		reln_open = 0;
 	}
 
-	data = substr($0, 14, length($0) - 14);
-	print "define index " data
+	data = substr($0, 15, length($0) - 15);
+	print "declare index " data
 }
+
+/^BUILD_INDICES/	{ print "build indices"; }
 	
 # ----------------
 #	CATALOG() definitions take some more work.
