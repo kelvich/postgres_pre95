@@ -216,10 +216,10 @@ abstimeout(datetime)
 	}
 
 	if (datetime == INVALID_ABSTIME) {
-	    datestring = (char *) palloc ( INVALID_ABSTIME_STR_LEN );
+	    datestring = (char *) palloc ( INVALID_ABSTIME_STR_LEN +1 );
 	    (void) strcpy(datestring,INVALID_ABSTIME_STR);
 	} else if ( datetime == 0 ) {
-	    datestring = (char *)palloc ( TIME_EPOCH_STR_LEN );
+	    datestring = (char *)palloc ( TIME_EPOCH_STR_LEN + 1 );
 	    (void) strcpy(datestring, TIME_EPOCH_STR );
 	} else   {
 	    /* Using localtime instead of gmtime
