@@ -267,9 +267,11 @@ static void patchLongjump( dlfile, addr, relocAddr, vaddr )
 	if ((*addr)&0x3ffffff) {
 	    relocAddr+= (*addr & 0x3ffffff)<<2;
 	}
+#if 0
 	if (vaddr) {
 	    relocAddr+= (vaddr & 0xf0000000);
 	}
+#endif
 	if (relocAddr&0x3) {
 	    fprintf(stderr,"dl: relocation address not word-aligned!\n");
 	}
