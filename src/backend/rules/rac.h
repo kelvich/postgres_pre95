@@ -43,6 +43,17 @@ HeapTupleGetRuleLock ARGS((
 ));
 
 /*
+ * HeapTupleHasEmptyRuleLock
+ * return true iff the given tuple has an empty rule lock
+ */
+extern
+bool
+HeapTupleHasEmptyRuleLock ARGS((
+	HeapTuple	tuple,
+	Buffer		buffer
+));
+
+/*
  * HeapTupleSetRuleLock --
  *	Sets the rule lock for a heap tuple.
  *
