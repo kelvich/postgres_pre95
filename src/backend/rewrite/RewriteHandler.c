@@ -248,7 +248,7 @@ MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
 	    if ( ThisLockWasTriggered ( varno,
 				       oneLock->attributeNumber,
 				       parse_subtree ))
-	      real_locks = lispCons ( oneLock , real_locks );
+	      real_locks = nappend1 ( real_locks, oneLock );
 	}
     }
 
@@ -283,7 +283,7 @@ TheseLocksWereTriggered ( rulelocks , parse_subtree, event_type , varno )
 		( ThisLockWasTriggered ( varno,
 					oneLock->attributeNumber , 
 					parse_subtree )) ) {
-		real_locks = lispCons ( oneLock, real_locks );
+		real_locks = nappend1 ( real_locks , oneLock );
 	    } else {
 		continue;
 	    }
@@ -478,7 +478,7 @@ MatchLocks ( locktype, rulelocks , current_varno , user_parsetree )
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
 	if ( oneLock->lockType == locktype )  {
-	    real_locks = lispCons ( oneLock , real_locks );
+	    real_locks = nappend1 ( real_locks, oneLock );
 	} /* if lock is suitable */
     } /* for all locks */
     
@@ -559,18 +559,37 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 
     Assert ( update_locks != NULL ); /* otherwise we won't have been called */
 
-    /* XXX - for now, instead is always true */
-    *drop_user_query = true;
+    /* drop_user_query must have been false, otherwise, we wouldn't
+     * have entered this routine
+     */
+
+    Assert ( *drop_user_query == false );
 
     foreach ( i , update_locks ) {
 	Prs2OneLock this_lock 	= (Prs2OneLock)CAR(i);
-
+	
 	printf ("\nNow processing :");
 	PrintRuleLock ( this_lock );
 	printf ("\n");
 
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
 	ruletrees = CDR(action_info);
+
+	/*
+	 * if drop_user_query has been set, we have hit an "instead" rule
+	 * which deactivates any rules that may have been activated
+	 */
+
+	if (*drop_user_query) {
+	    elog ( NOTICE, 
+		  "drop_user_query is set ; punting on rule with id %d",
+		  this_lock->ruleId );
+	  return ( new_queries );
+	}
+
+	*drop_user_query = (bool)CAR(action_info); /* cheated by not sticking
+						    * it into a lispint
+						    */
 
 	foreach ( j , ruletrees ) {
 	    List rule_action = CAR(j);
@@ -704,6 +723,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
      * others in "emp", does not really work.
      */
 
+    Assert ( *drop_user_query == false );
+
     switch (command) {
       case RETRIEVE:
 	/* do nothing since it is handled above */
@@ -753,6 +774,11 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 				drop_user_query,
 				current_varno);
 
+	    /* reset a "delete" targetlist to nil, otherwise
+	     * executor will die a horrible death because it is not
+	     * expecting any value there.
+	     * why is this ? (who knows)
+	     */
 	    parse_targetlist ( user_parsetree ) = LispNil;
 
 	    additional_queries = append (additional_queries, new_queries );
@@ -803,21 +829,23 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
      * if attnum = -1 )
      */
 
-    retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
-					  user_parsetree );
-    if ( retrieve_locks ) {
-	printf ( "\nThese retrieve rules were triggered: \n");
-	PrintRuleLockList ( retrieve_locks );
-	additional_queries = ModifyVarNodes ( retrieve_locks,
-					     length ( user_rangetable ),
-					     current_varno,
-					     reldesc,
-					     user_tlist,
-					     user_rangetable,
-					     user_parsetree
-					     );
-    }
-
+    if ( *drop_user_query == false ) {
+	retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
+					     user_parsetree );
+	if ( retrieve_locks ) {
+	    printf ( "\nThese retrieve rules were triggered: \n");
+	    PrintRuleLockList ( retrieve_locks );
+	    additional_queries = ModifyVarNodes ( retrieve_locks,
+						 length ( user_rangetable ),
+						 current_varno,
+						 reldesc,
+						 user_tlist,
+						 user_rangetable,
+						 user_parsetree
+						 );
+	}
+	
+    } /* if user_query is still active */
 
     /* when we get here, additional queries is either null 
      * (no additional queries) OR additional queries is a list
