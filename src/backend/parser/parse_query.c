@@ -121,8 +121,11 @@ MakeRangeTableEntry( relname , options , refname)
     /* Flags - zero or more from archive,inheritance,union,version */
     
     if(options & 0x01 ) /* XXX - fix this */
-      Flags = lispCons( lispAtom ("inherits") , Flags );
-    
+      Flags = nappend1(Flags, lispAtom ("inherits"));
+
+    if(options & 0x02 )
+      Flags = nappend1(Flags,lispAtom("recursive"));
+
     /* TimeRange */
     
     TRange = p_trange; /* default is lispInteger(0) */
@@ -462,7 +465,7 @@ make_const( value )
 {
 	Type tp;
 	LispValue temp;
-	int val;
+	Datum val;
 
 /*	printf("in make_const\n");*/
 	fflush(stdout);
@@ -470,7 +473,7 @@ make_const( value )
 	switch( value->type ) {
 	  case PGLISP_INT:
 	    tp = type("int4");
-	    val = value->val.fixnum;
+	    val = Int32GetDatum(value->val.fixnum);
 	    break;
 		
 	  case PGLISP_ATOM:
@@ -480,7 +483,7 @@ make_const( value )
 	    
 	  case PGLISP_FLOAT:
 	    tp = type("float4");
-	    val = (int)(value->val.flonum);
+	    val = Float32GetDatum(value->val.flonum);
 	    break;
 	    
 	  case PGLISP_STR:
@@ -488,7 +491,7 @@ make_const( value )
 	      tp = type("text");
 	    else 
 	      tp = type("char16");
-	    val = (int)(value->val.str);
+	    val = PointerGetDatum(value->val.str);
 	    break;
 	    
 	  default: 
