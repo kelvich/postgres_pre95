@@ -21,11 +21,11 @@ oidint2in(o)
 	for (p = o; *p != '\0' && *p != '/'; p++)
 		continue;
     
-	oi->oi_oid = atoi(o);
+	oi->oi_oid = (ObjectId) pg_atoi(o, sizeof(ObjectId), '/');
 	if (*p == '\0') {
 		oi->oi_int2 = 0;
 	} else {
-		oi->oi_int2 = atoi(++p);
+		oi->oi_int2 = (int16) pg_atoi(++p, sizeof(int2), '\0');
 	}
 
 	return (oi);
@@ -37,8 +37,13 @@ oidint2out(o)
 {
 	char *r;
 
-	r = (char *) palloc(20);
-	sprintf(r, "%d/%ld", o->oi_oid, o->oi_int2);
+	/*
+	 * -2147483647/-32767
+	 * 0        1
+	 * 1234567890123456789
+	 */
+	r = (char *) palloc(19);
+	sprintf(r, "%d/%d", o->oi_oid, o->oi_int2);
 
 	return (r);
 }
