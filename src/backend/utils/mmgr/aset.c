@@ -254,6 +254,22 @@ AllocSetIterate(set, function)
 	return (count);
 }
 
+Count
+AllocSetCount(set)
+AllocSet set;
+{
+	Count		count = 0;
+	AllocPointer	pointer;
+
+	AssertArg(AllocSetIsValid(set));
+
+	for (pointer = AllocSetGetFirst(set);
+			AllocPointerIsValid(pointer);
+			pointer = AllocPointerGetNext(pointer)) {
+		count++;
+	}
+	return count;
+}
 
 /*
  * Private routines
@@ -316,5 +332,7 @@ void
 AllocSetDump(set)
 	AllocSet	set;
 {
-	AllocSetIterate(set, AllocPointerDump);
+	int count;
+	count = AllocSetIterate(set, AllocPointerDump);
+	printf("\ttotal %d allocations\n", count);
 }
