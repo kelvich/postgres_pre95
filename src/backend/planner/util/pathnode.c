@@ -327,9 +327,9 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	List pagesel = index_selectivity (CInteger(CAR(get_relids(index))),
 					  get_classlist (index),
 					  get_opnos (restriction_clauses),
-					  getrelid (CInteger(CAR(get_relids 
-								 (rel))),
-						    _query_range_table_),
+					  CInteger(getrelid (CInteger
+							(CAR(get_relids(rel))),
+						    _query_range_table_)),
 					  nth (0,relattvals),
 					  nth (1,relattvals),
 					  nth (2,relattvals),
