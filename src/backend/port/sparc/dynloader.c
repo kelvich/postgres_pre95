@@ -56,6 +56,12 @@ long *size;
 
 	fd = open(filename, O_RDONLY);
 
+	if (fd == -1)
+	{
+		*err = "error opening file";
+		goto finish_up;
+	}
+
 	read(fd, &ld_header, sizeof(struct exec));
 
 	image_size = ld_header.a_text + ld_header.a_data + ld_header.a_bss + FUDGE;
@@ -92,7 +98,7 @@ long *size;
 		fclose(temp_file);
 		free(load_address);
 		load_address = valloc(true_image_size);
-		
+
 		if (execld(load_address, temp_file_name, filename))
 		{
 			*err = "ld failed!";
@@ -108,7 +114,7 @@ long *size;
 	retval = load_symbols(fd, &ld_header, load_address);
 
 	fclose(temp_file);
-	/* unlink(temp_file_name); */
+	unlink(temp_file_name);
 	close(fd);
 	*address = load_address;
 	*size = image_size;
@@ -117,11 +123,7 @@ long *size;
 	load_address = NULL;
 
 finish_up:
-	if (temp_file != NULL)
-	{
-		fclose(temp_file);
-		unlink(temp_file_name);
-	}
+	if (temp_file != NULL) fclose(temp_file);
 	if (load_address != NULL) free(load_address);
 	return retval;
 }
