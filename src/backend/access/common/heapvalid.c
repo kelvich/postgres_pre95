@@ -94,7 +94,6 @@ heap_keytest(t, tupdesc, nkeys, keys)
     Boolean	isnull;
     DATUM	atp;
     int		test;
-    DATUM	amgetattr();
     char	*fmgr();
 
     for (; nkeys--; keys++) {
