@@ -354,6 +354,7 @@ StringToRuleLock ARGS((
  * Routine to extract rule info from the ParseTree
  *==================================================================
  */
+#define GetRuleHintFromParse(p)		(CADR(nth(1,p)))
 #define GetRuleNameFromParse(p)		(nth(2,p))
 #define GetRuleEventTypeFromParse(p)	(nth(0,nth(3,p)))
 #define GetRuleEventTargetFromParse(p)	(nth(1,nth(3,p)))
