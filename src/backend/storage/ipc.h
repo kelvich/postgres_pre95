@@ -30,6 +30,7 @@
  * since these also have atomic test-and-set instructions.
  */
 #if defined(PORTNAME_aix) || \
+    defined(PORTNAME_alpha) || \
     defined(PORTNAME_sparc) || \
     defined(sequent) || \
     defined(m68k) || \
