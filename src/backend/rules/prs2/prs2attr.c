@@ -38,6 +38,7 @@ Relation relation;
     AttributeNumber natts;
     AttributeValues attrValues;
     long size;
+    Boolean isNull;
 
     natts = RelationGetNumberOfAttributes(relation);
 
@@ -53,8 +54,9 @@ Relation relation;
 				buffer,
 				i,
 				RelationGetTupleDescriptor(relation),
-				&(attrValues[i].isNull));
+				&isNull);
 	attrValues[i-1].isCalculated = (Boolean) 0;
+	attrValues[i-1].isNull = isNull;
     }
 
     return(attrValues);
@@ -105,16 +107,18 @@ AttributeValues a;
  * thus avoiding the copy (efficiency!).
  *
  * However we must also need change the locks of the tuple!
- * If an attribute that has been checked for rules and has some
- * locks on it of type 'LockTypeWrite', then somehow it must also
- * be marked as so, so that if at a later time (especially when the
- * rule manager is activated at the topmost level of a replace,
- * delete or appaned plan) we want to calculate the value of this
- * attribute we will not check again for all these rules.
- * One way to achieve that is for every attribute with isChecked==true
- * to remove all the corresponding 'LockTypeWrite' locks.
- * Note also that we must keep all the other locks (should they be needed
- * by the rule manager at the tompost level of the plan)...
+ * Say, if during a retrieve operation, a rule that had a lock of
+ * type `LockTypeRetrieveWrite' has been activated and calculated a new
+ * value for this attribute, then we must remove this lock, so that if
+ * later on (at a higher node in the plan, maybe a join or a topmost
+ * result node that is used when the user's operation is an append
+ * or delete) we want to find the value of this (laready claculated) 
+ * attribute, we do not unnecessarily reactivate the rule.
+ * Another case where this happens is when we append a tuple.
+ * We have to activate all rules that have `LockTypeAppendWrite' locks,
+ * but then we can remove these locks because they are no longer
+ * needed (a tuple is only appended once!).
+ * The replace case is similar....
  *
  * XXX:
  * Hm.. here comes the tricky question. If no attribute has been
@@ -138,11 +142,12 @@ AttributeValues a;
 
 int
 attributeValuesMakeNewTuple(tuple, buffer, attrValues,
-			    locks, relation, newTupleP)
+			    locks, lockType, relation, newTupleP)
 HeapTuple tuple;
 Buffer buffer;
 AttributeValues attrValues;
 RuleLock locks;
+Prs2LockType lockType;
 Relation relation;
 HeapTuple *newTupleP;
 {
@@ -159,7 +164,7 @@ HeapTuple *newTupleP;
     RuleLock newLocks;
     Prs2OneLock oneLock;
     AttributeNumber attrNo;
-    Prs2LockType lockType;
+    Prs2LockType thisLockType;
 
     /*
      * find the number of attributes of the tuple
@@ -241,12 +246,12 @@ HeapTuple *newTupleP;
 
     newLocks = prs2MakeLocks();
 
-    locksHaveToChange = false ;
+    locksHaveToChange = false;
     for (i=0; i<nlocks; i++) {
 	oneLock = prs2GetOneLockFromLocks(locks, i);
 	attrNo = prs2OneLockGetAttributeNumber(oneLock);
-	lockType = prs2OneLockGetLockType(oneLock);
-	if (lockType != LockTypeRetrieveWrite ||
+	thisLockType = prs2OneLockGetLockType(oneLock);
+	if (lockType != thisLockType ||
 	    !attrValues[attrNo-1].isCalculated){
 	    /*
 	     * Copy this lock...
@@ -256,10 +261,17 @@ HeapTuple *newTupleP;
 			    prs2OneLockGetLockType(oneLock),
 			    prs2OneLockGetAttributeNumber(oneLock),
 			    prs2OneLockGetPlanNumber(oneLock));
-	     
 	} else {
 	    locksHaveToChange = true;
 	}
+    }
+    /*
+     * XXX: For the time being NO locks are stored in tuple,
+     * they all come from the RelationRelation.
+     * So, WE HAVE to put the locks in the tuple anyway...
+     */
+    if (prs2GetNumberOfLocks(newLocks) !=0) {
+	locksHaveToChange = true;
     }
 
     if (locksHaveToChange && tupleHasChanged) {
@@ -267,7 +279,6 @@ HeapTuple *newTupleP;
 	*newTupleP = prs2PutLocksInTuple(
 			    *newTupleP, InvalidBuffer,
 			    relation, newLocks);
-	prs2FreeLocks(newLocks);
 	pfree(t);
 	return(1);
     } else if (!locksHaveToChange && tupleHasChanged) {
@@ -279,7 +290,6 @@ HeapTuple *newTupleP;
 	*newTupleP = prs2PutLocksInTuple(
 			    tuple, buffer,
 			    relation, newLocks);
-	prs2FreeLocks(newLocks);
 	return(1);
     } else if (!locksHaveToChange && !tupleHasChanged) {
 	prs2FreeLocks(newLocks);
