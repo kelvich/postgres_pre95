@@ -428,7 +428,7 @@ copy_vars (target,source)
  *    	flatten-tlist
  *    
  *    	Create a target list that only contains unique variables.
- *    
+ *	-jc--also cons' the agg nodes to the var node list.
  *    	XXX Resdom nodes are numbered based on the length of the target list -
  *    	    this hasn't caused problems yet, but....
  *    
@@ -447,13 +447,27 @@ flatten_tlist (tlist)
     int last_resdomno = 0;
     List new_tlist = LispNil;
     LispValue tlist_vars = LispNil;
+    LispValue tlist_aggs = LispNil;
     LispValue temp;
     LispValue var;
+    LispValue tlist_thing = LispNil;
+    LispValue tlist_rest = tlist;
+    extern List MakeList();
+    extern List nset_difference();
 
-
-    foreach(temp,tlist) 
-      tlist_vars = nconc(tlist_vars,
-			 pull_var_clause (get_expr(CAR(temp))));
+    foreach(temp,tlist)  {
+      tlist_thing = pull_var_clause (get_expr(CAR(temp)));
+      if(tlist_thing != LispNil) {
+         tlist_vars = nconc(tlist_vars, tlist_thing);
+      }
+      else {
+	 tlist_thing = pull_agg_clause(CAR(temp));
+	 if(tlist_thing != LispNil) {
+	     tlist_aggs = nconc(tlist_aggs, tlist_thing);
+	     tlist_rest = nset_difference(temp, tlist_rest);
+	 }
+      }
+    }
     
     /* XXX - This used to use the function push and nreverse.  */
     foreach (var,tlist_vars ) {
@@ -472,6 +486,7 @@ flatten_tlist (tlist)
 	}
     }
     
+    new_tlist = MakeList( new_tlist, tlist_aggs, tlist_rest, -1); /*jc */
     return(new_tlist);
     
 }
