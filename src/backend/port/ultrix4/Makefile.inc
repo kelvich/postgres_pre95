@@ -4,7 +4,7 @@
 # $Header$
 #
 
-CFLAGS+= -DNEED_ISINF
+CFLAGS+= -DNEED_ISINF -DUSE_POSIX_TIME
 
 LDADD+= -ldl -lln
 
