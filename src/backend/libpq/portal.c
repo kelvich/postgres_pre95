@@ -190,7 +190,13 @@ PQnportals(rule_p)
 /* --------------------------------
  *	PQpnames - Return all the portal names
  * 	If rule_p, only return asynchronous portals. 
+ *
  *         the caller must have allocated sufficient memory for char** pnames
+ *	   (an array of PQnportals strings of length PortalNameLength).
+ *
+ *	   notice that this assumes that the user is calling PQnportals and
+ *	   PQpnames with the same rule_p argument, and with no intervening
+ *	   portal closures.  if not, you can get in heap big trouble..
  * --------------------------------
  */
 void
@@ -198,7 +204,7 @@ PQpnames(pnames, rule_p)
     char **pnames;
     int rule_p;
 {
-    int i;
+    int i, cur_pname = 0;
     
     if (!valid_pointer("PQpnames: invalid name buffer", pnames))
 	return;
@@ -206,11 +212,10 @@ PQpnames(pnames, rule_p)
     for (i = 0; i < portals_array_size; ++i) {
 	if (portals[i] && portals[i]->portal) {
 	    if (!rule_p || portals[i]->portal->rule_p) {
-		(void) strncpy(pnames[i], portals[i]->name, PortalNameLength);
-		continue;
+		(void) strncpy(pnames[cur_pname], portals[i]->name, PortalNameLength);
+		++cur_pname;
 	    }
 	}
-	pnames[i][0] = '\0';
     }
 }
 
