@@ -10,6 +10,7 @@
 #define	LispDepIncluded
 
 #include <stdio.h>
+#include "c.h"
 
 /* ==========================================================================
  *	POSTGRES "LISP"
@@ -104,10 +105,15 @@ extern LispValue list(); /* XXX - varargs ??? */
 extern LispValue setf();
 extern LispValue find();
 extern LispValue nconc();
+extern LispValue nreverse();
 
 extern int length();
 extern LispValue remove();
 extern LispValue remove_duplicates();
 extern LispValue setf();
+extern bool equal();
+
+extern LispValue  LispUnion();
+extern LispValue set_difference();
 
 #endif /* !LispDepIncluded */
