@@ -49,9 +49,9 @@ static OID objectid;
 
 %token OPEN XCLOSE XCREATE P_RELN INSERT_TUPLE QUIT
 %token ID STRING FLOAT INT XDEFINE MACRO INDEX ON USING
-%token COMMA COLON DOT EQUALS LPAREN RPAREN AS XIN XTO
+%token COMMA COLON EQUALS LPAREN RPAREN AS XIN XTO
 %token XDESTROY XRENAME RELATION ATTR ADD
-%token DISPLAY OBJ_ID SHOW BOOTSTRAP
+%token DISPLAY OBJ_ID SHOW BOOTSTRAP NULLVAL
 %start TopLevel
 
 %nonassoc low
@@ -311,13 +311,20 @@ tuplelist:
 
 tuple:
 	  ident	{ InsertOneValue(objectid, LexIDStr($1), num_tuples_read++); }
+	| const	{ InsertOneValue(objectid, LexIDStr($1), num_tuples_read++); }
+	| NULLVAL
+	    { InsertOneNull(num_tuples_read++); }
 	;
   
 ident :
-	 ID	{ $$=yylval; }
+	  ID	{ $$=yylval; }
 	| MACRO	{ $$=yylval; }
 	;
 
+const :
+	  FLOAT	{ $$=yylval; }
+	| INT	{ $$=yylval; }
+	;
 %%
 
 
