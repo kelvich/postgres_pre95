@@ -34,11 +34,12 @@ hashfloat4(keyp)
     int len;
     int loop;
     uint32 h;
+    char *kp = (char *) keyp;
 
     len = sizeof(float32data);
 
-#define HASH4a   h = (h << 5) - h + *keyp++;
-#define HASH4b   h = (h << 5) + h + *keyp++;
+#define HASH4a   h = (h << 5) - h + *kp++;
+#define HASH4b   h = (h << 5) + h + *kp++;
 #define HASH4 HASH4b
 
 
@@ -78,11 +79,12 @@ hashfloat8(keyp)
     int len;
     int loop;
     uint32 h;
+    char *kp = (char *) keyp;
 
     len = sizeof(float64data);
 
-#define HASH4a   h = (h << 5) - h + *keyp++;
-#define HASH4b   h = (h << 5) + h + *keyp++;
+#define HASH4a   h = (h << 5) - h + *kp++;
+#define HASH4b   h = (h << 5) + h + *kp++;
 #define HASH4 HASH4b
 
 
@@ -269,7 +271,3 @@ hashtext(key)
     }
     return (n);
 }	
-
-
-
-
