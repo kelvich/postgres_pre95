@@ -13,17 +13,17 @@ RcsId("$Header$");
 
 #include "access.h"
 #include "catalog.h"
-#include "mcxt.h"
-#include "fmgr.h"
+#include "fmgr.h"	/* for F_BOOLEQ, etc.  DANGER */
 #include "lmgr.h"
 #include "log.h"
 #include "heapam.h"
 #include "htup.h"
-#include "master.h"	/* XXX ? */
+#include "mcxt.h"
 #include "name.h"
 #include "portal.h"
 #include "tqual.h"
 #include "oid.h"
+#include "os.h"		/* for etext */
 #include "rel.h"
 
 #include "catcache.h"
