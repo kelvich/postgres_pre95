@@ -160,8 +160,8 @@ bwsort(item)
 	static BufferDesc	**ret;
 
 
-	indeg = (int*)alloca(NBuffers * sizeof(int));
-	ret = (BufferDesc**)alloca(NBuffers * sizeof(BufferDesc*));
+	indeg = (int*)malloc(NBuffers * sizeof(int));
+	ret = (BufferDesc**)malloc(NBuffers * sizeof(BufferDesc*));
 	for (i = 0; i < NBuffers; i++) {
 		ret[i] = (BufferDesc *) NULL;
 		indeg[i] = 0;
@@ -181,6 +181,8 @@ bwsort(item)
 		if (indeg[i] == 0)
 			if (datlist[i] == item) {	/* no need to sort */
 				ret[0] = item;
+				free((char*)indeg);
+				free((char*)ret);
 				return(ret);
 			} else
 				bs_push(i, &zeroindeg);
@@ -191,6 +193,8 @@ bwsort(item)
 	while (zeroindeg != (Stack *) NULL) {
 		if ((i = bs_pop(&zeroindeg)) < 0) {
 			elog(WARN, "bwsort: stack error");
+			free((char*)indeg);
+			free((char*)ret);
 			return((BufferDesc **) NULL);
 		}
 		if (used[i])			/* ignore unused buffers */
@@ -207,9 +211,13 @@ bwsort(item)
 		active_bufs += used[i];
 	if (count != active_bufs) {
 		elog(WARN, "bwsort: cycle in buffer ordering!");
+		free((char*)indeg);
+		free((char*)ret);
 		return((BufferDesc **) NULL);
 	}
 
+	free((char*)indeg);
+	free((char*)ret);
 	return(ret);
 }
 
@@ -228,9 +236,10 @@ bwremove(nitems, items)
 	register int	i, j;
 	int		*remove;
 
-	remove = (int*)alloca(NBuffers * sizeof(int));
+	remove = (int*)malloc(NBuffers * sizeof(int));
 	if (nitems < 0 || nitems > NBuffers) {
 		elog(WARN, "bwremove: bad nitems %d", nitems);
+		free((char*)remove);
 		return(-1);
 	}
 
@@ -242,6 +251,7 @@ bwremove(nitems, items)
 	for (i = 0; i < nitems; i++)
 		if (remove[i] != 1) {
 			elog(WARN, "bwremove: ordering corrupted");
+			free((char*)remove);
 			return(-1);
 		}
 
@@ -259,5 +269,6 @@ bwremove(nitems, items)
 					p->next = p->next->next;
 		used[i] = 0;
 	}
+	free((char*)remove);
 	return(0);
 }
