@@ -10,6 +10,7 @@
  *		util/{plancat,rlockutils,syscache}.c
  */
 
+#include "postgres.h"
 #include "pg_lisp.h"
 #include "log.h"
 #include "atoms.h"
