@@ -205,16 +205,20 @@ stmt :
  /**********************************************************************
 
 	QUERY :
-		addattr ( attr1 = type1 .. attrn = typen ) to <relname>
+		addattr ( attr1 = type1 .. attrn = typen ) to <relname> [*]
 	TREE :
 		(ADD_ATTR <relname> (attr1 type1) . . (attrn typen) )
 
   **********************************************************************/
 AttributeAddStmt:
-	  ADD_ATTR '(' var_defs ')' TO relation_name
+	  ADD_ATTR '(' var_defs ')' TO relation_name opt_inh_star
 		{
-		     $$ = lispCons( $6 , $3);
-		     $$ = lispCons( KW(addattr) , $$);
+		    if ($7 != LispNil) {
+			$$ = lispCons($6, lispCons($7, $3));
+		    } else {
+			$$ = lispCons($6, $3);
+		    }
+		    $$ = lispCons( KW(addattr) , $$);
 		}
 	;
 
@@ -815,18 +819,23 @@ remove_operator:
 
  /**********************************************************************
 	 
-	rename <attrname1> in <relname> to <attrname2>
-		( RENAME "ATTRIBUTE" "relname" "attname1" "attname2" )
+	rename <attrname1> in <relname> [*] to <attrname2>
+		( RENAME "ATTRIBUTE" "relname" "attname1" "attname2" ["*"] )
 	rename <relname1> to <relname2>
 		( RENAME "RELATION" "relname1" "relname2" )
 	
   **********************************************************************/
 
 RenameStmt :
-	  RENAME attr_name IN relation_name TO attr_name
+	  RENAME attr_name IN relation_name opt_inh_star TO attr_name
 		{ 
-		    $$ = MakeList ( KW(rename), lispString("ATTRIBUTE"),
-				    $4, $2, $6, -1 );
+		    if ($5 != LispNil) {
+			$$ = MakeList(KW(rename), lispString("ATTRIBUTE"),
+				      $4, $2, $7, $5, -1 );
+		    } else {
+			$$ = MakeList(KW(rename), lispString("ATTRIBUTE"),
+				      $4, $2, $7, -1 );
+		    }
 		}
 	| RENAME relation_name TO relation_name
                 {
@@ -1494,6 +1503,17 @@ opt_class:
 opt_star:
 	/*EMPTY*/		{ NULLTREE }
   	;
+
+/*
+ *  ...however, recursive addattr and rename supported.  make special 
+ *  cases for these.
+ * 
+ *  XXX i believe '*' should be the default behavior, but...
+ */
+opt_inh_star:
+	  /*empty*/		{ NULLTREE; }
+	| '*'			{ $$ = lispString("*"); }
+	;
 
 relation_name_list:	name_list ;
 
