@@ -48,7 +48,6 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	unsigned	len;
 	ItemId		itemId;
 	Item		item;
-	RuleLock	lock;
 
 	/* ----------------
 	 *	increment access statistics
@@ -62,8 +61,6 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 
 	numberOfBlocks = RelationGetNumberOfBlocks(relation);
 	Assert(IndexIsInBounds(blockIndex, numberOfBlocks));
-
-	lock = tuple->t_lock.l_lock;
 
 	buffer = RelationGetBuffer(relation, blockIndex, L_UP);
 #ifndef NO_BUFFERISVALID
@@ -89,9 +86,8 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 
 	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid, blockIndex,
 		1 + offsetIndex);
-	ItemPointerSetInvalid(&LintCast(HeapTuple, item)->t_lock.l_ltid);
 
-	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer, lock);
+	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer);
 
 	if (BufferPut(buffer, L_UN | L_EX | L_WRITE) < 0) {
 		elog(WARN, "amputunique: failed BufferPut(L_UN | L_WRITE)");
@@ -278,7 +274,7 @@ RelationPutLongHeapTuple(relation, tuple)
 */
 	}
 
-	HeapTupleStoreRuleLock((HeapTuple)tp, headb, tuple->t_lock.l_lock);
+	HeapTupleStoreRuleLock((HeapTuple)tp, headb);
 
 	if (BufferPut(headb, L_UN | L_EX | L_WRITE) < 0) {
 		elog(WARN, "RelationPutLongHeapTuple: failed BufferPut #1");
