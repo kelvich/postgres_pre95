@@ -99,6 +99,14 @@ RuleLock locks;
     return(res);
 }
 
+/* XXX char16 name for catalogs */
+char *
+lockout(locks)
+RuleLock locks;
+{
+	return(RuleLockToString(locks));
+}
+
 /*--------------------------------------------------------------------
  *
  * StringToRuleLock
@@ -174,6 +182,14 @@ char *s;
 
     skipToken(")", s, &index);
     return(lock);
+}
+
+/* XXX char16 name for catalogs */
+RuleLock
+lockin(s)
+char *s;
+{
+	return(StringToRuleLock(s));
 }
 
 /*====================================================================
