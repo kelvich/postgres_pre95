@@ -128,6 +128,7 @@ Plan plan;
     default:
 	return DEFPERTUPTIME;
       }
+    return 0.0;
 }
 
 #define AVGINDTUPS	5

@@ -365,12 +365,12 @@ ExecHashTableCreate(node)
     if (ParallelExecutorEnabled()) {
        IpcMemoryKey hashtablekey;
        int	    hashtablesize;
-       hashtablekey = get_hashtablekey(node);
+       hashtablekey = get_hashtablekey((Hash)node);
        hashtablesize = (NBuffers+SlaveLocalInfoD.nparallel)*BLCKSZ;
        shmid = IpcMemoryCreateWithoutOnExit(hashtablekey,
 				            hashtablesize,
 				            HASH_PERMISSION);
-       set_hashtablesize(node, hashtablesize);
+       set_hashtablesize((Hash)node, hashtablesize);
       }
     else
        shmid = IpcMemoryCreateWithoutOnExit(PrivateIPCKey,
