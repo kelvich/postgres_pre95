@@ -57,7 +57,7 @@ void main(argc,argv)
     }
 
     res = PQexec("begin");
-    for (i=1;i<argc;i++) {
+    for (i=optind;i<argc;i++) {
          if (!strcmp(argv[i],"-")) {
 	    copy(0,1);
 	    continue;
