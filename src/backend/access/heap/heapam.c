@@ -1327,6 +1327,19 @@ heap_replace(relation, otid, tup)
      * ----------------
      */
     tp = (HeapTuple) PageGetItem(dp, lp);
+    /* -----------------
+     *  the following test should be able to catch all non-functional
+     *  update attempts and shut out all ghost tuples.
+     *  XXX In the future, Spyros may need to update the rule lock on a tuple
+     *  more than once within the same command and same transaction.
+     *  He will have to introduce a new flag to override the following check.
+     *  -- Wei
+     * -----------------
+     */
+    if (TupleUpdatedByCurXactAndCmd(tp)) {
+	elog(NOTICE, "Non-functional update, only first update is performed");
+        return (RuleLock)NULL;
+    }
     /* XXX order problems if not atomic assignment ??? */
     tup->t_oid = tp->t_oid;
     TransactionIdStore(GetCurrentTransactionId(), (Pointer)tup->t_xmin);
