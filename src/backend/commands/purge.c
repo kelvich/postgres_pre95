@@ -123,7 +123,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		dateTag = ABSOLUTE | RELATIVE;
 
 /* This check is unneccesary - see comment on assertConsistentTimes */
-#ifdef 0
+#if 0
 	if (!assertConsistentTimes(absoluteTime, relativeTime, currentTime,
 				   dateTag, oldTuple)) {
 		heap_endscan(scan);
