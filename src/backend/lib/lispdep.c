@@ -26,7 +26,7 @@ LispValue	LispNil = (LispValue) NULL;
 #include "nodes.h"
 extern char *malloc();
 
-#define lispAlloc() palloc(sizeof(struct _LispValue))
+#define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
 
 RcsId("$Header$");
 
@@ -327,13 +327,8 @@ append1(list, lispObject)
 	return(retval);
     }
 
-bool
-equal(foo,bar)
-     LispValue foo,bar;
-{
-  return(true);
-}
     for (p = list; p != LispNil; p = CDR(p)) {
+	retval = nappend1(retval,CAR(p));
     }
 
     for (p = retval; CDR(p) != LispNil; p = CDR(p))
@@ -393,7 +388,7 @@ consp(foo)
  *      append   - appends lisp obj to the end of the lisp.
  *                 non-destructive. XXX needs to be extended to
  *                 manipulate lists
-     for (temp = list; CDR(temp) != LispNil; temp = CDR(temp))
+ *      length   - returns the length of a list, as an int.
  *      nthCdr   - returns a list where the car of the list
  *                 is the indexed element.  Used to implement the
  *                 nth function.
@@ -405,15 +400,15 @@ consp(foo)
 LispValue
 append(list,lispObject)
      LispValue list, lispObject;
-     int i;
+{
+     LispValue  p;
+     LispValue newlist = list;
 
-     if (index > length(list))
-       return (LispNil);
-
-     for (i= 1; i <= index; i++)
-       list = CDR (list);
-
-     return(list);
+     Assert(listp (list));
+     if (newlist == LispNil) {
+	 if (lispObject == LispNil)
+	   return(LispNil);
+	 else {
 	     return (lispObject);  /* XXX should copy  */
 	 }
      }
@@ -432,7 +427,10 @@ length (list)
      LispValue temp;
      int count = 0;
      for (temp = list; temp != LispNil; temp = CDR(temp))
-     for (temp = list1; CDR(temp) != LispNil; temp = CDR(temp))
+       count += 1;
+
+     return(count);
+}
 
 
 LispValue
@@ -486,12 +484,22 @@ remove_duplicates(foo)
     return(foo);
  * member()
  * - nondestructive, returns t iff foo is a member of the list
+ *   bar
+ */
+bool
+member(foo,bar)
+     LispValue foo;
      List bar;
-find_if_not(foo,bar,baz)
-     LispValue foo,bar;
-     bool (*baz)();
+{
+    LispValue i;
+    foreach (i,bar)
       if (equal(CAR(i),foo))
-    return(bar);
+	return(true);
+    return(false);
+}
+
+LispValue
+remove_duplicates(foo,test)
      List foo;
      bool (* test)();
 {
@@ -670,15 +678,29 @@ listp(foo)
       return((bool)(foo->type == PGLISP_DTPR));
     else
       return(true);
-    return(CAR(bar));
+}
+
+/* temporary functions */
+
+LispValue 
+mapcar(foo,bar)
      void (*foo)();
      LispValue bar;
 {
-find(pred,bar)
-     bool (*pred)();
+    elog(WARN, "unsupported function 'mapcar'");
+    return(bar);
 }
+
+bool
+integerp(foo)
      LispValue foo;
-    return(CAR(bar));
+{
+  if (foo)
+    return(false);
+}
+
+bool
+zerop(foo)
      LispValue foo;
 {
     if (integerp(foo))
