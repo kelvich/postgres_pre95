@@ -19,6 +19,18 @@ int	Debug_file = -1;
 int	Err_file = -1;
 int	ElogDebugIndentLevel;
 
+/*
+ *  If the parser has detected an empty query from the front end, then
+ *  there is a chance that the front end has shut down.  If this happens,
+ *  and we try to send a bunch of elog messages over our connection to
+ *  the front end, and we're running Ultrix 3.x, then fflush on the
+ *  connection socket can cause us to die without a core dump.  Cool, yes?
+ *  The global below is set in PostgresMain and used here to work around
+ *  this operating system bug.
+ */
+
+bool	IsEmptyQuery = false;
+
 
 void
 EnableELog(enable)
@@ -120,7 +132,7 @@ va_dcl
 
 #ifndef PG_STANDALONE
 	/* Send IPC message to the postmaster */
-	if (Pfout != NULL && lev > DEBUG) {
+	if (Pfout != NULL && lev > DEBUG && !IsEmptyQuery) {
 		/* notices are not exactly errors, handle it differently */
 		if (lev == NOTICE) 
 			pq_putnchar("N", 1);
