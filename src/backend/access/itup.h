@@ -35,16 +35,31 @@
 #define DISK_INDX_RULE_LOCK	'd'
 #define MEM_INDX_RULE_LOCK	'm'
 
-typedef struct IndexTupleData {
-	uint16		t_size;		/* size of this index tuple */
-        char            t_locktype;     /* type of rule lock representation*/
-	union {
+typedef union 
+{
 		ItemPointerData	l_ltid;	/* TID of the lock */
 		RuleLock	l_lock;		/* internal lock format */
-	}	t_lock;
-	ItemPointerData			t_tid;	/* reference TID to base tuple */
-	char t_infomask;
+}
+IndexTupleRuleLock;
+
+typedef struct IndexTupleData {
+	ItemPointerData			t_tid; /* reference TID to base tuple */
+
+	/*
+	 * t_info is layed out in the following fashion:
+	 *
+	 * first (leftmost) bit: "has nulls" bit
+	 * second bit: "has varlenas" bit
+	 * third bit: "has rules" bit
+	 * fourth-16th bit: size of tuple.
+	 */
+
+	unsigned short			t_info; /* various info about tuple */
+
+#ifdef NOTDEF
+        char            t_locktype;     /* type of rule lock representation*/
 	IndexAttributeBitMapData	bits;	/* bitmap of domains */
+#endif
 } IndexTupleData;	/* MORE DATA FOLLOWS AT END OF STRUCT */
 
 /*
@@ -348,7 +363,22 @@ ItemPointerFormRetrieveIndexResult ARGS((
 ));
 
 
-#define IndexTupleNoNulls(itup)  (!(((IndexTuple) (itup))->t_infomask & 0x1))
-#define IndexTupleAllFixed(itup) (!(((IndexTuple) (itup))->t_infomask & 0x2))
+#define INDEX_SIZE_MASK 0x1FFF
+#define INDEX_NULL_MASK 0x8000
+#define INDEX_VAR_MASK  0x4000
+#define INDEX_RULE_MASK 0x2000
 
-#endif	/* !defined(ITUP_H) */
+#define IndexTupleSize(itup)       (((IndexTuple) (itup))->t_info & 0x1FFF)
+#define IndexTupleDSize(itup)                      ((itup).t_info & 0x1FFF)
+#define IndexTupleNoNulls(itup)  (!(((IndexTuple) (itup))->t_info & 0x8000))
+#define IndexTupleAllFixed(itup) (!(((IndexTuple) (itup))->t_info & 0x4000))
+#define IndexTupleNoRule(itup)   (!(((IndexTuple) (itup))->t_info & 0x2000))
+#define IndexTupleHasMinHeader(itup) (IndexTupleNoNulls(itup) \
+								   && IndexTupleNoRule(itup))
+
+extern Size IndexInfoFindDataOffset ARGS((
+	 unsigned short t_info,
+	 Attribute att
+));
+
+#endif
