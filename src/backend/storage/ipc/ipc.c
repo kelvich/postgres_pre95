@@ -27,7 +27,7 @@
 #include "utils/log.h"
 #include "tcop/slaves.h"
 
-#if PORTNAME == bsd44
+#if defined(PORTNAME_bsd44)
 int UsePrivateMemory = 1;
 #else
 int UsePrivateMemory = 0;

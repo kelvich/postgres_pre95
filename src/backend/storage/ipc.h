@@ -27,7 +27,7 @@
 typedef unsigned char   slock_t;
 #endif
 
-#if defined(sequent) || defined(mips) || PORTNAME == bsd44
+#if defined(sequent) || defined(mips) || defined(PORTNAME_bsd44)
 union semun {
     int val;
     struct semid_ds *buf;
