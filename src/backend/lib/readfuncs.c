@@ -57,19 +57,19 @@ Plan node;
 
 	token = lsptok(NULL, &length);    	/* eat :qptargetlist */
 
-	node->qptargetlist = lispRead(true);/* now read it */
+	node->qptargetlist = lispRead(true);
 
 	token = lsptok(NULL, &length);    	/* eat :qpqpal */
 
-	node->qpqual = lispRead(true);		/* now read it */
+	node->qpqual = lispRead(true);
 
 	token = lsptok(NULL, &length);    	/* eat :lefttree */
 
-	node->lefttree = lispRead(true);
+	node->lefttree = (struct Plan *) lispRead(true);
 
 	token = lsptok(NULL, &length);    	/* eat :righttree */
 
-	node->righttree = lispRead(true);
+	node->righttree = (struct Plan *) lispRead(true);
 
 }
 
@@ -113,7 +113,6 @@ Result _readResult()
 	token = lsptok(NULL, &length);    	/* eat :resconstantqual */
 
 	local_node->resconstantqual = lispRead(true);	/* now read it */
-
 	local_node->printFunc = PrintResult;
 	local_node->equalFunc = EqualResult;
 
@@ -239,6 +238,7 @@ MergeSort _readMergeSort(node)
 	local_node->mergeclauses = lispRead(true);		/* now read it */
 
 	token = lsptok(NULL, &length);    		/* eat :mergesortop */
+
 	token = lsptok(NULL, &length);    		/* get mergesortop */
 
 	local_node->mergesortop = atoi(token);
@@ -269,6 +269,7 @@ HashJoin _readHashJoin()
 	local_node->hashclauses = lispRead(true);	 	/* now read it */
 
 	token = lsptok(NULL, &length);    		/* eat :hashjoinop */
+
 	token = lsptok(NULL, &length);    		/* get hashjoinop */
 
 	local_node->hashjoinop = atoi(token);
@@ -299,6 +300,7 @@ Scan node;
 	_getPlan(node);
 	
 	token = lsptok(NULL, &length);    		/* eat :scanrelid */
+
 	token = lsptok(NULL, &length);    		/* get scanrelid */
 
 	node->scanrelid = atoi(token);
@@ -390,6 +392,7 @@ Temp _readTemp()
 	local_node->tempid = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :keycount */
+
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
@@ -419,6 +422,7 @@ Sort _readSort()
 	local_node->tempid = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :keycount */
+
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
@@ -449,6 +453,7 @@ Hash _readHash()
 	local_node->tempid = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :keycount */
+
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
@@ -517,6 +522,7 @@ Resdom _readResdom()
 	local_node->reskey = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :reskeyop */
+
 	token = lsptok(NULL, &length);    		/* get reskeyop */
 
 	local_node->reskeyop = (OperatorTupleForm) atoi(token);
@@ -1024,7 +1030,7 @@ Path _readPath()
 	local_node->keys = lispRead(true);       /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = lispRead(true);
+	local_node->sortpath = (SortKey) lispRead(true);
 	local_node->printFunc = PrintPath;
 	local_node->equalFunc = EqualPath;
 
@@ -1061,7 +1067,7 @@ IndexPath _readIndexPath()
 	local_node->keys = lispRead(true);       /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = lispRead(true);
+	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :indexid */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1107,7 +1113,7 @@ JoinPath _readJoinPath()
 	local_node->keys = lispRead(true);            /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = lispRead(true);
+	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true);           /* now read it */
@@ -1175,7 +1181,7 @@ MergePath _readMergePath()
 	local_node->keys = lispRead(true);            /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = lispRead(true);
+	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true);           /* now read it */
@@ -1252,7 +1258,7 @@ HashPath _readHashPath()
 	local_node->keys = lispRead(true);       /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = lispRead(true);
+	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true); /* now read it */
@@ -1406,7 +1412,7 @@ CInfo _readCInfo()
 	local_node = (CInfo) palloc(sizeof(struct _CInfo));
 
 	token = lsptok(NULL, &length);      /* get :clause */
-	local_node->clause = lispRead(true);     /* now read it */
+	local_node->clause = (Expr) lispRead(true); /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :selectivity */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1429,7 +1435,7 @@ CInfo _readCInfo()
 	local_node->indexids = lispRead(true);   /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :mergesortorder */
-	local_node->mergesortorder = lispRead(true); /* now read it */
+	local_node->mergesortorder = (MergeOrder) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :hashjoinoperator */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1565,7 +1571,7 @@ RuleLockNode _readRuleLockNode()
 	local_node->rlattribute = atoi(token);
     
 	token = lsptok(NULL, &length);      /* get :var */
-	local_node->rlvar = lispRead(true); /* now read it */
+	local_node->rlvar = (Var) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :plan */
 	local_node->rlplan = lispRead(true); /* now read it */
