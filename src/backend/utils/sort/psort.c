@@ -49,7 +49,7 @@ struct	tape {
 	struct	tape	*tp_prev;
 };
 
-#define	TEMPDIR	"/tmp"
+#define	TEMPDIR	"./"
 
 int			Nkeys;
 struct	skey		*Key;
