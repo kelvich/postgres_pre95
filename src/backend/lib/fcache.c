@@ -89,7 +89,6 @@ LispValue argList;
     Form_pg_type     typeStruct;
     FunctionCachePtr retval;
     char             *tmp;
-    ObjectId         *funcname_get_funcargtypes();
     int              nargs;
 
     /* ----------------
@@ -207,8 +206,7 @@ LispValue argList;
 	    
 	    retval->argOidVect =
 		(ObjectId *)palloc(retval->nargs*sizeof(ObjectId));
-	    argTypes =
-		funcname_get_funcargtypes(&procedureStruct->proname.data[0]);
+	    argTypes = procedureStruct->proargtypes.data;
 	    bcopy(argTypes,
 		  retval->argOidVect,
 		  (retval->nargs)*sizeof(ObjectId));
