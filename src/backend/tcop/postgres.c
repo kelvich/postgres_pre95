@@ -19,6 +19,7 @@
 #include <setjmp.h>
 
 #include "tmp/postgres.h"
+#include "parser/parsetree.h"
 
  RcsId("$Header$");
 
