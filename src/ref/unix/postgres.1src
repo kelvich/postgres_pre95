@@ -28,7 +28,7 @@ is not specified, databasename defaults to the value of the environment
 varuable USER.
 .sp
 .uh "UNDOCUMENTED COMMAND OPTIONS"
-.pp
+.lp
 There are several other options that may be specified, used mainly
 for debugging purposes.  These are listed here only for the use of
 postgres system developers.
@@ -56,10 +56,20 @@ for performance comparisons for stable vs. non-stable storage.  Do not
 use this in other cases, as recovery after a system crash may be impossible
 when -S is specified in the absence of stable main memory.
 .sp
+.lp
+\fI-s\fR indicates that time information and other statistics are to be
+displayed at the end of each query.  This is useful for benchmarking or
+for use in tuning the number of buffers.
+.sp
+.lp
+\f-B nnn\fR indicates the number of shared buffers to use.  The default
+number of buffers is 64.
+.lp
+.sp
 .uh "DIAGNOSTICS"
 .lp
 \fBsemget: No space left on device\fR
-.pp
+.lp
 If you see this message, you should run the \fIipcclean\fR command.
 After doing this, try running postgres again.  If this still doesn't
 work, you will need to configure your kernel for shared memory and
