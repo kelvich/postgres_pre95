@@ -167,7 +167,14 @@ static struct cachedesc cacheinfo[] = {
 	    InheritsSequenceNumberAttributeNumber,
 	    0,
 	    0},
-	  sizeof(InheritsTupleFormD) }
+	  sizeof(InheritsTupleFormD) },
+	{ &Prs2PlansRelationName,			/* PRS2PLANCODE */
+	  2,
+	  { Prs2PlansRuleIdAttributeNumber,
+	    Prs2PlansPlanNumberAttributeNumber,
+	    0,
+	    0 },
+	  sizeof(struct prs2plans) - sizeof(struct varlena) },
 };
 
 static struct catcache	*SysCache[lengthof(cacheinfo)];
