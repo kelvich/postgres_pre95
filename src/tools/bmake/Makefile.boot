@@ -33,6 +33,6 @@ XYZZY:
 	cd lst.lib; cc -I.. -c ${LSTCFILES}
 	cc ${CFLAGS} ${OFILES} ${LSTOFILES} -o bootmake
 	rm -f ${OFILES} ${LSTOFILES}
-	if test ! -d obj; then mkdir obj; fi
+	-if test ! -d obj; then mkdir obj; fi || true
 	./bootmake all install
 	rm -f bootmake
