@@ -565,7 +565,17 @@ PQexec(query)
 	    sprintf (PQcommand, "C%s", command);
 	    return
 		PQcommand;
-	    
+
+		case 'B':
+		/* Copy command began successfully - it is sending stuff back...  */
+		return
+		"BCOPY";
+
+		case 'D':
+		/* Copy command began successfully - it is waiting to receive... */
+		return
+		"DCOPY";
+
     	default:
 	    /* The backend violates the protocol. */
 	    if (id[0] == '?')
@@ -576,5 +586,50 @@ PQexec(query)
 		   form("Unexpected response from the backend, exiting...\n"));
 	    exit(1);
     	}
+    }
+}
+
+int
+PQendcopy()
+
+{
+    char id[2];
+    char errormsg[error_msg_length];
+
+    for (;;) 
+    {
+		id[0] = '?';
+
+        pq_getnchar(id,0,1); 
+
+        switch(id[0])
+        {
+            case 'N':
+
+                pq_getstr(errormsg, error_msg_length);
+                pqdebug("%s notice encountered.", errormsg);
+                fprintf(stdout,"%s \n", errormsg);
+                break;
+
+            case 'E':
+
+                pq_getstr(errormsg, error_msg_length);
+                pqdebug("%s notice encountered.", errormsg);
+                fprintf(stdout,"%s \n", errormsg);
+                return(0);
+
+            case 'Z': /* backend finished the copy */
+                return(1);
+
+            default:
+                /* The backend violates the protocol. */
+                if (id[0] == '?')
+                    libpq_raise(ProtocolError, 
+                        form("No response from the backend, exiting...\n"));
+                else
+                    libpq_raise(ProtocolError, 
+                    form("Unexpected response from the backend, exiting...\n"));
+                exit(1);
+        }
     }
 }
