@@ -331,20 +331,6 @@ P_Finished()
     Exec_P(ExecutorMasterSemaphore, value);
 }
 
-void
-P_FinishedAbort()
-{
-    int value = GetNumberSlaveBackends();
-    Exec_P(ExecutorMasterSemaphore, value);
-}
-
-void
-V_FinishedAbort()
-{
-    int value = 1;
-    Exec_V(ExecutorMasterSemaphore, value);
-}
-
 ProcGroupInfo ProcGroupInfoP;  /* have to define it here for postmaster to
 				  be happy to link, dumb!  */
 
@@ -375,6 +361,74 @@ int groupid;
         Exec_V(ExecutorMasterSemaphore, value);
       }
 }
+
+void
+P_FinishedAbort()
+{
+    int value = GetNumberSlaveBackends();
+    Exec_P(ExecutorMasterSemaphore, value);
+}
+
+void
+V_FinishedAbort()
+{
+    int value = 1;
+    Exec_V(ExecutorMasterSemaphore, value);
+}
+
+/* --------------------------------
+ *	InitMWaitOneLock
+ *
+ *	initialize a one producer multiple consumer lock
+ * ---------------------------------
+ */
+void
+InitMWaitOneLock(m1lock)
+M1Lock *m1lock;
+{
+    m1lock->count = 0;
+#ifdef HAS_TEST_AND_SET
+    S_INIT_LOCK(&(m1lock->waitlock));
+    S_LOCK(&(m1lock->waitlock));
+#endif
+}
+    
+
+/* --------------------------------
+ *	MWaitOne
+ *
+ *	consumer waits on the producer
+ * ---------------------------------
+ */
+void
+MWaitOne(m1lock)
+M1Lock *m1lock;
+{
+#ifdef HAS_TEST_AND_SET
+    S_LOCK(&(m1lock->waitlock));
+    m1lock->count--;
+    if (m1lock->count > 0)
+	S_UNLOCK(&(m1lock->waitlock));
+#endif
+}
+
+/* --------------------------------
+ *	OneSignalM
+ *
+ *	producer wakes up all consumers
+ * ---------------------------------
+ */
+void
+OneSignalM(m1lock, m)
+M1Lock *m1lock;
+int m;
+{
+    m1lock->count = m;
+#ifdef HAS_TEST_AND_SET
+    S_UNLOCK(&(m1lock->waitlock));
+#endif
+}
+
 
 /* ----------------
  *	the SharedMemoryMutex semaphore is used to restrict concurrent
