@@ -330,13 +330,15 @@ DATUM				v1, v2, v3, v4;
 #ifdef	CACHEDEBUG
 	elog(DEBUG, "SearchSysCache: found tuple");
 #endif
-
 	ntp = palloctup(ntp, buffer, relation);
+/*
 	ntp = LintCast(HeapTuple, savemmgr((char *) ntp));
-
+*/
 	if (RuleLockIsValid(ntp->t_lock.l_lock)) {
+/*
 	    ntp->t_lock.l_lock = 
 	        LintCast(RuleLock, savemmgr((char *) ntp->t_lock.l_lock));
+*/
         }
     }
     amendscan(sd);
