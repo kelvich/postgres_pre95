@@ -1724,9 +1724,14 @@ a_expr:
 	       else
 		{
 		    List temp = NULL;
-
 		    if (IsA(CAR($1),Param))
-			temp = (List)fix_param($1);
+		     {
+			 Param f = (Param)CAR($1); 
+			 set_param_tlist(f,
+					 setup_tlist(CString(CDR($1)),
+						     get_paramtype(f)));
+			 temp = (List) f;
+		     }
 		    else
 			temp = CDR(make_var((Name)CString(CAR($1)), 
 					    (Name)CString(CADR($1))));
