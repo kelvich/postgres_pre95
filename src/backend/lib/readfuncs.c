@@ -2019,32 +2019,15 @@ readValue(type)
     int 	length;
     int 	tokenLength;
     char 	*token;
-    Boolean	 byValue;
-    HeapTuple 	typeTuple;
+    Boolean	byValue;
     Datum 	res;
     char 	*s;
     int 	i;
 
-    typeTuple = SearchSysCacheTuple(TYPOID,
-				    (char *) type,
-				    (char *) NULL,
-				    (char *) NULL,
-				    (char *) NULL);
-    if (!HeapTupleIsValid(typeTuple)) {
-	elog(WARN, "readValue: Cache lookup of type %d failed", type);
-    }
-
-    /*---- this is the length as storedin pg_type. But it might noy
-     * be the actual length (e.g. variable length types...
-     *  length	= ((ObjectId) ((TypeTupleForm)
-     *		        GETSTRUCT(typeTuple))->typlen);
-     */
-    
-    byValue	= ((ObjectId) ((TypeTupleForm)
-			GETSTRUCT(typeTuple))->typbyval);
+    byValue	= get_typbyval(type);
 
     /*
-     * read the actual length of teh value
+     * read the actual length of the value
      */
     token = lsptok(NULL, &tokenLength);
     length = atoi(token);
