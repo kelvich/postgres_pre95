@@ -13,3 +13,4 @@ extern int compute_targetlist_width ARGS((LispValue targetlist));
 extern int compute_attribute_width ARGS((LispValue tlistentry));
 extern int compute_joinrel_size ARGS((LispValue joinrel));
 extern int page_size ARGS((int tuples, int width));
+extern double base_log ARGS((double x, double b));

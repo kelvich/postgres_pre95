@@ -14,6 +14,8 @@ extern List set_temp_tlist_operators ARGS((List tlist, List pathkeys, List opera
 extern SeqScan make_seqscan ARGS((List qptlist,List qpqual, Index scanrelid Plan lefttree ));
 extern NestLoop make_nestloop ARGS((List qptlist, List qpqual, Plan lefttree, Plan righttree ));
 extern HashJoin make_hashjoin ARGS((LispValue tlist, LispValue qpqual, List hashclauses, ObjectId opcode, Plan outer_node, Plan inner_node));
+extern MergeSort make_mergesort ARGS((LispValue tlist, LispValue qpqual, List mergeclauses, ObjectId opcode, Plan outer_node, Plan inner_node));
 extern Hash make_hash ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
+extern Sort make_sort ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
 extern IndexScan make_indexscan ARGS((List qptlist, List qpqual, Index scanrelid, List indxid, List indxqual));
 
