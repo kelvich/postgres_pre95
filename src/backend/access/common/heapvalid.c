@@ -55,7 +55,7 @@ heap_satisifies(itemId, buffer, qual, nKeys, key)
     Buffer	buffer;
     TimeQual	qual;
     ScanKeySize	nKeys;
-    struct skey	key;
+    struct skey	*key;
 {
     HeapTuple	tuple;
     Relation	relation = BufferGetRelation(buffer);
@@ -102,6 +102,8 @@ heap_keytest(t, tupdesc, nkeys, keys)
 	if (isnull)
 	    /* XXX eventually should check if SK_ISNULL */
 	    return false;
+
+	Assert(PointerIsValid(keys->func));
 	
 	if (keys->sk_flags & SK_COMMUTE)
 	    test = (int) (*(keys->func)) (keys->sk_data, atp);
