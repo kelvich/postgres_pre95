@@ -33,6 +33,8 @@ FILE_SRC_EXT=.5src
 FILE_MAN_EXT=.5
 FILE_MAN_DIR=${PG_MAN_DIR}/man5
 
+.MAIN: all
+
 .SUFFIXES: \
 	${PROG_SRC_EXT} ${PROG_MAN_EXT} \
 	${CMD_SRC_EXT} ${CMD_MAN_EXT} \
@@ -40,7 +42,8 @@ FILE_MAN_DIR=${PG_MAN_DIR}/man5
 	${FILE_SRC_EXT} ${FILE_MAN_EXT}
 
 MANPAGE: .USE
-	${SOELIM} ${.ALLSRC} > ${.TARGET}
+	HERE=`pwd`; cd ${.CURDIR}; \
+	${SOELIM} ${.ALLSRC} > $$HERE/${.TARGET}
 
 ${PROG_SRC_EXT}${PROG_MAN_EXT}: MANPAGE
 ${CMD_SRC_EXT}${CMD_MAN_EXT}: MANPAGE
@@ -149,14 +152,16 @@ TR_SOURCES= \
 	${.CURDIR}/files/page.pic
 
 OPTAB: .USE
-	sh ${SHOPTS} ${.CURDIR}/make_optab ${.ALLSRC} > ${.TARGET}
+	HERE=`pwd`; cd ${.CURDIR}; \
+	sh ${SHOPTS} ${.CURDIR}/make_optab ${.ALLSRC} > $$HERE/${.TARGET}
 
 binary.nr:	${.CURDIR}/postquel/binary.tbl OPTAB
 left_unary.nr:	${.CURDIR}/postquel/left_unary.tbl OPTAB
 right_unary.nr:	${.CURDIR}/postquel/right_unary.tbl OPTAB
 
 ${KW_OBJS}:	${C_SOURCES}
-	sh ${SHOPTS} ${.CURDIR}/make_kwtab ${.ALLSRC} > ${.TARGET}
+	HERE=`pwd`; cd ${.CURDIR}; \
+	sh ${SHOPTS} ${.CURDIR}/make_kwtab ${.ALLSRC} > $$HERE/${.TARGET}
 
 NR_MAC_SOURCES= ${.CURDIR}/tmac.an.nr
 
@@ -242,15 +247,17 @@ OBJS= \
 ${OBJS}: ${NR_MAC_SOURCES}
 
 ref.cat: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${NR_MAC_SOURCES}
-	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES} ${SOURCES} > ${.TARGET}
+	HERE=`pwd`; cd ${.CURDIR}; \
+	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES} ${SOURCES} > $$HERE/${.TARGET}
 
 
 ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
-	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES} ${SOURCES} > ${.TARGET}
+	HERE=`pwd`; cd ${.CURDIR}; \
+	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES} ${SOURCES} > $$HERE/${.TARGET}
 
 all: ref.cat ref.ps ${OBJS}
 
-CLEANFILES+= ${NR_OBJS} ${KW_OBJS}
+CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.ps
 
 install: ${OBJS}
 	for i in ${PROG_MAN_OBJS}; do \

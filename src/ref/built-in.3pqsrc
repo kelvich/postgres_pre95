@@ -158,10 +158,10 @@ prototypes are cast in terms of \*(PQ types and so are
 .BR not
 directly usable as C function prototypes.
 .ie t \{
-.so ../postquel/binary.tbl
+.so postquel/binary.tbl
 \}
 .el \{
-.so ../obj/binary.nr
+.so obj/binary.nr
 \}
 .XA 2 "Unary operators"
 .SH "UNARY OPERATORS"
@@ -171,19 +171,19 @@ right unary operators have the operator follow the operand.
 .PP
 .SS "Right Unary Operators"
 .ie t \{
-.so ../postquel/right_unary.tbl
+.so postquel/right_unary.tbl
 \}
 .el \{
-.so ../obj/right_unary.nr
+.so obj/right_unary.nr
 \}
 .PP
 .SS "Left Unary Operators"
 .\" we want soelim to include the .nr table but not the .tbl table
 .ie t \{
-.so ../postquel/left_unary.tbl
+.so postquel/left_unary.tbl
 \}
 .el \{
-.so ../obj/left_unary.nr
+.so obj/left_unary.nr
 \}
 .SH "SEE ALSO"
 For examples on specifying literals of built-in types, see
