@@ -480,15 +480,18 @@ FetchStmt:
 OptFetchDirn:
 	  /*EMPTY, default is forward*/
 		{ $$ = KW(forward); }
-	| Backward
 	| Forward
+		{ $$ = KW(forward); }
+	| Backward
+		{ $$ = KW(backward); }
 	;
 
 OptFetchNum:
 	/*EMPTY, default is all*/
 		{ $$ = KW(all) ; }
-	| NumConst
 	| All
+		{ $$ = KW(all) ; }
+	| NumConst
 	;
 
 OptFetchPname:
@@ -521,19 +524,13 @@ MergeStmt:
 		( MOVE ["portalname"] <dirn> (TO <whereto> |
   **********************************************************************/
 MoveStmt:
-	  Move opt_move_dirn opt_move_where opt_move_pname
+	  Move OptFetchDirn opt_move_where opt_move_pname
 		{ 
 		    $3 = lispCons ( $3 , LispNil );
 		    $2 = lispCons ( $2 , $3 );
 		    $4 = lispCons ( $4 , $2 );
 		    $$ = lispCons ( $1 , $4 );
 		}
-	;
-
-opt_move_dirn:
-	/*EMPTY, by default forward */		{ $$ = KW(forward); }
-	| Forward 				/* $$ = $1 */
-	| Backward 				/* $$ = $1 */
 	;
 
 opt_move_where: 
