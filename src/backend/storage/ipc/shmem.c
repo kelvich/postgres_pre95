@@ -170,8 +170,7 @@ unsigned int size;
   /* bootstrap initialize spin locks so we can start to use the
    * allocator and binding table.
    */
-  if (! InitSpinLocks(ShmemBootstrap, &currFreeSpace,
-		      IPCKeyGetSpinLockSemaphoreKey(key))) {
+  if (! InitSpinLocks(ShmemBootstrap, IPCKeyGetSpinLockSemaphoreKey(key))) {
     return(FALSE);
   }
 
