@@ -22,6 +22,7 @@ CFLAGS+= -DUFP
 .if (${PORTNAME} == "ultrix4")
 CFLAGS+= -G 0
 LDFLAGS+= -N -G 0
+LDADD+= -ldl
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E
 LDFLAGS+= -W l,-E
