@@ -25,9 +25,12 @@ static char *rcsid = "$Header$";
  *     		flatten-tlist-vars
  */
 
-#include "internal.h"
 #include "c.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "internal.h"
 #include "var.h"
+
 
 extern LispValue flatten_tlistentry();
 extern LispValue tl_expr();
@@ -39,16 +42,27 @@ extern LispValue create_tl_element();
 /*    
  *    	tlistentry-member
  *    
- *    	Determines whether a var node 'var' is already contained within a list 
- *    	of target list entry nodes 'targetlist'.
- *    
- *    	Returns the corresponding tlist entry node.
- *    
+ * NOTES:    normally called with test = (*var_equal)()
+ *
+ * RETURNS:  the leftmost member of sequence "targetlist" that satisfies
+ *           the predicate "test"
+ * MODIFIES: nothing
+ * REQUIRES: test = function which can operate on a lispval union
+ *           var = valid var-node
+ *	     targetlist = valid sequence
  */
 
-/*  .. add-vars-to-rels, matching_tlvar
- */
+LispValue
+tlistentry_member (var,targetlist,test)
+     LispValue var,targetlist;
+     bool (*test)();
+{
+	extern LispValue lambda1();
+	if ( var != LispNil )
+		return ( find (var,targetlist,lambda1,test) );
+}
 
+/* called by tlistentry-member */
 static
 LispValue lambda1 (x)
      LispValue x ;
@@ -56,32 +70,28 @@ LispValue lambda1 (x)
 	tl_expr (get_tlelement (x));
 }
 
-LispValue
-tlistentry_member (var,targetlist,key,test)
-     LispValue var,targetlist,key ;
-     bool (*test)();
-{
-	if ( var != LispNil )
-		return ( find (var,targetlist,key,test,test) );
-}
 
 /*    
- *    	matching_tlvar
+ * matching_tlvar
  *    
- *    	Returns the var node in a target list which is var_equal to 'var',
- *    	if one exists.
- *    
+ * NOTES:    "test" should normally be var_equal()
+ * RETURNS:  var node in a target list which is var_equal to 'var',
+ *    	     if one exists.
+ * REQUIRES: "test" operates on lispval unions,
+ * 
  */
 
 /*  .. add_tl_element, collect-index-pathkeys, extract-path-keys
  *  .. new-join-pathkey, new-matching-subkeys
  */
 LispValue
-matching_tlvar (var,targetlist,key,test)
-     LispValue var,targetlist,key ;
+matching_tlvar (var,targetlist,test)
+     LispValue var,targetlist;
      bool (*test)();
 {
-	LispValue tlentry = tlistentry_member (var,targetlist,test,test);
+	LispValue tlentry;
+
+	tlentry = tlistentry_member (var,targetlist,test);
 	if ( tlentry ) 
 		return(tl_expr (get_tlelement (tlentry)) );
 }
@@ -93,8 +103,10 @@ matching_tlvar (var,targetlist,key,test)
  *    	'var' and adds the new targetlist entry to the targetlist field of
  *    	'rel' with the joinlist field set to 'joinlist'.
  *    
- *    	Returns nothing of interest.
- *    
+ * RETURNS: nothing
+ * MODIFIES: vartype and varid fields of leftmost varnode that matches
+ *           argument "var" (sometimes).
+ * CREATES:  new var-node iff no matching var-node exists in targetlist
  */
 
 /*  .. add-vars-to-rels, initialize-targetlist
@@ -103,13 +115,15 @@ LispValue
 add_tl_element (rel,var,joinlist)
      LispValue rel,var,joinlist ;
 {
-	LispValue oldvar = matching_tlvar (var,get_tlist (rel));
+	LispValue oldvar;
+
+	oldvar = matching_tlvar (var,get_tlist (rel));
 
 	/* If 'var' is not already in 'rel's target list, add a new node. 
 	 * Otherwise, put the var with fewer nestings into the target list. 
 	 */
 
-	if(null (oldvar)) {
+	if ( null( oldvar ) ) {
 		LispValue newvar = make_var (get_varno (var),
 					     get_varattno (var),
 					     get_vartype (var),LispNil,
@@ -134,8 +148,8 @@ add_tl_element (rel,var,joinlist)
  *    	with its resdom number equal to 'resdomno' and the joinlist field set
  *    	to 'joinlist'.
  *    
- *    	Returns the newly created targetlist entry.
- *    
+ * RETURNS:  newly created tlist-entry
+ * CREATES:  new targetlist entry (always).
  */
 
 /*  .. add_tl_element, new-join-tlist
@@ -144,7 +158,9 @@ LispValue
 create_tl_element (var,resdomno,joinlist)
      LispValue var,resdomno,joinlist ;
 {
-	LispValue tlelement = create_node ("TargetList");
+	LispValue tlelement;
+	tlelement = create_node ("TargetList");
+
 	set_tlelement (tlelement,
 		       list (make_resdom (resdomno, get_vartype (var),
 					  get_typlen (get_vartype (var)),
@@ -198,7 +214,8 @@ get_actual_tlist (tlist)
 
 LispValue
 tlist_member (var,tlist,dots,key,test)
-     LispValue var,tlist,dots,key,test ;
+     LispValue var,tlist,dots,key;
+     bool (*test)();
 {
 	static LispValue dots;
 	/* declare (special (dots)); */
@@ -341,8 +358,8 @@ LispValue
 flatten_tlist (tlist)
      LispValue tlist ;
 {
+	int last_resdomno = 0;
 	LispValue new_tlist = LispNil;
-	LispValue last_resdomno = 0;
 	LispValue tlist_vars = LispNil;
 	LispValue temp;
 	LispValue var;
@@ -353,7 +370,7 @@ flatten_tlist (tlist)
 	for (var = tlist_varsnreverse (new_tlist); var != LispNil;
 	     var = CDR(var)) {
 		if ( !(tlist_member (var,new_tlist,1 /* XXX - true */))) {
-				push (new_tl (make_resdom(incf (last_resdomno),
+				push (new_tl (make_resdom(last_resdomno++ ,
 							  get_vartype (var),
 					  get_typlen (get_vartype (var)),
 					  LispNil,0,LispNil),var),new_tlist);
