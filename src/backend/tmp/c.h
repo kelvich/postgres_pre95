@@ -928,9 +928,7 @@ ExceptionalCondition ARGS((
  */
 extern
 String
-form ARGS((
-	String	format,...
-));
+form ARGS(( int, ... ));
 
 /* ----------------
  *	end of c.h
