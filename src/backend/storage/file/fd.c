@@ -8,6 +8,11 @@
  *
  * Also note: this whole thing is UNIX dependent.  (well 70% anyway)
  *
+ *
+ * NOTE: SEQUENT OS BUG: on open w/ O_CREAT if EMFILE error occurs the
+ * file is *still* created in the directory.  Therefore, we must ensure
+ * fd descriptors are available before calling open if O_CREAT flag is
+ * set.
  */
 
 #define RESERVEFORLISP	5
@@ -38,6 +43,8 @@ RcsId("$Header$");
 /* #define FDDEBUG /* */
 
 /* Debugging.... */
+
+
 #ifdef FDDEBUG
 # define DO_DB(A) A
 # define private /* static */
@@ -257,25 +264,34 @@ LruInsert (file)
 	vfdP = &VfdCache[file];
 
 	if (FileIsNotOpen(file)) {
+	       int tmpfd;
 
 		/*
 		 * Open the requested file
+		 *
+		 * Note, due to bugs in sequent operating system and 
+		 * possibly other OS's, we must ensure a file descriptor
+		 * is available before attempting to open a normal file
+		 * if O_CREAT is specified.
 		 */
 
 tryAgain:
+		tmpfd = open("/dev/null", O_CREAT|O_RDWR, 0666);
+		if (tmpfd < 0) {
+		    FreeFd = 0;
+		    errno = 0;
+		    AssertLruRoom();
+		} else {
+		    close(tmpfd);
+		}
 		vfdP->fd = open(vfdP->fileName,vfdP->fileFlags,vfdP->fileMode);
 
 		if (vfdP->fd < 0) {
-			if (errno == EMFILE) {
-				FreeFd = 0;
-				errno = 0;
-				AssertLruRoom();
-				goto tryAgain;
-			} else {
-				return vfdP->fd;
-			}
+		    DO_DB(printf("RE_OPEN FAILED: %d\n", errno));
+		    return (vfdP->fd);
 		} else {
-			++nfile;
+		    DO_DB(printf("RE_OPEN SUCESS\n"));
+		    ++nfile;
 		}
 
 		/*
@@ -432,6 +448,7 @@ FileNameOpenFile(fileName, fileFlags, fileMode)
 	static int osRanOut = 0;
 	File	file;
 	Vfd	*vfdP;
+	int     tmpfd;
 	
 	DO_DB(printf("DEBUG: FileNameOpenFile: %s %x %o\n",fileName,fileFlags,fileMode));
 
@@ -443,24 +460,26 @@ FileNameOpenFile(fileName, fileFlags, fileMode)
 	}
 
 tryAgain:
+	tmpfd = open("/dev/null", O_CREAT|O_RDWR, 0666);
+	if (tmpfd < 0) {
+	    DO_DB(printf("DB: not enough descs, retry, er= %d\n", errno));
+	    errno = 0;
+	    FreeFd = 0;
+	    osRanOut = 1;
+	    AssertLruRoom();
+	    goto tryAgain;
+	} else {
+	    close(tmpfd);
+	}
 
 	vfdP->fd = open(fileName,fileFlags,fileMode);
 
 	if (vfdP->fd < 0) {
-
-		if (errno == EMFILE) {
-			errno = 0;
-			FreeFd = 0;
-			osRanOut = 1;
-			AssertLruRoom();
-			goto tryAgain;
-		} else {
-			FreeVfd(file);
-			return -1;
-		}
-	} else {
-		++nfile;
+	    FreeVfd(file);
+	    return -1;
 	}
+	++nfile;
+	DO_DB(printf("DB: FNOF success %d\n", vfdP->fd));
 	
 	(void)LruInsert(file);
 
