@@ -94,8 +94,7 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
 
 	     matched_joinclauses = nappend1(matched_joinclauses,joinclause);
 	     matched_joinclauses = nreverse(matched_joinclauses);
-
-	     joinkeys = remove (xjoinkey,joinkeys);
+	     joinkeys = LispRemove (xjoinkey,joinkeys);
 	     
 	 } 
 	 else {
