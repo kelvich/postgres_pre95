@@ -207,7 +207,8 @@ RemoveType(typeName)
 	static ScanKeyEntryData typeKey[1] = {
 		{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
 	};
-	Name bb;
+	NameData arrayNameData;
+	Name arrayName = & arrayNameData;
 
 	Assert(NameIsValid(typeName));
 	
@@ -233,10 +234,10 @@ RemoveType(typeName)
 
 	/* Now, Delete the "array of" that type */
 
-	strcpy(bb, "_");
-	strncat(bb, typeName, 15);
+	strcpy(arrayName, "_");
+	strncat(arrayName, typeName, 15);
 
-	typeKey[0].argument = NameGetDatum(bb);
+	typeKey[0].argument = NameGetDatum(arrayName);
 
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
