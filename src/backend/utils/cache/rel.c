@@ -18,112 +18,10 @@ RcsId("$Header$");
 
 /* 
  *	RelationIsValid is now a macro in rel.h -cim 4/27/91
+ *
+ *      Many of the RelationGet...() functions are now macros in rel.h
+ *		-mer 3/2/92
  */
-
-/* ----------------
- *	RelationGetSystemPort
- * ----------------
- */
-File
-RelationGetSystemPort(relation)
-    Relation	relation;
-{
-    return (relation->rd_fd);
-}
-
-/* ----------------
- *	RelationHasReferenceCountZero
- * ----------------
- */
-bool
-RelationHasReferenceCountZero(relation)
-    Relation	relation;
-{
-    return ((bool)(relation->rd_refcnt == 0));
-}
-
-/* ----------------
- *	RelationSetReferenceCount
- * ----------------
- */
-void
-RelationSetReferenceCount(relation, count)
-    Relation	relation;
-    Count		count;
-{
-#ifdef	RELREFDEBUG
-    elog(-2, "Set(%.16s[%d->%d])", RelationGetRelationName(relation),
-	 relation->rd_refcnt, count);
-#endif
-
-    relation->rd_refcnt = count;
-}
-
-/* ----------------
- *	RelationIncrementReferenceCount
- * ----------------
- */
-void
-RelationIncrementReferenceCount(relation)
-    Relation	relation;
-{
-#ifdef	RELREFDEBUG
-    elog(-2, "Increment(%.16s[%d->%d])", RelationGetRelationName(relation),
-	 relation->rd_refcnt, 1 + relation->rd_refcnt);
-#endif
-
-    relation->rd_refcnt += 1;
-}
-
-/* ----------------
- *	RelationDecrementReferenceCount
- * ----------------
- */
-void
-RelationDecrementReferenceCount(relation)
-    Relation	relation;
-{
-#ifdef	RELREFDEBUG
-    elog(-2, "Decrement(%.16s[%d->%d])", RelationGetRelationName(relation),
-	 relation->rd_refcnt, -1 + relation->rd_refcnt);
-#endif
-    
-    relation->rd_refcnt -= 1;
-}
-
-/* ----------------
- *	RelationGetAccessMethodTupleForm
- * ----------------
- */
-AccessMethodTupleForm
-RelationGetAccessMethodTupleForm(relation)
-    Relation	relation;
-{
-    return (relation->rd_am);
-}
-
-/* ----------------
- *	RelationGetRelationTupleForm
- * ----------------
- */
-RelationTupleForm
-RelationGetRelationTupleForm(relation)
-    Relation	relation;
-{
-    return (relation->rd_rel);
-}
-
-
-/* ----------------
- *	RelationGetTupleDescriptor
- * ----------------
- */
-TupleDescriptor
-RelationGetTupleDescriptor(relation)
-    Relation	relation;
-{
-    return (&relation->rd_att);
-}
 
 /* ----------------
  *	RelationGetIndexStrategy
@@ -164,49 +62,5 @@ RelationSetIndexSupport(relation, strategy, support)
     relationIndexStrategyP = (IndexStrategy *)
 	(((char *) relationIndexStrategyP) + sizeof(relationIndexStrategyP));
     *relationIndexStrategyP = (IndexStrategy) support;
-}
-
-/* ----------------
- *	RelationGetRelationId
- * ----------------
- */
-ObjectId
-RelationGetRelationId(relation)
-    Relation	relation;
-{
-    return(relation->rd_id);
-}
-
-/* ----------------
- *	RelationGetRelationName
- * ----------------
- */
-Name
-RelationGetRelationName(relation)
-    Relation	relation;
-{
-    return(&relation->rd_rel->relname);
-}
-
-/* ----------------
- *	RelationGetFile
- * ----------------
- */
-File
-RelationGetFile(relation)
-    Relation	relation;
-{
-    return(relation->rd_fd);
-}
-
-/* ----------------
- *	RelationGetNumberOfAttributes
- * ----------------
- */
-AttributeNumber
-RelationGetNumberOfAttributes(relation)
-    Relation	relation;
-{
-    return(relation->rd_rel->relnatts);
 }
 
