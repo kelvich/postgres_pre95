@@ -54,14 +54,8 @@ long id;
 {
     HeapTuple tup;
 
-    /*
-    if (!TypeIdCache) {
-	init_type_id_cache();
-    }
-    */
     if (!(tup = SearchSysCacheTuple(TYPOID, id))) {
-	p_raise(CatalogFailure,
-		form("type id lookup of %d failed", id));
+	elog ( WARN, "type id lookup of %d failed", id);
 	return(NULL);
     }
     return((Type) tup);
@@ -75,16 +69,11 @@ char *s;
     HeapTuple tup;
 
     if (s == NULL) {
-	p_raise(InternalError, "type(): Null type");
+	elog ( WARN , "type(): Null type" );
     }
-    /*
-    if (!TypeNameCache) {
-	init_type_name_cache();
-    }
-    */
+
     if (!(tup = SearchSysCacheTuple(TYPNAME, s))) {
-	p_raise(CatalogFailure,
-		form("type name lookup of %s failed", s));
+	elog (WARN , "type name lookup of %s failed", s);
     }
     return((Type) tup);
 }
@@ -111,7 +100,7 @@ typeid(tp)
 Type tp;
 {
     if (tp == NULL) {
-	p_raise(InternalError, "typeid() called with NULL type struct");
+	elog ( WARN , "typeid() called with NULL type struct");
     }
     return(tp->t_oid);
 }
@@ -171,9 +160,8 @@ int arg1, arg2;	/* typeids */
     }
     */
     if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg2, (char *) 'b'))) {
-	p_raise(CatalogFailure, 
-		form("Can't find binary op: %s for types %d and %d",
-		     op, arg1, arg2));
+	elog ( WARN , "Can't find binary op: %s for types %d and %d",
+	      op, arg1, arg2);
 	return(NULL);
     }
     return((Operator) tup);
@@ -193,8 +181,8 @@ int arg; /* type id */
     }
     */
     if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'r'))) {
-	p_raise(CatalogFailure,
-		form("Can't find right op: %s for type %d", op, arg));
+	elog ( WARN ,
+	      "Can't find right op: %s for type %d", op, arg );
 	return(NULL);
     }
     return((Operator) tup);
@@ -209,8 +197,8 @@ left_oper(op, arg)
 	HeapTuple tup;
 	
 	if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg, 0, (char *) 'l'))) {
-		p_raise(CatalogFailure,
-			form("Can't find left op: %s for type %d", op, arg));
+		elog (WARN ,
+			"Can't find left op: %s for type %d", op, arg);
 		return(NULL);
 	}
 	return ((Operator) tup);
@@ -235,8 +223,9 @@ varattno ( rd , a)
 			return(special_attr[i].code);
 		}
 	}
-	p_raise(CatalogFailure,
-		form("No such attribute: %s\n", a));
+
+	elog(WARN,"Relation %s does not have attribute %s\n", 
+	     RelationGetRelationName(rd), a );
 	return(-1);
 }
 
