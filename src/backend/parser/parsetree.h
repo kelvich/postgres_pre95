@@ -18,6 +18,9 @@
 #define root_numlevels(root)                CInteger(CAR(root))
 #define root_command_type(root)             ((int)CAtom(CADR(root)))
 #define root_result_relation(root)          CADDR(root)
+/* DefineRule() uses that... */
+#define root_command_type_atom(root)	    CADR(root)
+
 
 /* .. subst-rangetable */
 #define root_rangetable(root)                   CADDR(CDR(root))
