@@ -53,7 +53,18 @@ int		Num_Descriptors;
 BufferDesc 	*BufferDescriptors;
 BufferBlock 	BufferBlocks;
 
-static Buffer           BufferDescriptorGetBuffer();
+Buffer           BufferDescriptorGetBuffer();
+
+/*
+ * XXX this is completely bogus, but necessary to make multiple backends
+ * sharing the same buffer pool possible.  each backend will keep track of
+ * how many times it has pinned the each buffer so at end of transaction
+ * in BufferManagerFlush(), it will only unpin the buffers that many times.
+ * this ensures that one backend will not blow away buffers of the another
+ * backend.  this is a big hack, should be gotten rid of as soon as we
+ * get the refcounts right.
+ */
+int	*PrivateRefCount;
 
 #define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
 
@@ -297,6 +308,7 @@ Boolean		*foundPtr;
 
    Assert(buf->refcount == 0);
    buf->refcount = 1;	       
+   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] = 1;
 
   /* 
    * Change the name of the buffer in the lookup table:
@@ -611,7 +623,7 @@ SPINLOCK spinlock;
 
     /* wait until someone releases IO lock */
     SpinRelease(spinlock);
-    IpcSemaphoreLock(WaitIOSemId, 1, 1);
+    IpcSemaphoreLock(WaitIOSemId, 0, 1);
     SpinAcquire(spinlock);
     inProgress = (buf->flags & BM_IO_IN_PROGRESS);
     if (!inProgress) break;
@@ -627,8 +639,8 @@ BufferDesc *buf;
   int semncnt;
   /* somebody better be waiting. */
   Assert( buf->refcount > 1);
-  semncnt = IpcSemaphoreGetCount(WaitIOSemId, 1);
-  IpcSemaphoreUnlock(WaitIOSemId, 1, semncnt);
+  semncnt = IpcSemaphoreGetValue(WaitIOSemId, 0);
+  IpcSemaphoreUnlock(WaitIOSemId, 0, semncnt);
 }
 #endif /* sequent */
 
@@ -710,6 +722,9 @@ IPCKey key;
   WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
 				   1, IPCProtection, 0, &status);
 #endif
+  PrivateRefCount = (int*)malloc(NBuffers * sizeof(int));
+  for (i = 0; i < NBuffers; i++)
+      PrivateRefCount[i] = 0;
 }
 
 int NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
@@ -753,9 +768,9 @@ int StableMainMemoryFlag;
      */
     for (i=1; i<=NBuffers; i++) {
         if (BufferIsValid(i)) {
-            WriteBuffer(i); 
-            while(BufferIsValid(i))
+            while(PrivateRefCount[i - 1] > 0) {
                 ReleaseBuffer(i);
+	     }
         }
     }
     
@@ -850,9 +865,8 @@ BufferGetRelation(buffer)
 
  **************************************************/
 
-/* INTERNAL */
 
-static Buffer
+Buffer
 BufferDescriptorGetBuffer(descriptor)
     BufferDesc *descriptor;
 {
@@ -871,6 +885,7 @@ Buffer buffer;
     SpinAcquire(BufMgrLock);
     BufferDescriptors[buffer - 1].refcount++;
     SpinRelease(BufMgrLock);
+    PrivateRefCount[buffer - 1]++;
 }
 
 /**************************************************
@@ -1095,7 +1110,7 @@ PrintBufferDescs()
 
     for (i=0; i<NBuffers; i++) {
 	buf = &(BufferDescriptors[i]);
-	printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount);
+	printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d %d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount, PrivateRefCount[i]);
      }
 }
 
