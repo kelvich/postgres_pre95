@@ -103,6 +103,69 @@ LOOpen(object, open_mode)
 }
 
 /*
+ * These functions deal with ``External'' large objexts,
+ * i.e. unix files who file names are interpreted in the name
+ * space of the file system running unix.
+ */
+
+LargeObjectDesc *
+XOCreate(path, open_mode)
+char *path;
+int open_mode;
+
+{
+    LargeObjectDesc *retval = NULL;
+    LargeObject *newobj;
+    int fd;
+    oid oidf;
+
+
+    /* Log this instance of large object into directory table. */
+    if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
+
+	/* enter it in system relation */
+	if ((oidf = LOpathOID(path,0)) == InvalidObjectId)
+	    elog(WARN, "%s: couldn't force path name", path);
+
+	fd = (int) PathNameOpenFile(path, O_CREAT | O_RDWR, 0666);
+	if (fd == -1) return(NULL);
+
+	newobj = (LargeObject *) NewLargeObject(path, EXTERNAL_FILE);
+	retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+	retval->object = newobj;
+	retval->ofs.u_fs.fd = fd;
+
+	/* enter cookie into table */
+	(void) LOputOIDandLargeObjDesc(oidf, External,
+				(struct varlena *) newobj);
+    }
+
+    return(retval);
+}
+
+LargeObjectDesc *
+XOOpen(object, open_mode)
+    LargeObject *object;
+    int open_mode;
+{
+    LargeObjectDesc *retval;
+    int fd;
+
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == EXTERNAL_FILE);
+
+    fd = PathNameOpenFile(object->lo_ptr.filename, open_mode, 0666);
+
+    if (fd == -1) return(NULL);
+
+    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+    retval->ofs.u_fs.fd = fd;
+    retval->object = object;
+    return(retval);
+}
+/*
  * Returns the number of blocks and the byte offset of the last block of
  * the file.  nblocks * LARGE_OBJECT_BLOCK + byte_offset should be equal to
  * the file size.
@@ -118,7 +181,8 @@ LOStat(obj_desc, nblocks, byte_offset)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     /* see where we are now */
 
@@ -150,7 +214,8 @@ LOBlockRead(obj_desc, buf, nblocks)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     nbytes = LARGE_OBJECT_BLOCK * nblocks;
     bytes_read = FileRead(obj_desc->ofs.u_fs.fd, buf, nbytes);
@@ -168,7 +233,8 @@ LOClose(obj_desc)
 {
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     FileClose(obj_desc->ofs.u_fs.fd);
     pfree(obj_desc);
@@ -190,6 +256,16 @@ LODestroy(object)
     pfree(object);
 }
 
+void
+XODestroy(object)
+    LargeObject *object;
+{
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == EXTERNAL_FILE);
+
+    pfree(object);
+}
+
 /*
  * Destroys an existing large object, but doesn't touch memory
  * Currently deletes the large object file.
@@ -206,6 +282,14 @@ LODestroyRef(object)
 
 }
 
+void
+XODestroyRef(object)
+    LargeObject *object;
+{
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == EXTERNAL_FILE);
+}
+
 /*
  * To be called at the end of the use of a large object, just before the
  * large object is closed.
@@ -219,7 +303,6 @@ LODescToObject(obj_desc)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
 
     retval = obj_desc->object;
     return(retval);
@@ -237,7 +320,8 @@ LOUnixStat(obj_desc, stbuf)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(stbuf != NULL);
 
     ret = FileStat(obj_desc->ofs.u_fs.fd,stbuf);
@@ -257,7 +341,8 @@ LOSeek(obj_desc,offset,whence)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     ret = FileSeek(obj_desc->ofs.u_fs.fd,offset,whence);
 
@@ -275,7 +360,8 @@ LOTell(obj_desc)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     ret = FileTell(obj_desc->ofs.u_fs.fd);
 
@@ -294,7 +380,8 @@ int LORead(obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(buf != NULL);
 
     ret = FileRead(obj_desc->ofs.u_fs.fd,buf,n);
@@ -314,7 +401,8 @@ int LOWrite (obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
+    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(buf != NULL);
 
     ret = FileWrite(obj_desc->ofs.u_fs.fd,buf,n);
