@@ -551,4 +551,16 @@ class (Hash) public (Plan) {
  /* public: */
 };
 
+/* ---------------------
+ *	choose node
+ * ---------------------
+ */
+class (Choose) public (Plan) {
+#define ChooseDefs \
+	inherits(Plan); \
+	List			chooseplanlist
+/* private: */
+	ChooseDefs;
+/* public: */
+};
 #endif /* PlanNodesIncluded */
