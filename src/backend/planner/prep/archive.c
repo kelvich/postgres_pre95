@@ -1,4 +1,6 @@
 /*
+ * $Header$
+ *
  *  archive.c -- Support for planning scans on archived relations
  */
 #include "tmp/c.h"

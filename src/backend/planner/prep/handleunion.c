@@ -7,7 +7,7 @@
  *        between versions.  Thus we may assume that the attributes
  *        remain the same between versions and their deltas.
  *
- * $Header:
+ * $Header$
  */
 
 #include "tmp/c.h"
