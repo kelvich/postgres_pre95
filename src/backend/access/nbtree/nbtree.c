@@ -35,7 +35,18 @@
 
 extern ExprContext RMakeExprContext();
 
+bool	BuildingBtree = false;
+
 RcsId("$Header$");
+
+/*
+ *  btbuild() -- build a new btree index.
+ *
+ *	We use a global variable to record the fact that we're creating
+ *	a new index.  This is used to avoid high-concurrency locking,
+ *	since the index won't be visible until this transaction commits
+ *	and since building is guaranteed to be single-threaded.
+ */
 
 void
 btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
@@ -64,6 +75,9 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     ExprContext econtext;
     TupleTable tupleTable;
     TupleTableSlot slot;
+
+    /* note that this is a new btree */
+    BuildingBtree = true;
 
     /* first initialize the btree index metadata page */
     _bt_metapinit(index);
@@ -171,6 +185,9 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     /* be tidy */
     pfree(nulls);
     pfree(attdata);
+
+    /* all done */
+    BuildingBtree = false;
 }
 
 /*

@@ -37,6 +37,8 @@ typedef struct BTMetaPageData {
     BlockNumber	btm_freelist;
 } BTMetaPageData;
 
+extern bool	BuildingBtree;
+
 /*
  *  _bt_metapinit() -- Initialize the metadata page of a btree.
  */
@@ -50,7 +52,8 @@ _bt_metapinit(rel)
     BTMetaPageData metad;
 
     /* can't be sharing this with anyone, now... */
-    RelationSetLockForWrite(rel);
+    if (!BuildingBtree)
+	RelationSetLockForWrite(rel);
 
     if ((nblocks = RelationGetNumberOfBlocks(rel)) != 0) {
 	elog(WARN, "Cannot initialize non-empty btree %s",
@@ -70,7 +73,8 @@ _bt_metapinit(rel)
     WriteBuffer(buf);
 
     /* all done */
-    RelationUnsetLockForWrite(rel);
+    if (!BuildingBtree)
+	RelationUnsetLockForWrite(rel);
 }
 
 /*
@@ -457,12 +461,14 @@ _bt_setpagelock(rel, blkno, access)
 {
     ItemPointerData iptr;
 
-    ItemPointerSet(&iptr, 0, blkno, 0, 1);
+    if (!BuildingBtree) {
+	ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
-    if (access == BT_WRITE)
-	RelationSetSingleWLockPage(rel, 0, &iptr);
-    else
-	RelationSetSingleRLockPage(rel, 0, &iptr);
+	if (access == BT_WRITE)
+	    RelationSetSingleWLockPage(rel, 0, &iptr);
+	else
+	    RelationSetSingleRLockPage(rel, 0, &iptr);
+    }
 }
 
 _bt_unsetpagelock(rel, blkno, access)
@@ -472,12 +478,14 @@ _bt_unsetpagelock(rel, blkno, access)
 {
     ItemPointerData iptr;
 
-    ItemPointerSet(&iptr, 0, blkno, 0, 1);
+    if (!BuildingBtree) {
+	ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
-    if (access == BT_WRITE)
-	RelationUnsetSingleWLockPage(rel, 0, &iptr);
-    else
-	RelationUnsetSingleRLockPage(rel, 0, &iptr);
+	if (access == BT_WRITE)
+	    RelationUnsetSingleWLockPage(rel, 0, &iptr);
+	else
+	    RelationUnsetSingleRLockPage(rel, 0, &iptr);
+    }
 }
 
 void
