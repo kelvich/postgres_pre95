@@ -432,7 +432,10 @@ ProcessUtility(command, args, commandString, dest)
 	    filename = CString(CAR(args));
 	    if (*filename != '/') {
 		elog(WARN, "Use full pathname for LOAD command.");
-	    } else if ((fp = fopen(filename, "r")) == NULL) {
+	    }
+		
+		closeAllVfds();
+		if ((fp = fopen(filename, "r")) == NULL) {
 		elog(WARN, "LOAD: could not open file %s", filename);
 	    }
 	    
@@ -440,7 +443,7 @@ ProcessUtility(command, args, commandString, dest)
 	    load_file(filename);
 	}
 	break;
-	
+
 	/* ********************************
 	 *	default
 	 * ********************************
