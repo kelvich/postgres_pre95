@@ -1112,7 +1112,7 @@ ExecTypeFromTL(targetList)
 		ExecSetTypeInfo(
 		      (int) get_resno(fjRes) - 1,        /* index */
 		      (struct attribute **) typeInfo,    /* addr of type info */
-		      (ObjectId) restype,		 /* type id */
+		      (ObjectId) get_restype(fjRes),	 /* type id */
 		      (int) get_resno(fjRes),	         /* att num */
 		      (int) get_reslen(fjRes),	         /* att len */
 		      (char *) get_resname(fjRes),       /* att name */
