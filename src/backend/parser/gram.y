@@ -42,7 +42,7 @@ extern List ParseAgg();
 extern LispValue make_array_ref();
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
-			/* yypvt [-1] = $1 */
+
 #define INC_LIST 	yyval = nappend1( yypvt[-2] , yypvt[-0] ) /* $1,$3 */
 
 #define NULLTREE	yyval = LispNil ; 
@@ -1610,8 +1610,18 @@ Typename:
 	;
 
 var_def: 	
-	  Id '=' Typename 
+	  Id '=' Typename
 		{ 
+		    ObjectId typrelid;
+
+		    /* for 4.0, attributes cannot have complex types */
+		    typrelid = get_typrelid(type(CString(CAR($3))));
+		    if (typrelid != InvalidObjectId) {
+			elog(NOTICE, "cannot create attribute of type %s",
+				     CString(CAR($3)));
+			elog(WARN, "use functions to get complex objects");
+		    }
+
 		    $$ = MakeList($1,$3,-1);
 		}
 	;
