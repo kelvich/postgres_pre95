@@ -128,6 +128,7 @@ LispValue qual;
     set_ecxt_innertuple(econtext, NULL);
     set_ecxt_outertuple(econtext, NULL);
     set_ecxt_param_list_info(econtext, NULL);
+    set_ecxt_range_table(econtext, NULL);
 
     /*
      * NOTE: we must reinitialize the fcache of all Oper nodes to NULL
