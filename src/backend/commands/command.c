@@ -62,6 +62,27 @@ EndCommand(commandTag)
 	}
 }
 
+#include "palloc.h"
+MemoryContext XXXExecutionPortalHeapMemory = NULL;
+
+void XXXSuperDuperHackyFree(pointer) Pointer pointer;
+{
+	if (PointerIsValid(XXXExecutionPortalHeapMemory)) {
+		MemoryContextFree(XXXExecutionPortalHeapMemory, pointer);
+	} else {
+		pfree(pointer);
+	}
+}
+Pointer XXXSuperDuperHackyAlloc(length) int length;
+{
+	if (PointerIsValid(XXXExecutionPortalHeapMemory)) {
+		return (MemoryContextAlloc(XXXExecutionPortalHeapMemory,
+			length));
+	} else {
+		return (palloc(length));
+	}
+}
+
 void
 PortalCleanup(portal)
 	Portal	portal;
@@ -78,6 +99,8 @@ PortalCleanup(portal)
 		(MemoryContext)PortalGetHeapMemory(portal));
 	feature = lispCons(lispInteger(EXEC_END), LispNil);
 
+	XXXExecutionPortalHeapMemory =
+		(MemoryContext)PortalGetHeapMemory(portal);
 	ExecMain(PortalGetQueryDesc(portal), PortalGetState(portal), feature);
 	/*
 	 * switch back to previous context
@@ -95,16 +118,32 @@ PerformPortalFetch(name, forward, count)
 	LispValue	feature;
 	List		queryDesc;
 	extern List	QueryDescGetTypeInfo();		/* XXX style */
+	MemoryContext	context;
 
 	if (name == NULL) {
 		elog(WARN, "PerformPortalFetch: blank portal unsupported");
 	}
 
+	/*
+	 * switch into the portal context
+	 */
 	portal = GetPortalByName(name);
 	if (!PortalIsValid(portal)) {
 		elog(WARN, "PerformPortalFetch: %s not found", name);
 	}
+#ifndef	DISABLE_PORTALS_OUTSIDE_X_BLOCKS
+#endif
+	/*
+	 * running this is WHAT?
+	 */
+	context = MemoryContextSwitchTo(
+		(MemoryContext)PortalGetHeapMemory(portal));
+	AssertState(context == (MemoryContext)PortalGetHeapMemory(GetPortalByName(NULL)));
 
+	/*
+	 * setup "feature"--there must be a cleaner interface to the executor
+	 */
+	feature = lispCons(lispInteger(EXEC_END), LispNil);
 	if (forward) {
 		feature = lispInteger((IsUnderPostmaster) ?
 			EXEC_FOR : EXEC_FDEBUG);
@@ -119,6 +158,8 @@ PerformPortalFetch(name, forward, count)
 	 */
 	queryDesc = PortalGetQueryDesc(portal);
 	BeginCommand(name, QueryDescGetTypeInfo(queryDesc));
+	XXXExecutionPortalHeapMemory =
+		(MemoryContext)PortalGetHeapMemory(portal);
 	ExecMain(queryDesc, PortalGetState(portal), feature);
 	/*
 	 * The "end-of-command" tag is returned by higher-level utility code
@@ -131,7 +172,8 @@ PerformPortalFetch(name, forward, count)
 	 * block in the near future.  Later, someone will fix it to
 	 * do what is possible across transaction boundries.
 	 */
-	(void)GetPortalByName(NULL);
+	(void)MemoryContextSwitchTo((MemoryContext)
+		PortalGetHeapMemory(GetPortalByName(NULL)));
 }
 
 void
@@ -153,8 +195,7 @@ PerformPortalClose(name)
 	}
 
 	/*
-	 * START HERE
-	 * need to close down the portal first.  steal code from fetch, above.
+	 * PortalCleanup is called as a side-effect
 	 */
 	PortalDestroy(portal);
 }

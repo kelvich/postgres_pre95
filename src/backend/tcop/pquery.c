@@ -305,6 +305,14 @@ ExecuteFragments(queryDesc, planFragments)
      * ----------------
      */
     feature = lispCons(lispInteger(EXEC_START), LispNil);
+{
+	/*
+	 * temporary hack till the executor-rule manager interface
+	 * allocation is fixed.
+	 */
+	extern MemoryContext XXXExecutionPortalHeapMemory;
+	XXXExecutionPortalHeapMemory = NULL;
+}
     attinfo = ExecMain(queryDesc, state, feature);
     
     /* ----------------
