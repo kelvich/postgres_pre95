@@ -821,6 +821,7 @@ CommitTransaction()
      *	do commit processing
      * ----------------
      */
+    AtEOXact_portals();
     RecordTransactionCommit();
     AtCommit_LocalRels();
     AtCommit_Cache();
@@ -871,6 +872,7 @@ AbortTransaction()
      *	do abort processing
      * ----------------
      */
+    AtEOXact_portals();
     RecordTransactionAbort();
 	AtAbort_LocalRels();
     AtAbort_Cache();

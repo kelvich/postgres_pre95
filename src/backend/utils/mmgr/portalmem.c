@@ -435,6 +435,72 @@ CreateNewBlankPortal()
     BlankPortal = portal;
 }
 
+bool
+PortalNameIsSpecial(pname)
+    String pname;
+{
+    if (strcmp(pname, VACPNAME) == 0)
+	return true;
+    return false;
+}
+
+/*
+ * This routine is used to collect all portals created in this xaction
+ * and then destroy them.  There is a little trickiness required as a
+ * result of the dynamic hashing interface to getting every hash entry
+ * sequentially.  Its use of static variables requires that we get every
+ * entry *before* we destroy anything (destroying updates the hashtable
+ * and screws up the sequential walk of the table). -mer 17 Aug 1992
+ */
+void
+CollectNamedPortals(portalP, destroy)
+    Portal *portalP;
+    int    destroy;
+{
+    static Portal *portalList = (Portal *)NULL;
+    static int    listIndex = 0;
+    static int    maxIndex = 9;
+
+    if (portalList == (Portal *)NULL)
+	portalList = (Portal *)malloc(10*sizeof(Portal));
+
+    if (destroy != 0)
+    {
+	int i;
+
+	for (i = 0; i < listIndex; i++)
+	    PortalDestroy(portalList[i]);
+	listIndex = 0;
+    }
+    else
+    {
+	Assert(portalP);
+	Assert(*portalP);
+
+	/*
+	 * Don't delete special portals, up to portal creator to do this
+	 */
+	if (PortalNameIsSpecial((*portalP)->name))
+	    return;
+
+	portalList[listIndex] = *portalP;
+	listIndex++;
+	if (listIndex == maxIndex)
+	{
+	    portalList = (Portal *)
+		realloc(portalList, (maxIndex+11)*sizeof(Portal));
+	    maxIndex += 10;
+	}
+    }
+    return;
+}
+
+AtEOXact_portals()
+{
+    HashTableWalk(PortalHashTable, CollectNamedPortals, 0);
+    CollectNamedPortals(NULL, 1);
+}
+
 /* ----------------
  *	PortalDump
  * ----------------

@@ -31,10 +31,11 @@ int arg;
     int keysize;
 
     keysize = hashtable->hctl->keysize;
+    (void)hash_seq((HTAB *)NULL);
     while ((hashent = hash_seq(hashtable)) != (int*)TRUE) {
 	if (hashent == NULL)
 	    elog(FATAL, "error in HashTableWalk.");
 	data = (int*)LONGALIGN((char*)hashent + keysize);
 	(*function)(data, arg);
-      }
+    }
 }
