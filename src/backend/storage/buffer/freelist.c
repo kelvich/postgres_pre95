@@ -51,6 +51,10 @@ extern SPINLOCK BufMgrLock;
 AddBufferToFreelist(bf)
 BufferDesc *bf;
 {
+#ifdef BMTRACE
+  _bm_trace(bf->tag.relId.relId, bf->tag.blockNum,
+	    BufferDescriptorGetBuffer(bf), BMT_DEALLOC);
+#endif /* BMTRACE */
   NotInQueue(bf);
 
   /* change bf so it points to inFrontOfNew and its successor */

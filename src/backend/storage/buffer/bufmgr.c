@@ -53,7 +53,16 @@
 #include "tmp/miscadmin.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
-/* #include "storage/buf_protos.h" */
+
+/*
+ *  if BMTRACE is defined, we trace the last 100 buffer allocations and
+ *  deallocations in a circular buffer in shared memory.
+ */
+#ifdef	BMTRACE
+bmtrace	*TraceBuf;
+int	*CurTraceBuf;
+#define	BMT_LIMIT	100
+#endif /* BMTRACE */
 
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
 int		Data_Descriptors;
@@ -291,6 +300,7 @@ bool		bufferLockHeld;
   if (bufHdr->refcount > 1)
     SignalIO(bufHdr);
 #endif
+
   SpinRelease(BufMgrLock);
     
   return(BufferDescriptorGetBuffer(bufHdr));
@@ -362,6 +372,10 @@ bool		bufferLockHeld;
 	*foundPtr = FALSE;
       }
     }
+#ifdef BMTRACE
+    _bm_trace(reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOC);
+#endif BMTRACE
+
     SpinRelease(BufMgrLock);
   
     return(buf);
@@ -444,12 +458,18 @@ bool		bufferLockHeld;
   Assert(!buf->io_in_progress_lock);
   S_LOCK(&(buf->io_in_progress_lock));
 #endif
+
+#ifdef BMTRACE
+  _bm_trace(reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOC);
+#endif BMTRACE
+
   SpinRelease(BufMgrLock);
 
+  /* XXX mao what is this? XXX */
   if (oldbufdesc.flags & BM_DIRTY) {
      (void) BufferReplace(&oldbufdesc);
      BufferFlushCount++;
-  } 
+  }
   return (buf);
 }
 
@@ -891,6 +911,16 @@ IPCKey key;
   Num_Descriptors = Data_Descriptors + 1;
 
   SpinAcquire(BufMgrLock);
+
+#ifdef BMTRACE
+  CurTraceBuf = (int *) ShmemInitStruct("Buffer trace",
+				(BMT_LIMIT * sizeof(bmtrace)) + sizeof(int),
+				&foundDescs);
+  if (!foundDescs)
+      bzero(CurTraceBuf, (BMT_LIMIT * sizeof(bmtrace)) + sizeof(int));
+
+  TraceBuf = (bmtrace *) &(CurTraceBuf[1]);
+#endif
 
   BufferDescriptors = (BufferDesc *)
     ShmemInitStruct("Buffer Descriptors",
@@ -1378,6 +1408,10 @@ BufferShmemSize()
 	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer));
 	    /* extra space, just to make sure there is enough  */
     size += NBuffers * 4 + 4096;
+
+#ifdef BMTRACE
+    size += (BMT_LIMIT * sizeof(bmtrace)) + sizeof(int);
+#endif
     return size;
 }
 
@@ -1496,3 +1530,121 @@ BlockNumber blockNum;
       }
     return b;
 }
+
+#ifdef BMTRACE
+
+/*
+ *  trace allocations and deallocations in a circular buffer in
+ *  shared memory.  check the buffer before doing the allocation,
+ *  and die if there's anything fishy.
+ */
+
+_bm_trace(relId, blkNo, bufNo, allocType)
+    long relId;
+    int blkNo;
+    int bufNo;
+    int allocType;
+{
+    static int mypid = 0;
+    int start, cur;
+    bmtrace *tb;
+
+    if (mypid == 0)
+	mypid = getpid();
+
+    start = *CurTraceBuf;
+
+    if (start > 0)
+	cur = BMT_LIMIT - 1;
+    else
+	cur = start - 1;
+
+    for (;;) {
+	tb = &TraceBuf[cur];
+	if (tb->bmt_op == BMT_NOTUSED)
+	    break;
+
+	if (tb->bmt_buf == bufNo) {
+	    if (tb->bmt_dbid == MyDatabaseId && tb->bmt_relid == relId
+		&& tb->bmt_blkno == blkNo) {
+		break;
+	    } else {
+
+		/* die holding the buffer lock */
+		if (tb->bmt_op != BMT_DEALLOC) {
+		    _bm_die(relId, blkNo, bufNo, allocType, start, cur);
+		}
+	    }
+	}
+
+	if (cur == start)
+	    break;
+
+	if (--cur < 0)
+	    cur = BMT_LIMIT - 1;
+    }
+
+    tb = &TraceBuf[start];
+    tb->bmt_pid = mypid;
+    tb->bmt_buf = bufNo;
+    tb->bmt_dbid = MyDatabaseId;
+    tb->bmt_relid = relId;
+    tb->bmt_blkno = blkNo;
+    tb->bmt_op = allocType;
+
+    *CurTraceBuf = (start + 1) % BMT_LIMIT;
+}
+
+#include <signal.h>
+
+_bm_die(relId, blkNo, bufNo, allocType, start, cur)
+    long relId;
+    int blkNo;
+    int bufNo;
+    int allocType;
+    int start;
+    int cur;
+{
+    FILE *fp;
+    bmtrace *tb;
+    int i;
+
+    tb = &TraceBuf[cur];
+
+    if ((fp = fopen("/tmp/death_notice", "w")) == (FILE *) NULL)
+	elog(FATAL, "buffer alloc trace error and can't open log file");
+
+    fprintf(fp, "buffer alloc trace detected the following error:\n\n");
+    fprintf(fp, "\tbuffer %d being %s inconsistently with a previous %s\n\n",
+	    bufNo, (allocType == BMT_ALLOC ? "allocated" : "deallocated"),
+	    (tb->bmt_op == BMT_ALLOC ? "allocation" : "deallocation"));
+
+    fprintf(fp, "the trace buffer contains:\n");
+
+    i = start;
+    for (;;) {
+	tb = &TraceBuf[i];
+	if (tb->bmt_op != BMT_NOTUSED) {
+	    fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> %s%s\n",
+		    tb->bmt_pid, tb->bmt_buf,
+		    tb->bmt_dbid, tb->bmt_relid, tb->bmt_blkno,
+		    (tb->bmt_op == BMT_ALLOC ? "allocate" : "deallocate"),
+		    (i == cur ? " *****" : ""));
+	}
+
+	i = (i + 1) % BMT_LIMIT;
+	if (i == start)
+	    break;
+    }
+
+    fprintf(fp, "\noperation causing error:\n");
+    fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> %s\n",
+	    getpid(), bufNo, MyDatabaseId, relId, blkNo,
+	    (allocType == BMT_ALLOC ? "allocate" : "deallocate"));
+
+    (void) fclose(fp);
+
+    kill(getpid(), SIGILL);
+}
+
+#endif /* BMTRACE */

@@ -137,6 +137,30 @@ struct sbufdesc {
 #endif
 };
 
+/*
+ *  mao tracing buffer allocation
+ */
+
+#undef BMTRACE
+#ifdef BMTRACE
+
+typedef struct _bmtrace {
+    int		bmt_pid;
+    int		bmt_buf;
+    long	bmt_dbid;
+    long	bmt_relid;
+    int		bmt_blkno;
+    int		bmt_op;
+
+#define BMT_NOTUSED	0
+#define BMT_ALLOC	1
+#define	BMT_DEALLOC	2
+
+} bmtrace;
+
+#endif /* BMTRACE */
+
+
 /* 
  * Bufmgr Interface:
  */
