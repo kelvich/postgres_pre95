@@ -88,6 +88,7 @@ CreateExecutorState()
     ParamListInfo	paramListInfo;
     TupleCount		tuplecount;
     Prs2EStateInfo	prs2EStateInfo;
+    int			baseid;
     
     /* ----------------
      *	These are just guesses.. Someone should tell me if
@@ -100,7 +101,8 @@ CreateExecutorState()
     locks = 		LispNil;
     qualTuple =		NULL;
     qualTupleID =	0;
-    prs2EStateInfo=NULL;
+    prs2EStateInfo = NULL;
+    baseid =		0;
     
     /* ----------------
      *   currently these next are initialized in InitPlan.
@@ -143,7 +145,8 @@ CreateExecutorState()
 		       resultRelationInfo,
 		       tuplecount,
 		       paramListInfo,
-		       prs2EStateInfo);
+		       prs2EStateInfo,
+		       baseid);
 
     return state;
 }

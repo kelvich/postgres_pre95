@@ -319,6 +319,9 @@ extern Const		ConstFalse;
 
 extern SLList		ExecAllocDebugList;
 
+extern int		_debug_hook_id_;
+extern HookNode		_debug_hooks_[];
+
 /* 
  *	public executor functions
  */

@@ -45,6 +45,7 @@ extern bool	EqualEState();
 #define abstime AbsoluteTime
 
 typedef int	*IntPtr;
+typedef void    (*HookFunction)();
 
 /* ----------------
  *    IndexInfo information
@@ -155,6 +156,7 @@ class (EState) public (Node) {
       TupleCount	es_tuplecount;
       ParamListInfo	es_param_list_info;
       Prs2EStateInfo	es_prs2_info;
+      int		es_BaseId;
 };
 
 /* ----------------
@@ -222,10 +224,70 @@ class (ExprContext) public (Node) {
 };
 
 
+/* ----------------
+ *   HookNode information
+ *
+ *	HookNodes are used to attach debugging routines to the plan
+ *	at runtime.  The hook functions are passed a pointer
+ *	to the node with which they are associated when they are
+ *	called.
+ *
+ *	pre_procnode	function called just before ExecProcNode
+ *	pre_endnode	function called just before ExecEndNode
+ *	post_initnode	function called just after ExecInitNode
+ *	post_procnode	function called just after ExecProcNode
+ *	post_endnode	function called just after ExecEndNode
+ *	data		pointer to user defined information
+ *
+ *	Note:  there cannot be a pre_initnode call as this node's
+ *		base node is assigned during the initnode processing.
+ * ----------------
+ */
+class (HookNode) public (Node) {
+#define HookNodeDefs \
+      inherits(Node); \
+      HookFunction	hook_pre_procnode; \
+      HookFunction	hook_pre_endnode; \
+      HookFunction	hook_post_initnode; \
+      HookFunction	hook_post_procnode; \
+      HookFunction	hook_post_endnode; \
+      Pointer		hook_data
+  /* private: */
+      HookNodeDefs;
+  /* public: */
+};
+
 /* ----------------------------------------------------------------
  *		 Common Executor State Information
  * ----------------------------------------------------------------
  */
+
+/* ----------------
+ *	BaseNode information
+ *
+ *	BaseNodes are the fundamental superclass for all the
+ *	remaining executor state nodes.  They contain two important
+ *	fields:
+ *
+ *	id		integer used to keep track of other information
+ *			associated with a specific executor state node.
+ *
+ *	hook		pointer to this node's hook node, if it exists.  
+ *
+ *	The id is used to keep track of executor resources and
+ *	tuples during the query and the hook is used to attach
+ *	debugging information.
+ * ----------------
+ */
+class (BaseNode) public (Node) {
+#define BaseNodeDefs \
+      inherits(Node); \
+      int		base_id; \
+      HookNode		base_hook
+  /* private: */
+      BaseNodeDefs;
+  /* public: */
+};
 
 /* ----------------
  *   CommonState information
@@ -265,9 +327,9 @@ class (ExprContext) public (Node) {
  * ----------------
  */
 
-class (CommonState) public (Node) {
+class (CommonState) public (BaseNode) {
 #define CommonStateDefs \
-      inherits(Node); \
+      inherits(BaseNode); \
       List 	   	  cs_OuterTuple; \
       AttributePtr 	  cs_TupType; \
       Pointer 	   	  cs_TupValue; \
@@ -349,8 +411,8 @@ class (ResultState) public (CommonState) {
  * ----------------
  */
 
-class (AppendState) public (Node) {
-    inherits(Node);
+class (AppendState) public (BaseNode) {
+    inherits(BaseNode);
     int 	as_whichplan;
     int 	as_nplans;
     ListPtr 	as_initialized;
@@ -379,8 +441,8 @@ class (AppendState) public (Node) {
  * ----------------------------------------------------------------
  */
 
-class (RecursiveState) public (Node) {
-    inherits(Node);
+class (RecursiveState) public (BaseNode) {
+    inherits(BaseNode);
     int         rcs_whichSequence;
     int         rcs_whichPlan;
     List        rcs_numPlans;
@@ -406,8 +468,8 @@ class (RecursiveState) public (Node) {
  * ----------------
  */
 
-class (ParallelState) public (Node) {
-    inherits(Node);
+class (ParallelState) public (BaseNode) {
+    inherits(BaseNode);
     int 	ps_whichplan;
     int 	ps_nplans;
     ListPtr 	ps_initialized;

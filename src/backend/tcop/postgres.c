@@ -155,12 +155,9 @@ InteractiveBackend(inBuf)
 	 * ----------------
 	 */
 	if (sscanf(inBuf, "DEBUG %s", s) == 1) {
-	    if (sscanf(inBuf, "DEBUG %s%d", s, &v) == 2) {
-		DebugVariableSet(s, v);
-		printf("DEBUG %s = %d\n", s, v);
-	    } else
-		printf("DEBUG syntax error\n");
-
+	    if (!DebugVariableProcessCommand(inBuf))
+		printf("DEBUG [%s] not recognised\n", inBuf);
+		
 	    continue;
 	}
 #endif EXEC_DEBUGINTERACTIVE
