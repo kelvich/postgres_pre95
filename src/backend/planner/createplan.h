@@ -1,0 +1,12 @@
+extern LispValue create_plan ARGS((LispValue best_path, LispValue origtlist));
+extern LispValue create_scan_node ARGS((LispValue best_path, LispValue tlist));
+extern LispValue create_join_node ARGS((LispValue best_path, LispValue origtlist, LispValue tlist));
+extern LispValue create_seqscan_node ARGS((LispValue best_path, LispValue tlist, LispValue scan_clauses));
+extern LispValue create_indexscan_node ARGS((LispValue best_path, LispValue tlist, LispValue scan_clauses));
+extern LispValue fix_indxqual_references ARGS((LispValue clause, LispValue index_path));
+extern LispValue create_nestloop_node ARGS((LispValue best_path, LispValue tlist, LispValue clauses, LispValue outer_node, LispValue outer_tlist, LispValue inner_node, LispValue inner_tlist));
+extern LispValue create_mergejoin_node ARGS((LispValue best_path, LispValue tlist, LispValue clauses, LispValue outer_node, LispValue outer_tlist, LispValue inner_node, LispValue inner_tlist));
+extern LispValue switch_outer ARGS((LispValue clauses));
+extern LispValue create_hashjoin_node ARGS((LispValue best_path, LispValue tlist, LispValue clauses, LispValue outer_node, LispValue outer_tlist, LispValue inner_node, LispValue inner_tlist));
+extern LispValue make_temp ARGS((LispValue tlist, LispValue keys, LispValue operators, LispValue plan_node, LispValue temptype));
+extern LispValue set_temp_tlist_operators ARGS((LispValue tlist, LispValue pathkeys, LispValue operators));
