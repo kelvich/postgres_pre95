@@ -459,7 +459,7 @@ make_var ( relname, attrname)
     varnode = MakeVar (vnum , attid ,
 		       vartype , vardotfields , vararrayindex ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)));
+				lispCons(lispInteger(attid),LispNil)), 0);
     
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
@@ -528,9 +528,9 @@ make_array_ref_var( relname, attrname, vararrayindex)
     vardotfields = LispNil;                          /* XXX - fix this */
     
     varnode = MakeVar (vnum , attid ,
-		       typelem , vardotfields , vararrayindex ,
+		       typearray , vardotfields , vararrayindex ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)));
+				lispCons(lispInteger(attid),LispNil)), typelem);
     
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
