@@ -53,13 +53,13 @@ static void noaction() { }
 /* This is ordered upon objtype values.  Make sure that entries are sorted
    properly. */
 
-extern void LODestroyRef(void *); /*hackproto*/
+extern void LODestroyRef ARGS((void *)); /*hackproto*/
 
 static struct {
 #define SMALL_INT 0
 #define BIG 1
     int bigcookie;
-    void (*LOdestroy)(void *);
+    void (*LOdestroy)ARGS((void *));
 } LOprocs[] = {
     /* Inversion */
     { SMALL_INT, noaction }, /* not defined yet, probably destroy class */
