@@ -44,6 +44,8 @@ DynamicFunctionList;
 typedef struct df_files
 {
     char filename[256];				/* Full pathname of file */
+	dev_t device;					/* Device file is on */
+	ino_t inode;					/* Inode number of file */
     DynamicFunctionList *func_list;	/* List of functions */
 	char *address;					/* Memory allocated for file */
 	long size;						/* Size of memory allocated for file */
