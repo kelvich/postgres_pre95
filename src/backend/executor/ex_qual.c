@@ -589,15 +589,18 @@ GetAttribute(attname)
  * ----------------
  */
 Datum
-ExecMakeFunctionResult(fcache, arguments, econtext)
+ExecMakeFunctionResult(fcache, arguments, econtext, IsNull)
     FunctionCachePtr fcache;
     List 	arguments;
      ExprContext econtext;
+     Boolean *IsNull;
 {
     List	arg;
     Datum	args[MAXFMGRARGS];
-    Boolean	isNull;
+    Boolean   isNull, isNull2;
     int 	i;
+
+    isNull2 = false;
 
     /* ----------------
      *  We need to check CAR(arg) to see if it is a RELATION type, in which
@@ -629,8 +632,10 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
 	     */
 	    args[i++] = (Datum)
 		ExecEvalExpr((Node) CAR(arg), econtext, &isNull); 
+		if (isNull) isNull2 = true;
 	}
     }
+    *IsNull = isNull2;
 
     /* ----------------
      *   now return the value gotten by calling the function manager, 
@@ -639,10 +644,10 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
      */
 /* temp fix */
     if (fmgr_func_lang(fcache->foid) == POSTQUELlanguageId)
-	return (Datum) fmgr_array_args(fcache->foid, fcache->nargs, args);
+	return (Datum) fmgr_array_args(fcache->foid, fcache->nargs, args, IsNull);
     else 
 	return (Datum)
-	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args);
+	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args, IsNull);
 }
 
 /* ----------------------------------------------------------------
@@ -703,7 +708,7 @@ ExecEvalOper(opClause, econtext, isNull)
     }
     
     return
-	ExecMakeFunctionResult(fcache, argList, econtext);
+	ExecMakeFunctionResult(fcache, argList, econtext, isNull);
 }
  
 /* ----------------------------------------------------------------
@@ -749,7 +754,7 @@ ExecEvalFunc(funcClause, econtext, isNull)
     }
 
     return
-	ExecMakeFunctionResult(fcache, argList, econtext);
+	ExecMakeFunctionResult(fcache, argList, econtext, isNull);
 }
  
 /* ----------------------------------------------------------------
