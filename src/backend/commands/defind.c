@@ -127,7 +127,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	if (IsFuncIndex(attributeList))
 	{
 		int nargs;
-
+		
 		nargs = length(CDR(CAAR(attributeList)));
 		if (nargs > INDEX_MAX_KEYS)
 		{
@@ -147,7 +147,8 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 			palloc(sizeof classObjectId[0]));
 
 		FuncIndexArgs(attributeList, attributeNumberA, 
-			classObjectId, relationId);
+			      &(FIgetArg(&fInfo, 0)),
+			      classObjectId, relationId);
 
 		index_create(heapRelationName, indexRelationName,
 			&fInfo, accessMethodId, 
@@ -355,14 +356,16 @@ CheckPredClause(predicate, rangeTable, baseRelOid)
 }
 
 
-FuncIndexArgs(attList, attNumP, opOidP, relId)
+FuncIndexArgs(attList, attNumP, argTypes, opOidP, relId)
 	LispValue	attList;
 	AttributeNumber *attNumP;
+        ObjectId	*argTypes;
 	ObjectId	*opOidP;
 	ObjectId	relId;
 {
 	LispValue	rest;
 	HeapTuple	tuple;
+	Attribute	att;
 
 	tuple = SearchSysCacheTuple(CLANAME, CString(CADR(CAR(attList))));
 
@@ -373,6 +376,7 @@ FuncIndexArgs(attList, attNumP, opOidP, relId)
 	}
 	*opOidP = tuple->t_oid;
 
+	bzero(argTypes, 8 * sizeof(ObjectId));
 	/*
 	 * process the function arguments 
 	 */
@@ -393,7 +397,9 @@ FuncIndexArgs(attList, attNumP, opOidP, relId)
 			     "DefineIndex: attribute \"%s\" not found",
 			     CString(arg));
 		}
-		*attNumP++ = ((Attribute)GETSTRUCT(tuple))->attnum;
+		att = (Attribute)GETSTRUCT(tuple);
+		*attNumP++ = att->attnum;
+		*argTypes++ = att->atttypid;
 	}
 }
 
