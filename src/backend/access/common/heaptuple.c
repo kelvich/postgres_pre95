@@ -169,14 +169,14 @@ DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
 	    case sizeof(char):
 		* (char *) data = (att[i]->attbyval ?
 				   DatumGetChar(value[i]) :
-				   * (char *) value[i]);
+				   *((char *) value[i]));
 		data += sizeof(char);
 		break;
 	    case sizeof(short):
 		data = (Pointer) SHORTALIGN(data);
 		* (short *) data = (att[i]->attbyval ?
 		                    DatumGetInt16(value[i]) :
-				    * (short *) value[i]);
+				    *((short *) value[i]));
 		data += sizeof(short);
 		break;
 	    case 3: /* XXX */
@@ -184,7 +184,7 @@ DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
 		data = (Pointer) LONGALIGN(data);
 		* (long *) data = (att[i]->attbyval ?
 				   DatumGetInt32(value[i]) :
-				   * (long *) value[i]);
+				   *((long *) value[i]));
 		data += sizeof(long);
 		break;
 	    default:
@@ -409,17 +409,17 @@ heap_getsysattr(tup, b, attnum)
 	return ((char *)lock);
 	
     case ObjectIdAttributeNumber:
-	return ((char *)tup->t_oid);
+	return ((char *) (long) tup->t_oid);
     case MinTransactionIdAttributeNumber:
-	return ((char *)tup->t_xmin);
+	return ((char *) (long) tup->t_xmin);
     case MinCommandIdAttributeNumber:
-	return ((char *)tup->t_cmin);
+	return ((char *) (long) tup->t_cmin);
     case MaxTransactionIdAttributeNumber:
-	return ((char *)tup->t_xmax);
+	return ((char *) (long) tup->t_xmax);
     case MaxCommandIdAttributeNumber:
-	return ((char *)tup->t_cmax);
+	return ((char *) (long) tup->t_cmax);
     case ChainItemPointerAttributeNumber:
-	return ((char *)&tup->t_chain);
+	return ((char *) &tup->t_chain);
     case AnchorItemPointerAttributeNumber:
 	elog(WARN, "heap_getsysattr: t_anchor does not exist!");
 	break;
@@ -447,9 +447,9 @@ heap_getsysattr(tup, b, attnum)
 	    else
 		tup->t_tmax = CURRENT_ABSTIME;
 	}
-	return ((char *)tup->t_tmax);
+	return ((char *) (long) tup->t_tmax);
     case VersionTypeAttributeNumber:
-	return ((char *)tup->t_vtype);
+	return ((char *) (long) tup->t_vtype);
     default:
 	elog(WARN, "heap_getsysattr: undefined attnum %d", attnum);
     }
@@ -1257,18 +1257,18 @@ slowgetattr(tup, b, attnum, att, isnull)
 		size[0] = 1l;
 		if (pfill(opos, (char *)(size + 1)) < 0)
 		    elog(WARN, "slowgetattr: failed pfill$3");
-		tp = (char *)*(char *)(size + 1);
+		tp = (char *) (long) *(char *)(size + 1);
 	    } else
-		tp = (char *)*opos->op_cp;
+		tp = (char *) (long) *opos->op_cp;
 	    break;
 	case 2:
 	    if (opos->op_len < 2) {
 		size[0] = 2l;
 		if (pfill(opos, (char *)(size + 1)) < 0)
 		    elog(WARN, "slowgetattr: failed pfill$4");
-		tp = (char *)*(short *)(size + 1);
+		tp = (char *) (long) *(short *)(size + 1);
 	    } else
-		tp = (char *)*(short *)opos->op_cp;
+		tp = (char *) (long) *(short *)opos->op_cp;
 	    break;
 	case 3:					/* XXX */
 	    elog(WARN, "slowgetattr: no len 3 attbyval yet");
