@@ -4,7 +4,7 @@
  */
 
 #include "postgres.h"
-#include "lispdep.h"
+#include "pg_lisp.h"
 
 RcsId("$Header$");
 
