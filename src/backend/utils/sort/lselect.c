@@ -178,7 +178,6 @@ int		devnum;
 {
 	register struct	leftist	*new1;
 	register struct	leftist	*tp;
-	char		*malloc();
 
 	new1 = (struct leftist *) malloc((unsigned) sizeof (struct leftist));
 	USEMEM(sizeof (struct leftist));
