@@ -14,24 +14,25 @@
 **             the nodes sorted.  The old list is *not* freed or modified (?)
 */
 
-LispValue lisp_qsort(lispList,    /* the list to be sorted */
+LispValue lisp_qsort(the_list,    /* the list to be sorted */
 		     compare)  /* function to compare two nodes */
-    LispValue lispList;
+    LispValue the_list;
     int (*compare)();
 {
-    int num, i;
+    int i;
+    size_t num;
     LispValue *nodearray;
-    LispValue tmp, nodecopy, output;
+    LispValue tmp, output;
 
     /* find size of list */
-    for (num = 0, tmp = lispList; tmp != LispNil; tmp = CDR(tmp))
+    for (num = 0, tmp = the_list; tmp != LispNil; tmp = CDR(tmp))
       num ++;
-    if (num < 2) return(lispCopy(lispList));
+    if (num < 2) return(lispCopy(the_list));
 
     /* copy elements of the list into an array */
     nodearray = (LispValue *) palloc(num * sizeof(LispValue));
 
-    for (tmp = lispList, i = 0; tmp != LispNil; tmp = CDR(tmp), i++)
+    for (tmp = the_list, i = 0; tmp != LispNil; tmp = CDR(tmp), i++)
       nodearray[i] = lispCopy(CAR(tmp));
 
     /* sort the array */
