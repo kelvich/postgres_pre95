@@ -14,7 +14,6 @@
 #include "tmp/align.h"
 
 #include "tmp/c.h"
-#include "tmp/clib.h"
 
 #include "storage/item.h"
 
