@@ -33,6 +33,7 @@
  */
 #include <sys/file.h>
 #include <stdio.h>
+#include <math.h>
 #include "internal.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
@@ -1335,24 +1336,26 @@ BufferShmemSize()
     int size;
     int nbuckets;
     int nsegs;
+    int tmp;
 
     nbuckets = 1 << (int)my_log2((NBuffers - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
     size =  /* size of shmem binding table */
-	    my_log2(BTABLE_SIZE) + sizeof(HHDR)
-	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
-	    (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE)
+	    my_log2(BTABLE_SIZE) + sizeof(HHDR);
+    size += DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
+	    (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE);
  	    /* size of buffer descriptors */
-            + (NBuffers + 1) * sizeof(BufferDesc)
+    size += (NBuffers + 1) * sizeof(BufferDesc);
 	    /* size of data pages */
-            + NBuffers * BLOCK_SIZE
+    size += NBuffers * BLOCK_SIZE;
 	    /* size of buffer hash table */
-            + my_log2(NBuffers) + sizeof(HHDR)
-	    + nsegs * DEF_SEGSIZE * sizeof(SEGMENT) 
-	    + (int)ceil((double)NBuffers/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR * 
-	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer))
+    size += my_log2(NBuffers) + sizeof(HHDR);
+    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    tmp = (int)ceil((double)NBuffers/BUCKET_ALLOC_INCR);
+    size += tmp * BUCKET_ALLOC_INCR * 
+	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer));
 	    /* extra space, just to make sure there is enough  */
-            + NBuffers * 4 + 4096;
+    size += NBuffers * 4 + 4096;
     return size;
 }
 
