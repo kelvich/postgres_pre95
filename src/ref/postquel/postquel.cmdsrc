@@ -117,7 +117,10 @@ with a backslash, e.g., `\en'.
 Also, in order to embed quotes
 within strings, it is necessary to prefix them with `\e' .
 The same convention applies to `\e' itself.
-String constants are currently limited to a length of 8K bytes.
+Because of the current limitations on tuple sizes, string constants
+are currently limited to a length of a little less than 8K bytes.
+These size constraints will be removed when large-object support
+becomes stable (this is one of the goals of POSTGRES version 2.1).
 .uh "Integer Constants"
 .lp
 .i "Integer constants"
@@ -395,11 +398,12 @@ set of employees in each department:
 {emp.name where emp.dept = dept.dname}
 .)l
 .in .5i
-Set expressions can be used in relational expressions which are now defined.
+Set expressions can be used in relational expressions which
+are defined below.
 .uh "Relational Expression"
 .lp
 .b
-Set expressions are not supported in Version 2.
+Relational expressions are not supported in Version 2.
 .r
 .lp
 A 
