@@ -398,6 +398,6 @@ _
 .uh BUGS
 .lp
 The lists of types, functions, and operators are
-accurate only for Version 2.
+accurate only for Version 2.1.
 The lists will be incomplete and contain extraneous
 entries in future versions of \*(PP.
