@@ -190,16 +190,28 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
 				    levelnum)));
     else if (IsA(clause,ArrayRef)) {
       Expr temp;
-      temp = replace_clause_resultvar_refs(get_refindexpr((ArrayRef)clause),
+      temp = replace_subclause_resultvar_refs(
+						  get_refupperindexpr((ArrayRef)clause),
 					      ltlist,
 					      rtlist,
 					      levelnum);
-      set_refindexpr((ArrayRef)clause,(LispValue)temp);
+      set_refupperindexpr((ArrayRef)clause,(LispValue)temp);
+      temp = replace_subclause_resultvar_refs(
+						  get_reflowerindexpr((ArrayRef)clause),
+					      ltlist,
+					      rtlist,
+					      levelnum);
+      set_reflowerindexpr((ArrayRef)clause,(LispValue)temp);
       temp = replace_clause_resultvar_refs(get_refexpr((ArrayRef)clause),
 					      ltlist,
 					      rtlist,
 					      levelnum);
       set_refexpr((ArrayRef)clause,(LispValue)temp);
+	  temp = replace_clause_resultvar_refs(get_refassgnexpr((ArrayRef)clause),
+                          ltlist,
+                          rtlist,
+                          levelnum);
+      set_refassgnexpr((ArrayRef)clause,(LispValue)temp);
       return(clause);
     }
     else if (is_funcclause ((LispValue)clause)) 
@@ -570,14 +582,22 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 				  inner_tlist)));
     else if (IsA(clause,ArrayRef)) {
 	LispValue temp;
-	temp = replace_clause_joinvar_refs(get_refindexpr((ArrayRef)clause),
+	temp = replace_subclause_joinvar_refs(get_refupperindexpr((ArrayRef)clause),
 					      outer_tlist,
 					      inner_tlist);
-	set_refindexpr((ArrayRef)clause,temp);
+	set_refupperindexpr((ArrayRef)clause,temp);
+	temp = replace_subclause_joinvar_refs(get_reflowerindexpr((ArrayRef)clause),
+					      outer_tlist,
+					      inner_tlist);
+	set_reflowerindexpr((ArrayRef)clause,temp);
 	temp = replace_clause_joinvar_refs(get_refexpr((ArrayRef)clause),
 					      outer_tlist,
 					      inner_tlist);
 	set_refexpr((ArrayRef)clause,temp);
+	temp = replace_clause_joinvar_refs(get_refassgnexpr((ArrayRef)clause),
+					      outer_tlist,
+					      inner_tlist);
+	set_refassgnexpr((ArrayRef)clause,temp);
 	return(clause);
       }
     else if (is_funcclause (clause)) {
@@ -803,9 +823,17 @@ List subplanTargetList;		/* target list of the subplan */
 	 * This is an arrayref. Recursively call this routine
 	 * for its expression and its index expression...
 	 */
-	replace_result_clause(get_refindexpr((ArrayRef)clause),
-			      subplanTargetList);
+	subClause = get_refupperindexpr((ArrayRef)clause);
+	foreach (t, subClause) {
+	    replace_result_clause(CAR(t),subplanTargetList);
+	}
+	subClause = get_reflowerindexpr((ArrayRef)clause);
+	foreach (t, subClause) {
+	    replace_result_clause(CAR(t),subplanTargetList);
+	}
 	replace_result_clause(get_refexpr((ArrayRef)clause),
+			      subplanTargetList);
+	replace_result_clause(get_refassgnexpr((ArrayRef)clause),
 			      subplanTargetList);
     } else if (is_clause(clause)) {
 	/*
