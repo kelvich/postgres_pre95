@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .include <postgres.global.mk>
 
 PROG= pg_ufp
@@ -21,11 +25,14 @@ CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
 CFLAGS+= -DUFP
 #CFLAGS+= -DUFPDEBUG -DUFPDEBUG_PROTO
 
-.if ${PORTNAME} == "ultrix4"
+.if (${PORTNAME} == "ultrix4")
 CFLAGS+= -G 0
-LDFLAGS+= -G 0
-.endif
-
+LDFLAGS+= -N -G 0
+.elif (${PORTNAME} == "hpux")
+CFLAGS+= -W l,-E
+LDADD+= -ldld
+.else
 LDFLAGS+= -N
+.endif
 
 .include <postgres.prog.mk>
