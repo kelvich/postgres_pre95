@@ -516,6 +516,27 @@ IpcSemaphoreSilentUnlock(semId, sem, lock)
 	semop(semId, (struct sembuf **)&sops, 1);
 }
 
+int
+IpcSemaphoreGetCount(semId, sem)
+IpcSemaphoreId	semId;
+int		sem;
+{
+    int semncnt;
+
+    semncnt = semctl(semId, sem, GETNCNT, NULL);
+    return semncnt;
+}
+
+int
+IpcSemaphoreGetValue(semId, sem)
+IpcSemaphoreId	semId;
+int		sem;
+{
+    int semval;
+
+    semval = semctl(semId, sem, GETVAL, NULL);
+    return semval;
+}
 
 /****************************************************************************/
 /*   IpcMemoryCreate(memKey)						    */
