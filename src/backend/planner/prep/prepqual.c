@@ -419,9 +419,9 @@ or_normalize (orlist)
 	  
 	  foreach(temp,orlist) {
 	       if (and_clause(CAR(temp)) )
-		 distributable = LispTrue;
+		 distributable = CAR(temp);
 	  }
-	  if (distributable == LispTrue) 
+	  if (distributable)
 	    new_orlist = LispRemove(distributable,orlist);
 	  
 	  if(new_orlist) 
