@@ -773,9 +773,10 @@ newruleTag: P_TUPLE
 OptStmtList:
 	  Id
 		{ 
-		  if ( ! strcmp(CString($1),"nothing") )
+		  if ( ! strcmp(CString($1),"nothing") ) {
 			$$ = LispNil;
-		  else
+			StripRangeTable();
+		  } else
 			elog(WARN,"bad rule action %s", CString($1));
 		}
 	| OptimizableStmt
