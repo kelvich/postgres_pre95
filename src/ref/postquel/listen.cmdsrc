@@ -15,7 +15,8 @@ relation_name
 is used to register the current backend as a listener on the relation
 .b relation_name.
 When the command 
-.b notify relation_name
+.b notify 
+.b relation_name
 is called either from within a rule or at the query level, the
 frontends corresponding to the listening backends are notified.
 .uh "SEE ALSO"

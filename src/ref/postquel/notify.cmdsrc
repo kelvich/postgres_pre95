@@ -11,8 +11,7 @@ notify \*(- Signal all frontends and backends listening on a relation
 relation_name
 .uh DESCRIPTION
 .lp
-.b listen
-
+.b notify
 is used to awaken all backends and consequently all frontends
 listening on the relation
 .b relation_name.
@@ -20,7 +19,7 @@ listening on the relation
 This can be used either within a tuple level rule as part of the
 action body or from a normal query.  When used from within a normal
 query, this can be thought of as IPC.  When used from within a rule,
-this can be thought of as alerters.
+this can be thought of as the alerter mechanism.
 
 .uh "SEE ALSO"
 .lp
