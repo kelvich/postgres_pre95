@@ -969,7 +969,7 @@ ExecAppend(slot, tupleid, estate, newlocks)
 			tuple,		    /* heap tuple */
 			0);		    /* return: offset */
     IncrAppended();
-    UpdateLastOid(newId);
+    UpdateAppendOid(newId);
     
     /* ----------------
      *	process indices

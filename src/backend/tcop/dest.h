@@ -58,7 +58,7 @@ void SendCopyBegin ARGS((void ));
 void ReceiveCopyBegin ARGS((void ));
 void NullCommand ARGS((CommandDest dest ));
 void BeginCommand ARGS((char *pname , int operation , LispValue attinfo , bool isIntoRel , bool isIntoPortal , char *tag , CommandDest dest ));
-void ResetLastOid();
-void UpdateLastOid ARGS(( ObjectId newoid ));
-ObjectId GetLastOid();
+void ResetAppendOid();
+void UpdateAppendOid ARGS(( ObjectId newoid ));
+ObjectId GetAppendOid();
 #endif  DestIncluded
