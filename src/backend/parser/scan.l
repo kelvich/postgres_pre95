@@ -80,14 +80,7 @@ other		.
 
 			keyword = ScanKeywordLookup(yytext);
 			if (keyword != NULL) {
-#ifdef FRANZ43
-				MakeUpper(yytext);
-#endif
-#ifdef ALLEGRO
-				MakeLower(yytext);
-#endif
-				yylval = lispAtom(yytext);
-				MakeLower(yytext);
+				yylval = lispInteger(keyword->value);
 				return (keyword->value);
 			} else {
 				yylval = lispString(yytext);

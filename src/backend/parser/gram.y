@@ -28,7 +28,7 @@ static char *gram_y ="$Header$";
 
 #include "catalog_utils.h"
 #include "log.h"
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "parse_query.h"
 #include <pwd.h>
 
@@ -1044,21 +1044,10 @@ Relation:
 	  relation_name opt_time_range opt_star
 		{
 			int inherit_flag = 0;
-			int trange_flag = 0;
+			int trange_flag = (int)$2;
 			 
-			if ($2 == LispNil ) {
-				/* no time range */
-				p_trange = LispNil;
-				trange_flag = 0;
-/* XXX a hack */	} else if (strcmp(CString(CAR($2)), "snapshot") == 0) {
-				/* snapshot */
-				p_trange = MakeTimeRange( CDR($2), LispNil, 0);
-				trange_flag = 2;
-			} else {
-				/* time range */
-				p_trange = MakeTimeRange( CAR($2), CDR($2), 1);
-				trange_flag = 2;
-			}
+			printf("timerange flag = %d",(int)$2);
+
 			if ($3 != LispNil )	/* inheritance query*/
 				inherit_flag = 1;
 			if( !RangeTablePosn(CString($1),inherit_flag,p_trange))
@@ -1071,11 +1060,13 @@ Relation:
 
 opt_time_range:
 	  '[' opt_date ',' opt_date ']'
-		{ $$ = lispCons ($2,$4); }
+		{ printf ("time range\n");fflush(stdout);
+		  p_trange = MakeTimeRange($2,$4,1); $$ = (LispValue)2; }
 	| '[' date ']'
-		{ $$ = lispCons(lispString("snapshot"),$2); }	/* XXX a hack */
+		{ printf("snapshot\n"); fflush(stdout);
+		p_trange = MakeTimeRange($2,LispNil,0); $$ = (LispValue)2; }
 	| /*EMPTY*/
-		{ NULLTREE }
+		{ p_trange = LispNil; $$ = (LispValue)0; }
 	;
 opt_date:
 	  /* no date, default to nil */
@@ -1147,12 +1138,12 @@ a_expr:
 			    bcopy(cp, pp, len);
 			    cp = pp;
 			  }
-			  lcp = ppreserve(cp);
+			  lcp = parser_ppreserve(cp);
 			} else {
 			  lcp = lispInteger((long) cp);
 			}
 
-			adt = lispMakeConst ( typeid(tp), len, lcp , 0 );
+			adt = MakeConst ( typeid(tp), len, lcp , 0 );
 			/*
 			printf("adt %s : %d %d %d\n",CString($1),typeid(tp) ,
 			       len,cp);
@@ -1275,7 +1266,7 @@ res_target_el:
 			attrtype = type_id;
 			attrlen = type_len;
 		    }
-		    $$ = lispCons (lispMakeResdom (  resdomno,
+		    $$ = lispCons (MakeResdom (  resdomno,
 						   attrtype,
 						   attrlen , 
 						   $1, 0 , 0 ) ,
@@ -1290,7 +1281,7 @@ res_target_el:
 		      temp = make_var ( CAR($1) , CDR($1));
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
-		      resnode = lispMakeResdom ( p_last_resno++ ,
+		      resnode = MakeResdom ( p_last_resno++ ,
 						type_id, type_len, 
 						CDR ( $1 ) , 0 , 0 );
 		      varnode = CDR(temp);
@@ -1325,7 +1316,7 @@ attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
 	  adt_name '[' '$' spec_tail ']'
-		{ $$ = lispMakeParam( $4 ) ; }
+		{ $$ = MakeParam( $4 ) ; }
 	;
 
 spec_tail:

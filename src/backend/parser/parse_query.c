@@ -14,175 +14,16 @@
 #include <ctype.h>
 #include "rel.h" 		/* Relation stuff */
 #include "catalog_utils.h"
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "log.h"
 #include "parse.h"
 #include "tim.h"
 #include "trange.h"
 #include "parse_query.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 
-int MAKE_RESDOM,MAKE_VAR,MAKE_ADT,MAKE_CONST,MAKE_PARAM,MAKE_OP;
-
-LispValue
-lispMakeResdom(resno,restype,reslen,attrname,reskey,reskeyop)
-     LispValue attrname;
-     int resno,restype,reslen,reskey,reskeyop;
-{
-#ifdef ALLEGRO
-	return ( lisp_call (MAKE_RESDOM, resno,restype,
-		 	    reslen,attrname,reskey,reskeyop ));
-#endif
-#ifdef FRANZ43
-	LispValue l = lispCons( lispInteger(reskeyop), LispNil);
-	l = lispCons ( lispInteger(reskey) , l);
-	l = lispCons ( attrname , l);
-	l = lispCons ( lispInteger (reslen) , l );
-	l = lispCons ( lispInteger (restype) , l );
-	l = lispCons ( lispInteger (resno) , l );
-	l = lispCons ( lispAtom ("make_resdom") , l);
-	return (evalList(l));
-#endif
-}
-
-LispValue
-lispMakeVar(vnum,attid,vartype,vardotfields,vararrayindex)
-     int vnum,attid,vartype,vardotfields,vararrayindex ;
-{
-#ifdef ALLEGRO
-	return ( lisp_call (MAKE_VAR,vnum,attid,vartype,vardotfields,
-			    vararrayindex ));
-#endif
-#ifdef FRANZ43
-	LispValue l = LispNil, m = LispNil;
-	
-	if (vararrayindex != 0 )
-	  m = lispCons ( lispInteger (vararrayindex) , m ) ;
-	/* else
-	  m = lispCons ( LispNil , m); */
-	if (vardotfields != 0 )
-	  m = lispCons ( lispInteger (vardotfields) , m ) ; /* bogus, since
-							       no multi-level
-							       in Ver 1 */
-	/* else
-	  m = lispCons ( LispNil , m); */
-	/* m = lispCons ( lispInteger (vartype) , m );    /* vartype */
-	m = lispCons ( lispInteger (attid) , m );      /* varattno */
-	m = lispCons ( lispInteger (vnum) , m );       /* varno */
-	m = lispCons ( lispAtom ("list") , m );
-
-	l = lispCons ( m , LispNil );
-	if (vararrayindex != 0 )
-	  l = lispCons ( lispInteger (vararrayindex) , l ) ;
-	else
-	  l = lispCons ( LispNil , l );
-	if (vardotfields != 0 )
-	  l = lispCons ( lispInteger (vardotfields) , l ) ;
-	else
-	  l = lispCons ( LispNil , l );
-	l = lispCons ( lispInteger (vartype) , l );
-	l = lispCons ( lispInteger (attid) , l );
-	l = lispCons ( lispInteger (vnum) , l );
-
-	l = lispCons ( lispAtom ("make_var") , l );
-	return (evalList (l));
-#endif       
-}
-
-/**********************************************************************
-
-  lispMakeOp
-  returns
-  #S(oper :opno <opid> :oprelationlevel <oprel> :opresulttype <opresult> )
-
- **********************************************************************/
-
-LispValue 
-lispMakeOp (opid,oprel,opresult)
-     int opid,oprel,opresult;
-{
-#ifdef ALLEGRO
-	return(lisp_call (MAKE_OP,opid,oprel,opresult));
-#endif
-#ifdef FRANZ43
-	LispValue l = lispCons ( lispInteger (opresult) , LispNil );
-	if ( oprel != 0 )
-	  l = lispCons (lispInteger (oprel) , l );
-	else
-	  l = lispCons (LispNil , l );
-	  
-	l = lispCons (lispInteger (opid) , l );
-	l = lispCons (lispAtom ("make_oper") , l );
-	return (evalList(l));
-#endif
-#ifdef PG_LISP
-	return(LispNil);
-#endif
-}
-
-/**********************************************************************
-
-  lispMakeParam
-  
-  - takes the param from yacc
-  and constructs a param struct as per nodedefs.cl
-
-  XXX - why isn't the foo in foo[ $param ] used ?
-
- **********************************************************************/
-
-
-LispValue 
-lispMakeParam (paramval )
-     LispValue paramval;
-{
-#ifdef ALLEGRO
-	return(lisp_call (MAKE_PARAM,paramval));
-#endif
-#ifdef FRANZ43
-	LispValue l = lispCons ( lispInteger(paramval), LispNil );
-	
-	l = lispCons ( lispAtom ("make_param") , LispNil );
-#endif
-#ifdef PG_LISP
-	return(LispNil);
-#endif
-}
-/**********************************************************************
-
-  lispMakeConst
-  - takes the stuff and makes it into a 
-  #S(const :consttype  <typid> 
-           :constlen   <typlen>
-	   :constvalue <lvalue>
-	   :constisnull <nil | constisnull>
-
- **********************************************************************/
-
-LispValue 
-lispMakeConst (typid,typlen,lvalue,constisnull)
-     int typid,typlen,constisnull;
-     LispValue lvalue;
-{
-#ifdef ALLEGRO
-	return(lisp_call (MAKE_CONST,typid,typlen,lvalue,constisnull));
-#endif
-#ifdef FRANZ43
-	LispValue l = LispNil;
-	if ( constisnull != 0 )
-	  l = lispCons ( lispInteger (constisnull) , LispNil );
-	else
-	  l = lispCons ( LispNil, LispNil );
-
-	l = lispCons ( lvalue , l );
-	l = lispCons ( lispInteger (typlen) , l );
-	l = lispCons ( lispInteger (typid) , l );
-	l = lispCons ( lispAtom ("make_const") , l );
-	return (evalList( l ));
-#endif
-#ifdef PG_LISP
-	return(LispNil);
-#endif
-}
+extern LispValue parser_ppreserve();
 
 LispValue
 ModifyQueryTree(query,priority,ruletag)
@@ -191,7 +32,7 @@ ModifyQueryTree(query,priority,ruletag)
   return(lispString("rule query")); /* XXX temporary */
 }
 
-LispValue
+Name
 VarnoGetRelname( vnum )
      int vnum;
 {
@@ -200,7 +41,7 @@ VarnoGetRelname( vnum )
 	LispValue temp = p_rtable;
 	for( i = 1; i < vnum ; i++) 
 		temp = CDR(temp);
-	return(lispString(CString(CAR(CDR(CAR(temp))))));
+	return((Name)CString(CAR(CDR(CAR(temp)))));
 }
 
 /**************************************************
@@ -315,17 +156,17 @@ MakeTargetList()
 
 LispValue
 ExpandAll(relname,this_resno)
-     LispValue relname;
+     Name relname;
      int *this_resno;
 {
 	Relation rdesc;
 	LispValue tall = LispNil;
-	LispValue resnode = LispNil;
+	Resdom resnode;
 	LispValue varnode = LispNil;
 	LispValue temp = LispNil;
 	int i,maxattrs,first_resno;
 	int type_id,type_len,vnum;
-	LispValue physical_relname;
+	Name physical_relname;
 
 	first_resno = *this_resno;
 	
@@ -341,7 +182,7 @@ ExpandAll(relname,this_resno)
 		physical_relname = VarnoGetRelname(vnum);
 
 
-	rdesc = amopenr(CString(physical_relname));
+	rdesc = amopenr(physical_relname);
 	
 	if (rdesc == NULL ) {
 		elog(WARN,"Unable to expand all -- amopenr failed ");
@@ -354,13 +195,13 @@ ExpandAll(relname,this_resno)
 		/* printf("%s\n",attrname);
 		fflush(stdout);*/
 		temp = make_var ( relname,
-				  lispString(attrname) );
+				  attrname );
 		varnode = CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = tlen(get_id_type(type_id));
 		
-		resnode = lispMakeResdom( i + first_resno, type_id, type_len,
-					 lispString(attrname), 0, 0 );
+		resnode = MakeResdom( i + first_resno, type_id, type_len,
+					 attrname, 0, 0 );
 
 		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
 				tall);
@@ -416,18 +257,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 		default:
 			elog(WARN, "MakeTimeRange: internal parser error");
 	}
-	return(ppreserve(trange));
-}
-
-notify_parser (a,b,c,d,e,f)
-	int a,b,c,d,e,f;
-{
-	MAKE_RESDOM = a;
-	MAKE_VAR = b;
-	MAKE_ADT = c;
-	MAKE_CONST = d;
-	MAKE_PARAM = e;
-	MAKE_OP = f;
+	return(parser_ppreserve(trange));
 }
 
 LispValue 
@@ -437,9 +267,10 @@ make_op(op,ltree,rtree)
 	Type ltype,rtype;
 	Operator temp;
 	OperatorTupleForm opform;
-	LispValue newop;
+	Oper newop;
 	LispValue left,right;
-
+	LispValue t1;
+	
 	left = CDR(ltree);
 	right = CDR(rtree);
 	ltype = get_id_type ( CInteger ( CAR(ltree) ));
@@ -460,11 +291,11 @@ make_op(op,ltree,rtree)
 		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
-	newop = lispMakeOp ( oprid(temp),    /* operator id */
+	newop = MakeOper ( oprid(temp),    /* operator id */
 			    0 ,       	     /* operator relation level */
 			    opform->         /* operator result type */
 			    oprresult );
-	newop = lispCons ( newop , lispCons (left ,
+	t1 = lispCons ( newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
 			   newop ));
@@ -485,9 +316,9 @@ make_op(op,ltree,rtree)
 
 LispValue
 make_var ( relname, attrname )
-     LispValue relname, attrname;
+     Name relname, attrname;
 {
-	LispValue varnode;
+	Var varnode;
 	int vnum, attid , vartype, vardotfields, vararrayindex ;
 	Type rtype;
 	Relation rd;
@@ -522,8 +353,8 @@ make_var ( relname, attrname )
 	vardotfields = 0;                          /* XXX - fix this */
 	vararrayindex = 0;                         /* XXX - fix this */
 
-	varnode = lispMakeVar (vnum , attid ,
-			      vartype , vardotfields , vararrayindex );
+	varnode = MakeVar (vnum , attid ,
+			   vartype , vardotfields , vararrayindex );
 
 	return ( lispCons ( lispInteger ( typeid (rtype ) ),
 			    varnode ));
@@ -713,7 +544,7 @@ make_const( value )
 	      default: 
 		/* null const */
 		return ( lispCons (LispNil , 
-				   lispMakeConst ( 0 , 0 , 
+				   MakeConst ( 0 , 0 , 
 					       LispNil , 1 )) );
 	}
 #endif
@@ -744,7 +575,7 @@ make_const( value )
 		fflush (stdout);
 		/* null const */
 		return ( lispCons (LispNil , 
-				   lispMakeConst ( 0 , 0 , 
+				   MakeConst ( 0 , 0 , 
 					       LispNil , 1 )) );
 	}
 #endif
@@ -752,10 +583,15 @@ make_const( value )
 	fflush(stdout);
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
-			  lispMakeConst(typeid( tp ), tlen( tp ),
+			  MakeConst(typeid( tp ), tlen( tp ),
 				    value , 0 ));
 /*	lispDisplay( temp , 0 );*/
 	return (temp);
 	
 }
-
+LispValue
+parser_ppreserve(temp)
+     char *temp;
+{
+    return(temp);
+}
