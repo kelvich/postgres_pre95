@@ -163,11 +163,17 @@ Prs2LockType newTupleLockType;
 
 
     if (oldOrNewTuple == PRS2_OLD_TUPLE) {
+	if (oldAttributeValues == NULL) {
+	    elog(WARN,"prs2ActivateBackwardChainingRules: Internal error");
+	}
 	attributeValues = oldAttributeValues;
 	lockTypeToBeUsed = oldTupleLockType;
 	locks = oldTupleLocks;
 	tupleOid = oldTupleOid;
     } else if (oldOrNewTuple == PRS2_NEW_TUPLE) {
+	if (newAttributeValues == NULL) {
+	    elog(WARN,"prs2ActivateBackwardChainingRules: Internal error");
+	}
 	attributeValues = newAttributeValues;
 	lockTypeToBeUsed = newTupleLockType;
 	locks = newTupleLocks;
@@ -334,6 +340,11 @@ Prs2LockType newTupleLockType;
     while (paramList[i].kind != PARAM_INVALID) {
 	attributeName = paramList[i].name;
 	attributeNumber = get_attnum(relation->rd_id, attributeName);
+	if (attributeNumber == InvalidAttributeNumber) {
+	    elog(WARN,
+	    "prs2CalculateAttributesOfParamNodes:Illegal attrname:%s,rel=%ld",
+	    attributeName, relation->rd_id);
+	}
 	if (paramList[i].kind == PARAM_OLD) {
 	    /*
 	     * make sure that the value stored in the old tuple
