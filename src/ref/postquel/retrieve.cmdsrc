@@ -4,7 +4,7 @@
 .XA 2 Retrieve
 .uh NAME
 .lp
-retrieve \*- retrieve tuples from a relation
+retrieve \*- retrieve instances from a class
 .uh SYNTAX
 .lp
 .b retrieve \c
@@ -12,7 +12,7 @@ retrieve \*- retrieve tuples from a relation
 .b * \c
 ] [ (
 .b into
-relname [ archive_mode ]
+classname [ archive_mode ]
 |
 .b portal
 portal_name ) ]
@@ -21,12 +21,12 @@ portal_name ) ]
 .b unique
 ]
 .b (
-[ dom_name1
+[ attr_name1
 .b =
 ] expression1 {
 .b ,
 [
-.r dom_name \c
+.r attr_name \c
 .i i
 .b =
 ]
@@ -46,13 +46,13 @@ qual ]
 [
 .b "sort"
 .b by
-dom_name\-1
+attr_name\-1
 [
 .b using
 operator
 ] {
 .b ,
-.r dom_name\- \c
+.r attr_name\- \c
 .i j
 [
 .b using
@@ -61,17 +61,17 @@ operator ] }
 .uh DESCRIPTION
 .lp
 .b Retrieve 
-will get all tuples which satisfy the qualification,
+will get all instances which satisfy the qualification,
 .i qual ,
 compute the value of each element in the target list,
 and either 
 return them to an application program through a portal
-or store them in a new relation.
+or store them in a new class.
 .lp
 If
-.i relname
+.i classname
 is specified, the result of the query will be stored in a new
-relation with the indicated name.
+class with the indicated name.
 If an archive specification,
 .i archive_mode
 of
@@ -85,18 +85,18 @@ defaults to
 archiving.
 (This default may be changed at a site by the
 .A DBA .)
-The current user will be the owner of the new relation.
-The relation will have domain names as specified in the 
+The current user will be the owner of the new class.
+The class will have attribute names as specified in the 
 res_target_list.
-A relation with this name
+A class with this name
 owned by the user must not already exist.
 The keyword 
 .b all
 can be used when it is desired to
-retrieve all fields of a relation.
+retrieve all fields of a class.
 .lp
 If no result
-.i relname
+.i classname
 is specified, then the result of the query will be
 available on the specified portal
 and will not be saved.
@@ -105,17 +105,17 @@ For named portals, retrieve passes data to an application
 without conversion to external format.
 For the blank portal, all data is converted
 to external format.
-Duplicate tuples are not removed when the result is
+Duplicate instances are not removed when the result is
 displayed through a portal
 unless the optional
 .b unique
-tag is appended, in which case the tuples in the res_target_list
+tag is appended, in which case the instances in the res_target_list
 are sorted according to the sort clause and duplicates are
 removed before being returned.
 .lp
 The
 .b sort
-clause allows a user to specify that he wishes the tuples sorted
+clause allows a user to specify that he wishes the instances sorted
 according to the corresponding operator.
 This operator must be a binary one returning a boolean.
 Multiple sort fields are allowed and are applied from left to right.
@@ -154,7 +154,7 @@ run the command until it produces no effect.
    from e in emp[\*(lqJanuary 7 1985\*(rq]
    sort by name using <
 
-/* construct a new relation, raise, containing 1.1 times all employee's salaries  */
+/* construct a new class, raise, containing 1.1 times all employee's salaries  */
 
    retrieve into raise (salary = 1.1 * emp.salary)
 .uh "SEE ALSO"
@@ -164,10 +164,10 @@ create(commands).
 .uh BUGS
 .lp
 .q "Retrieve into"
-does not delete duplicates in Version 2.
+does not delete duplicates in Version 2.1.
 .lp
 .q Archive_mode 
-is not implemented in Version 2.
+is not implemented in Version 2.1.
 .lp
 The code to support 
 .q * 

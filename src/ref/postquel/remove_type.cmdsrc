@@ -14,7 +14,7 @@ typename
 This command removes a user type
 from the system catalogs.
 Anyone is allowed to remove a type,
-and removal of types in use by a relation will not be refused.
+and removal of types in use by a class will not be refused.
 Be careful not to remove a built-in type.
 .lp
 It is the user's responsibility to remove any operators and
