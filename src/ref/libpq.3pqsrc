@@ -350,7 +350,7 @@ The return value is 0 on successful completion, nonzero otherwise.
 .nf
 PQexec("create foo (a=int4, b=char16, d=float8)");
 PQexec("copy foo from stdin");
-PQputline("3<TAB>hello world<TAB>4.5");
+PQputline("3<TAB>hello world<TAB>4.5\n");
 PQputline("4<TAB>goodbye world<TAB>7.11");
 ...
 PQputline(".\en");
