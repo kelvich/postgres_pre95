@@ -238,4 +238,12 @@ ResetBufferUsage ARGS(());
 extern
 void
 PrintBufferUsage ARGS(());
+
+extern
+void
+BufferRefCountReset ARGS((int *refcountsave));
+
+extern
+void
+BufferRefCountRestore ARGS((int *refcountsave));
 #endif	/* !defined(BufMgrIncluded) */
