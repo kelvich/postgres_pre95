@@ -157,7 +157,7 @@ typedef bool	*BoolPtr;
 
 #ifdef	__STDC__ /* ANSI C */
 
-#if PORTNAME != bsd44
+#if ! defined(PORTNAME_bsd44) && ! defined(PORTNAME_alpha)
 #define PROTOTYPES
 #endif
 /*
@@ -471,7 +471,7 @@ free_debug ARGS((
         char    *p
 ));
 #else /* PALLOC_DEBUG */
-#if PORTNAME == bsd44
+#if defined(PORTNAME_bsd44)
 #include <stdlib.h>
 #else
 extern
@@ -484,7 +484,7 @@ extern
 free ARGS((
         char    *p
 ));
-#endif /* ! PORTNAME == bsd44 */
+#endif /* ! PORTNAME_bsd44 */
 #endif /* PALLOC_DEBUG */
 
 /*
