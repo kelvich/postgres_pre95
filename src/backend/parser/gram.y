@@ -34,6 +34,10 @@
 #include "tmp/c.h"
 #include "catalog_utils.h"
 #include "catalog/catname.h"
+#include "catalog/pg_log.h"
+#include "catalog/pg_magic.h"
+#include "catalog/pg_time.h"
+#include "catalog/pg_variable.h"
 #include "access/heapam.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
@@ -622,7 +626,7 @@ MergeStmt:
 
   ************************************************************/
 
- Executable:     OptimizableStmt 
+Executable:     OptimizableStmt 
                {
 		   $$ = $1;
 		   if (!is_postquel_function)
@@ -2027,15 +2031,12 @@ relation_name:
 	SpecialRuleRelation
 	| Id
 	  {
-		/*
-		 * Catch references to pg_log and disallow them.
-		 * XXX There are probably other system relations that
-		 *     we should add to this list.
-		 */
-		if (strncmp(CString($1), LogRelationName, 16) == 0)
-		    elog(WARN,
-			 "%s cannot be accessed by users",
-			 LogRelationName);
+		/* disallow refs to magic system tables */
+		if (strncmp(CString($1), Name_pg_log, 16) == 0
+		    || strncmp(CString($1), Name_pg_variable, 16) == 0
+		    || strncmp(CString($1), Name_pg_time, 16) == 0
+		    || strncmp(CString($1), Name_pg_magic, 16) == 0)
+		    elog(WARN, "%s cannot be accessed by users", CString($1));
 		else
 		    $$ = $1;
 	  }
@@ -2094,8 +2095,7 @@ AexprConst:
 		    $$ = (List) lispCons(lispInteger(toid), (LispValue)
 				 MakeParam(PARAM_NUM, (AttributeNumber)aid,
 					   (Name)"foop", (ObjectId)toid));
-		}
-		else {
+		} else {
 		    toid = param_type_complex(CString($1));
 		    if (!ObjectIdIsValid(toid)) {
 			elog(WARN,
