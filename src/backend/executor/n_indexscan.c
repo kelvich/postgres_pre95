@@ -641,6 +641,8 @@ IndexNext(node)
 		 *   we found a deleted tuple, so keep on scanning..
 		 * ----------------
 		 */
+		if (BufferIsValid(buffer))
+		    ReleaseBuffer(buffer);
 		continue;
 	    }
 

@@ -1089,6 +1089,7 @@ ExecDelete(slot, tupleid, estate)
 	  return NULL;
 	}
     } /*if prs2MustCallRuleManager*/
+    ReleaseBuffer(rawTupleBuffer);
 
 #endif EXEC_RULEMANAGER
     
@@ -1264,6 +1265,7 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
 	    tuple = changedTuple;
 	}
     } /*if prs2MustCallRuleManager */
+    ReleaseBuffer(oldTupleBuffer);
 	
 #endif EXEC_RULEMANAGER
     
