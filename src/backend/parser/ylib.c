@@ -1,14 +1,20 @@
 static char *ylib_c = "$Header$";
 
-#include <stdio.h>
+#define MAXPATHLEN 1024
 
+#include <strings.h>
+#include <stdio.h>
+#include <pwd.h>
 #include "log.h"
-/*#include "catalog_utils.h"*/
+#include "catalog_utils.h"
 #include "pg_lisp.h"
 #include "exc.h"
 #include "excid.h"
 #include "io.h"
 #include "palloc.h"
+#include "parse_query.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 
 LispValue parsetree;
 
@@ -87,4 +93,207 @@ parser(str, l)
     } else {
 	return(0);
     }
+}
+
+char *
+expand_file_name(file)
+char *file;
+{
+    char *str;
+    int ind;
+
+    str = (char *) palloc(MAXPATHLEN * sizeof(*str));
+    str[0] = '\0';
+    if (file[0] == '~') {
+	if (file[1] == '\0' || file[1] == '/') {
+	    /* Home directory */
+	    strcpy(str, getenv("HOME"));
+	    ind = 1;
+	} else {
+	    /* Someone else's directory */
+	    char name[16], *p;
+	    struct passwd *pw;
+	    int len;
+
+	    if ((p = (char *) index(file, '/')) == NULL) {
+		strcpy(name, file+1);
+		len = strlen(name);
+	    } else {
+		len = (p - file) - 1;
+		strncpy(name, file+1, len);
+		name[len] = '\0';
+	    }
+	    /*printf("name: %s\n");*/
+	    if ((pw = getpwnam(name)) == NULL) {
+		elog(WARN, "No such user: %s\n", name);
+		ind = 0;
+	    } else {
+		strcpy(str, pw->pw_dir);
+		ind = len + 1;
+	    }
+	}
+    } else {
+	ind = 0;
+    }
+    strcat(str, file+ind);
+    return(str);
+}
+
+LispValue
+new_filestr ( filename )
+     LispValue filename;
+{
+  return (lispString (expand_file_name (CString(filename))));
+}
+
+int
+lispAssoc ( element, list)
+     LispValue element, list;
+{
+    LispValue temp = list;
+    int i = 0;
+    if (list == LispNil) 
+      return -1; 
+    /* printf("Looking for %d", CInteger(element));*/
+
+    while (temp != LispNil ) {
+	if(CInteger(CAR(temp)) == CInteger(element))
+	  return i;
+	temp = CDR(temp);
+	i ++;
+    }
+	   
+    return -1;
+}
+
+LispValue
+parser_typecast ( expr, typename )
+     LispValue expr;
+     LispValue typename;
+{
+    /* check for passing non-ints */
+    Const adt;
+    Datum lcp;
+    Type tp = type(CString(typename));
+    int32 len = tlen(tp);
+    char *cp = NULL;
+    char *const_string = palloc(256);
+    
+    switch ( CInteger(CAR(expr)) ) {
+      case 23: /* int4 */
+	sprintf(const_string,"%d",
+		get_constvalue(CDR(expr)));
+	break;
+      case 19: /* char16 */
+	sprintf(const_string,"%s",
+		get_constvalue(CDR(expr)));
+	break;
+      case 18: /* char */
+	sprintf(const_string,"%c",
+		get_constvalue(CDR(expr)));
+	break;
+      case 701:/* float8 */
+	sprintf(const_string,"%f",
+		get_constvalue(CDR(expr)));
+	break;
+      case 25: /* text */
+	const_string = 
+	  DatumGetPointer(
+			  get_constvalue(CDR(expr)) );
+	break;
+      default:
+	elog(WARN,"unknown type%d ",
+	     CInteger(CAR(expr)) );
+    }
+    
+    cp = instr2 (tp, const_string);
+    
+    
+    if (!tbyvalue(tp)) {
+	if (len >= 0 && len != PSIZE(cp)) {
+	    char *pp;
+	    pp = palloc(len);
+	    bcopy(cp, pp, len);
+	    cp = pp;
+	}
+	lcp = PointerGetDatum(cp);
+    } else {
+	switch(len) {
+	  case 1:
+	    lcp = Int8GetDatum(cp);
+	    break;
+	  case 2:
+	    lcp = Int16GetDatum(cp);
+	    break;
+	  case 4:
+	    lcp = Int32GetDatum(cp);
+	    break;
+	  default:
+	    lcp = PointerGetDatum(cp);
+	    break;
+	}
+    }
+    
+    adt = MakeConst ( typeid(tp), len, lcp , 0 );
+    /*
+      printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
+      len,cp);
+      */
+    return (lispCons  ( lispInteger (typeid(tp)) , adt ));
+    
+    
+}
+
+char *
+after_first_white_space( input )
+     char *input;
+{
+    char *temp = input;
+    while ( *temp != ' ' && *temp != 0 ) 
+      temp = temp + 1;
+
+    return (temp+1);
+}
+
+int 
+*int4varin( input_string )
+     char *input_string;
+{
+    int *foo = (int *)malloc(1024*sizeof(int));
+    register int i = 0;
+
+    char *temp = input_string;
+    
+    while ( sscanf(temp,"%ld", &foo[i+1]) == 1 
+	   && i < 1022 ) {
+	i = i+1;
+	temp = after_first_white_space(temp);
+    }
+    foo[0] = i;
+    return(foo);
+}
+
+char *
+int4varout ( an_array )
+     int *an_array;
+{
+    int temp = an_array[0];
+    char *output_string = NULL;
+    extern int itoa();
+    int i;
+
+    if ( temp > 0 ) {
+	char *walk;
+	output_string = (char *)malloc(16*temp); /* assume 15 digits + sign */
+	walk = output_string;
+	for ( i = 0 ; i < temp ; i++ ) {
+	    itoa(an_array[i+1],walk);
+	    printf ( "%s\n", walk );
+	    while (*++walk != '\0')
+	      ;
+	    *walk++ = ' ';
+	}
+	*--walk = '\0';
+    }
+    return(output_string);
 }
