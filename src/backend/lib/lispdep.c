@@ -249,7 +249,7 @@ lispDisplayFp(fp, lispObject,iscdr)
 		lispDisplayFp(fp, CAR(lispObject),0);
 		if(CDR(lispObject)!=LispNil) {
 			if(CDR(lispObject)->type != PGLISP_DTPR)
-				fprintf(fp, ".");
+				fprintf(fp, " . ");
 			lispDisplayFp(fp, CDR(lispObject),1);
 		}
 		if(!iscdr)
