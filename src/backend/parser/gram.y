@@ -93,7 +93,7 @@ bool Typecast_ok = true;
 /* Commands */
 
 %token  ABORT_TRANS ADD_ATTR APPEND ATTACH_AS BEGIN_TRANS CHANGE CLOSE
-        CLUSTER COPY CREATE DEFINE DELETE DESTROY END_TRANS EXECUTE
+        CLUSTER COPY CREATE DEFINE DELETE DESTROY END_TRANS EXECUTE EXTEND
         FETCH MERGE MOVE PURGE REMOVE RENAME REPLACE RETRIEVE
 
 /* Keywords */
@@ -169,6 +169,7 @@ stmt :
 	| CreateStmt
 	| DefineStmt
 	| DestroyStmt
+	| ExtendStmt
 	| FetchStmt
 	| IndexStmt
 	| MergeStmt
@@ -585,8 +586,8 @@ opt_portal_name:
 	define index:
 	
 	define [archive] index <indexname> on <relname>
-	  using <access> "(" (<col> with <op>)+ ")" with
-	  <target_list>
+	  using <access> "(" (<col> with <op>)+ ")" [with
+	  <target_list>] [where <qual>]
 
   ************************************************************/
 
@@ -598,9 +599,28 @@ IndexStmt:
 		    /* should check that access_method is valid,
 		       etc ... but doesn't */
 
-		    $$ = MakeList ( $6,$4,$8,$10,$12,$13,-1 );
+		    $$ = lispCons ( $13, lispCons ( p_rtable, NULL )); 
+		    $$ = MakeList ( $6,$4,$8,$10,$12,$$,-1 );
 		    $$ = lispCons(KW(index),$$);
 		    $$ = lispCons(KW(define),$$);
+		}
+	;
+
+ /************************************************************
+
+	extend index:
+	
+	extend index <indexname> [where <qual>]
+
+  ************************************************************/
+
+
+ExtendStmt:
+	  EXTEND Index index_name where_clause
+		{
+		    $$ = lispCons ( $4, lispCons ( p_rtable, NULL )); 
+		    $$ = MakeList ( $3,$$,-1 );
+		    $$ = lispCons(KW(extend),$$);
 		}
 	;
 

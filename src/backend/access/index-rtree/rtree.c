@@ -46,7 +46,7 @@ typedef struct SPLITVEC {
 } SPLITVEC;
 
 void
-rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
+rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, predInfo)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -55,7 +55,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     uint16 pcount;
     Datum *params;
     FuncIndexInfo *finfo;
-    LispValue pred;
+    LispValue predInfo;
 {
     HeapScanDesc scan;
     Buffer buffer;
@@ -71,22 +71,28 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     TupleTable tupleTable;
     TupleTableSlot slot;
     ObjectId hrelid, irelid;
+    LispValue pred, oldPred;
 
     /* rtrees only know how to do stupid locking now */
     RelationSetLockForWrite(index);
+
+    pred = CAR(predInfo);
+    oldPred = CADR(predInfo);
 
     /*
      *  We expect to be called exactly once for any index relation.
      *  If that's not the case, big trouble's what we have.
      */
 
-    if ((nb = RelationGetNumberOfBlocks(index)) != 0)
+    if (oldPred == LispNil && (nb = RelationGetNumberOfBlocks(index)) != 0)
 	elog(WARN, "%.16s already contains data", &(index->rd_rel->relname.data[0]));
 
-    /* initialize the root page */
-    buffer = ReadBuffer(index, P_NEW);
-    RTInitBuffer(buffer, F_LEAF);
-    WriteBuffer(buffer);
+    /* initialize the root page (if this is a new index) */
+    if (oldPred == LispNil) {
+	buffer = ReadBuffer(index, P_NEW);
+	RTInitBuffer(buffer, F_LEAF);
+	WriteBuffer(buffer);
+    }
 
     /* init the tuple descriptors and get set for a heap scan */
     hd = RelationGetTupleDescriptor(heap);
@@ -101,7 +107,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
      * referring to that slot.  Here, we initialize dummy TupleTable and
      * ExprContext objects for this purpose. --Nels, Feb '92
      */
-    if (pred != LispNil) {
+    if (pred != LispNil || oldPred != LispNil) {
 	tupleTable = ExecCreateTupleTable(1);
 	slot = (TupleTableSlot)
 	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
@@ -118,6 +124,18 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     for (; HeapTupleIsValid(htup); htup = heap_getnext(scan, 0, &buffer)) {
 
 	nh++;
+
+	/*
+	 * If oldPred != LispNil, this is an EXTEND INDEX command, so skip
+	 * this tuple if it was already in the existing partial index
+	 */
+	if (oldPred != LispNil) {
+	    SetSlotContents(slot, htup);
+	    if (ExecQual(oldPred, econtext) == true) {
+		ni++;
+		continue;
+	    }
+	}
 
 	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
 	if (pred != LispNil) {
@@ -179,7 +197,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     heap_endscan(scan);
     RelationUnsetLockForWrite(index);
 
-    if (pred != LispNil) {
+    if (pred != LispNil || oldPred != LispNil) {
 	ExecDestroyTupleTable(tupleTable, true);
 	pfree(econtext);
     }
@@ -202,6 +220,11 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
 
     UpdateStats(hrelid, nh, true);
     UpdateStats(irelid, ni, false);
+
+    if (oldPred != LispNil) {
+	if (ni == nh) pred = LispNil;
+	UpdateIndexPredicate(irelid, oldPred, pred);
+    }
 
     /* be tidy */
     pfree(nulls);

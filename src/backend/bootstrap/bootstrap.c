@@ -167,7 +167,7 @@ typedef struct _IndexList {
     uint16 		il_nparams;
     Datum *		il_params;
     FuncIndexInfo 	*il_finfo;
-    LispValue 		il_predicate;
+    LispValue 		il_predInfo;
     struct _IndexList 	*il_next;
 } IndexList;
 
@@ -1505,7 +1505,7 @@ printmacros()
  *	are present in the index.
  */
 
-index_register(heap, ind, natts, attnos, nparams, params, finfo, predicate)
+index_register(heap, ind, natts, attnos, nparams, params, finfo, predInfo)
     Name heap;
     Name ind;
     AttributeNumber natts;
@@ -1513,7 +1513,7 @@ index_register(heap, ind, natts, attnos, nparams, params, finfo, predicate)
     uint16 nparams;
     Datum *params;
     FuncIndexInfo *finfo;
-    LispValue predicate;
+    LispValue predInfo;
 {
     Datum *v;
     IndexList *newind;
@@ -1564,10 +1564,10 @@ index_register(heap, ind, natts, attnos, nparams, params, finfo, predicate)
 	newind->il_finfo = (FuncIndexInfo *) NULL;
     }
 
-    if (predicate != (LispValue) NULL)
-	newind->il_predicate = (LispValue) lispCopy(predicate);
+    if (predInfo != (LispValue) NULL)
+	newind->il_predInfo = (LispValue) lispCopy(predInfo);
     else
-	newind->il_predicate = predicate;
+	newind->il_predInfo = predInfo;
 
     newind->il_next = ILHead;
 
@@ -1586,7 +1586,7 @@ build_indices()
 	ind = (Relation) index_openr(ILHead->il_ind);
 	index_build(heap, ind, ILHead->il_natts, ILHead->il_attnos,
 		    ILHead->il_nparams, ILHead->il_params, ILHead->il_finfo,
-		    ILHead->il_predicate);
+		    ILHead->il_predInfo);
 
 	/*
 	 * All of the rest of this routine is needed only because in bootstrap

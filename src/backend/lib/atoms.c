@@ -63,6 +63,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "empty",		EMPTY		},
 	{ "end",		END_TRANS	},
 	{ "execute",		EXECUTE		},
+	{ "extend",		EXTEND		},
 	{ "fetch",		FETCH		},
 	{ "forward",		FORWARD		},
 	{ "from",		FROM		},

@@ -32,6 +32,20 @@ DefineIndex ARGS((
 ));
 
 /*
+ * ExtendIndex --
+ *	Extends a partial index.
+ *
+ * Exceptions:
+ *	XXX
+ */
+extern
+void
+ExtendIndex ARGS((
+        Name		indexRelationName,
+	LispValue	predicate
+));
+
+/*
  * RemoveIndex --
  *	Deletes an index.
  *

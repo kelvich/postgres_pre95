@@ -49,7 +49,7 @@ RcsId("$Header$");
  */
 
 void
-btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
+btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, predInfo)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -58,7 +58,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     uint16 pcount;
     Datum *params;
     FuncIndexInfo *finfo;
-    LispValue pred;
+    LispValue predInfo;
 {
     HeapScanDesc hscan;
     Buffer buffer;
@@ -76,12 +76,17 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     TupleTable tupleTable;
     TupleTableSlot slot;
     ObjectId hrelid, irelid;
+    LispValue pred, oldPred;
 
     /* note that this is a new btree */
     BuildingBtree = true;
 
-    /* first initialize the btree index metadata page */
-    _bt_metapinit(index);
+    pred = CAR(predInfo);
+    oldPred = CADR(predInfo);
+
+    /* initialize the btree index metadata page (if this is a new index) */
+    if (oldPred == LispNil)
+	_bt_metapinit(index);
 
     /* get tuple descriptors for heap and index relations */
     htupdesc = RelationGetTupleDescriptor(heap);
@@ -98,7 +103,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
      * referring to that slot.  Here, we initialize dummy TupleTable and
      * ExprContext objects for this purpose. --Nels, Feb '92
      */
-    if (pred != LispNil) {
+    if (pred != LispNil || oldPred != LispNil) {
 	tupleTable = ExecCreateTupleTable(1);
 	slot = (TupleTableSlot)
 	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
@@ -116,6 +121,18 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     for (; HeapTupleIsValid(htup); htup = heap_getnext(hscan, 0, &buffer)) {
 
 	nhtups++;
+
+	/*
+	 * If oldPred != LispNil, this is an EXTEND INDEX command, so skip
+	 * this tuple if it was already in the existing partial index
+	 */
+	if (oldPred != LispNil) {
+	    SetSlotContents(slot, htup);
+	    if (ExecQual(oldPred, econtext) == true) {
+		nitups++;
+		continue;
+	    }
+	}
 
 	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
 	if (pred != LispNil) {
@@ -183,7 +200,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     /* okay, all heap tuples are indexed */
     heap_endscan(hscan);
 
-    if (pred != LispNil) {
+    if (pred != LispNil || oldPred != LispNil) {
 	ExecDestroyTupleTable(tupleTable, true);
 	pfree(econtext);
     }
@@ -205,6 +222,10 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
 	index_close(index);
 	UpdateStats(hrelid, nhtups, true);
 	UpdateStats(irelid, nitups, false);
+	if (oldPred != LispNil) {
+	    if (nitups == nhtups) pred = LispNil;
+	    UpdateIndexPredicate(irelid, oldPred, pred);
+	}  
     }
 
     /* be tidy */

@@ -55,6 +55,7 @@ RcsId("$Header$");
 #include "catalog/indexing.h"
 
 #include "lib/heap.h"
+#include "lib/index.h"
 
 #include "nodes/execnodes.h"
 #include "nodes/plannodes.h"
@@ -62,6 +63,9 @@ RcsId("$Header$");
 #include "executor/x_qual.h"
 #include "executor/x_tuples.h"
 #include "executor/tuptable.h"
+
+#include "planner/clauses.h"
+#include "planner/prepqual.h"
 
 #include "machine.h"
 
@@ -875,6 +879,86 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
 }
  
 /* ----------------------------------------------------------------
+ *	UpdateIndexPredicate
+ * ----------------------------------------------------------------
+ */
+void
+UpdateIndexPredicate(indexoid, oldPred, predicate)
+    ObjectId		indexoid;
+    LispValue		oldPred;
+    LispValue		predicate;
+{
+    LispValue		newPred;
+    char		*predString;
+    text		*predText;
+    Relation		pg_index;
+    HeapTuple		tuple;
+    HeapTuple 		newtup;
+    ScanKeyEntryData	entry[1];
+    HeapScanDesc	scan;
+    Buffer		buffer;
+    int			i;
+    Datum 		values[Natts_pg_index];
+    char 		nulls[Natts_pg_index];
+    char 		replace[Natts_pg_index];
+
+    /*
+     * Construct newPred as a CNF expression equivalent to the OR of the
+     * original partial-index predicate ("oldPred") and the extension
+     * predicate ("predicate").
+     *
+     * This should really try to process the result to change things like
+     * "a>2 OR a>1" to simply "a>1", but for now all it does is make sure
+     * that if the extension predicate is NULL (i.e., it is being extended
+     * to be a complete index), then newPred will be NULL - in effect,
+     * changing "a>2 OR TRUE" to "TRUE". --Nels, Jan '93
+     */
+    newPred = LispNil;
+    if (predicate != LispNil) {
+	newPred = lispCons(make_andclause(oldPred), LispNil);
+	newPred = lispCons(make_andclause(predicate), newPred);
+	newPred = make_orclause(newPred);
+	newPred = cnfify(newPred);
+    }
+
+    /* translate the index-predicate to string form */
+    if (newPred != LispNil) {
+	predString = lispOut(newPred);
+	predText = (text *)fmgr(F_TEXTIN, predString);
+	pfree(predString);
+    } else {
+	predText = (text *)fmgr(F_TEXTIN, "");
+    }
+
+    /* open the index system catalog relation */
+    pg_index = heap_openr(IndexRelationName);
+
+    ScanKeyEntryInitialize(&entry[0], 0x0, Anum_pg_index_indexrelid, 
+					   ObjectIdEqualRegProcedure, 
+					   ObjectIdGetDatum(indexoid));
+
+    scan = heap_beginscan(pg_index, 0, NowTimeQual, 1, entry);
+    tuple = heap_getnext(scan, 0, &buffer);
+    heap_endscan(scan);
+
+    for (i = 0; i < Natts_pg_index; i++) {
+	nulls[i] = heap_attisnull(tuple, i+1) ? 'n' : ' ';
+	replace[i] = ' ';
+	values[i] = (Datum) NULL;
+    }
+
+    replace[Anum_pg_index_indpred - 1] = 'r';
+    values[Anum_pg_index_indpred - 1] = (Datum) predText;
+
+    newtup = ModifyHeapTuple(tuple, buffer, pg_index, values, nulls, replace);
+
+    heap_replace(pg_index, &(newtup->t_ctid), newtup);
+
+    heap_close(pg_index);
+    pfree((Pointer)predText);
+}
+ 
+/* ----------------------------------------------------------------
  *	InitIndexStrategy
  * ----------------------------------------------------------------
  */
@@ -979,6 +1063,7 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     ObjectId		 heapoid;
     ObjectId		 indexoid;
     ObjectId		 indproc;
+    LispValue		 predInfo;
 
     extern GlobalMemory  CacheCxt;
     MemoryContext   	 oldcxt;
@@ -1076,12 +1161,14 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      *    update pg_index
      *    (append INDEX tuple)
      *
-     *    Should stow away a representation of "predicate" here.
+     *    Note that this stows away a representation of "predicate".
      *    (Or, could define a rule to maintain the predicate) --Nels, Feb '92
      * ----------------
      */
     UpdateIndexRelation(indexoid, heapoid, funcInfo,
 			numatts, attNums, classObjectId, predicate);
+
+    predInfo = lispCons(predicate, lispCons(LispNil, LispNil));
 
     /* ----------------
      *    initialize the index strategy
@@ -1098,11 +1185,11 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      */
     if (IsBootstrapProcessingMode()) {
 	index_register(heapRelationName, indexRelationName, numatts, attNums,
-			parameterCount, parameter, funcInfo, predicate);
+			parameterCount, parameter, funcInfo, predInfo);
     } else {
 	heapRelation = heap_openr(heapRelationName);
 	index_build(heapRelation, indexRelation, numatts, attNums,
-			parameterCount, parameter, funcInfo, predicate);
+			parameterCount, parameter, funcInfo, predInfo);
     }
 }
 
@@ -1398,7 +1485,7 @@ FillDummyExprContext(econtext, slot, tupdesc, buffer)
  */
 void
 DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
-		indexStrategy, parameterCount, parameter, funcInfo, predicate)
+		indexStrategy, parameterCount, parameter, funcInfo, predInfo)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
@@ -1407,7 +1494,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     uint16		parameterCount;		/* not used */
     Datum		parameter[]; 		/* not used */
     FuncIndexInfoPtr       funcInfo;
-    LispValue		predicate;
+    LispValue		predInfo;
 {
     HeapScanDesc		scan;
     HeapTuple			heapTuple;
@@ -1422,6 +1509,8 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     ExprContext			econtext;
     TupleTable			tupleTable;
     TupleTableSlot		slot;
+    LispValue			predicate;
+    LispValue			oldPred;
 
     GeneralInsertIndexResult	insertResult;
 
@@ -1454,7 +1543,9 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
      * referring to that slot.  Here, we initialize dummy TupleTable and
      * ExprContext objects for this purpose. --Nels, Feb '92
      */
-    if (predicate != LispNil) {
+    predicate = CAR(predInfo);
+    oldPred = CADR(predInfo);
+    if (predicate != LispNil || oldPred != LispNil) {
 	tupleTable = ExecCreateTupleTable(1);
 	slot = (TupleTableSlot)
 	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
@@ -1485,6 +1576,18 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 	   HeapTupleIsValid(heapTuple)) {
 
 	reltuples++;
+
+	/*
+	 * If oldPred != LispNil, this is an EXTEND INDEX command, so skip
+	 * this tuple if it was already in the existing partial index
+	 */
+	if (oldPred != LispNil) {
+	    SetSlotContents(slot, heapTuple);
+	    if (ExecQual(oldPred, econtext) == true) {
+		indtuples++;
+		continue;
+	    }
+	}
 
 	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
 	if (predicate != LispNil) {
@@ -1526,7 +1629,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 
     heap_endscan(scan);
 
-    if (predicate != LispNil) {
+    if (predicate != LispNil || oldPred != LispNil) {
 	ExecDestroyTupleTable(tupleTable, false);
     }
 
@@ -1542,6 +1645,10 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
      */
     UpdateStats(heapRelation->rd_id, reltuples, true);
     UpdateStats(indexRelation->rd_id, indtuples, false);
+    if (oldPred != LispNil) {
+	if (indtuples == reltuples) predicate = LispNil;
+	UpdateIndexPredicate(indexRelation->rd_id, oldPred, predicate);
+    }
 }
 
 /* ----------------
@@ -1551,7 +1658,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 void
 index_build(heapRelation, indexRelation,
 	    numberOfAttributes, attributeNumber,
-	    parameterCount, parameter, funcInfo, predicate)
+	    parameterCount, parameter, funcInfo, predInfo)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
@@ -1559,7 +1666,7 @@ index_build(heapRelation, indexRelation,
     uint16		parameterCount;
     Datum		parameter[];
     FuncIndexInfo	*funcInfo;
-    LispValue		predicate;
+    LispValue		predInfo;
 {
     RegProcedure	procedure;
 
@@ -1586,7 +1693,7 @@ index_build(heapRelation, indexRelation,
 		    parameterCount,
 		    parameter,
 		    funcInfo,
-		    predicate);
+		    predInfo);
     else
 	DefaultBuild(heapRelation,
 		     indexRelation,
@@ -1596,5 +1703,5 @@ index_build(heapRelation, indexRelation,
 		     parameterCount,
 		     parameter,
 		     funcInfo,
-		     predicate);
+		     predInfo);
 }

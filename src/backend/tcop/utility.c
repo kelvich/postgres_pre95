@@ -455,7 +455,15 @@ ProcessUtility(command, args, commandString, dest)
 	    elog(WARN, "unknown object type in define statement");
 	} /* switch for define statements */
 	break;
-	
+
+    case EXTEND:
+	commandTag = "EXTEND";
+	CHECK_IF_ABORTED();
+
+	ExtendIndex(CString(CAR(args)), /* index name */
+		    CADR(args));        /* where */
+	break;
+
     case REMOVE:
 	commandTag = "REMOVE";
 	CHECK_IF_ABORTED();
