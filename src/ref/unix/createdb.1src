@@ -8,7 +8,7 @@ createdb \*- create a database
 .uh SYNOPSIS
 .lp
 .b createdb 
-[-p port -h host]
+[-p port][-h host]
 .b dbname
 .uh DESCRIPTION
 .lp
@@ -22,7 +22,8 @@ for this database.
 The
 .A DBA
 has special powers
-not granted to ordinary users.
+not granted to ordinary users. Namely, they can destroy
+the database they created.
 .lp
 .i Dbname
 is the name of the database
@@ -48,6 +49,14 @@ destroydb(unix),
 initdb(unix),
 createdb(postquel).
 .uh DIAGNOSTICS
+.sp
+.lp
+\fBError: Failed to connect to backend (host=\fIxxx\fB, port=\fIxxx\fB)\fR
+.lp
+createdb could not attach to the postmaster on the specified host and
+port.  If you see this message, check that the postmaster is running on
+the proper host and that the proper port is specified.
+.sp
 .lp
 You are not a valid \*(PP user
 .lp
