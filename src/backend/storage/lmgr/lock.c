@@ -25,8 +25,9 @@
 #include "storage/shmem.h"
 #include "storage/proc.h"
 #include "storage/spin.h"
-#include "utils/hsearch.h"
 #include "storage/lock.h"
+#include "storage/proc.h"
+#include "utils/hsearch.h"
 #include "utils/log.h"
 #include "access/xact.h"
 
@@ -142,8 +143,6 @@ typedef struct XIDLookupEnt {
  * holders -- count of each lock type currently held on the
  *	lock.
  * nHolding -- total locks of all types.
- * xid -- identifier of the (process) currently holding the
- *	lock or INVALID if many processed hold locks.
  */
 typedef struct Lock {
   /* hash key */
@@ -195,7 +194,7 @@ InitLocks()
    * set up the invalid transaction id.
    * -------------------
    */
-  TransactionIdSetTransactionIdValue(&InvalidXid, NullTransactionIdValue);
+  TransactionIdSetTransactionIdValue(NullTransactionIdValue, &InvalidXid);
 
   bit = 1;
   /* -------------------
@@ -1170,17 +1169,24 @@ int
 LockShmemSize()
 {
 	int size;
+	int nLockBuckets, nLockSegs;
+	int nXidBuckets, nXidSegs;
 
-	size = 30*1024;		/* 30 K */
+	nLockBuckets = 1 << (int)my_log2((NLOCKENTS - 1) / DEF_FFACTOR + 1);
+	nLockSegs = 1 << (int)my_log2((nLockBuckets - 1) / DEF_SEGSIZE + 1);
+
+	nXidBuckets = 1 << (int)my_log2((NLOCKS_PER_XACT-1) / DEF_FFACTOR + 1);
+	nXidSegs = 1 << (int)my_log2((nLockBuckets - 1) / DEF_SEGSIZE + 1);
+
+	size =	NLOCKENTS*sizeof(LOCK) +
+		NBACKENDS*sizeof(XIDLookupEnt) +
+		NBACKENDS*sizeof(PROC) +
+		sizeof(LOCKCTL) +
+		sizeof(PROC_HDR) +
+		nLockSegs*DEF_SEGSIZE*sizeof(SEGMENT) +
+		my_log2(NLOCKENTS) + sizeof(HHDR) +
+		nXidSegs*DEF_SEGSIZE*sizeof(SEGMENT) +
+		my_log2(NBACKENDS) + sizeof(HHDR);
 
 	return size;
-/* ------------------------------------
- * Dont forget to add in 2*(size needed for 2 hash tables)
- *  size =  	NLOCK_ENTS*sizeof(LOCK) +
- *		NLOCKS_PER_XACT*sizeof(XIDLookupEnt) +
- *		NBACKENDS*sizeof(PROC) +
- *		sizeof(LOCKCTL) +
- *		sizeof(PROC_HDR);
- * ------------------------------------
- */
 }
