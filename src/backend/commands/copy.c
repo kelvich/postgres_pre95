@@ -1046,14 +1046,14 @@ copyAlloc(p, plen, more)
 {
 	char		*tmpp;
 	unsigned 	newlen;
-	extern char 	*malloc();
+	extern char 	*malloc(), *realloc();		/* XXX style */
 
 	if (PointerIsValid(p)) {
 		newlen = *plen + Max(more, BUFSIZ);
-		p = repalloc(p,newlen);
+		p = realloc(p,newlen);
 	} else {
 		newlen = Max(more, BUFSIZ);
-		p = palloc(newlen);
+		p = malloc(newlen);
 	}
 	if (!PointerIsValid(p)) {
 		elog(WARN, "copyAlloc: malloc() failure");
