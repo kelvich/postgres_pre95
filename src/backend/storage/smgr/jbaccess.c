@@ -260,9 +260,10 @@ char *platter_id;
 char *format;
 int flags;
 {
-    JBPLATTER *jbp;
+    JBPLATTER *jbp, *hold;
     char req[JB_DATA_START + 4 + JB_MAX_NAME+1 + JB_MAX_FORMAT+1];
     char reply[JB_DATA_START + 8];
+	char *r = &reply[0]; /* necessary for below casts to work on Sparcstation */
     int size, len;
     short type;
 
@@ -278,7 +279,8 @@ int flags;
 	return (NULL);
 
     /* what a mess */
-    jbp = (JBPLATTER *) ntohl(*((JBPLATTER *) (reply+JB_DATA_START+4)));
+	hold = (JBPLATTER *) (r+JB_DATA_START+4);
+    jbp = (JBPLATTER *) ntohl(hold);
 
     return (jbp);
 }
