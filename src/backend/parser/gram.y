@@ -258,8 +258,7 @@ copy_dirn:
 
 copy_map:
 	/*EMPTY*/				{ NULLTREE }
-	| Using map_rel_name			
-		{ $$ = $2; }
+	| Using map_rel_name			{ $$ = $2 ; }
 	;
 
 copy_null:
