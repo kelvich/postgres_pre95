@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/dir.h>
 #include <sys/file.h>
+#include <string.h>
 #include "tmp/libpq-fs.h"
 
 int	fflg;		/* -f force - supress error messages */
@@ -15,7 +16,6 @@ int	rflg;		/* -r recurse */
 
 int	errcode;	/* true if errors occured */
 
-char	*strcpy(), *malloc(), *realloc();
 extern char *getenv();
 
 void usage();
