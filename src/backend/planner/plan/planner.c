@@ -216,7 +216,7 @@ init_query_planner (root,tlist,qual)
 {
      LispValue primary_qual;
      LispValue existential_qual;
-     Plan exist_plan;
+     Existential exist_plan;
 
      _query_max_level_ = root_numlevels (root);
      _query_command_type_ = (int) root_command_type (root);
