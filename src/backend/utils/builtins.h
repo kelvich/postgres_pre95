@@ -206,9 +206,9 @@ extern float64		btreenpage();
  *	RTree code.
  *	Defined in access/index-rtree/
  */
-extern char		*rtreeinsert();
-extern char		*rtreedelete();
-extern char		*rtreegettuple();
+extern char		*rtinsert();
+extern char		*rtdelete();
+extern char		*rtgettuple();
 extern char		*rtbeginscan();
 extern void		rtendscan();
 extern void		rtreebuild();
