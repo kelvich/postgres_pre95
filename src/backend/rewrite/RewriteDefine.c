@@ -15,6 +15,7 @@
 #include "parser/parsetree.h"		/* for parsetree manip defines */
 
 ObjectId LastOidProcessed = InvalidObjectId;
+bool prs2AttributeIsOfBasicType();
 
 
 #define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree),0)
@@ -187,7 +188,21 @@ DefineQueryRewrite ( args )
 	if ( action_type == REPLACE ) {
 	    action_result_index = CInteger(action_result);
 	}
-	if ( action_type == RETRIEVE && event_attype != 32 ) {
+	/*
+	 * if the action type is a RETRIEVE and this is a "set of"
+	 * type (i.e. "RELATION", or "foobar" where foobar is the
+	 * name of the relation, then this is a "postquel procedure"
+	 * rule.
+	 * If the attribute is of a basic type (e.g. int4, char16)
+	 * then this is a "normal" retrieve rule.
+	 * In this later case, change its action from RETRIEVE
+	 * to "REPLACE CURRENT".
+	 * NOTE: it also possible that 'event_attno' is equal to
+	 * InvalidAttributeNumber (in case of "view" rules, i.e
+	 * soemthing like "on retrieve to toyemp do...").
+	 */
+	if (action_type == RETRIEVE && event_attype != InvalidAttributeNumber
+	    && prs2AttributeIsOfBasicType(ev_relid, event_attno)) {
 	    /* transform to replace current */
 	    ModifyActionToReplaceCurrent ( this_action );
 	    action_type = REPLACE;
