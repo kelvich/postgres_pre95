@@ -108,7 +108,7 @@
 .ds UU \s-1UNIX\s0
 .ds PQ \s-1POSTQUEL\s0
 .ds LI \s-1LIBPQ\s0
-.ds PV 4.1
+.ds PV 4.2
 .\" ------------------------------------------------------------------
 .nr ps .50v	\" .15v larger paragraph prespace
 .nr pp 11	\" one point larger paragraph pointsize
