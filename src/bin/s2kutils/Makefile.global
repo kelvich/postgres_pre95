@@ -1,2 +1,8 @@
+#
 # $Header$
-# exists to maintain Makefile.global continuity
+#
+.ifndef KRBVERS
+KRBVERS=	0
+.endif
+
+SEDSCRIPT+= -e "s^_fUnKy_KrBvErS_sTuFf_^${KRBVERS}^g"
