@@ -329,13 +329,13 @@ TransBlockSetXidStatus(tblock, transactionId, xstatus)
  * --------------------------------
  */
 
-Time
+AbsoluteTime
 TransBlockGetCommitTime(tblock, transactionId)
     Pointer		tblock;
     TransactionId	transactionId;
 {
     Index			index;
-    Time			*timeArray;
+    AbsoluteTime		*timeArray;
     
     /* ----------------
      *	sanity check
@@ -360,8 +360,8 @@ TransBlockGetCommitTime(tblock, transactionId)
      *	return the commit time to the caller
      * ----------------
      */
-    timeArray =  (Time *) tblock;
-    return (Time)
+    timeArray =  (AbsoluteTime *) tblock;
+    return (AbsoluteTime)
 	timeArray[ index ];
 }
 
@@ -376,10 +376,10 @@ void
 TransBlockSetCommitTime(tblock, transactionId, commitTime)
     Pointer		tblock;
     TransactionId	transactionId;
-    Time 		commitTime;
+    AbsoluteTime	commitTime;
 {
-    Index			index;
-    Time			*timeArray;
+    Index		index;
+    AbsoluteTime	*timeArray;
     
     /* ----------------
      *	sanity check
@@ -405,7 +405,7 @@ TransBlockSetCommitTime(tblock, transactionId, commitTime)
      *	store the transaction commit time at the specified index
      * ----------------
      */
-    timeArray =  (Time *) tblock;
+    timeArray =  (AbsoluteTime *) tblock;
     timeArray[ index ] = commitTime;
 }
 
@@ -530,7 +530,7 @@ TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
  *	TransBlockNumberGetCommitTime
  * --------------------------------
  */
-Time
+AbsoluteTime
 TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
     Relation		relation;
     BlockNumber	   	blockNumber;
@@ -540,7 +540,7 @@ TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
     Buffer	   	buffer;		/* buffer associated with block */
     Block		block;		/* block containing commit time */
     bool		localfail;      /* bool used if failP = NULL */
-    Time		xtime;		/* commit time */
+    AbsoluteTime	xtime;		/* commit time */
     
     /* ----------------
      *	SOMEDAY place a read lock on the time relation
@@ -596,7 +596,7 @@ TransBlockNumberSetCommitTime(relation, blockNumber, xid, xtime, failP)
     Relation		relation;
     BlockNumber	  	blockNumber;
     TransactionId	xid;
-    Time		xtime;
+    AbsoluteTime	xtime;
     bool		*failP;
 {
     Buffer	   	buffer;		/* buffer associated with block */

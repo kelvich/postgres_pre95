@@ -922,7 +922,8 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     ntup->t_cmin = GetCurrentCommandId();
     PointerStoreInvalidTransactionId((Pointer)&(ntup->t_xmax));
     ntup->t_cmax = 0;
-    ntup->t_tmin = ntup->t_tmax = INVALID_ABSTIME;
+    ntup->t_tmin = INVALID_ABSTIME;
+    ntup->t_tmax = CURRENT_ABSTIME;
     ntup->t_natts = 2;
     ntup->t_locktype = 'd';
     ntup->t_hoff = hoff;

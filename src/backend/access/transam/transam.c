@@ -62,7 +62,7 @@ Relation VariableRelation = (Relation) NULL;
  * ----------------
  */
 TransactionId	cachedGetCommitTimeXid;
-Time 		cachedGetCommitTime;
+AbsoluteTime	cachedGetCommitTime;
 TransactionId	cachedTestXid;
 XidStatus	cachedTestXidStatus;
 
@@ -207,7 +207,7 @@ TransactionLogUpdate(transactionId, status)
 {
     BlockNumber		blockNumber;
     bool		fail = false;      	/* success/failure */
-    Time 		currentTime;	/* time of this transaction */
+    AbsoluteTime	currentTime;	/* time of this transaction */
 
     /* ----------------
      * 	during initialization we don't record any updates.
@@ -274,12 +274,12 @@ TransactionLogUpdate(transactionId, status)
  * --------------------------------
  */
 
-Time  /* commit time of transaction id */
+AbsoluteTime  /* commit time of transaction id */
 TransactionIdGetCommitTime(transactionId)
     TransactionId 	transactionId; 	/* transaction id to test */
 {
     BlockNumber		blockNumber;
-    Time		commitTime;     /* commit time */
+    AbsoluteTime	commitTime;     /* commit time */
     bool		fail = false;      	/* success/failure */
     
     /* ----------------

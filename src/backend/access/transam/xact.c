@@ -207,8 +207,8 @@ TransactionId DisabledTransactionId = (TransactionId)-1;
 CommandId DisabledCommandId =
     (CommandId) -1;
 
-Time DisabledStartTime =
-    (Time) 1073741823;
+AbsoluteTime DisabledStartTime =
+    (AbsoluteTime) 1073741823;
 
 /* ----------------
  *	overflow flag
@@ -384,7 +384,7 @@ GetCurrentCommandId()
  *	GetCurrentTransactionStartTime
  * --------------------------------
  */
-Time
+AbsoluteTime
 GetCurrentTransactionStartTime()
 {
     TransactionState s = CurrentTransactionState;
@@ -395,7 +395,7 @@ GetCurrentTransactionStartTime()
      * ----------------
      */
     if (s->state == TRANS_DISABLED)
-	return (Time) DisabledStartTime;
+	return (AbsoluteTime) DisabledStartTime;
     
     return s->startTime;
 }
