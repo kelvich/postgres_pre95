@@ -111,6 +111,7 @@
  * Resdom
  *	resno		- XXX comment me.
  *	restype		- XXX comment me.
+ *      rescomplex      - is the restype complex?
  *	reslen		- XXX comment me.
  *	resname		- XXX comment me.
  *	reskey		- XXX comment me.
@@ -130,6 +131,7 @@ class (Resdom) public (Node) {
 	inherits0(Node);
 	AttributeNumber		resno;
 	ObjectId		restype;
+	bool                    rescomplex;
 	Size			reslen;
 	Name			resname;
 	Index			reskey;
@@ -302,6 +304,7 @@ class (Param) public (Expr) {
  *	funcsize 	- size of return result (cached by executor)
  *	func_fcache 	- XXX comment me.
  *      func_tlist      - projection of functions returning tuples
+ *      func_planlist   - result of planning this func, if it's a PQ func
  * ----------------
  */
 class (Func) public (Expr) {
@@ -313,6 +316,7 @@ class (Func) public (Expr) {
 	int			funcsize;
 	FunctionCachePtr	func_fcache;
 	List                    func_tlist;
+	List                    func_planlist;
  /* public: */
 };
 

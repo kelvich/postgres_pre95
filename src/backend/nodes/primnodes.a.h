@@ -1,6 +1,6 @@
 /* $Header$ */
 extern void RInitResdom ARGS((Pointer p));
-extern Resdom MakeResdom ARGS((AttributeNumber resno, ObjectId restype, Size reslen, Name resname, Index reskey, OperatorTupleForm reskeyop, int resjunk));
+extern Resdom MakeResdom ARGS((AttributeNumber resno, ObjectId restype, bool rescomplex, Size reslen, Name resname, Index reskey, OperatorTupleForm reskeyop, int resjunk));
 extern void OutResdom ARGS((StringInfo str, Resdom node));
 extern bool EqualResdom ARGS((Resdom a, Resdom b));
 extern bool CopyResdom ARGS((Resdom from, Resdom *to, int alloc));
@@ -41,7 +41,7 @@ extern bool EqualParam ARGS((Param a, Param b));
 extern bool CopyParam ARGS((Param from, Param *to, int alloc));
 extern Param IMakeParam ARGS((int paramkind, AttributeNumber paramid, Name paramname, ObjectId paramtype, List paramtlist));
 extern void RInitFunc ARGS((Pointer p));
-extern Func MakeFunc ARGS((ObjectId funcid, ObjectId functype, bool funcisindex, int funcsize, FunctionCachePtr func_fcache));
+extern Func MakeFunc ARGS((ObjectId funcid, ObjectId functype, bool funcisindex, int funcsize, FunctionCachePtr func_fcache, List func_tlist, List func_planlist));
 extern void OutFunc ARGS((StringInfo str, Func node));
 extern bool EqualFunc ARGS((Func a, Func b));
 extern bool CopyFunc ARGS((Func from, Func *to, int alloc));
