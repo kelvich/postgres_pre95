@@ -130,12 +130,18 @@ bttextcmp(a, b)
     /*
      *  If the two strings differ in the first len bytes, or if they're
      *  the same in the first len bytes and they're both len bytes long,
-     *  we're done.  Use bcmp() to be safe -- in theory, text can't
-     *  contain nulls, but someone may choose to call this routine with
-     *  generic varlenas.
+     *  we're done.
      */
 
-    if ((res = bcmp(ap, bp, len)) != 0 || VARSIZE(a) == VARSIZE(b))
+    res = 0;
+    if (len > 0) {
+	do {
+	    res = (int) (*ap++ - *bp++);
+	    len--;
+	} while (res == 0 && len != 0);
+    }
+
+    if (res != 0 || VARSIZE(a) == VARSIZE(b))
 	return (res);
 
     /*
