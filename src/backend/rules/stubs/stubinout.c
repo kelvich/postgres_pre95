@@ -49,7 +49,7 @@ Prs2RawStub rawStub;
 
     stub = prs2RawStubToStub(rawStub);
     res = prs2StubToString(stub);
-    prs2FreeStub(stub);
+    prs2FreeStub(stub, true);
     return(res);
 }
 
@@ -66,7 +66,7 @@ char *s;
 
     stub = prs2StringToStub(s);
     rawStub = prs2StubToRawStub(stub);
-    prs2FreeStub(stub);
+    prs2FreeStub(stub, true);
     return(rawStub);
 }
 /*--------------------------------------------------------------------
@@ -91,6 +91,9 @@ Prs2Stub stub;
     int maxLength;
     Prs2OneStub oneStub;
     Prs2SimpleQual oneQual;
+    char *p;
+    int size;
+    int l;
 
     maxLength = 100;
     res = palloc(maxLength);
@@ -105,7 +108,7 @@ Prs2Stub stub;
 	 * print the information for this stub record
 	 */
 	oneStub = &(stub->stubRecords[i]);
-	sprintf(s1, " (ruleId: %ld stubId: %u count: %d nQuals: %d",
+	sprintf(s1, " (ruleId: %ld stubId: %u count: %d nQuals: %d lock: ",
 	    oneStub->ruleId,
 	    oneStub->stubId,
 	    oneStub->counter,
@@ -123,16 +126,45 @@ Prs2Stub stub;
 	for (j=0; j<oneStub->numQuals; j++) {
 	    oneQual = &(oneStub->qualification[j]);
 	    sprintf(s1,
-		"(attrNo: %d operator: %ld constType: %ld constLen: %ld data:",
+		"(attrNo: %d opr: %ld type: %ld byval: %c len: %ld data:",
 		oneQual->attrNo,
 		oneQual->operator,
 		oneQual->constType,
+		(oneQual->constByVal ? 't' : 'f'),
 		oneQual->constLength);
 	    res = appendString(res, s1, &maxLength);
-	    for (k=0; k<oneQual->constLength; k++) {
-		sprintf("%d ", oneQual->constData[k]);
+
+	    /*
+	     * Now print the datum
+	     */
+	    if (oneQual->constByVal) {
+		/*
+		 * print all `sizeof(Datum)' bytes,
+		 * because of different machines have
+		 * diferrent alignements....
+		 */
+		p = (char *) &(oneQual->constData);
+		size = sizeof(Datum);
+	    } else {
+		/* 
+		 * `oneQual->constData' is a pointer to a structure.
+		 * Calculate the "real" length of the data.
+		 */
+		p = (char *) DatumGetPointer(oneQual->constData);
+		if (oneQual->constLength < 0 ) {
+		    size = VARSIZE(DatumGetPointer(oneQual->constData));
+		} else {
+		    size = oneQual->constLength;
+		}
+	    }
+	    sprintf(s1, " %d {", size);
+	    res = appendString(res, s1, &maxLength);
+	    for(l=0; l<size; l++) {
+		sprintf(s1, " %d", (int) (p[l]));
 		res = appendString(res, s1, &maxLength);
 	    }
+	    res = appendString(res, "}", &maxLength);
+
 	    res = appendString(res, ")", &maxLength);
 	}
 	res = appendString(res, ")", &maxLength);

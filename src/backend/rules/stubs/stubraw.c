@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include "log.h"
+#include "datum.h"
 #include "prs2.h"
 #include "prs2stub.h"
 
@@ -34,14 +35,16 @@ Prs2Stub stub;
 {
     long size;
     Prs2RawStub res;
+    Prs2OneStub oneStub;
+    Prs2SimpleQual qual;
     int i,j;
     char *s;
 
     /*
      * calculate the number fo bytes needed to hold
-     * the raw representation ofthis stub record.
+     * the raw representation of this stub record.
      */
-    size = sizeof(Prs2StubData) - sizeof(Prs2OneStub);
+    size = sizeof(stub->numOfStubs);
 
     for (i=0; i< stub->numOfStubs; i++) {
 	/*
@@ -49,54 +52,83 @@ Prs2Stub stub;
 	 * and add it ti the total size.
 	 * Start with the fixed size part of the struct.
 	 */
-	size += sizeof(Prs2OneStubData) - sizeof(RuleLock)
-		    - sizeof(Prs2SimpleQual);
+	oneStub = &(stub->stubRecords[i]);
+	size = size +
+		sizeof(oneStub->ruleId) +
+		sizeof(oneStub->stubId) +
+		sizeof(oneStub->counter) +
+		sizeof(oneStub->numQuals);
 	/*
 	 * now add the rule lock size
 	 */
-	size += prs2LockSize(
-		    prs2GetNumberOfLocks(stub->stubRecords[i].lock));
+	size = size +
+		prs2LockSize( prs2GetNumberOfLocks(oneStub->lock));
 	/*
 	 * finally add the size of each one of the
 	 * `PrsSimpleQualData'
 	 */
-	for (j=0; j<stub->stubRecords[i].numQuals; j++) {
-	    size += sizeof(Prs2SimpleQualData) - sizeof(char *);
-	    size += stub->stubRecords[i].qualification[j].constLength;
+	for (j=0; j<oneStub->numQuals; j++) {
+	    qual = &(oneStub->qualification[j]);
+	    /*
+	     * first the fixed size part of 'Prs2SimpleQualData' struct.
+	     */
+	    size = size +
+		    sizeof(qual->attrNo) +
+		    sizeof(qual->operator) +
+		    sizeof(qual->constType) +
+		    sizeof(qual->constByVal) +
+		    sizeof(qual->constLength);
+	    /*
+	     * then the variable length size (the actual value of
+	     * the constant)
+	     */
+	    size += prs2GetDatumSize(qual->constType,
+				qual->constByVal,
+				qual->constLength,
+				qual->constData);
 	}
     }
 
     /*
      * allocate a big enough `Prs2RawStubData' struct to hold the
      * whole thing...
+     *
+     * NOTE: Just as like in the "varlena" structure, the "size" field
+     * in the Prs2RawStubData is the sum of its own size + the (variable)
+     * size of the data that is following.
      */
-    res = (Prs2RawStub) palloc(sizeof(Prs2RawStubData) -1 + size);
+    size = size + sizeof(res->vl_len);
+    res = (Prs2RawStub) palloc(size);
     if (res == NULL) {
 	elog(WARN,"prs2StubToRawStub: Out of memory");
     }
-    res->size = size;
+    res->vl_len = size;
 
     /*
-     * now copy the whole thing to the res->data;
+     * now copy the whole thing to the res->vl_dat;
      */
-    s = &(res->data[0]);
+    s = &(res->vl_dat[0]);
 
     bcopy((char *) &(stub->numOfStubs), s, sizeof(stub->numOfStubs));
     s += sizeof(stub->numOfStubs);
 
     for (i=0; i< stub->numOfStubs; i++) {
+	oneStub = &(stub->stubRecords[i]);
 	/*
 	 * copy the fixed size part of the record
 	 */
-	size += sizeof(Prs2OneStubData) - sizeof(RuleLock)
-		    - sizeof(Prs2SimpleQual);
-	bcopy((char *)&(stub->stubRecords[i]), s, size);
-	s += size;
+	bcopy((char *)&(oneStub->ruleId), s, sizeof(oneStub->ruleId));
+	s += sizeof(oneStub->ruleId);
+	bcopy((char *)&(oneStub->stubId), s, sizeof(oneStub->stubId));
+	s += sizeof(oneStub->stubId);
+	bcopy((char *)&(oneStub->counter), s, sizeof(oneStub->counter));
+	s += sizeof(oneStub->counter);
+	bcopy((char *)&(oneStub->numQuals), s, sizeof(oneStub->numQuals));
+	s += sizeof(oneStub->numQuals);
 	/*
 	 * now copy the rule lock
 	 */
-	size += prs2LockSize(
-		    prs2GetNumberOfLocks(stub->stubRecords[i].lock));
+	size = prs2LockSize(prs2GetNumberOfLocks(oneStub->lock));
 	bcopy((char *) stub->stubRecords[i].lock, s, size);
 	s+=size;
 	/*
@@ -104,15 +136,32 @@ Prs2Stub stub;
 	 * `PrsSimpleQualData'
 	 */
 	for (j=0; j<stub->stubRecords[i].numQuals; j++) {
+	    qual = &(oneStub->qualification[j]);
 	    /*
 	     * fixed part first...
 	     */
-	    size += sizeof(Prs2SimpleQualData) - sizeof(char *);
-	    bcopy((char *) &(stub->stubRecords[i].qualification[j]), s, size);
-	    s+=size;
-	    size += stub->stubRecords[i].qualification[j].constLength;
-	    bcopy((char *) &(stub->stubRecords[i].qualification[j].constData),
-		    s, size);
+	    bcopy((char *)&(qual->attrNo), s, sizeof(qual->attrNo));
+	    s += sizeof(qual->attrNo);
+	    bcopy((char *)&(qual->operator), s, sizeof(qual->operator));
+	    s += sizeof(qual->operator);
+	    bcopy((char *)&(qual->constType), s, sizeof(qual->constType));
+	    s += sizeof(qual->constType);
+	    bcopy((char *)&(qual->constByVal), s, sizeof(qual->constByVal));
+	    s += sizeof(qual->constByVal);
+	    bcopy((char *)&(qual->constLength), s, sizeof(qual->constLength));
+	    s += sizeof(qual->constLength);
+	    /*
+	     * now the value of the constant iteslf
+	     */
+	    size = prs2GetDatumSize(qual->constType,
+				qual->constByVal,
+				qual->constLength,
+				qual->constData);
+	    if (qual->constByVal) {
+		bcopy((char *)&(qual->constData), s, size);
+	    } else {
+		bcopy((char *)DatumGetPointer(qual->constData), s, size);
+	    }
 	    s += size;
 	}
     }
@@ -133,14 +182,15 @@ Prs2Stub stub;
  *
  */
 Prs2Stub
-prs2RawStubToStub(data)
-char *data;
+prs2RawStubToStub(rawStub)
+Prs2RawStub rawStub;
 {
     Prs2Stub stub;
     Prs2OneStub oneStub;
-    Prs2SimpleQual oneQual;
+    Prs2SimpleQual qual;
     long size;
     int i,j;
+    char *data;
     char *s;
     Prs2LocksData ruleLock;
 
@@ -151,24 +201,39 @@ char *data;
     if (stub == NULL) {
 	elog(WARN, "prs2RawStubToStub: Out of memory");
     }
-    size = sizeof(Prs2StubData) - sizeof(Prs2OneStub);
-    bcopy(data, (char *)&(stub->numOfStubs), size);
-    data += size;
 
-    size = stub->numOfStubs * sizeof(Prs2OneStubData);
-    stub->stubRecords = (Prs2OneStub) palloc(size);
-    if (stub->stubRecords == NULL) {
-	elog(WARN, "prs2RawStubToStub: Out of memory");
+    /*
+     * copy the number of individual stub records
+     */
+    data = VARDATA(rawStub);
+    bcopy(data, (char *)&(stub->numOfStubs), sizeof(stub->numOfStubs));
+    data += sizeof(stub->numOfStubs);
+
+    /*
+     * allocate space for the `stub->numOfStubs' records of
+     *type 'Prs2OneStubData'
+     */
+    if (stub->numOfStubs > 0 ) {
+	size = stub->numOfStubs * sizeof(Prs2OneStubData);
+	stub->stubRecords = (Prs2OneStub) palloc(size);
+	if (stub->stubRecords == NULL) {
+	    elog(WARN, "prs2RawStubToStub: Out of memory");
+	}
     }
     
     for (i=0; i< stub->numOfStubs; i++) {
 	oneStub = & (stub->stubRecords[i]);
 	/*
+	 * copy the fixed part of the 'Prs2OneStub' first.
 	 */
-	size = sizeof(Prs2OneStubData) - sizeof(RuleLock)
-		    - sizeof(Prs2SimpleQual);
-	bcopy(data, (char *) oneStub, size);
-	data += size;
+        bcopy(data, (char *)&(oneStub->ruleId), sizeof(oneStub->ruleId));
+        data += sizeof(oneStub->ruleId);
+        bcopy(data, (char *)&(oneStub->stubId), sizeof(oneStub->stubId));
+        data += sizeof(oneStub->stubId);
+        bcopy(data, (char *)&(oneStub->counter), sizeof(oneStub->counter));
+        data += sizeof(oneStub->counter);
+        bcopy(data, (char *)&(oneStub->numQuals), sizeof(oneStub->numQuals));
+        data += sizeof(oneStub->numQuals);
 
 	/*
 	 * now copy the rule lock
@@ -186,27 +251,57 @@ char *data;
 	if (oneStub->lock == NULL) {
 	    elog(WARN, "prs2RawStubToStub: Out of memory");
 	}
-	bcopy(data, *(oneStub->lock), size);
+	bcopy(data, (char*)(oneStub->lock), size);
 	data += size;
 
-	size = oneStub->numQuals * sizeof(Prs2SimpleQualData);
-	oneStub->qualification = (Prs2SimpleQual) palloc(size);
-	if (oneStub->qualification == NULL) {
-	    elog(WARN, "prs2RawStubToStub: Out of memory");
-	}
-	for (j=0; j<oneStub->numQuals; j++) {
-	    oneQual = & (oneStub->qualification[j]);
-	    size = sizeof(Prs2SimpleQualData) - sizeof(char *);
-	    bcopy(data, (char *) oneQual, size);
-	    data += size;
-
-	    size = oneQual->constLength;
-	    oneQual->constData = palloc(size);
-	    if (oneQual->constData == NULL) {
+	/*
+	 * now allocate space for the qualification(s)
+	 */
+	if (oneStub->numQuals > 0) {
+	    size = oneStub->numQuals * sizeof(Prs2SimpleQualData);
+	    oneStub->qualification = (Prs2SimpleQual) palloc(size);
+	    if (oneStub->qualification == NULL) {
 		elog(WARN, "prs2RawStubToStub: Out of memory");
 	    }
-	    bcopy(data, oneQual->constData, size);
-	    data += size;
+	}
+	for (j=0; j<oneStub->numQuals; j++) {
+	    /*
+	     * copy the qualifications one by one
+	     */
+	    qual = & (oneStub->qualification[j]);
+
+	    /*
+	     * fixed part first
+	     */
+            bcopy(data, (char *)&(qual->attrNo), sizeof(qual->attrNo));
+            data += sizeof(qual->attrNo);
+            bcopy(data, (char *)&(qual->operator), sizeof(qual->operator));
+            data += sizeof(qual->operator);
+            bcopy(data, (char *)&(qual->constType), sizeof(qual->constType));
+            data += sizeof(qual->constType);
+            bcopy(data, (char *)&(qual->constByVal), sizeof(qual->constByVal));
+            data += sizeof(qual->constByVal);
+            bcopy(data, (char *)&(qual->constLength),sizeof(qual->constLength));
+            data += sizeof(qual->constLength);
+
+            size = prs2GetDatumSize(qual->constType,
+                                qual->constByVal,
+                                qual->constLength,
+                                qual->constData);
+	    if (qual->constByVal) {
+		bcopy(data, (char *) &(qual->constData), size);
+		data += size;
+	    } else {
+		if (size > 0) {
+		    s = palloc(size);
+		    if (s == NULL) {
+			elog(WARN, "prs2RawStubToStub: Out of memory");
+		    }
+		}
+		bcopy(data, s, size);
+		data+=size;
+		qual->constData = PointerGetDatum(s);
+	    }
 	}
     }
 
