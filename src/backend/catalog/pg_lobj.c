@@ -41,11 +41,17 @@
  */
 
 #include <stdio.h>
-#include "catalog/syscache.h"
-#include "utils/large_object.h"
-#include "catalog/pg_lobj.h"
-#include "utils/rel.h"
+#include "tmp/c.h"
+#include "tmp/libpq-fs.h"
+#include "access/relscan.h"
+#include "access/tupdesc.h"
 #include "access/heapam.h"
+#include "catalog/pg_naming.h"
+#include "catalog/pg_lobj.h"
+#include "catalog/syscache.h"
+#include "storage/itemptr.h"
+#include "utils/rel.h"
+#include "utils/large_object.h"
 #include "utils/log.h"
 
 static void noaction() { }
