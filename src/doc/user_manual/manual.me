@@ -193,7 +193,7 @@ concepts of the system
 and attempts to provide an accessible path into using the system. 
 As such, it tries to give examples of the use of the major
 constructs, so a beginning user does not need to delve
-immediately into the appendix of this manual.
+immediately into the Reference.
 .lp
 .sh 1 "INTRODUCTION"
 .lp
@@ -282,15 +282,14 @@ interact with \*(PP from a C program by using the "libpq"
 library of subroutine and call facilities.  This allows you to submit
 \*(PQ commands from C and get answers and status messages back
 to your program.  This interface is discussed further in the
-appendix of this manual, in the "libpq" section.
-.b libpq
+\*(LP section of the Reference.
 The third way of interacting
 with \*(PP is to use the facility called
 .b fast
 .b path,
 which
 allows you to directly execute functions stored in the database. 
-This facility is described in the appendix under "Fast Path".
+This facility is described in the Reference under "Fast Path".
 Lastly, \*(PP is accessible from the PICASSO programming
 environment.  PICASSO is a graphical user interface (GUI) toolkit
 that allows a user to build sophisticated DBMS-oriented
@@ -369,7 +368,7 @@ and the monitor will respond:
 
 .)l
 For a complete collection of monitor commands, see the manual page
-on "monitor" in the Unix section of the Appendix.
+on "monitor" in the Unix section of the Reference.
 .lp
 If you are the database administrator for a database, you
 can destroy it using the following UNIX command:
@@ -383,7 +382,7 @@ Other DBA commands include
 .b createuser,
 and
 .b destroyuser,
-which are discussed further in the Unix section of the Appendix.
+which are discussed further in the Unix section of the Reference.
 .lp
 .sh 2 "Classes and the Query Language \*(PQ"
 .lp
@@ -583,7 +582,7 @@ This query retrieves the third quarter pay of all employees.
         * \\g
 .)l
 This query deletes everyone from SAL_EMP whose name begins with the letter
-'j'.  SAL_EMP should now contain only bill.
+"j".  SAL_EMP should now contain only bill.
 .lp
 \*(PP supports arrays of base and user-defined types, as well as "arrays of
 arrays", as in the following example:
@@ -625,7 +624,7 @@ In this section, we will discuss those features of \*(PP which
 distinguish it from other data managers, such as inheritance and time
 travel.  In the next section, we will cover how the user can extend
 the query language via query language functions and composite objects, as well
-as user extensions to \*(PQ using
+as additional extensions to \*(PP using
 user defined types, operators, and programming language functions.
 
 .sh 3 "Inheritance"
@@ -685,9 +684,9 @@ feature allows a user to run historical queries.  For example, to
 find the salary of Sam at time T one would query:
 .(l
 
-    * retrieve (EMP.salary) using EMP [T] where EMP.name="Sam"
+    * retrieve (EMP.salary) using EMP[T] where EMP.name="Sam"
 
-    * \g
+    * \\g
 
 .)l
 \*(PP will automatically find the version of Sam's record
@@ -736,12 +735,12 @@ employees:
 \*(PQ functions are useful for creating composite types, as described
 below.
 .lp
-.sh 2 "Composite Objects"
+.sh 2 "Composite Types"
 .lp
 
 Moreover, since \*(PQ functions return sets of instances,
 they are the mechanism used to assign values to composite
-objects.  For example, consider extending the EMP class with a
+types.  For example, consider extending the EMP class with a
 manager field:
 .(l
 
@@ -827,7 +826,7 @@ The same query is also available in functional notation:
 
 .)l
 .lp
-.sh 2 "User Defined Types, Operators, and Programming Language Functions"
+.sh 1 "User Defined Types, Operators, and Programming Language Functions"
 .lp
 The central concept of extending \*(PP lies in \*(PP's ability to
 .b dynamically
@@ -845,7 +844,7 @@ below.  There is no intrinsic performance difference between using a system
 type or user-defined type, other than the overhead due to the complexity of
 the type itself.
 .lp
-.sh 3 "Internal storage of types" 
+.sh 2 "Internal storage of types" 
 .lp
 Internally,
 \*(PP regards a user-defined type as a "blob of memory" upon which
@@ -853,7 +852,7 @@ user-defined functions impose structure and meaning.
 \*(PP will store and retrieve the data from disk and use user-defined
 functions to input, process, and output the data.
 .lp
-.sh 3 "Functions needed for a user-defined type"
+.sh 2 "Functions needed for a user-defined type"
 .lp
 A completely defined user type requires the following user-defined functions:
 .lp
@@ -1244,11 +1243,11 @@ C language methods are useful particularly when we want to make a function
 that is, to have the function process every instance in an inheritance
 hierarchy of classes.
 .lp
-C language method in \*(PP takes an argument named 
-where emp is an instance in the emp class.  Because of this, \*(PP has a
-notion of the "current instance" which is being examined in the course of
-processing a query.  The current instance is simply the instance being
-qualified at the moment your function is called.
+In using a function of an instance in qualifying an instance, 
+\*(PP defines the "current instance" to be the instance being qualified at
+the moment your function is called.  Rather than getting the instance itself
+in your function's parameter list, you will use \*(PP library routines to
+access the data in the instance as described below.
 .lp
 Suppose we want to write a function to answer the query
 .(l
@@ -1256,11 +1255,6 @@ Suppose we want to write a function to answer the query
        * retrieve (emp.all) where overpaid(emp)
 
 .)l
-Unlike functions that take simple types as arguments, these functions must
-call the \*(PP library function
-.b GetAttribute,
-whose use will be described below.
-.lp
 In the query above, a reasonable "overpaid" function would be:
 .(l
 
@@ -1273,10 +1267,10 @@ In the query above, a reasonable "overpaid" function would be:
         short age, salary, performance;
 
         salary=(short) GetAttribute("salary");
-        age=(short) GetAttribute("age");
+        seniority=(short) GetAttribute("seniority");
         performance=(short) GetAttribute("performance");
 
-        return (salary > (age * performance));
+        return (salary > (seniority * performance));
 
     }
 .)l
@@ -1300,10 +1294,10 @@ call would look like:
     str = (char *) GetAttribute("name")
 
 .)l
-Note that in queries, the instance argument must be the first
-argument.
+Note that the instance argument must be the first argument when using your
+function in \*(PQ queries.
 .lp
-To let \*(PP know about the first "overpaid" function,
+To let \*(PP know about the "overpaid" function,
 just do the following:
 .(l
        * define function overpaid
@@ -1335,7 +1329,8 @@ long number;
 
 .)l
 Note that the arguments are "shifted" one to the left, and the "emp" argument
-is ommitted.
+is omitted; its values are referenced via
+.b GetAttribute.
 .lp
 .sh 2 "Arrays of types"
 .lp
@@ -1343,7 +1338,7 @@ As discussed above, \*(PP fully supports arrays of base types.  Additionally,
 \*(PP supports arrays of user-defined types as well.  When you define a type,
 \*(PP 
 .b automatically
-creates a type suitable for an array of that type.
+provides support for arrays of that type.
 .sh 3 "Arrays of user-defined types"
 .lp
 Using the
@@ -1373,7 +1368,7 @@ We can now run queries like the following:
 
        * \\g
 .)l
-.b NOTE
+.b NOTE:
 Recall how we defined circle equality above.
 .sh 3 "Defining a new array type"
 .lp
@@ -1434,7 +1429,7 @@ Now we use our new type:
 
        * retrieve (s.all) 
               from s in stuff
-              where s.a[1][3] = stuff.a[1][3]
+              where s.a[2][2] = stuff.a[1][1]
 .)l
 We can also define operators for equality, less than, greater than, etc.
 which operate on our new array type as necessary.
@@ -1669,7 +1664,7 @@ variable length.
 Now we can use our large object:
 .(l
 
-       * create maps (name = text, a = big_object)
+       * create maps (name = text, a = map)
 
        * append maps (name = "earth", a = "/usr/postgres/maps/earth")
        * append maps (name = "moon", a = "/usr/postgres/maps/moon")
