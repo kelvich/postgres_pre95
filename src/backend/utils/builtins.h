@@ -176,11 +176,12 @@ extern int32		textne();
 extern char		*btreeinsert();
 extern char		*btreedelete();
 extern char		*btreegetnext();
+extern char		*btbeginscan();
+extern void		btreeendscan();
 extern void		btreebuild();
 extern void		btreemarkpos();
 extern void		btreerestrpos();
 extern void		btreerescan();
-extern void		btreeendscan();
 
 /*
  *	RTree code.
@@ -189,7 +190,12 @@ extern void		btreeendscan();
 extern char		*rtreeinsert();
 extern char		*rtreedelete();
 extern char		*rtreegettuple();
+extern char		*rtbeginscan();
+extern void		rtendscan();
 extern void		rtreebuild();
+extern void		rtmarkscan();
+extern void		rtrestrpos();
+extern void		rtrescan();
 
 /*
  *	Functional B-tree code.
@@ -219,6 +225,11 @@ extern char	*box_out();
 extern long	box_overlap();
 extern long	box_same();
 extern long	box_contain();
+extern long	box_left();
+extern long	box_overleft();
+extern long	box_overright();
+extern long	box_right();
+extern long	box_contained();
 extern long	box_ge();
 extern long	box_gt();
 extern long	box_eq();
