@@ -102,6 +102,30 @@ btcharcmp(a, b)
 }
 
 int32
+btchar2cmp(a, b)
+    uint16 a;
+    uint16 b;
+{
+    return (strncmp((char *) &a, (char *) &b, 2));
+}
+
+int32
+btchar4cmp(a, b)
+    uint32 a;
+    uint32 b;
+{
+    return (strncmp((char *) &a, (char *) &b, 4));
+}
+
+int32
+btchar8cmp(a, b)
+    Name a;
+    Name b;
+{
+    return (strncmp(a, b, 8));
+}
+
+int32
 btchar16cmp(a, b)
     Name a;
     Name b;
