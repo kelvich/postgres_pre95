@@ -6,61 +6,38 @@
 # Note - this should NOT be setuid.
 #
 
-if (test -n "$POSTGRESHOME")
-then
-    PG=$POSTGRESHOME
-else
-    PG=/usr/postgres
-fi
-
-#
-# find monitor program
-#
-
-if (test -f "$PG/bin/monitor")
-then
-    MONITOR=$PG/bin/monitor
-elif (test -f "MONITOR=$PG/obj*/support/monitor")
-then
-    MONITOR=$PG/obj*/support/monitor
-else
-    echo "$0: can't find the monitor program!"
-	exit 1
-fi
-
 progname=$0
 
-if (test -n "$PGPORT")
-then
-    port=$PGPORT
-else
-    port=4321
-fi
+# ----------------
+#       Set paths from environment or default values.
+#       The _fUnKy_..._sTuFf_ gets set when the script is installed
+#       from the default value for this build.
+#       Currently the only thing wee look for from the environment is
+#       PGDATA, PGHOST, and PGPORT
+#
+# ----------------
+[ -z "$PGPORT" ] && PGPORT=4321
+[ -z "$PGHOST" ] && PGHOST=localhost
+BINDIR=_fUnKy_BINDIR_sTuFf_
+PATH=$BINDIR:$PATH
 
-if (test -n "$PGHOST")
-then
-    host=$PGHOST
-else
-    host=localhost
-fi
-
-while (test -n "$1")
+while [ -n "$1" ]
 do
     case $1 in 
-        -h) host=$2; shift;;
-        -p) port=$2; shift;;
+        -p) PGPORT=$2; shift;;
+        -h) PGHOST=$2; shift;;
          *) NEWUSER=$1;;
     esac
     shift;
 done
 
-MARGS="-TN -h $host -p $port"
+MARGS="-TN -h $PGHOST -p $PGPORT"
 
 #
 # generate the first part of the actual monitor command
 #
 
-MONITOR="$MONITOR $MARGS"
+MONITOR="monitor $MARGS"
 
 #
 # see if user $USER is allowed to create new users
@@ -70,15 +47,15 @@ QUERY='retrieve (pg_user.usesuper) where pg_user.usename = '"\"$USER\""
 
 ADDUSER=`$MONITOR -TN -c "$QUERY" template1`
 
-if (test $? -ne 0)
+if [ $? -ne 0 ]
 then
-    echo "$0: database access failed."
+    echo "$0: database access failed." 1>&2
     exit 1
 fi
 
-if (test $ADDUSER != "t")
+if [ $ADDUSER != "t" ]
 then
-    echo "$0: $USER cannot create users."
+    echo "$0: $USER cannot create users." 1>&2
     exit 1
 fi
 
@@ -86,7 +63,7 @@ fi
 # get the user name of the new user.  Make sure it doesn't already exist.
 #
 
-if (test -z "$NEWUSER")
+if [ -z "$NEWUSER" ]
 then
     echo -n "Enter name of user to add ---> "
     read NEWUSER
@@ -96,15 +73,15 @@ QUERY='retrieve (pg_user.usesysid) where pg_user.usename = '"\"$NEWUSER\""
 
 RES=`$MONITOR -TN -c "$QUERY" template1`
 
-if (test $? -ne 0)
+if [ $? -ne 0 ]
 then
-    echo "$0: database access failed."
+    echo "$0: database access failed." 1>&2
     exit 1
 fi
 
-if (test -n "$RES")
+if [ -n "$RES" ]
 then
-    echo "$0: user "\"$NEWUSER\"" already exists"
+    echo "$0: user "\"$NEWUSER\"" already exists" 1>&2
     exit 1
 fi
 
@@ -116,26 +93,34 @@ done=0
 
 while (test $done -ne 1)
 do
-    echo -n "Enter the user's Postgres system id ---> "
-    read SYSID
-
-    QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""
-    RES=`$MONITOR -TN -c "$QUERY" template1`
-
-    if (test $? -ne 0)
-    then
-        echo "$0: database access failed."
-        exit 1
-    fi
-
-    if (test -n "$RES")
-    then
-        echo 
-        echo "$0: $SYSID already belongs to $RES"
-        echo "The system ID must be unique."
+    SYSID=
+    DEFSYSID=`pg_id $NEWUSER 2>/dev/null`
+    if [ $? -eq 0 ]; then
+	DEFMSG=" or RETURN to use unix user ID: $DEFSYSID"
     else
-        done=1
+	DEFMSG=
+	DEFSYSID=
     fi
+    while  [ -z "$SYSID" ]
+    do
+	echo -n "Enter user's postgres ID$DEFMSG -> "
+	read SYSID
+	case $SYSID in "")
+		SYSID=$DEFSYSID
+	esac
+	QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""
+	RES=`$MONITOR -TN -c "$QUERY" template1`
+	if [ $? -ne 0 ]
+	then
+		echo "$0: database access failed."
+		exit 1
+	fi
+	if [ -n "$RES" ]
+	then
+		echo 
+		echo "$0: $SYSID already belongs to $RES, pick another"
+		DEFMSG= DEFSYSID= SYSID=
+	fi
 done
 
 #
@@ -148,13 +133,13 @@ done
 
 yn=f
 
-while (test "$yn" != y -a "$yn" != n)
+while [ "$yn" != y -a "$yn" != n ]
 do
     echo -n "Is user \"$NEWUSER\" allowed to create databases (y/n) "
     read yn
 done
 
-if (test "$yn" = y)
+if [ "$yn" = y ]
 then
     CANCREATE=t
 else
@@ -167,7 +152,7 @@ fi
 
 yn=f
 
-while (test "$yn" != y -a "$yn" != n)
+while [ "$yn" != y -a "$yn" != n ]
 do
     echo -n "Is user \"$NEWUSER\" allowed to add users? (y/n) "
     read yn
@@ -191,12 +176,12 @@ RES=`$MONITOR -TN -c "$QUERY" template1`
 # NOT allowed to create databases, remind the DBA to create one for the user.
 #
 
-if (test $? -ne 0)
+if [ $? -ne 0 ]
 then
     echo "$0: $NEWUSER was NOT added successfully"
 else
     echo "$0: $NEWUSER was successfully added"
-    if (test $CANCREATE = f)
+    if [ "$CANCREATE" = f ]
     then
         echo "don't forget to create a database for $NEWUSER"
     fi

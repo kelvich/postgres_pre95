@@ -1,76 +1,46 @@
 #!/bin/sh
 # ----------------------------------------------------------------
 #   FILE
-#	createdb	create a postgres database
+#	destroydb	destroy a postgres database
 #
 #   DESCRIPTION
-#	this program runs the monitor with the "-c" option to create
-#   the requested database.
+#	this program runs the monitor with the ? option to destroy
+#	the requested database.
 #
 #   IDENTIFICATION
 # 	$Header$
 # ----------------------------------------------------------------
 
-#
-# find postgres tree
-#
-
-if (test -z "$POSTGRESHOME")
-then
-	PG=/usr/postgres
-else
-	PG=$POSTGRESHOME
-fi
-
-#
-# find monitor program
-#
-
-if (test -f "$PG/bin/monitor")
-then
-	MONITOR=$PG/bin/monitor
-elif (test -f "MONITOR=$PG/obj*/support/monitor")
-then
-	MONITOR=$PG/obj*/support/monitor
-elif (test -n "$POSTGRESTREE")
-then
-	MONITOR=$POSTGRESTREE/obj*/support/monitor
-else
-	echo "$0: can't find the monitor program!"
-	exit 1
-fi
-
 progname=$0
 
-if (test -n "$PGPORT")
-then
-    port=$PGPORT
-else
-    port=4321
-fi
-
-if (test -n "$PGHOST")
-then
-    host=$PGHOST
-else
-    host=localhost
-fi
+# ----------------
+#       Set paths from environment or default values.
+#       The _fUnKy_..._sTuFf_ gets set when the script is installed
+#       from the default value for this build.
+#       Currently the only thing wee look for from the environment is
+#       PGDATA, PGHOST, and PGPORT
+#
+# ----------------
+[ -z "$PGPORT" ] && PGPORT=4321
+[ -z "$PGHOST" ] && PGHOST=localhost
+BINDIR=_fUnKy_BINDIR_sTuFf_
+PATH=$BINDIR:$PATH
 
 dbname=$USER
 
-while (test -n "$1")
+while [ -n "$1" ]
 do
 	case $1 in 
-		-h) host=$2; shift;;
-		-p) port=$2; shift;;
+		-h) PGHOST=$2; shift;;
+		-p) PGPORT=$2; shift;;
 		 *) dbname=$1;;
 	esac
 	shift;
 done
 
-$MONITOR -TN -h $host -p $port -c "destroydb $dbname" template1
+monitor -TN -h $PGHOST -p $PGPORT -c "destroydb $dbname" template1
 
-if (test $? -ne 0)
+if [ $? -ne 0 ]
 then
 	echo "$progname: database destroy failed on $dbname."
 	exit 1
