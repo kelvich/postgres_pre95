@@ -10,6 +10,7 @@
 #include "bufmgr.h"
 #include "bufpage.h"
 #include "htup.h"
+#include "inval.h"
 #include "item.h"
 #include "itemid.h"
 #include "itemptr.h"
