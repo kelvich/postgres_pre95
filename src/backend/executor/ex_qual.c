@@ -901,7 +901,7 @@ ExecEvalOper(opClause, econtext, isNull)
      */
     fcache = get_op_fcache(op);
     if (fcache == NULL) {
-        set_fcache(op, get_opid(op));
+        set_fcache(op, get_opid(op), cdr(opClause), econtext);
     	fcache = get_op_fcache(op);
     }
     
@@ -924,7 +924,7 @@ ExecEvalOper(opClause, econtext, isNull)
  ****/
 Datum
 ExecEvalFunc(funcClause, econtext, isNull, isDone)
-    Func        funcClause;
+    LispValue   funcClause;
     ExprContext econtext;
     Boolean 	*isNull;
     Boolean 	*isDone;
@@ -953,7 +953,7 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
      */
     fcache = get_func_fcache(func);
     if (fcache == NULL) {
-    	set_fcache(func, get_funcid(func));
+    	set_fcache(func, get_funcid(func), CDR(funcClause), econtext);
     	fcache = get_func_fcache(func);
     }
 
@@ -1230,7 +1230,7 @@ ExecEvalExpr(expression, econtext, isNull, isDone)
 	retDatum = (Datum) ExecEvalOper((List) expression, econtext, isNull);
     
     else if (fast_is_funcclause(expression)) 	/* car is a Func node */
-	retDatum = (Datum) ExecEvalFunc((Func) expression,
+	retDatum = (Datum) ExecEvalFunc((LispValue) expression,
 					econtext,
 					isNull,
 					isDone);
