@@ -261,6 +261,9 @@ main(argc,argv)
 
     PQsetdb(dbname);
 
+    /* make sure things are ok before giving users a warm welcome! */
+    check_conn_and_db();
+
     /* print out welcome message and start up */
     welcome();
     init_tmon(); 
@@ -389,6 +392,24 @@ init_tmon()
 	signal(SIGTERM, handle_exit);
     if (signal(SIGINT, SIG_IGN) != SIG_IGN)
 	signal(SIGINT, handle_exit);
+}
+
+/*
+ *  check_conn_and_db checks the connection and the database
+ */
+check_conn_and_db()
+{
+    char *string= PQexec(" ");
+    switch(*string) {
+    case 'E':
+	elog(FATAL,&string[1]);
+	break;
+    case 'R':
+	if(Verbose)
+	    fprintf(stdout, "Sorry! Have a nice day!\n");
+	handle_exit(1);
+	break;
+    }
 }
 
 /*
