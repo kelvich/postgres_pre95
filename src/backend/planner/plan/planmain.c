@@ -14,20 +14,23 @@
  *     		Plan query_planner();
  */
 
+
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "parser/parse.h"
+
 #include "planner/internal.h"
-#include "pg_lisp.h"
-#include "parse.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
-#include "planner/planmain.h"
+#include "planner/allpaths.h"
 #include "planner/clause.h"
+#include "planner/createplan.h"
+#include "planner/planmain.h"
+#include "planner/sortresult.h"
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
-#include "planner/sortresult.h"
-#include "planner/createplan.h"
-#include "planner/allpaths.h"
 
 /* ----------------
  *	Result creator declaration

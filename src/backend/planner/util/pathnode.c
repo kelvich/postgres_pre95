@@ -18,15 +18,17 @@
  *     		create_hashjoin_path
  *	$Header$
  */
+#include <math.h>
 
 #include "planner/internal.h"
-#include "log.h"
-#include "relation.h"
-#include "relation.a.h"
+
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "utils/log.h"
+
 #include "planner/pathnode.h"
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
-#include <math.h>
 #include "planner/costsize.h"
 
 /* ----------------
