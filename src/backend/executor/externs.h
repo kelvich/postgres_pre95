@@ -73,8 +73,6 @@ Datum array_cast ARGS((char *value , bool byval , int len ));
 Datum ExecEvalArrayRef ARGS((Datum object , int32 indirection , int32 array_len , int32 element_len , bool byval , Boolean *isNull ));
 Datum ExecEvalVar ARGS((Var variable , ExprContext econtext , Boolean *isNull ));
 Datum ExecEvalParam ARGS((Param expression , ExprContext econtext ));
-bool ArgumentIsRelation ARGS((List arg ));
-void SetCurrentTuple ARGS((ExprContext econtext ));
 /*Datum GetAttribute ARGS((char *attname ));*/
 Datum ExecMakeFunctionResult ARGS((FunctionCachePtr fcache , List arguments , ExprContext econtext ));
 Datum ExecEvalOper ARGS((List opClause , ExprContext econtext , Boolean *isNull ));
