@@ -245,6 +245,24 @@ IsTransactionState()
 }
 
 /* --------------------------------
+ *	IsAbortedTransactionBlockState
+ *
+ *	This returns true if we are currently running a query
+ *	within an aborted transaction block.
+ * --------------------------------
+ */
+bool
+IsAbortedTransactionBlockState()
+{
+    TransactionState s = CurrentTransactionState;
+
+    if (s->blockState == TBLOCK_ABORT)
+	return true;
+
+    return false;
+}
+
+/* --------------------------------
  *	OverrideTransactionSystem
  *
  *	This is used to temporarily disable the transaction
