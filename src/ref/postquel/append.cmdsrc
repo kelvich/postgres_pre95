@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH APPEND COMMANDS 06/13/93
+.TH APPEND COMMANDS 03/12/94
 .XA 2 Append
 .SH NAME
 append \(em append tuples to a relation
@@ -149,29 +149,30 @@ append tictactoe (board[3][3] =
 .)C
 .(C
 /*
- * Create a tuple containing a large-object array and chunk it.
- * The Inversion file "/large/tictactoe/board" is expected
- * to exist. The external file "/etc/acc_patt" holds the access 
- * pattern based on which the array  is chunked. A new large 
- * object is created to hold the chunked array. (see paper on 
- * arrays in "src/doc/papers/arrays/paper.ps" for more information)
+ * Create a tuple containing a large-object array and "chunk"
+ * it.  The Inversion file "/large/tictactoe/board" must already
+ * exist.  The external file "/etc/acc_patt" holds the access 
+ * pattern used to cluster (chunk) the array elements.  A new
+ * large object is created to hold the chunked array.
+ * (See "src/doc/papers/arrays/paper.ps" for more information)
  */
 append tictactoe (board[3][3] = 
  "/large/tictactoe/board -chunk /etc/acc_patt")
 .)C
 .(C
 /*
- * Append a tuple with a set attribute "mgr" of type emp.  The query
- * to produce the manager of "carol" (specified dynamically here) will 
- * be stored as a Postquel function in the system catalog pg_proc.  
- * The ObjectId of this tuple in pg_proc will be used in the name of 
- * the procedure, resulting in a procedure name of the form 
- * "set<OID of the tuple>".  Two backslashes are needed here to escape 
- * the inner quotes when running Postgres from the monitor.  When 
- * running Postgres directly, only one set of backslashes is needed.
+ * Append a tuple with a set attribute "mgr" of type emp.  The
+ * query to produce the manager of "carol" (specified dynamically
+ * here) will be stored as a POSTQUEL function in the system 
+ * catalog "pg_proc".  The object ID of this tuple in "pg_proc"
+ * will be used in the name of the procedure, resulting in a
+ * procedure name of the form "set<OID of the tuple>".  Two
+ * backslashes are needed here to escape the inner quotes when
+ * entering this query from the monitor.
  */
-append emp (name = "carol", mgr = 
-                   "retrieve (emp.all) where emp.name = \\"mike\\"")
+append emp (name = "carol",
+            mgr = "retrieve (emp.all) 
+                   where emp.name = \e\e"mike\e\e"")
 .)C
 .SH "SEE ALSO"
 postquel(commands),
