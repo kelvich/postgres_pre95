@@ -591,13 +591,13 @@ IndexStmt:
 	TREE:
 		( MERGE <rel1> <rel2> )
 
-	XXX - unsupported in version 1 (outside of parser)
+	XXX - unsupported in version 3 (outside of parser)
 
   ************************************************************/
 MergeStmt:
 	MERGE relation_expr INTO relation_name
 		{ 
-		    elog(NOTICE, "merge is unsupported in version 1");
+		    elog(WARN, "merge is unsupported in version 3");
 		    $$ = MakeList ( $1, $2, $4, -1 );
 		}
 	;
