@@ -1,0 +1,8 @@
+extern LispValue find_all_inheritors ARGS((LispValue unexamined_relids, LispValue examined_relids));
+extern int first_matching_rt_entry ARGS((LispValue rangetable, LispValue flag));
+extern Append plan_union_queries ARGS((LispValue rt_index, LispValue flag, LispValue root, LispValue tlist, LispValue qual, LispValue rangetable));
+extern LispValue plan_union_query ARGS((LispValue relids, LispValue rt_index, LispValue rt_entry, LispValue root, LispValue tlist, LispValue qual, LispValue rangetable));
+extern LispValue new_rangetable_entry ARGS((LispValue new_relid, LispValue old_entry));
+extern LispValue subst_rangetable ARGS((LispValue root, LispValue index, LispValue new_entry));
+extern LispValue fix_parsetree_attnums ARGS((LispValue rt_index, LispValue old_relid, LispValue new_relid, LispValue parsetree));
+extern LispValue fix_rangetable ARGS((LispValue rangetable, LispValue index, LispValue new_entry));
