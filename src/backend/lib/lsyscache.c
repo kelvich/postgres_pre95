@@ -45,6 +45,7 @@
 
 #include "catalog/pg_amop.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2stub.h"
 
 /* 
@@ -443,6 +444,7 @@ get_relstub (relid)
     struct varlena * relstub;
 
     tuple = SearchSysCacheTuple(PRS2STUB,relid,0,0,0);
+
     if (HeapTupleIsValid(tuple)) {
 	prs2stubStruct = (Form_pg_prs2stub) GETSTRUCT(tuple);
 	/*
@@ -458,6 +460,46 @@ get_relstub (relid)
       return((struct varlena *)NULL);
     }
 }
+
+/*
+ * get_ruleid
+ * given a tuple level rule name, return its oid.
+ */
+ObjectId
+get_ruleid(ruleName)
+Name ruleName;
+{
+    HeapTuple tuple;
+
+    tuple = SearchSysCacheTuple(PRS2RULEID,ruleName,0,0,0);
+    if (HeapTupleIsValid(tuple)) {
+	return(tuple->t_oid);
+    } else {
+	return(InvalidObjectId);
+    }
+}
+
+/*
+ * get_eventrelid
+ * given a (tuple system) rule oid, return the oid of the relation
+ * where this rule is defined on.
+ */
+ObjectId
+get_eventrelid(ruleId)
+ObjectId ruleId;
+{
+    HeapTuple tuple;
+    Form_pg_prs2rule prs2ruleStruct;
+
+    tuple = SearchSysCacheTuple(PRS2EVENTREL,ruleId,0,0,0);
+    if (HeapTupleIsValid(tuple)) {
+	prs2ruleStruct = (Form_pg_prs2rule) GETSTRUCT(tuple);
+	return(prs2ruleStruct->prs2eventrel);
+    } else {
+	return(InvalidObjectId);
+    }
+}
+
 
 /*    		---------- TYPE CACHE ----------
  */
