@@ -285,6 +285,7 @@ TypeShellMake(typeName)
 ObjectId
 TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 	   inputProcedure, outputProcedure, sendProcedure, receiveProcedure,
+	   elementTypeName,
 	   defaultTypeValue, passedByValue)
     Name	typeName;
     ObjectId	relationOid;		/* only for 'c'atalog typeTypes */
@@ -295,6 +296,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     Name	outputProcedure;
     Name	sendProcedure;
     Name	receiveProcedure;
+    Name	elementTypeName;
     char	*defaultTypeValue;	/* internal rep */
     Boolean	passedByValue;
 {
@@ -303,6 +305,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     HeapScanDesc 	pg_type_scan;
 
     ObjectId            typeObjectId;
+    ObjectId            elementObjectId = InvalidObjectId;
     
     HeapTuple 		tup;
     char 		nulls[TypeRelationNumberOfAttributes];
@@ -334,6 +337,15 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     if (ObjectIdIsValid(typeObjectId) && defined) {
 	elog(WARN, "TypeDefine: type %s already defined", typeName);
     }
+
+	if (elementTypeName != NULL)
+	{
+		elementObjectId = TypeGet(elementTypeName, &defined);
+    	if (!defined) {
+		elog(WARN, "TypeDefine: type %s is not defined", elementTypeName);
+		}
+    }
+
     
     if (externalSize == 0) {
 	externalSize = -1;		/* variable length */
@@ -362,7 +374,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     values[i++] = (char *) typeType;
     values[i++] = (char *) (Boolean) 1;
     values[i++] = (char *) (typeType == 'c' ? relationOid : InvalidObjectId);
-    values[i++] = (char *) InvalidObjectId;
+    values[i++] = (char *) elementObjectId;
     
     /* ----------------
      *	initialize the various procedure id's in value[]
