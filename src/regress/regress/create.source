@@ -1,32 +1,38 @@
 /*
- * Abstract data type definitions
+ * create.source
+ *
+ * $Header$
  */
 
-define function circle_in (   language = "c",
-             		      returntype = circle ) 
-  arg is (char16)
-  as "_CWD_/obj/regress.o"
+/*
+ * ABSTRACT DATA TYPE DEFINITIONS
+ */
+
+define function circle_in ( language = "c",
+			    returntype = circle )
+       arg is (char16)
+       as "_CWD_/obj/regress.o"
 \g
 
-define function circle_out (   language = "c", 
-			       returntype = char16 ) 
-    arg is (circle)
-    as "_CWD_/obj/regress.o"
+define function circle_out ( language = "c", 
+			     returntype = char16 )
+       arg is (circle)
+       as "_CWD_/obj/regress.o"
 \g
 
-define type circle (internallength = 24, 
-		    input = circle_in,
-		    output = circle_out)
+define type circle ( internallength = 24, 
+		     input = circle_in,
+		     output = circle_out )
 \g
 
 define type city_budget ( internallength = 16, 
 			  input = int44in, 
 			  output = int44out, 
-			  element = int4)
+			  element = int4 )
 \g
 
 /*
- * Relation/Class definition
+ * CLASS DEFINITIONS
  */
 create hobbies_r (name = text, person = text)
 \g
@@ -86,11 +92,14 @@ create tenk2 (unique1 = int4,
 
 create person (name = text, age = int4, location = point)
 \g
-create emp (salary = int4, manager = char16) inherits (person)
+create emp (salary = int4, manager = char16)
+       inherits (person)
 \g
-create student (gpa = float8) inherits (person)
+create student (gpa = float8)
+       inherits (person)
 \g
-create stud_emp (percent = int4) inherits (emp, student)
+create stud_emp (percent = int4)
+       inherits (emp, student)
 \g
 create city (name = char16, location = box, budget = city_budget)
 \g
@@ -104,69 +113,113 @@ create road (name = text, thepath = path)
 \g
 create ihighway () inherits (road)
 \g
-create shighway (surface = text) inherits (road)
+create shighway (surface = text)
+       inherits (road)
 \g
 create real_city (pop = int4, cname = text, outline = path)
 \g
-
+create aggtest (a = int2, b = float4)
+\g
+create arrtest (a = int2[], b = int4[], c = char16[], d = text[])
+\g
 
 /*
- * Function/Method definitions
+ * FUNCTION DEFINITIONS
  */
-define function hobbies (language = "postquel", returntype = setof hobbies_r)
-    arg is (person)
-    as "retrieve (hobbies_r.all) where hobbies_r.person = $1.name"
+define function hobbies ( language = "postquel",
+			  returntype = setof hobbies_r )
+       arg is (person)
+       as "retrieve (hobbies_r.all) where hobbies_r.person = $1.name"
 \g
-define function hobby_construct (language = "postquel", returntype = hobbies_r)
-    arg is (text, text)
-    as "retrieve (name = $1, hobby = $2)"
+define function hobby_construct ( language = "postquel",
+				  returntype = hobbies_r )
+       arg is (text, text)
+       as "retrieve (name = $1, hobby = $2)"
 \g
-define function equipment
-    (language = "postquel", returntype = setof equipment_r)
-    arg is (hobbies_r)
-    as "retrieve (equipment_r.all) where equipment_r.hobby = $1.name"
+define function equipment ( language = "postquel",
+			    returntype = setof equipment_r )
+       arg is (hobbies_r)
+       as "retrieve (equipment_r.all) where equipment_r.hobby = $1.name"
 \g
-define function user_relns (language = "postquel", returntype = setof char16)
-    as "retrieve (pg_class.relname)
-    where pg_class.relname !~ \\"pg_.*\\" and
-	  pg_class.relkind != 'i' "
+define function user_relns ( language = "postquel",
+			     returntype = setof char16 )
+       as "retrieve (pg_class.relname)
+       where pg_class.relname !~ \\"pg_.*\\" and
+	     pg_class.relkind != 'i' "
 \g
-define function pt_in_circle (   language = "c",
-				 returntype = int4) 
-    arg is (point, circle)
-    as "_CWD_/obj/regress.o"
-\g
-
-define function overpaid (       language = "c",
-				 returntype = bool) 
-    arg is (emp)
-    as "_CWD_/obj/regress.o"
+define function pt_in_circle ( language = "c",
+			       returntype = int4 )
+       arg is (point, circle)
+       as "_CWD_/obj/regress.o"
 \g
 
-define function boxarea (   language = "c", 
-			    returntype = int4) 
-     arg is (box)
-     as "_CWD_/obj/regress.o"
+define function overpaid ( language = "c",
+			   returntype = bool ) 
+       arg is (emp)
+       as "_CWD_/obj/regress.o"
 \g
 
-define function interpt_pp (language = "c", returntype = point)
-     arg is (path, path)
-     as "_CWD_/obj/regress.o"
+define function boxarea ( language = "c", 
+			  returntype = int4 )
+       arg is (box)
+       as "_CWD_/obj/regress.o"
 \g
 
-define function reverse_c16 (language = "c", returntype = char16)
-    arg is (char16)
-    as "_CWD_/obj/regress.o"
+define function interpt_pp ( language = "c",
+			     returntype = point )
+       arg is (path, path)
+       as "_CWD_/obj/regress.o"
+\g
+
+define function reverse_c16 ( language = "c",
+			      returntype = char16 )
+       arg is (char16)
+       as "_CWD_/obj/regress.o"
+\g
+
+/* untrusted functions */
+define function ufp0 ( language = "c",
+		       returntype = int4 )
+       arg is (int4)
+       as "_CWD_/obj/ufp1.o"
+\g
+replace pg_proc ( proistrusted = "f"::bool,
+		  pronargs = 0 )
+	where pg_proc.proname = "ufp0"
+\g
+define function ufp1 ( language = "c",
+		       returntype = int4 )
+       arg is (int4)
+       as "_CWD_/obj/ufp1.o"
+\g
+replace pg_proc ( proistrusted = "f"::bool )
+	where pg_proc.proname = "ufp1"
+\g
+define function ufp2 ( language = "c",
+		       returntype = char16 )
+       arg is (char16, char16)
+       as "_CWD_/obj/ufp2.o"
+\g
+replace pg_proc ( proistrusted = "f"::bool )
+	where pg_proc.proname = "ufp2"
+\g
+define function ufp3 ( language = "c",
+		       returntype = text )
+       arg is (text, char)
+       as "_CWD_/obj/ufp3.o"
+\g
+replace pg_proc ( proistrusted = "f"::bool )
+	where pg_proc.proname = "ufp3"
 \g
 
 /*
- * Function/Method dynamic loading
+ * FUNCTION DYNAMIC LOADING
  */
 load "_CWD_/obj/regress.o"
 \g
 
 /*
- * relation/class population
+ * CLASS POPULATION
  *	(any resemblance to real life is purely coincidental)
  */
 copy onek from "_CWD_/../data/onek.data"
@@ -192,10 +245,10 @@ copy stud_emp from "_CWD_/../data/stud_emp.data"
 retrieve into Bprime (t.all) from t in tenk1 where t.unique2 < 1000
 \g
 append hobbies_r (name = "posthacking", person = p.name) from p in person*
-    where p.name = "mike" or p.name = "jeff"
+       where p.name = "mike" or p.name = "jeff"
 \g
 append hobbies_r (name = "basketball", person = person.name)
-    where person.name = "joe" or person.name = "sally"
+       where person.name = "joe" or person.name = "sally"
 \g
 append hobbies_r (name = "skywalking")
 \g
@@ -221,6 +274,28 @@ append shighway (road.all) where road.name ~ "State Hwy.*"
 replace shighway (surface = "asphalt")
 \g
 
+append aggtest (a = 56, b = 7.8)
+\g
+append aggtest (a = 100, b = 99.097)
+\g
+append aggtest (a = 0, b = 0.09561)
+\g
+append aggtest (a = 42, b = 324.78)
+\g
+
+append arrtest (a = "{}", b = "{}", c = "{}", d = "{}")
+\g
+append arrtest (a = "{"1"}", b = "{"1"}", c = "{"foobar"}", d = "{"barfoo"}")
+\g
+append arrtest (a = "{1,2}", b = "{3,4}", c = "{foo,bar}", d = "{bar,foo}")
+\g
+
+create iportaltest (i = int4, d = float4, p = polygon)
+\g
+append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon)
+\g
+append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon)
+\g
 
 /*
  * Define ancillary data structures (i.e. indices)
@@ -255,34 +330,59 @@ define index six on shighway using btree (name text_ops)
 \g
 
 /*
- * Operators
+ * OPERATOR DEFINITIONS
  */
-define operator ## (arg1 = path, arg2 = path, procedure = path_inter,
-		    commutator = ##)
+define operator ## ( arg1 = path,
+		     arg2 = path,
+		     procedure = path_inter,
+		     commutator = ## )
 \g
 
-define operator <% ( arg1 = point, arg2 = circle,
+define operator <% ( arg1 = point,
+		     arg2 = circle,
 		     procedure = pt_in_circle,
 		     associativity = left,
 		     commutator = >=%,
 		     restrict = int4eq )
-
 \g
 
 /*
- * Virtual classes
+ * VIRTUAL CLASS DEFINITIONS
+ *	(this also tests the query rewrite system)
  */
-
-define view street (road.name, road.thepath, cname = real_city.cname)
-		   where real_city.outline ## road.thepath
+define view street ( road.name,
+		     road.thepath,
+		     cname = real_city.cname )
+       where real_city.outline ## road.thepath
 \g
 
-define view iexit (ihighway.name, ihighway.thepath, 
-		   exit = interpt_pp(ihighway.thepath, ramp.thepath))
-		  where ihighway.thepath ## ramp.thepath
+define view iexit ( ihighway.name,
+		    ihighway.thepath, 
+		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )
+       where ihighway.thepath ## ramp.thepath
 \g
 
-define view toyemp (emp.name, emp.age, emp.location, annualsal = 12*emp.salary)
+define view toyemp ( emp.name,
+		     emp.age,
+		     emp.location,
+		     annualsal = 12*emp.salary )
+\g
+
+/*
+ * AGGREGATE DEFINITIONS
+ */
+/* all functions defined */
+define aggregate newavg (sfunc1 = int4pl,
+			 sfunc2 = int4inc,
+			 finalfunc = int4div,
+			 initcond1 = "0",
+			 initcond2 = "0")
+\g
+/* sfunc1 (value-dependent) only */
+define aggregate newsum (sfunc1 = int4pl, initcond1 = "0")
+\g
+/* sfunc2 (value-independent) only */
+define aggregate newcnt (sfunc2 = int4inc, initcond2 = "0")
 \g
 
 vacuum
@@ -292,6 +392,6 @@ vacuum
  * sanity check, if we don't have indices the test will take years to
  * complete.
  */
-retrieve (pg_class.relname, pg_class.relhasindex)
-    where pg_class.relhasindex
+retrieve ( pg_class.relname, pg_class.relhasindex )
+	   where pg_class.relhasindex
 \g

@@ -1,11 +1,17 @@
 /*
+ * queries.source
+ *
+ * $Header$
+ */
+
+/*
  * --- operators and target lists ---
  */
 
 /*
  * sanity check - if this fails go insane!
  */
-retrieve (x=1)
+retrieve (one = 1)
 \g
 
 /*
@@ -271,15 +277,15 @@ retrieve (true = "2"::int2 * "2"::int4 = "16"::int4 / "4"::int2)
 \g
 retrieve (false = "1000"::int4 < "999"::int4)
 \g
-retrieve (four_fact = 4!)
+retrieve (twenty_four = 4!)
 \g
-retrieve (three_fact = !!3)
+retrieve (six = !!3)
 \g
 retrieve (ten = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
 \g
-retrieve (precedence = 2 + 2 / 2)
+retrieve (three = 2 + 2 / 2)
 \g
-retrieve (precedence = (2 + 2) / 2)
+retrieve (two = (2 + 2) / 2)
 \g
 retrieve (eight = dsqrt("64"::float8))
 \g
@@ -420,8 +426,7 @@ replace p (age = p.age + 3) from p in person* where p.name = "linda"
 
 /*
  * append
- *
- * - pretty well tested in the create script -
+ * 	(is tested in create.source)
  */
 
 /*
@@ -459,6 +464,35 @@ retrieve (stud_emp.all)
 /*
  * transaction blocks
  */
+begin
+\g
+retrieve into xacttest (aggtest.all)
+\g
+append xacttest (a = 777, b = 777.777)
+\g
+end
+\g
+/* should retrieve one value */
+retrieve (xacttest.a) where xacttest.a > 100
+\g
+
+begin
+\g
+create disappear (a = int4)
+\g
+delete aggtest
+\g
+/* should be empty */
+retrieve (aggtest.all)
+\g
+abort
+\g
+/* should not exist */
+retrieve (pg_class.oid) where pg_class.relname = "disappear"
+\g
+/* should have members again */
+retrieve (aggtest.all)
+\g
 
 /*
  * portal manipulation
@@ -788,16 +822,44 @@ retrieve (tenk1.unique1) where tenk1.unique1 < 5
 \g
 
 /*
- * aggregates
+ * AGGREGATES
  */
+retrieve (avg_1 = int4ave{onek.four})
+\g
+retrieve (avg_32 = int2ave{aggtest.a where aggtest.a < 100})
+\g
+retrieve (avg_107_943 = float4ave{aggtest.b})
+\g
+retrieve (avg_3_4 = float8ave{student.gpa})
+\g
 
-/*
- * define aggregate
- */
+retrieve (sum_1500 = int4sum{onek.four})
+\g
+retrieve (sum_198 = int2sum{aggtest.a})
+\g
+retrieve (avg_431_773 = float4sum{aggtest.b})
+\g
+retrieve (avg_6_8 = float8sum{student.gpa})
+\g
 
-/*
- * remove aggregate
- */
+retrieve (max_3 = int4max{onek.four})
+\g
+retrieve (max_100 = int2max{aggtest.a})
+\g
+retrieve (max_324_78 = float4max{aggtest.b})
+\g
+retrieve (max_3_7 = float8max{student.gpa})
+\g
+
+retrieve (cnt_1000 = count{onek.four})
+\g
+
+retrieve (avg_1 = newavg{onek.four})
+\g
+retrieve (sum_1500 = newsum{onek.four})
+\g
+retrieve (cnt_1000 = newcnt{onek.four})
+\g
 
 /*
  * versions
@@ -851,9 +913,80 @@ retrieve (equip_name =
  */
 
 /*
- * arrays
+ * ARRAYS
  */
+retrieve (arrtest.all)
+\g
+retrieve (arrtest.a[1], arrtest.b[1], arrtest.c[1], arrtest.d[1])
+\g
+retrieve (arrtest.all) where arrtest.a[1] < 5
+\g
+retrieve (arrtest.all) where arrtest.b[2] < 10
+\g
 
 /*
  * expensive functions
  */
+
+/*
+ * UNTRUSTED FUNCTIONS
+ */
+/* 0 arguments */
+retrieve (forty_two = ufp0())
+\g
+/* 1 argument, pass-by-value arguments/return-values */
+/* also: multiple functions per file */
+retrieve (sixteen = ufp1(15))
+\g
+/* >1 argument, pass-by-reference fixed-length arguments/return-values */
+/* also: linking to C library */
+retrieve (postgres = ufp2("post"::char16,"gres"::char16))
+\g
+/* pass-by-reference variable-length arguments/return-values */
+/* also: linking to UFP code */
+retrieve (postgres = ufp3("postgres rules ok"::text, " "::char))
+\g
+
+/*
+ * SECURITY CRUFT
+ */
+replace pg_class (relacl="{}")
+	where pg_class.relname !~ "pg_*"::char16
+\g
+replace pg_user (usesuper="f"::bool) where pg_user.usename = "_USER_"
+\g
+
+create myclass0 (a=int4)
+\g
+
+/* these should all succeed */
+append myclass0 (a=5)
+\g
+retrieve (myclass0.a)
+\g
+replace myclass0 (a=6)
+\g
+append myclass0 (a=10)
+\g
+append myclass0 (a=20)
+\g
+replace myclass0 (a=10) where myclass0.a < 10
+\g
+replace myclass0 (a=myclass0.a+1)
+\g
+delete myclass0 where myclass0.a > 15
+\g
+define rule foo is on retrieve to myclass0 do instead nothing
+\g
+remove rule foo
+\g
+
+change acl _USER_-arR myclass0
+\g
+
+/* succeeds */
+replace myclass0 (a=1)
+\g
+/* succeeds (we still have write permission) */
+append myclass0 (a=100)
+\g

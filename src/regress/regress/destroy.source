@@ -1,5 +1,11 @@
 /*
- * Function/Method removal
+ * destroy.source
+ *
+ * $Header$
+ */
+
+/*
+ * FUNCTION REMOVAL
  */
 remove function hobbies
 \g
@@ -23,9 +29,17 @@ remove function interpt_pp
 \g
 remove function reverse_c16
 \g
+remove function ufp0
+\g
+remove function ufp1
+\g
+remove function ufp2
+\g
+remove function ufp3
+\g
 
 /*
- * Operators
+ * OPERATOR REMOVAL
  */
 remove operator ## (path, path)
 \g
@@ -33,7 +47,7 @@ remove operator <% (point, circle)
 \g
 
 /*
- * Abstract data type definitions
+ * ABSTRACT DATA TYPE REMOVAL
  */
 remove type city_budget
 \g
@@ -41,7 +55,27 @@ remove type circle
 \g
 
 /*
- * Define ancillary data structures (i.e. indices)
+ * RULE REMOVAL
+ *	(is tested in queries.source)
+ */
+
+/*
+ * AGGREGATE REMOVAL
+ */
+remove aggregate newavg
+\g
+remove aggregate newsum
+\g
+remove aggregate newcnt
+\g
+
+/*
+ * CLASS REMOVAL
+ *	(inheritance hierarchies are deleted in reverse order)
+ */
+
+/*
+ * Remove ancillary data structures (i.e. indices)
  */
 remove index onek_unique1
 \g
@@ -72,15 +106,23 @@ remove index iix
 remove index six
 \g
 
-
-/*
- * Relations/Classes - Inheritance heirarchies deleted in reverse order
- */
 destroy onek
 \g
 destroy tenk1 
 \g
 destroy tenk2 
+\g
+
+destroy hobbies_r
+\g
+destroy equipment_r
+\g
+
+destroy aggtest
+\g
+destroy arrtest
+\g
+destroy iportaltest
 \g
 
 destroy stud_emp
@@ -94,6 +136,8 @@ destroy fast_emp4000
 destroy emp
 \g
 destroy person
+\g
+destroy ramp
 \g
 destroy real_city
 \g
@@ -109,7 +153,8 @@ destroy city
 \g
 
 /*
- * virtual classes
+ * VIRTUAL CLASS REMOVAL
+ *	(also tests removal of rewrite rules)
  */
 remove view street
 \g

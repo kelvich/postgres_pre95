@@ -1,2 +1,54 @@
+/*
+ * errors.source
+ *
+ * $Header$
+ */
+
 retrieve (1)
+\g
+
+/*
+ * DEFINE AGGREGATE
+ */
+/* left out finalfunc */
+define aggregate newavg1 (sfunc1 = int4pl,
+			  sfunc2 = int4inc,
+			  initcond1 = "0",
+			  initcond2 = "0")
+\g
+/* sfunc return type disagreement */
+define aggregate newavg2 (sfunc1 = int4pl,
+			  sfunc2 = int2inc,
+			  finalfunc = int4div,
+			  initcond1 = "0",
+			  initcond2 = "0")
+\g
+/* sfunc/finalfunc type disagreement */
+define aggregate newavg3 (sfunc1 = int4pl,
+			  sfunc2 = int4inc,
+			  finalfunc = int2div,
+			  initcond1 = "0",
+			  initcond2 = "0")
+\g
+/* left out initcond2 (for sfunc2) */
+define aggregate newcnt1 (sfunc2 = int4inc)
+\g
+
+/*
+ * SECURITY CRUFT
+ */
+/* fails */
+retrieve (myclass0.a)
+\g
+/* fails due to read in qualification */
+replace myclass0 (a = 10) where myclass0.a < 15
+\g
+/* fails due to read in target list */
+replace myclass0 (a = myclass0.a + 1)
+\g
+/* fails due to read in qualification */
+delete myclass0 where myclass0.a >= 100
+\g
+/* fails */
+define rule foo is on retrieve to myclass0 do instead nothing
 \g
