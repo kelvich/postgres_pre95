@@ -14,6 +14,8 @@ RcsId("$Header$");
 #include "anum.h"
 #include "buf.h"
 #include "catname.h"
+#include "copy.h"
+#include "excid.h"
 #include "executor.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
 #include "globals.h"	/* for IsUnderPostmaster */
 #include "itemptr.h"
@@ -21,6 +23,7 @@ RcsId("$Header$");
 #include "htup.h"
 #include "mcxt.h"
 #include "name.h"	/* for NameIsEqual */
+#include "pg_lisp.h"
 #include "portal.h"
 #include "rel.h"
 #include "relscan.h"
@@ -28,6 +31,20 @@ RcsId("$Header$");
 #include "trange.h"
 
 #include "command.h"
+
+/*
+ * FixDomainList --
+ *	Puts relation transform domain list into canonical form.
+ */
+static
+List
+FixDomainList ARGS((
+	List	domains
+));
+
+/*
+ * Public
+ */
 
 void
 EndCommand(commandTag)
@@ -474,4 +491,86 @@ renamerel(oldrelname, newrelname)
 	(void) strcpy(newpath, relpath(newrelname));
 	if (rename(oldpath, newpath) < 0)
 		elog(WARN, "renamerel: unable to rename file: %m");
+}
+
+void
+PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
+		mapName, domains)
+	Name	relationName;
+	bool	isBinary;
+	bool	noNulls;
+	bool	isFrom;
+	String	fileName;
+	Name	mapName;
+	List	domains;
+{
+	AttributeNumber	numberOfAttributes;
+	Domain		domainDesc;
+	Count		domainCount;
+
+	numberOfAttributes = length(domains);
+	domains = FixDomainList(domains);
+	domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
+		domains, &domainCount);
+
+	copyrel(relationName, isFrom, fileName, mapName, domainCount,
+		domainDesc);
+}
+
+/*
+ * Private
+ */
+
+static
+List
+FixDomainList(domains)
+	List	domains;
+{
+	LispValue	first;
+	List		fixedFirst;
+	List		result;
+
+	if (null(domains)) {
+		return (LispNil);
+	}
+
+	first = CAR(domains);
+	fixedFirst = LispNil;
+
+	if (lispStringp(first)) {
+		fixedFirst = lispCons(first,
+			lispCons(lispInteger(-1),
+				lispCons(lispInteger(strlen(CString(first))),
+					LispNil)));
+	} else {
+		int	len;
+
+		len = length(first);
+		switch (len) {
+		case 1:
+			fixedFirst = lispCons(CAR(first),
+				lispCons(lispInteger(0),
+					lispCons(lispInteger(-1), LispNil)));
+			break;
+		case 2:
+			fixedFirst = lispCons(CAR(first),
+				lispCons(CADR(first),
+					lispCons(lispInteger(-1), LispNil)));
+			break;
+		case 3:
+			fixedFirst = first;
+			break;
+		default:
+			; /* this cannot happen */
+		}
+	}
+
+	/*
+	 * return result of processing entire list
+	 */
+	result = FixDomainList(CDR(domains));
+	if (!null(fixedFirst)) {
+		result = lispCons(fixedFirst, result);
+	}
+	return (result);
 }
