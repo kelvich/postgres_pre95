@@ -7,7 +7,7 @@
 remove function \(em remove a user-defined C function 
 .SH SYNOPSIS
 .(l M
-\fBremove function ( \fP[ type-1  { \fB,\fP type-n } ] \fB) \fR function_name
+\fBremove function \fRfunction_name ( \fP[ type-1  { \fB,\fP type-n } ] \fB) 
 .)l
 .SH DESCRIPTION
 .BR "Remove function"
