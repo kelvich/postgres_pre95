@@ -14,9 +14,15 @@
  *     		preprocess-qualification
  */
 
+#include "clauses.h"
 #include "internal.h"
 #include "pg_lisp.h"
+#include "clause.h"
+#include "prepqual.h"
 
+extern LispValue get_negator(); /* defined in lsyscache.c */
+
+/*
 extern LispValue cnfify();
 extern LispValue pull_args();
 extern LispValue pull_ors();
@@ -30,7 +36,7 @@ extern LispValue remove_ands();
 extern LispValue update_relations();
 extern LispValue normalize();
 extern LispValue update_clauses();
-
+*/
 /*    
  *    	preprocess-qualification
  *    
@@ -409,28 +415,28 @@ LispValue
 or_normalize (orlist)
      LispValue orlist ;
 {
-  if ( consp (orlist) ) {
-    LispValue distributable = LispNil;
-    LispValue new_orlist = LispNil;
-    LispValue temp = LispNil;
-    
-    foreach(temp,orlist) {
-      if (and_clause(temp)) 
-	distributable = LispTrue;
-    }
-    if (distributable == LispTrue) 
-      new_orlist = remove(distributable,orlist);
-    
-    if(new_orlist) 
-      return (or_normalize (cons (distribute_args 
-				  (CAR (new_orlist),
-				   get_andclauseargs (distributable)),
-				  CDR (new_orlist))));
-
-    else
-      return (orlist);
-
-  }
+     if ( consp (orlist) ) {
+	  LispValue distributable = LispNil;
+	  LispValue new_orlist = LispNil;
+	  LispValue temp = LispNil;
+	  
+	  foreach(temp,orlist) {
+	       if (and_clause(temp)) 
+		 distributable = LispTrue;
+	  }
+	  if (distributable == LispTrue) 
+	    new_orlist = remove(distributable,orlist);
+	  
+	  if(new_orlist) 
+	    return (or_normalize (cons (distribute_args 
+					(CAR (new_orlist),
+					 get_andclauseargs (distributable)),
+					CDR (new_orlist))));
+	  
+	  else
+	    return (orlist);
+	  
+     }
 }  /* function end   */
 
 /*    
