@@ -743,18 +743,7 @@ StartTransaction()
      */
     if (s->state == TRANS_DISABLED || s->state == TRANS_INPROGRESS)
 	return;
-    
-/*
- * -------------
- * XXX:  mao commented these lines out 20 feb 91.  due to fe/be comm problems,
- *	 we get this message for every query submitted to the monitor.  i just
- *	 want the message to go away.  we should fix the comm problems instead.
- * -------------
- *
- *   if (s->state != TRANS_DEFAULT)
- *	elog(NOTICE, "StartTransaction and not in default state");
- */
-    
+
     /* ----------------
      *	set the current transaction state information
      *  appropriately during start processing
@@ -833,7 +822,7 @@ CommitTransaction()
      * ----------------
      */
     RecordTransactionCommit();
-	AtCommit_LocalRels();
+    AtCommit_LocalRels();
     AtCommit_Cache();
     AtCommit_Locks();
     AtCommit_Memory();
