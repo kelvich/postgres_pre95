@@ -121,7 +121,7 @@ cleandir: _PROGSUBDIR
 depend: .depend _PROGSUBDIR
 .depend: ${SRCS}
 .if defined(PROG)
-	mkdep ${MKDEP} ${CFLAGS:M-[ID]*} ${.ALLSRC:M*.c}
+	mkdep ${MKDEP} ${CFLAGS:M-[UID]*} ${.ALLSRC:M*.c}
 .endif
 .endif
 
@@ -162,7 +162,9 @@ beforeinstall: all
 .if !target(lint)
 lint: ${SRCS} _PROGSUBDIR
 .if defined(PROG)
-	@${LINT} ${LINTFLAGS} ${CFLAGS} ${.ALLSRC} | more 2>&1
+	cd ${.CURDIR}; \
+	${LINT} ${LINTFLAGS} ${CFLAGS:M-[UID]*} \
+	${.ALLSRC:M*.c:M/*:S,${.CURDIR}/,,g}
 .endif
 .endif
 
@@ -230,7 +232,7 @@ localobj:
 .endif
 
 #
-# Marc's disgusting tagsfile hack follows.
+# Marc( && Paul)'s disgusting tagsfile hack follows.
 #
 # The reason for the extensive processing of the paths is that
 # ${.ALLSRC} is gigantic due to the cross product of the number of
@@ -241,7 +243,7 @@ localobj:
 # anything that is relative to the (old) current directory (doesn't
 # have a slash in it) gets a duplicate with an obj/ prepended to it
 # (which breaks if we aren't using "obj" directories), and the mess is
-# fed to {c,e}tags.  Then we massage the tags output to have the
+# fed to {c,e}tags.  Then we massage the ctags output to have the
 # absolute pathname in the file reference so we can refer to this tags
 # file from any source subdirectory below.
 #
@@ -259,37 +261,10 @@ localobj:
 .if !target(TAGS)
 TAGS: ${HEADERS} ${SRCS} _PROGSUBDIR
 .if defined(PROG)
-.if (${.CURDIR} == "..")
-#
-# TAGS files initially look like:
-#	^L
-#	../backend/access/common/attr.c,171
-#	AttributeNumberGetAttributeOffset(^?71,1686
-#	[...]
-#	^L
-#	fmgr.h,200
-# since the target is executed from the obj directory.  The sed magic
-# appends "obj/" to files in obj and removes the ".." from files that
-# are not in obj.  This is marginally preferable to absolute pathnames
-# (paths are rooted wherever the TAGS file is).
-#
-# This only works if we are in a local obj directory.
-#
-	-rm -f ${.TARGET}; \
-	etags -t ${.ALLSRC:S%access/common/../../%%g}; \
-	sed -e '/^.$$/,/,/s%^%obj/%' \
-	    -e 's%^obj/\(.\)$$%\1%' \
-	    -e "s%obj/\.\./%%" < ${.TARGET} > ../${.TARGET}
-.else
-#
-# The tr/awk magic appends "obj/" to files in obj and removes
-# ${.CURDIR} from files that are not in obj.
-#
 	-cd ${.CURDIR}; \
 	rm -f ${.TARGET}; \
-	etags -t `echo  ${.ALLSRC:S,${.CURDIR}/,,g} | \
-	tr ' ' '\012' | awk '! /\// {print "obj/"$$1;next;} {print}'` 2> /dev/null
-.endif
+	etags -t \
+	${.ALLSRC:N/*:S,^,${MAKEOBJDIR}/&,g} ${.ALLSRC:M/*:S,${.CURDIR}/,,g}
 .endif
 .endif
 
@@ -309,36 +284,22 @@ tags: _linktags _maketags
 
 _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 .if defined(PROG)
-.if ${.CURDIR} == ".."
-#
-# This only works if we are in a local obj directory.
-#
-	-rm -f tags; \
-	ctags -t ${.ALLSRC:S%access/common/../../%%g}; \
-	HERE=`pwd`/; \
-	sed "s,	,	$$HERE," < tags > ../tags
-.else
-#
-# The tr/awk magic appends "obj/" to files in obj and removes
-# ${.CURDIR} from files that are not in obj.
-#
 	-cd ${.CURDIR}; \
 	rm -f tags; \
-	ctags -t `echo  ${.ALLSRC:S,${.CURDIR}/,,g} | \
-	tr ' ' '\012' | awk '! /\// {print "obj/"$$1;next;} {print}'` 2> /dev/null ; \
+	ctags -t \
+	${.ALLSRC:N/*:S,^,${MAKEOBJDIR}/&,g} ${.ALLSRC:M/*:S,${.CURDIR}/,,g}; \
 	mv tags tags.tmp; \
 	TOPDIR=`pwd`/; \
 	sed "s,	,	$$TOPDIR," < tags.tmp > tags; \
-	rm tags.tmp
-.endif
+	rm -f tags.tmp
 .endif
 
 _linktags::
 .if defined(PROG)
-	-cd ${.CURDIR};\
-		TAGFILE=`pwd`/tags; \
-		find * -name tags -exec rm -f {} \; ; \
-		find * ! -name RCS -type d -exec ln -s $$TAGFILE {} \; ;
+	-cd ${.CURDIR}; \
+	TAGFILE=`pwd`/tags; \
+	find * -name tags -exec rm -f {} \; ; \
+	find * ! -name RCS -type d -exec ln -s $$TAGFILE {} \; ;
 .endif
 .endif
 
