@@ -22,7 +22,6 @@
  *  system ought to be redesigned.
  */
 
-
 #define	PrintRelExists
 #define	PrintSortKeyExists
 #define	PrintPathExists
@@ -53,7 +52,7 @@ extern void	PrintCInfo();
 extern void	PrintJInfo();
 extern void     PrintHInfo();
 extern void     PrintJoinMethod();
-extern void	PrintRuleLockNode();
+extern void   PrintRuleLockNode();
 
 #define EqualCInfoExists 1
 #define EqualJInfoExists 1
@@ -61,6 +60,7 @@ extern void	PrintRuleLockNode();
 #define EqualJoinMethodExists 1
 #define EqualHashPathExists 1
 #define EqualIndexScanExists 1
+#define EqualMergeOrderExists 1
 
 extern bool     EqualRel();
 extern bool	EqualSortKey();
@@ -183,7 +183,8 @@ class (Path) public (Node) {
 	List		p_ordering; \
 	List		keys; \
 	SortKey		sortpath; \
-        Relid		joinid
+	Cost		outerjoincost; \
+	Relid		joinid
 /* private: */
 	PathDefs;
  /* public: */
@@ -193,7 +194,7 @@ class (Path) public (Node) {
 class (IndexPath) public (Path) {
 	inherits(Path);
  /* private: */
-	ObjectId	indexid;
+	List		indexid;
 	List		indexqual;
  /* public: */
 };
@@ -203,8 +204,7 @@ class (JoinPath) public (Path) {
 	inherits(Path); \
 	List		pathclauseinfo; \
 	struct path	*outerjoinpath; \
-	struct path	*innerjoinpath; \
-	Cost		outerjoincost
+	struct path	*innerjoinpath
  /* private: */
 	JoinPathDefs;
  /* public: */
@@ -263,11 +263,11 @@ class (CInfo) public (Node) {
 	Cost		selectivity;
 	bool		notclause;
 	List		indexids;
-	Relid		cinfojoinid;
 /* mergesort only */
 	MergeOrder	mergesortorder;
 /* hashjoin only */
 	ObjectId	hashjoinoperator;
+	Relid		cinfojoinid;
 };
 
 class (JoinMethod) public (Node) {
@@ -280,14 +280,14 @@ class (JoinMethod) public (Node) {
  /* public: */
 };
 
-class (HInfo) public (Node) {
+class (HInfo) public (JoinMethod) {
     inherits(JoinMethod);
     ObjectId        hashop;
 };
 
-class (MInfo) public (Node) {
+class (MInfo) public (JoinMethod) {
     inherits(JoinMethod);
-    List         m_ordering;
+    MergeOrder         m_ordering;
 };
 
 class (JInfo) public (Node) {
@@ -300,12 +300,12 @@ class (JInfo) public (Node) {
 };
 
 class (RuleLockNode) public (Node) {
-    	inherits(Node);
-	LockType	rltype;
-	Index		rlrelation;
-	AttributeNumber	rlattribute;
-	Var		rlvar;
-	List		rlplan;
+        inherits(Node);
+        LockType        rltype;
+        Index           rlrelation;
+        AttributeNumber rlattribute;
+        Var             rlvar;
+        List            rlplan;
 };
 
 #endif /* RelationIncluded */
