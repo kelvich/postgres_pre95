@@ -547,6 +547,7 @@ typedef time_t	HostSystemTime;
  * open --
  *	open(2)
  */
+#if old_sun_no_longer_supported
 extern
 HostSystemPort
 open ARGS((
@@ -616,6 +617,7 @@ HostSystemTime
 time ARGS((
 	HostSystemTime	*tloc
 ));
+#endif
 
 /*
  * These tests can be made more strict given a particular compiler.
