@@ -154,6 +154,13 @@ MACHINE=i386
 ENFORCE_ALIGNMENT=
 .endif
 
+#
+# This should probably be in the sys.mk file.  I can't
+# believe system V install is different.
+#
+.if (${PORTNAME} == "alpha")
+INSTALL=installbsd
+.endif
 
 #
 # The default bmake rules will strip binaries while installing them.
