@@ -22,9 +22,6 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 
-
-static ObjectId	typtoout();
-
 /* ----------------
  *	convtypeinfo
  *
@@ -45,14 +42,6 @@ convtypeinfo(natts, att)
 	palloc(natts * sizeof(*rpp) + natts * sizeof(**rpp));
     MemoryCopy(rpp + natts, att, natts * sizeof(**rpp));
     
-    /* ----------------
-     *	REMOVED:
-     *
-     * pfree(att);	
-     *
-     *	executor now does the freeing.. -cim 8/8/89
-     * ----------------
-     */
     ap = (struct attribute *)(rpp + natts);
     while (--natts >= 0)
 	*rpp++ = ap++;
@@ -67,7 +56,7 @@ convtypeinfo(natts, att)
  *	typtoout - used by printtup and debugtup
  * ----------------
  */
-static ObjectId
+ObjectId
 typtoout(type)
     ObjectId	type;
 {
@@ -97,8 +86,8 @@ printtup(tuple, typeinfo)
     struct attribute 	*typeinfo[];
 {
     int		i, j, k;
-    char		*outputstr, *attr;
-    Boolean		isnull;
+    char	*outputstr, *attr;
+    Boolean	isnull;
     ObjectId	typoutput;
     
     /* ----------------
