@@ -8,12 +8,12 @@ monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
 .b monitor
-[-h hostname] [-p port] [-t tty] [-d filename] [-o options]
+[-h hostname] [-p port] [-t path] [-d path] [-o options]
 dbname
 .uh DESCRIPTION
 .lp
 The interactive terminal monitor is a simple frontend to \*(PP.
-It enables one to formulate and review queries before
+It enables one to formulate, edit and review queries before
 issuing them to \*(PP.
 If changes must be made,
 a \*(UU editor may be called
@@ -29,19 +29,41 @@ If
 is not set, then
 .b vi
 is used by default.
-
-.b "Messages and Prompts"
 .sp
-.br
+The terminal monitor requires that the postmaster be running, and the ports
+(specified with the "-p" option or by the PGPORT environment variable)
+must be identical to those specified to the postmaster.
+.uh "COMMAND OPTIONS"
+.lp
+\fI-h host\fR specifies host machine on which the POSTGRES backend
+is running; default is your local machine (localhost).
+.sp
+\fI-p port\fR specifies the well known TCP/IP port used for network 
+communication between the terminal monitor and the postmaster.
+.sp
+\fI-t path\fR specifies the path name of the file or tty which you 
+want the backend debugging messages to be sent to; default is /dev/null. 
+.sp
+\fI-d path\fR specifies the path name of the file or tty which you want
+the frontend debugging messages to be written to; the default is not
+to generate any debugging messages. 
+.sp
+\fI-o options\fR specifies additonal options for the postgres backend.
+This is only intended for use by postgres developers.
+.pp
+You may set environment variables to avoid typing the above options.
+See the \fBENVIRONMENT VARIABLES\fR section below.
+.uh "MESSAGES AND PROMPTS"
+.pp
 The terminal monitor gives a variety of messages to keep the user informed
 of the status of the monitor and the query buffer.
-
+.sp
 When the terminal monitor is executed,
 it gives the current date and time,
 usually followed by the information in the
 .b dayfile
 (files).
-
+.sp
 The terminal monitor displays three kinds of messages:
 .nf
 
@@ -57,74 +79,44 @@ continue	The terminal monitor is ready for input and the query buffer
 *		This prompt is typed at the beginning of each line when the
 		terminal monitor is waiting for input.
 .sp
+.uh "TERMINAL MONITOR COMMANDS"
 .nf
-\fBTerminal Monitor Commands\fR
- \\e
- \\edit			Enter the editor to edit the query buffer
+.sp
+ \\e		Enter the editor to edit the query buffer
 
- \\g
- \\go			Submit query buffer to POSTGRES for execution
+ \\g		Submit query buffer to POSTGRES for execution
 
- \\h
- \\?			Get on-line help
+ \\h		Get on-line help
 
- \\i \fIfilename\fR
- \\include \fIfilename\fR\ 		Include the file filename into the query buffer
+ \\i \fIfilename\fR	Include the file filename into the query buffer
 
- \\p
- \\print			Print contents of the query buffer 
+ \\p		Print contents of the query buffer 
 
- \\q
- \\quit			Exit from the terminal monitor
+ \\q		Exit from the terminal monitor
 
- \\r
- \\reset			Reset (clear) the query buffer
+ \\r		Reset (clear) the query buffer
 
- \\s
- \\shell			Escape to a \*(UU subshell.  To return to the
-			terminal monitor, type \*(lqexit\*(rq at the shell prompt.
+ \\s		Escape to a \*(UU subshell.  To return to the
+		terminal monitor, type \*(lqexit\*(rq at the shell prompt.
 
- \\t
- \\time			Print current time
+ \\t		Print current time
 
- \\w \fIfilename\fR
- \\write \fIfilename\fR		Store the query buffer to an external file
+ \\w \fIfilename\fR	Store the query buffer to an external file
 
- \\\\			Produce a single backslash at the current location in query buffer
-
-\fBCommand options:\fR
-
-.uh "-h"
-The host on which the POSTGRES backend is running; default is your local
-machine (localhost).
-.pp
-.uh "-p"
-The port used for network communication between the terminal monitor
-and the postmaster.  If you use this option, you will have to use 
--p [port + 1] as well, as the communication protocol uses two ports.
-.pp
-.uh "-t"
-The tty which you want the backend debugging message to be sent to;
-default is /dev/null. 
-.uh "-d"
-The file which you want the frontend debugging messages to be
-written to.  The file can be an ordinary file or a tty such as /dev/ttyp1.
-Default is not to generate any debugging messages. 
-
-You may set environment variables to avoid typing the above options. 
-The corresponding environment variables are:
-
+ \\\\		Produce a single backslash at the current location in query buffer
+.sp
+.uh "ENVIRONMENT VARIABLES"
+.lp
+You may set environment variables to avoid specifying command line
+options.  These are as follows:
+.sp
 .(l
-hostname:		PGHOST
-port:			PGPORT
-tty:			PGTTY
+hostname:	PGHOST
+port:		PGPORT
+tty:		PGTTY
 options:		PGOPTION
 .)l
-
-The terminal monitor requires that the Postmaster be running, and the ports
-specified with the "-p" option must be identical to those specified to the
-Postmaster.  The terminal monitor requires that the POSTGRESHOME variable
-be set to the POSTGRES home directory.
+.sp
 .uh "SEE ALSO"
 .lp
-postmaster (unix)
+backend(unix), postmaster(unix)
