@@ -47,6 +47,7 @@ Buffer *returnedBufferP;
     RuleLock oldLocks, oldTupleLocks, explocks;
     RuleLock newLocks;
     RuleLock relLocks;
+    RuleLock finalLocks;
     Prs2Stub stubs;
     Prs2OneLock oneLock;
     int i,j;
@@ -193,13 +194,14 @@ Buffer *returnedBufferP;
     /*
      * OK, now find out the rule locks that the new tuple
      * must get.
+     * NOTE: these locks will NOT include "export" locks
+     * yet. These, will be calculated in a while...
      */
     newLocks = prs2FindLocksForNewTupleFromStubs(
 		    *returnedTupleP,
 		    *returnedBufferP,
 		    stubs,
 		    relation);
-    HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newLocks);
 
     /*
      * are there any export locks "broken" ???
@@ -259,7 +261,9 @@ Buffer *returnedBufferP;
 		 */
 		if (!oldAttrValues[attrno-1].isNull)
 		    prs2ActivateExportLockRulePlan(oneLock,
-				    oldAttrValues[attrno-1].value, DELETE);
+				    oldAttrValues[attrno-1].value,
+				    tupDesc->data[attrno-1]->atttypid,
+				    DELETE);
 		if (!newAttrValues[attrno-1].isNull)
 		    prs2ActivateExportLockRulePlan(oneLock,
 				    newAttrValues[attrno-1].value,
@@ -269,6 +273,16 @@ Buffer *returnedBufferP;
 	}
     }
 	    
+    /*
+     * Calculate the new locks for this tuple.
+     * This is the union of 'newLocks' and the 'explocks'
+     *
+     * NOTE: THING TO DO:
+     * REMOVE ALL IMPORT LOCKS (same thing in prs2append.c)
+     * THEY DON"T BREAK ANYTHING BUT THEY CHEW UP SPACE...
+     */
+    finalLocks = prs2LockUnion(newLocks, explocks);
+    HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, finalLocks);
     
     /*
      * clean up, sweep the floor and do the laundry....
@@ -277,6 +291,8 @@ Buffer *returnedBufferP;
     prs2FreeLocks(oldTupleLocks);
     attributeValuesFree(newAttrValues, relation);
     attributeValuesFree(oldAttrValues, relation);
+    prs2FreeLocks(newLocks);
+    prs2FreeLocks(explocks);
 
     if (insteadRuleFound) {
 	return(PRS2_STATUS_INSTEAD);
