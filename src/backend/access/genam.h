@@ -9,18 +9,15 @@
 #ifndef	GenAMIncluded
 #define GenAMIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"
 
-#include "attnum.h"
-#include "attval.h"	/* XXX for AMgetattr */
-#include "datum.h"
-#include "itup.h"
-#include "name.h"
-#include "oid.h"
-#include "relscan.h"
-#include "skey.h"
+#include "access/attnum.h"
+#include "access/attval.h"	/* XXX for AMgetattr */
+#include "access/itup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "tmp/datum.h"
+#include "tmp/name.h"
 
 /*
  * RelationNameCreateIndexRelation --

@@ -11,8 +11,8 @@
 
 /*#define CACHEDEBUG 	/* turns DEBUG elogs on */
 
-#include "htup.h"
-#include "name.h"
+#include "access/htup.h"
+#include "tmp/name.h"
 
 /*
  *	Declarations for util/syscache.c.

@@ -19,7 +19,7 @@
 #ifndef	FStackIncluded		/* Include this only once */
 #define FStackIncluded	1
 
-#include "c.h"
+#include "tmp/c.h"
 
 /*
  * FixedItem --

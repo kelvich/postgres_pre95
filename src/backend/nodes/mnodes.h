@@ -9,13 +9,13 @@
 #ifndef	MNodesIncluded
 #define MNodesIncluded	1	/* Include this file only once */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "aset.h"
-#include "fstack.h"
-#include "oset.h"
+#include "tmp/aset.h"
+#include "tmp/fstack.h"
+#include "tmp/oset.h"
 
-#include "nodes.h"
+#include "nodes/nodes.h"
 
 /*
  * MemoryContext --

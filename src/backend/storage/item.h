@@ -9,11 +9,8 @@
 #ifndef	ItemIncluded	/* Include this file only once. */
 #define ItemIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "htup.h"
+#include "tmp/c.h"
+#include "access/htup.h"
 
 /*
 typedef union ItemData {

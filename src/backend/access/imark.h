@@ -27,12 +27,9 @@
 #ifndef	IMarkIncluded	/* Include this file only once. */
 #define IMarkIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "buf.h"
-#include "itemptr.h"
+#include "tmp/c.h"
+#include "storage/buf.h"
+#include "storage/itemptr.h"
 
 typedef Pointer	ItemMark;
 

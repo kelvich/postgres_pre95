@@ -9,15 +9,13 @@
 #ifndef	AttValIncluded	/* Include this file only once. */
 #define AttValIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "datum.h"
-#include "attnum.h"
-#include "htup.h"
-#include "itup.h"
-#include "tupdesc.h"
+#include "tmp/datum.h"
+#include "access/attnum.h"
+#include "access/htup.h"
+#include "access/itup.h"
+#include "access/tupdesc.h"
 
 typedef Datum	AttributeValue;
 

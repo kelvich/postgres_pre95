@@ -11,13 +11,8 @@
  */
 #define EXCID_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	EXC_H
-# include "exc.h"	/* for Exception */
-#endif
+#include "tmp/c.h"
+#include "utils/exc.h"	/* for Exception */
 
 /*
  * Nonrecoverable Exceptions

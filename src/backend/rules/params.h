@@ -9,10 +9,9 @@
 #ifndef ParamsIncluded
 #define ParamsIncluded	1	/* Include this file only once */
 
-#include "c.h"
-#include "name.h"
-#include "oid.h"
-#include "datum.h"
+#include "tmp/postgres.h"
+#include "tmp/name.h"
+#include "tmp/datum.h"
 
 /* ----------------------------------------------------------------
  *

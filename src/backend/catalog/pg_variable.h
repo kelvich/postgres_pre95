@@ -26,7 +26,7 @@
  *	can be read by both genbki.sh and the C compiler.
  * ----------------
  */
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 /* ----------------
  *	pg_variable definition.  cpp turns this into

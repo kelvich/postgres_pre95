@@ -6,15 +6,14 @@
  * $Header$
  */
 
-#include "postgres.h"	/* XXX */
+#ifndef SinvaladtHIncluded
+#define SinvaladtHIncluded 1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"	/* XXX */
 
-#include "ipc.h"
-#include "itemptr.h"
-#include "sinval.h"
+#include "storage/ipc.h"
+#include "storage/itemptr.h"
+#include "storage/sinval.h"
  
 /*
  * The structure of the shared cache invaidation segment
@@ -104,3 +103,5 @@ typedef struct SISegOffsets {
 #define SI_LockStartValue  255
 #define SI_SharedLock     (-1)
 #define SI_ExclusiveLock  (-255)
+
+#endif SinvaladtHIncluded

@@ -11,13 +11,8 @@
  */
 #define CATNAME_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	NAME_H
-# include "name.h"
-#endif
+#include "tmp/c.h"
+#include "tmp/name.h"
 
 extern Name	AggregateRelationName;
 extern Name	AccessMethodRelationName;

@@ -11,16 +11,9 @@
  */
 #define POS_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	PART_H
-# include "part.h"
-#endif
-#ifndef	PAGENUM_H
-# include "pagenum.h"
-#endif
+#include "tmp/c.h"
+#include "storage/part.h"
+#include "storage/pagenum.h"
 
 typedef bits16	PositionIdData;	/* internal position identifier */
 typedef PositionIdData	*PositionId;	/* position identifier */

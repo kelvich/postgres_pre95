@@ -12,13 +12,11 @@
 #ifndef	HIOIncluded	/* Include this file only once */
 #define HIOIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "block.h"
-#include "htup.h"
-#include "rel.h"
+#include "storage/block.h"
+#include "access/htup.h"
+#include "utils/rel.h"
 
 /*
  * RelationPutHeapTuple --

@@ -11,28 +11,15 @@
  */
 #define ITEMPTR_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
 
-#ifndef	BLOCK_H
-# include "block.h"
-#endif
-#ifndef	OFF_H
-# include "off.h"
-#endif
-#ifndef	PAGENUM_H
-# include "pagenum.h"
-#endif
-#ifndef PAGE_H
-# include "page.h"
-#endif
-#ifndef	PART_H
-# include "part.h"
-#endif
-#ifndef	POS_H
-# include "pos.h"
-#endif
+#include "tmp/c.h"
+
+#include "storage/block.h"
+#include "storage/off.h"
+#include "storage/pagenum.h"
+#include "storage/page.h"
+#include "storage/part.h"
+#include "storage/pos.h"
 
 typedef struct ItemPointerData {
 	BlockIdData	blockData;

@@ -17,12 +17,8 @@
  */
 #define HASHJOIN_H
 
-#ifndef HTUP_H
-#include "htup.h"
-#endif
-#ifndef IPC_H
-#include "ipc.h"
-#endif
+#include "access/htup.h"
+#include "storage/ipc.h"
 
 /* ----------------------------------------------------------------
  *		hash-join hash table structures

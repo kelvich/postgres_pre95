@@ -10,7 +10,7 @@
 #ifndef CopyIncluded
 #define	CopyIncluded	1
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 /*
  *	Copy domain

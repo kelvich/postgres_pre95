@@ -11,19 +11,10 @@
  */
 #define TUPDESC_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	ATT_H
-# include "att.h"
-#endif
-#ifndef	ATTNUM_H
-# include "attnum.h"
-#endif
-#ifndef	NAME_H
-# include "name.h"
-#endif
+#include "tmp/c.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "tmp/name.h"
 
 typedef struct TupleDescriptorData {
 	AttributeTupleForm	data[1];	/* VARIABLE LENGTH ARRAY */
@@ -33,7 +24,7 @@ typedef TupleDescriptorData	*TupleDescriptor;
 
 typedef TupleDescriptorData	TupleDescD;
 
-typedef TupleDescD	*TupleDesc;
+typedef TupleDescD		*TupleDesc;
 
 /*
  * TupleDescIsValid --

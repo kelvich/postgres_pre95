@@ -9,9 +9,7 @@
 #ifndef SIMPLELISTS_H
 #define SIMPLELISTS_H
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 #define SLNode	struct _SetNode
 #define SLList	struct _SetList

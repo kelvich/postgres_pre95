@@ -11,13 +11,8 @@
  */
 #define COMMAND_H	"$Header$"
 
-#ifndef	C_H
-#include "c.h"
-#endif
-
-#ifndef	PG_LISP_H
-# include "pg_lisp.h"
-#endif
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
 
 /*
  * CreateQueryDesc --

@@ -1,9 +1,10 @@
-#include "pg_lisp.h"
-#include "log.h"
-#include "c.h"
 
 #ifndef PG_MALLOC_H
 #define PG_MALLOC_H	"$Header$"
+
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
+#include "utils/log.h"
 
 #define MAPSIZE 72
 #define FULL 0xff

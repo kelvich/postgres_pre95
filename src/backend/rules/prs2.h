@@ -15,21 +15,23 @@
 #ifndef Prs2Included
 #define Prs2Included
 
-#include "c.h"
-#include "pg_lisp.h"
-#include "datum.h"
-#include "heapam.h"
-#include "rel.h"
-#include "tupdesc.h"
-#include "buf.h"
-#include "params.h"
+#include "tmp/c.h"
+
+#include "access/heapam.h"
+#include "access/tupdesc.h"
+#include "nodes/pg_lisp.h"
+#include "storage/buf.h"
+#include "tmp/datum.h"
+#include "utils/rel.h"
+
+#include "rules/params.h"
 
 /*------------------------------------------------------------------
  * Include PRS2 lock definition
  * These defs were put in a separate file becuase they are included
  * bit "htup.h" and that created a circular dependency...
  */
-#include "prs2locks.h"
+#include "rules/prs2locks.h"
 
 /*------------------------------------------------------------------
  * Comment out the following line to supress debugging output

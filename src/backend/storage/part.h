@@ -11,13 +11,8 @@
  */
 #define PART_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	PAGE_H
-# include "page.h"
-#endif
+#include "tmp/c.h"
+#include "storage/page.h"
 
 typedef uint32	PagePartition;	/* subpage partition indicator */
 

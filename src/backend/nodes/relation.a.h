@@ -1,6 +1,6 @@
 /* $Header$ */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
 extern void set_relids ARGS((Rel node, Relid value));
 extern Relid get_relids ARGS((Rel node));
 extern void set_indexed ARGS((Rel node, bool value));

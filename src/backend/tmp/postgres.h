@@ -25,7 +25,7 @@
 #ifndef PostgresHIncluded		/* include only once */
 #define PostgresHIncluded
 
-#include "c.h"
+#include "tmp/c.h"
 
 /* --------------------------------
  *	simple types
@@ -77,7 +77,7 @@ typedef double	float8;
  *	this is defined in oid.h at present, but that should change.
  * ----------------
  */
-#include "oid.h"
+#include "tmp/oid.h"
 
 /* ----------------
  *	regproc
@@ -86,7 +86,7 @@ typedef double	float8;
  * ----------------
  */
 typedef oid regproc;
-#include "regproc.h"
+#include "tmp/regproc.h"
 
 /* --------------------------------
  *	array types

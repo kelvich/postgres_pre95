@@ -11,11 +11,11 @@
  */
 #define REL_H	"$Header$"
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
-#include "fd.h"
-#include "istrat.h"
-#include "tupdesc.h"
+#include "storage/fd.h"
+#include "access/istrat.h"
+#include "access/tupdesc.h"
 
 #include "catalog/pg_am.h"
 #include "catalog/pg_operator.h"

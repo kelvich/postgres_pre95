@@ -6,6 +6,9 @@
  *	$Header$
  */
 
+#ifndef CreatinhHIncluded
+#define CreatinhHIncluded 1	/* include once only */
+
 /*
  * DefineRelation --
  *	Creates a new relation.
@@ -34,3 +37,5 @@ void
 RemoveRelation ARGS((
 	Name	name;
 ));
+
+#endif CreatinhHIncluded

@@ -11,9 +11,7 @@
  */
 #define ATTNUM_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 typedef int16	AttributeNumber;
 

@@ -1,7 +1,8 @@
 /* $Header$ */
 
-#include "c.h"
-#include "pg_lisp.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
+
 extern bool path_is_cheaper ARGS((Path path1, Path path2));
 extern Path cheaper_path ARGS((Path path1, Path path2));
 extern Path set_cheapest ARGS((Rel parent_rel, List pathlist));

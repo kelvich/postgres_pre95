@@ -11,11 +11,9 @@
  */
 #define EXC_H	"$Header$"
 
-#ifndef	C_H
-#include "c.h"
-#endif
-
 #include <setjmp.h>
+
+#include "tmp/c.h"
 
 /*
  * EnableExceptionHandling --

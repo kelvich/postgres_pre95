@@ -17,15 +17,13 @@
  */
 #define PORTAL_H	"$Header$"
 
-#ifndef	C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "execnodes.h"		/* for EState */
-#include "mnodes.h"
-#include "nodes.h"
-#include "pg_lisp.h"
-#include "plannodes.h"		/* for Plan */
+#include "nodes/execnodes.h"		/* for EState */
+#include "nodes/mnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"		/* for Plan */
 
 typedef struct PortalBlockData {
 	AllocSetData	setData;

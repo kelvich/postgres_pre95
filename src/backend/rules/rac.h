@@ -9,15 +9,13 @@
 #ifndef	RAcIncluded	/* Include this file only once. */
 #define RAcIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "block.h"
-#include "buf.h"
-#include "htup.h"
-#include "rel.h"
-#include "rlock.h"
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "access/htup.h"
+#include "utils/rel.h"
+#include "rules/rlock.h"
 
 /*
  * HeapTupleGetRuleLock --

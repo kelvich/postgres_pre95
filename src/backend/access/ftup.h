@@ -9,15 +9,13 @@
 #ifndef	FTupIncluded	/* Include this file only once. */
 #define FTupIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "att.h"
-#include "attnum.h"
-#include "itup.h"
-#include "htup.h"
-#include "tupdesc.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "access/itup.h"
+#include "access/htup.h"
+#include "access/tupdesc.h"
 
 /*
  * FormHeapTuple --

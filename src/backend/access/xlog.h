@@ -9,11 +9,8 @@
 #ifndef	XLogIncluded	/* Include this file only once. */
 #define XLogIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "xid.h"
+#include "tmp/c.h"
+#include "tmp/xid.h"
 
 /*
  * InitializeTransactionLog --

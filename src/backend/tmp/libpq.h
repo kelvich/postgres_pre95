@@ -11,7 +11,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "exc.h"
+
+#include "utils/exc.h"
 
 /*
  * PQArgBlock --

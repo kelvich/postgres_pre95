@@ -22,118 +22,44 @@
  * ----------------------------------------------------------------
  */
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"
 
-#ifndef ALIGN_H
-#include "align.h"
-#endif
-#ifndef ATTNUM_H
-#include "attnum.h"
-#endif
-#ifndef ATTVAL_H
-#include "attval.h"
-#endif
-#ifndef BLOCK_H
-#include "block.h"
-#endif
-#ifndef BUF_H
-#include "buf.h"
-#endif
-#ifndef BUFMGR_H
-#include "bufmgr.h"
-#endif
-#ifndef BUFPAGE_H
-#include "bufpage.h"
-#endif
-#ifndef CLIB_H
-#include "clib.h"
-#endif
-#ifndef DATUM_H
-#include "datum.h"
-#endif
-#ifndef FORM_H
-#include "form.h"
-#endif
-#ifndef FTUP_H
-#include "ftup.h"
-#endif
-#ifndef GENAM_H
-#include "genam.h"
-#endif
-#ifndef GLOBALS_H
-#include "globals.h"
-#endif
-#ifndef HEAPAM_H
-#include "heapam.h"
-#endif
-#ifndef IBIT_H
-#include "ibit.h"
-#endif
-#ifndef IMARK_H
-#include "imark.h"
-#endif
-#ifndef IQUAL_H
-#include "iqual.h"
-#endif
-#ifndef ISOP_H
-#include "isop.h"
-#endif
-#ifndef ISTRAT_H
-#include "istrat.h"
-#endif
-#ifndef ITEM_H
-#include "item.h"
-#endif
-#ifndef ITEMID_H
-#include "itemid.h"
-#endif
-#ifndef ITEMPTR_H
-#include "itemptr.h"
-#endif
-#ifndef ITUP_H
-#include "itup.h"
-#endif
-#ifndef LOG_H
-#include "log.h"
-#endif
-#ifndef NAME_H
-#include "name.h"
-#endif
-#ifndef PAGE_H
-#include "page.h"
-#endif
-#ifndef PAGENUM_H
-#include "pagenum.h"
-#endif
-#ifndef PART_H
-#include "part.h"
-#endif
-#ifndef POSTGRES_H
-#include "postgres.h"
-#endif
-#ifndef REGPROC_H
-#include "regproc.h"
-#endif
-#ifndef REL_H
-#include "rel.h"
-#endif
-#ifndef RELSCAN_H
-#include "relscan.h"
-#endif
-#ifndef RLOCK_H
-#include "rlock.h"
-#endif
-#ifndef SDIR_H
-#include "sdir.h"
-#endif
-#ifndef SKEY_H
-#include "skey.h"
-#endif
-#ifndef TQUAL_H
-#include "tqual.h"
-#endif
+#include "access/attnum.h"
+#include "access/attval.h"
+#include "access/ftup.h"
+#include "access/genam.h"
+#include "access/heapam.h"
+#include "access/ibit.h"
+#include "access/imark.h"
+#include "access/iqual.h"
+#include "access/isop.h"
+#include "access/istrat.h"
+#include "access/itup.h"
+#include "access/relscan.h"
+#include "access/sdir.h"
+#include "access/skey.h"
+#include "access/tqual.h"
+
+#include "rules/rlock.h"
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "storage/form.h"
+#include "storage/item.h"
+#include "storage/itemid.h"
+#include "storage/itemptr.h"
+#include "storage/page.h"
+#include "storage/pagenum.h"
+#include "storage/part.h"
+#include "tmp/align.h"
+#include "tmp/clib.h"
+#include "tmp/datum.h"
+#include "tmp/globals.h"
+#include "tmp/name.h"
+#include "tmp/regproc.h"
+#include "utils/log.h"
+#include "utils/rel.h"
 
 /* ----------------
  *   dependencies from obsoleted misc.h

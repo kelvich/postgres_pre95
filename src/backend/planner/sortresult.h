@@ -1,7 +1,7 @@
 /* $Header$ */
 
-#include "pg_lisp.h"
-#include "c.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
 
 extern LispValue relation_sortkeys ARGS((LispValue tlist));
 extern LispValue sort_list_car ARGS((LispValue list));

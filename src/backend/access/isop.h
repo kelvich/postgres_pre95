@@ -9,13 +9,8 @@
 #ifndef	ISOpIncluded	/* Include this file only once */
 #define ISOpIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef ISTRAT_H
-#include "istrat.h"
-#endif
+#include "tmp/c.h"
+#include "access/istrat.h"
 
 typedef struct StrategyTransformMapData {
 	StrategyNumber	strategy[1];	/* VARIABLE LENGTH ARRAY */

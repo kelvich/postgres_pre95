@@ -17,10 +17,10 @@ extern	struct	cmplist		*CmpList;
 extern	int			SortMemory;	/* free memory */
 
 #ifdef	EBUG
-#include <log.h>	
 #include <stdio.h>
-#include <buf.h>
-#include <bufmgr.h>
+#include "utils/log.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
 
 #define	PDEBUG(PROC, S1)\
 elog(DEBUG, "%s:%d>> PROC: %s.", __FILE__, __LINE__, S1)

@@ -9,7 +9,7 @@
 
 
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
 
 
 #define parse_root(parse)                   CAR(parse)

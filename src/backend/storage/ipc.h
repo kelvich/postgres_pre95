@@ -9,9 +9,7 @@
 #ifndef	IPCIncluded	/* Include this file only once */
 #define IPCIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 #if defined(sequent) || defined(mips)
 union semun {

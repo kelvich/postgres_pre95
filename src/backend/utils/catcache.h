@@ -11,11 +11,11 @@
 
 /* #define	CACHEDEBUG 	/* turns DEBUG elogs on */
 
-#include "skey.h"
-#include "htup.h"
-#include "oid.h"
-#include "rel.h"
-#include "simplelists.h"
+#include "access/skey.h"
+#include "access/htup.h"
+#include "tmp/oid.h"
+#include "utils/rel.h"
+#include "tmp/simplelists.h"
 
 /*
  *	struct catctup:		tuples in the cache.

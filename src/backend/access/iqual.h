@@ -9,13 +9,11 @@
 #ifndef	IQualDefined	/* Include this file only once. */
 #define IQualDefined	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "itemid.h"
-#include "rel.h"
-#include "skey.h"
+#include "storage/itemid.h"
+#include "utils/rel.h"
+#include "access/skey.h"
 
 /*
  * ItemIdSatisfiesScanKey --

@@ -11,9 +11,7 @@
  */
 #define PAGE_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 typedef Pointer	Page;
 

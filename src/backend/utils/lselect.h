@@ -12,11 +12,8 @@
  * ----------------------------------------------------------------
  */
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "htup.h"
+#include "tmp/c.h"
+#include "access/htup.h"
 
 struct	leftist {
 	short		lt_dist;	/* distance to leaf/empty node */

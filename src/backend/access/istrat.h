@@ -11,19 +11,10 @@
  */
 #define ISTRAT_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	ATTNUM_H
-# include "attnum.h"
-#endif
-#ifndef	SKEY_H
-# include "skey.h"
-#endif
-#ifndef	OID_H
-# include "oid.h"
-#endif
+#include "tmp/c.h"
+#include "access/attnum.h"
+#include "access/skey.h"
+#include "tmp/oid.h"
 
 typedef uint16	StrategyNumber;
 

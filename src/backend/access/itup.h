@@ -9,22 +9,11 @@
 #ifndef ITUP_H
 #define ITUP_H
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef FORM_H
-#include "form.h"
-#endif
-#ifndef IBIT_H
-#include "ibit.h"
-#endif
-#ifndef ITEMPTR_H
-#include "itemptr.h"
-#endif
-#ifndef RLOCK_H
-#include "rlock.h"
-#endif
+#include "tmp/c.h"
+#include "storage/form.h"
+#include "access/ibit.h"
+#include "storage/itemptr.h"
+#include "rules/rlock.h"
 
 #define MaxIndexAttributeNumber	7
 

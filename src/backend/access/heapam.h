@@ -13,43 +13,20 @@
 
 #include <sys/types.h>
 
-#ifndef	C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"
 
-#include "att.h"	/* XXX */
-#include "skey.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"
+#include "access/tupdesc.h"
 
-#ifndef	ATTNUM_H
-# include "attnum.h"
-#endif
-#ifndef	DATUM_H
-# include "datum.h"
-#endif
-#ifndef	HTUP_H
-# include "htup.h"
-#endif
-#ifndef	NAME_H
-# include "name.h"
-#endif
-#ifndef	OID_H
-# include "oid.h"
-#endif
-#ifndef	REL_H
-# include "rel.h"
-#endif
-#ifndef	RELSCAN_H
-# include "relscan.h"
-#endif
-#ifndef	RLOCK_H
-# include "rlock.h"
-#endif
-#ifndef	TQUAL_H
-# include "tqual.h"
-#endif
-#ifndef	TUPDESC_H
-# include "tupdesc.h"
-#endif
+#include "rules/rlock.h"
+#include "tmp/datum.h"
+#include "tmp/name.h"
+#include "utils/rel.h"
 
 /* ----------------------------------------------------------------
  *		heap access method statistics

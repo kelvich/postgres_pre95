@@ -12,13 +12,10 @@
 #ifndef	HRndIncluded	/* Include this file only once */
 #define HRndIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"
 
-#include "block.h"
-#include "oid.h"
-#include "rel.h"
+#include "storage/block.h"
+#include "utils/rel.h"
 
 typedef BlockNumber	*BlockIndexList;
 

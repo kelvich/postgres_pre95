@@ -11,27 +11,14 @@
  */
 #define RELSCAN_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "skey.h"
-
-#ifndef	BUF_H
-# include "buf.h"
-#endif
-#ifndef	HTUP_H
-# include "htup.h"
-#endif
-#ifndef	ITEMPTR_H
-# include "itemptr.h"
-#endif
-#ifndef	TQUAL_H
-# include "tqual.h"
-#endif
-#ifndef	REL_H
-# include "rel.h"
-#endif
+#include "access/skey.h"
+#include "storage/buf.h"
+#include "access/htup.h"
+#include "storage/itemptr.h"
+#include "access/tqual.h"
+#include "utils/rel.h"
 
 typedef ItemPointerData	MarkData;
 

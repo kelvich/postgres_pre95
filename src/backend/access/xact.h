@@ -21,17 +21,17 @@
  */
 #include <signal.h>
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "ipci.h"
-#include "log.h"
-#include "mcxt.h"
-#include "pmod.h"
-#include "portal.h"
-#include "tim.h"
-#include "xcxt.h"
-#include "xid.h"
-#include "xlog.h"
+#include "access/xcxt.h"
+#include "access/xlog.h"
+#include "storage/ipci.h"
+#include "tmp/pmod.h"
+#include "tmp/portal.h"
+#include "tmp/tim.h"
+#include "tmp/xid.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
 
 /* ----------------
  *	transaction state structure

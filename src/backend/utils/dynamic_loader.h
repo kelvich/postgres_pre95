@@ -5,9 +5,10 @@
  *	$Header$
  */
 
-#ifndef CIncluded
-#include "c.h"
-#endif
+#ifndef Dynamic_loaderHIncluded
+#define Dynamic_loaderHIncluded 1 /* include once only */
+
+#include "tmp/c.h"
 
 typedef char *	((*func_ptr)());
 
@@ -20,3 +21,4 @@ typedef struct {
 
 extern FList ExtSyms[];
 
+#endif Dynamic_loaderHIncluded

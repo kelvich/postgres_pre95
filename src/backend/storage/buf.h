@@ -11,13 +11,8 @@
  */
 #define BUF_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef	BLOCK_H
-# include "block.h"
-#endif
+#include "tmp/c.h"
+#include "storage/block.h"
 
 #define InvalidBuffer	(-1)
 #define UnknownBuffer	(-2)

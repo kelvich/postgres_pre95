@@ -11,9 +11,7 @@
  */
 #define BLOCK_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 /* XXX this should be called BlockIndex -hirohama */
 typedef uint32	BlockNumber;	/* page number */

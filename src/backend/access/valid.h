@@ -11,18 +11,10 @@
  */
 #define VALID_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "skey.h"
-
-#ifndef	BUF_H
-# include "buf.h"
-#endif
-#ifndef	TQUAL_H
-# include "tqual.h"
-#endif
+#include "tmp/c.h"
+#include "access/skey.h"
+#include "storage/buf.h"
+#include "access/tqual.h"
 
 /*
  * ItemIdHasValidHeapTupleForQualification --

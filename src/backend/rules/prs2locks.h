@@ -20,15 +20,8 @@
 #define Prs2LocksIncluded
 #define PRS2LOCKS_H
 
-#ifndef C_H
-#include "c.h"
-#endif
-#ifndef POSTGRES_H
-#include "postgres.h"
-#endif
-#ifndef ATTNUM_H
-#include "attnum.h"
-#endif
+#include "tmp/postgres.h"
+#include "access/attnum.h"
 
 #define PRS2_DEBUG 1
 

@@ -22,7 +22,7 @@
 #define	LispDepIncluded
 
 #include <stdio.h>
-#include "nodes.h"
+#include "nodes/nodes.h"
 
 /* ----------------------------------------------------------------
  *	Node Function Declarations

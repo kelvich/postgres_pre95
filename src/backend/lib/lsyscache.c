@@ -35,13 +35,13 @@
  *    
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "pg_lisp.h"
-#include "syscache.h"
-#include "att.h"
-#include "rel.h"
-#include "attnum.h"
+#include "nodes/pg_lisp.h"
+#include "catalog/syscache.h"
+#include "access/att.h"
+#include "utils/rel.h"
+#include "access/attnum.h"
 
 #include "catalog/pg_amop.h"
 #include "catalog/pg_type.h"

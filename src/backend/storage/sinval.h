@@ -9,13 +9,9 @@
 #ifndef	SInvalIncluded	/* Include this file only once */
 #define SInvalIncluded	1
 
-
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "ipci.h"
-#include "itemptr.h"
+#include "tmp/c.h"
+#include "storage/ipci.h"
+#include "storage/itemptr.h"
 
 typedef int16	BackendId;	/* unique currently active backend identifier */
 

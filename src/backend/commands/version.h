@@ -8,10 +8,8 @@
 
 #ifndef VersionIncluded          /* Include this file only once */
 #define VersionIncluded  1
-#endif
 
-#include "name.h"
-
+#include "tmp/name.h"
 
 /*
  *  Creates a version.
@@ -74,3 +72,5 @@ void
 VersionReplace ARGS((
 		    Name  vname,
 		    Name  bname));
+    
+#endif

@@ -12,20 +12,20 @@ static	char ami_h[] = "$Header$";
 #include <signal.h>
 #include <ctype.h>
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
-#include "bufmgr.h"	/* for BufferManagerFlush */
-#include "buf.h"
-#include "log.h"
-#include "htup.h"
-#include "portal.h"
-#include "rel.h"
-#include "relscan.h"
-#include "skey.h"
-#include "tim.h"
-#include "tqual.h"
-#include "xcxt.h"
-#include "xid.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"
+#include "access/xcxt.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"	/* for BufferManagerFlush */
+#include "tmp/portal.h"
+#include "tmp/tim.h"
+#include "tmp/xid.h"
+#include "utils/log.h"
+#include "utils/rel.h"
 
 extern char *calloc();
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))

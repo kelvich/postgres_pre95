@@ -9,12 +9,9 @@
 #ifndef	DefRemIncluded		/* Include this file only once */
 #define DefRemIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#include "name.h"
-#include "pg_lisp.h"
+#include "tmp/c.h"
+#include "tmp/name.h"
+#include "nodes/pg_lisp.h"
 
 /*
  * DefineIndex --

@@ -14,18 +14,10 @@
  */
 #define SKEY_H	"$Header$"
 
-#ifndef POSTGRES_H
-#include "postgres.h"
-#endif
-#ifndef	ATTNUM_H
-# include "attnum.h"
-#endif
-#ifndef	DATUM_H
-# include "datum.h"
-#endif
-#ifndef	REGPROC_H
-# include "regproc.h"
-#endif
+#include "tmp/postgres.h"
+#include "access/attnum.h"
+#include "tmp/datum.h"
+#include "tmp/regproc.h"
 
 typedef uint16	ScanKeySize;
 

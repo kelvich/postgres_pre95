@@ -15,16 +15,10 @@
  */
 #define TQUAL_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
+#include "access/htup.h"
+#include "tmp/tim.h"
 
-#ifndef	HTUP_H
-# include "htup.h"
-#endif
-#ifndef	TIM_H
-# include "tim.h"
-#endif
 
 typedef struct TimeQualSpace {
 	char	data[12];

@@ -11,34 +11,18 @@
  */
 #define BUFPAGE_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#ifndef	BUF_H
-# include "buf.h"
-#endif
+#include "machine.h"		/* for BLCKSZ */
 
-#ifndef	ITEM_H
-# include "item.h"
-#endif
-#ifndef	ITEMID_H
-# include "itemid.h"
-#endif
-#ifndef	ITEMPTR_H
-# include "itemptr.h"
-#endif
-#ifndef	MACHINE_H
-# include "machine.h"		/* for BLCKSZ */
-#endif
-#ifndef	PAGE_H
-# include "page.h"
-#endif
-#ifndef	PART_H
-# include "part.h"
-#endif
+#include "storage/buf.h"
+#include "storage/item.h"
+#include "storage/itemid.h"
+#include "storage/itemptr.h"
+#include "storage/page.h"
+#include "storage/part.h"
 
-#include "status.h"
+#include "tmp/status.h"
 
 typedef uint16		LocationIndex;
 

@@ -23,7 +23,7 @@
  *	can be read by both genbki.sh and the C compiler.
  * ----------------
  */
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 /* ----------------
  *	pg_amop definition.  cpp turns this into

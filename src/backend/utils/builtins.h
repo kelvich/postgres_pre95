@@ -14,22 +14,16 @@
 #ifndef BuiltinsIncluded
 #define BuiltinsIncluded
 
-#ifndef C_H
-#include "c.h"
-#endif
-#ifndef DATUM_H
-#include "datum.h"
-#endif
-#include "postgres.h"
-#include "oid.h"
-#include "tim.h"
-#include "xid.h"
-#include "prs2locks.h"
-#include "prs2stub.h"
+#include "tmp/postgres.h"
+#include "tmp/datum.h"
+#include "tmp/tim.h"
+#include "tmp/xid.h"
+#include "rules/prs2locks.h"
+#include "rules/prs2stub.h"
 
 #ifdef FMGR_ADT
-#include "geo-decls.h"
-#include "kwlist.h"
+#include "utils/geo-decls.h"
+#include "access/kwlist.h"
 #endif /* FMGR_ADT */
 
 

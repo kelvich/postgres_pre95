@@ -20,7 +20,7 @@
 #ifndef NodesIncluded
 #define	NodesIncluded
 
-#include "c.h"
+#include "tmp/c.h"
 #include "tags.h" 
 
 /* ----------------------------------------------------------------

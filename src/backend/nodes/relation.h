@@ -9,10 +9,10 @@
 #ifndef RelationIncluded
 #define RelationIncluded
 
-#include "c.h"
-#include "pg_lisp.h"
-#include "primnodes.h"
-#include "nodes.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/nodes.h"
 
 /*
  *  These #defines indicate that we have supplied print routines for the

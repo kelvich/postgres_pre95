@@ -11,35 +11,14 @@
  */
 #define HTUP_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/postgres.h"	/* XXX obsolete, for XID, etc. */
 
-#ifndef POSTGRES_H
-#include "postgres.h"		/* XXX obsolete, for XID, etc. */
-#endif
-
-#ifndef	ATTNUM_H
-# include "attnum.h"
-#endif
-#ifndef	FORM_H
-# include "form.h"
-#endif
-#ifndef PAGE_H
-#include "page.h"  /* just to reduce levels of #include */
-#endif
-#ifndef PART_H
-#include "part.h"  /* just to reduce levels of #include */
-#endif
-#ifndef	ITEMPTR_H
-# include "itemptr.h"
-#endif
-#ifndef	OID_H
-# include "oid.h"
-#endif
-#ifndef	RLOCK_H
-# include "rlock.h"
-#endif
+#include "access/attnum.h"
+#include "storage/form.h"
+#include "storage/page.h"  		/* just to reduce levels of #include */
+#include "storage/part.h"  		/* just to reduce levels of #include */
+#include "storage/itemptr.h"
+#include "rules/rlock.h"
 
 #define MinHeapTupleBitmapSize	32		/* 8 * 4 */
 

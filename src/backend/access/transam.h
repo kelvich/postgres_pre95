@@ -15,37 +15,33 @@
 #ifndef TransamIncluded       /* include this file only once */
 #define TransamIncluded 1
 
-/* ----------------
- *	Include files (XXX clean these up!)
- * ----------------
- */
 #include <sys/file.h>
 #include <strings.h>
 #include <math.h>
 #include <stdio.h>
 
-#include "postgres.h"	/* for struct varlena, etc. */
+#include "tmp/postgres.h"	/* for struct varlena, etc. */
 
-#include "att.h"
-#include "attnum.h"
-#include "bit.h"
-#include "block.h"
-#include "buf.h"
-#include "bufmgr.h"
-#include "bufpage.h"
-#include "catname.h"
-#include "datum.h"
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
-#include "mcxt.h"
-#include "name.h"
-#include "rel.h"
-#include "relscan.h"
-#include "rlock.h"
-#include "skey.h"
-#include "tupdesc.h"
-#include "xid.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "tmp/bit.h"
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "catalog/catname.h"
+#include "tmp/datum.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "tmp/name.h"
+#include "utils/rel.h"
+#include "access/relscan.h"
+#include "rules/rlock.h"
+#include "access/skey.h"
+#include "access/tupdesc.h"
+#include "tmp/xid.h"
 
 /* ----------------
  *	transaction system version id

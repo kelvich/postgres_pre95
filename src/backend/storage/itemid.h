@@ -11,9 +11,7 @@
  */
 #define ITEMID_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 typedef uint16	ItemOffset;
 typedef uint16	ItemLength;

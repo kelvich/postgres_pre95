@@ -11,17 +11,9 @@
  */
 #define ATT_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef SKEY_H
-#include "skey.h"   /* just to reduce levels of #include */
-#endif
-
-#ifndef	CAT_H
-#include "cat.h"
-#endif
+#include "tmp/c.h"
+#include "access/skey.h"   	/* just to reduce levels of #include */
+#include "catalog/pg_attribute.h"
 
 typedef AttributeTupleForm	Attribute;
 

@@ -31,9 +31,7 @@
  */
 #define FD_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 typedef String	FileName;
 

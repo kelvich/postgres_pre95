@@ -11,22 +11,12 @@
  */
 #define BUFMGR_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#ifndef	BUF_H
-# include "buf.h"
-#endif
-#ifndef	MACHINE_H
-# include "machine.h"		/* for BLCKSZ */
-#endif
-#ifndef	REL_H
-# include "rel.h"
-#endif
-#ifndef	STATUS_H
-# include "status.h"
-#endif
+#include "storage/buf.h"
+#include "machine.h"		/* for BLCKSZ */
+#include "utils/rel.h"
+#include "tmp/status.h"
 
 /* lock levels */
 #define L_LOCKS	0x07	/* lock mask */

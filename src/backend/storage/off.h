@@ -11,9 +11,7 @@
  */
 #define OFF_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
 typedef uint16	OffsetNumber;	/* offset number */
 typedef uint16	OffsetIndex;	/* offset index */

@@ -15,12 +15,10 @@
 #include <sys/ipc.h>
 #endif
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "tmp/c.h"
 
-#include "ipc.h"
-#include "pladt.h"
+#include "storage/ipc.h"
+#include "storage/pladt.h"
 
 typedef uint32	IPCKey;
 

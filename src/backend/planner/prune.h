@@ -1,6 +1,6 @@
 /* $Header$ */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
 extern LispValue prune_joinrels ARGS((LispValue rel_list));
 extern LispValue prune_joinrel ARGS((LispValue rel, LispValue other_rels));
 extern void prune_rel_paths ARGS((LispValue rel_list));

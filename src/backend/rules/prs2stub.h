@@ -46,11 +46,10 @@
  */
 #define STUB_DEBUG	1
 
-#include "c.h"
-#include "oid.h"
-#include "attnum.h"
-#include "prs2locks.h"
-#include "prs2.h"
+#include "tmp/postgres.h"
+#include "access/attnum.h"
+#include "rules/prs2locks.h"
+#include "rules/prs2.h"
 
 /*------------------------------------------------------------------------
  *		Prs2Stub

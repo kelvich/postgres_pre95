@@ -9,10 +9,10 @@
 #ifndef	MCxtIncluded
 #define MCxtIncluded	1	/* Include this only once */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "mnodes.h"
-#include "nodes.h"
+#include "nodes/mnodes.h"
+#include "nodes/nodes.h"
 
 /*
  * CurrentMemoryContext --
