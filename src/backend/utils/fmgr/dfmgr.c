@@ -240,7 +240,7 @@ char *filename, *funcname;
     {
         for (func_scanner = file_scanner->func_list;
              func_scanner != NULL
-             && strcmp(func_scanner->funcname, funcname);
+             && strncmp(func_scanner->funcname, funcname, 16);
              func_scanner = func_scanner->next)
         {
             if (func_scanner->next == NULL) func_tail = func_scanner;
