@@ -25,6 +25,12 @@ RcsId("$Header$");
 /* N is not a valid var/constant or relation id */
 #define	NONVALUE(N)	((N) == -1)
 
+/* 
+ * generalize the test for functional index selectivity request
+ */
+#define FunctionalSelectivity(nIndKeys,attNum) (attNum==InvalidAttributeNumber)
+
+
 /*
  *	eqsel		- Selectivity of "=" for any data type.
  */
@@ -364,13 +370,26 @@ int32		constFlag;
 int32		nIndexKeys;
 {
 	float64 result;
+	float64data resultData;
 
-	result = (float64)fmgr(get_oprrest (operatorObjectId),
-				(char*)operatorObjectId,
-				(char*)indrelid,
-				(char*)attributeNumber,
-				(char*)constValue,
-				(char*)constFlag);
+	if (FunctionalSelectivity(nIndexKeys, attributeNumber)) {
+		/*
+		 * Need to call the functions selectivity
+		 * function here.  For now simply assume it's
+		 * 1/3 since functions don't currently
+		 * have selectivity functions
+		 */
+		 resultData = 1.0 / 3.0;
+		 result = &resultData;
+	}
+	else {
+		result = (float64)fmgr(get_oprrest (operatorObjectId),
+					(char*)operatorObjectId,
+					(char*)indrelid,
+					(char*)attributeNumber,
+					(char*)constValue,
+					(char*)constFlag);
+	}
 
 	if (!PointerIsValid(result))
 		elog(WARN, "Btree Selectivity: bad pointer");
@@ -390,15 +409,28 @@ int32		constFlag;
 int32		nIndexKeys;
 {
 	float64 temp, result;
+	float64data tempData;
 	HeapTuple atp;
 	int npage;
 
-	temp = (float64)fmgr(get_oprrest (operatorObjectId),
-				(char*)operatorObjectId,
-				(char*)indrelid,
-				(char*)attributeNumber,
-				(char*)constValue,
-				(char*)constFlag);
+	if (FunctionalSelectivity(nIndexKeys, attributeNumber)) {
+		/*
+		 * Need to call the functions selectivity
+		 * function here.  For now simply assume it's
+		 * 1/3 since functions don't currently
+		 * have selectivity functions
+		 */
+		 tempData = 1.0 / 3.0;
+		 temp = &tempData;
+	}
+	else {
+		temp = (float64)fmgr(get_oprrest (operatorObjectId),
+					(char*)operatorObjectId,
+					(char*)indrelid,
+					(char*)attributeNumber,
+					(char*)constValue,
+					(char*)constFlag);
+	}
         atp = SearchSysCacheTuple(RELOID, indexrelid, NULL, NULL, NULL);
         if (!HeapTupleIsValid(atp)) {
                 elog(WARN, "btreenpage: no index tuple %d", indexrelid);
