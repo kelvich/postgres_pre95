@@ -61,6 +61,19 @@ ProcessQuery(parser_output, plan)
 	int		numatts;
 	AttributePtr	tupleDesc;
 
+	ScanDirection   direction;
+	abstime         time;
+	ObjectId        owner;
+	List            locks;
+	List            subPlanInfo;
+	Name            errorMessage;
+	List            rangeTable;
+	HeapTuple       qualTuple;
+	ItemPointer     qualTupleID;
+	Relation        relationRelationDesc;
+	Index        	resultRelationIndex;
+	Relation        resultRelationDesc;
+
 	/* ----------------
 	 *	resolve the status of our query... are we retrieving
 	 *  into a portal, into a relation, etc.
@@ -115,19 +128,6 @@ ProcessQuery(parser_output, plan)
 	 *	create the Executor State structure
 	 * ----------------
 	 */
-{
-	ScanDirection   direction;
-	abstime         time;
-	ObjectId        owner;
-	List            locks;
-	List            subPlanInfo;
-	Name            errorMessage;
-	List            rangeTable;
-	HeapTuple       qualTuple;
-	ItemPointer     qualTupleID;
-	Relation        relationRelationDesc;
-	Index        	resultRelationIndex;
-	Relation        resultRelationDesc;
 
 	direction = 	EXEC_FRWD;
 	time = 		0;
@@ -161,7 +161,6 @@ ProcessQuery(parser_output, plan)
 		relationRelationDesc,
 		resultRelationIndex,
 		resultRelationDesc);
-}
 
 	/* ----------------
 	 *	now, prepare the plan for execution by calling ExecMain()
@@ -188,7 +187,7 @@ ProcessQuery(parser_output, plan)
 	 * ----------------
 	 */
 
-	showatts("blank", numatts, tupleDesc);
+	BeginCommand("blank",attinfo);
 
 	/* ----------------
 	 *   now how in the hell is this ever supposed to work?
