@@ -169,7 +169,7 @@ or \*(lqV\*(rq if the function returned nothing.
 .SM NULL
 pointer and loads
 .IR PQerrormsg
-is any error occurs.
+if any error (fatal or non-fatal) occurs.
 .(C
 char *PQfn(fnid, result_buf, result_len,
 	   actual_result_len,
@@ -193,11 +193,15 @@ the name of the portal buffer.  When the query does not return
 instances,
 .IR PQexec
 will return a string consisting of the character \*(lqC\*(rq followed
-by the command tag (e.g., \*(lqCREPLACE\*(rq).  If an error occurred
-during the execution of the query,
+by the command tag (e.g., \*(lqCREPLACE\*(rq).  If a non-fatal error
+occurred during the execution of the query,
 .IR PQexec
 will return (for historical reasons) the character \*(lqR\*(rq and
 load an error message into
+.IR PQerrormsg .
+If a fatal error occurred (i.e., the backend crashed),
+.IR PQexec
+returns the character \*(lqE\*(rq and loads an error message into 
 .IR PQerrormsg .
 .(C
 char *PQexec(query)
