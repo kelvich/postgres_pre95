@@ -36,6 +36,11 @@
 #include "nodes.h"
 #include "log.h"
 
+/* ----------------
+ *	Append creator declaration
+ * ----------------
+ */
+extern Append RMakeAppend();
 
 /*    
  *    	find-all-inheritors
@@ -478,8 +483,7 @@ make_append (unionplans,rt_index,union_rt_entries, tlist)
      List unionplans,union_rt_entries,tlist;
      Index rt_index;
 {
-
-  Append node = CreateNode(Append);
+  Append node = RMakeAppend();
 
   set_unionplans(node,unionplans);
   set_unionrelid(node,rt_index);
@@ -491,9 +495,6 @@ make_append (unionplans,rt_index,union_rt_entries, tlist)
   set_qpqual(node,LispNil);
   set_lefttree(node,(Plan)NULL);
   set_righttree(node,(Plan)NULL);
-
-  node->printFunc = PrintAppend;
-/*  node->equalFunc = EqualAppend;  */
 
   return(node);
 }

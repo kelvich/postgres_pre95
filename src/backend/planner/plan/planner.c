@@ -1,4 +1,6 @@
-/*     *      FILE *     	planner
+/*
+ *      FILE
+ *     	planner
  *     
  *      DESCRIPTION
  *     	The query optimizer external interface.
@@ -24,6 +26,12 @@
 #include "recursion.h"
 extern Plan	RecursiveQueryPlan();
 /*** JJJ ***/
+
+/* ----------------
+ *	Existential creator declaration
+ * ----------------
+ */
+extern Existential RMakeExistential();
 
 /*    
  *    	*** Module loading ***
@@ -417,13 +425,8 @@ Existential
 make_existential(left,right)
      Plan left,right;
 {
-    extern void PrintExistential();
-    extern bool EqualExistential();
+    Existential node = RMakeExistential();
 
-    Existential node = CreateNode(Existential);
-
-    node->equalFunc = EqualExistential;
-    node->printFunc = PrintExistential;
     set_lefttree(node,left);
     set_righttree(node,right);
     return(node);

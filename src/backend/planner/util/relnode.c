@@ -18,8 +18,11 @@
 #include "relation.h"
 #include "planner/plancat.h"
 
-extern void PrintRel();
-extern bool EqualRel();
+/* ----------------
+ *	Rel creator declaration
+ * ----------------
+ */
+extern Rel RMakeRel();
 
 /*    
  *    	get_rel
@@ -43,9 +46,7 @@ get_rel (relid)
 
     if /*when */ ( null (rel)) {
 	/* XXX - can remove the following code when MakeRel() works */
-	rel = CreateNode(Rel);
-	rel->printFunc = PrintRel;
-	rel->equalFunc = EqualRel;
+	rel = RMakeRel();
 	
 #ifdef _xprs_
 	set_relids (rel,listp(relid)?relid:lispCons (relid,LispNil));

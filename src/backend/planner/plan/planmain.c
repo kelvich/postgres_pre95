@@ -29,6 +29,11 @@
 #include "planner/createplan.h"
 #include "planner/allpaths.h"
 
+/* ----------------
+ *	Result creator declaration
+ * ----------------
+ */
+extern Result RMakeResult();
 
 /*    
  *    	query_planner
@@ -322,9 +327,7 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
      List resrellevelqual,resconstantqual;
      Plan left,right;
 {
-    extern void PrintResult();
-    extern bool EqualResult();
-    Result node = New_Node(Result);
+    Result node = RMakeResult();
     
     set_cost((Plan) node, 0.0);
     set_fragment((Plan) node, 0);
@@ -338,7 +341,5 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
     set_resconstantqual(node, resconstantqual); 
     set_resstate(node, NULL);
     
-    node->printFunc = PrintResult; 
-    node->equalFunc = EqualResult;
     return(node);
 } 

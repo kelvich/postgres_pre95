@@ -21,6 +21,11 @@
 #include "relation.a.h"
 #include "planner/cfi.h"
 
+/* ----------------
+ *	Rel creator declaration
+ * ----------------
+ */
+extern Rel RMakeRel();
 
 
 /*    
@@ -77,7 +82,7 @@ find_secondary_index (notfirst,relid)
 {
     LispValue indexinfo = index_info (notfirst,relid);
     if  ( consp (indexinfo)) {
-	Rel indexnode = CreateNode(Rel);
+	Rel indexnode = RMakeRel();
 	set_relids (indexnode,lispCons(CAR(indexinfo),LispNil));
 	set_pages (indexnode,CInteger(CADR (indexinfo)));
 	set_tuples (indexnode,CInteger(nth (2,indexinfo)));
@@ -96,9 +101,6 @@ find_secondary_index (notfirst,relid)
 	set_joininfo(indexnode,LispNil);
 	set_innerjoin(indexnode,LispNil);
 	
-	indexnode->printFunc = PrintRel;
-	indexnode->equalFunc = EqualRel;
-
 	return(lispCons (indexnode,find_secondary_index (true,relid)));
     } else
       return(LispNil);

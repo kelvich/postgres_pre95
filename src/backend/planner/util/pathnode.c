@@ -29,6 +29,16 @@
 #include <math.h>
 #include "planner/costsize.h"
 
+/* ----------------
+ *	node creator declarations
+ * ----------------
+ */
+extern HashPath RMakeHashPath();
+extern MergePath RMakeMergePath();
+extern JoinPath RMakeJoinPath();
+extern IndexPath RMakeIndexPath();
+extern Path RMakePath();
+
 
 /*    	====================
  *    	MISC. PATH UTILITIES
@@ -230,14 +240,10 @@ Path
 create_seqscan_path (rel)
      Rel rel ;
 {
-    extern void PrintPath();
-    extern bool EqualPath();
     LispValue relid;
 
-    Path pathnode = CreateNode(Path);
+    Path pathnode = RMakePath();
 
-    pathnode->equalFunc = EqualPath;
-    pathnode->printFunc = PrintPath;
     set_pathtype (pathnode,T_SeqScan); 
     set_parent (pathnode,rel);
     set_path_cost (pathnode,0.0);
@@ -279,7 +285,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
      LispValue restriction_clauses;
      bool is_join_scan;
 {
-    IndexPath pathnode = CreateNode(IndexPath);
+    IndexPath pathnode = RMakeIndexPath();
     
     set_pathtype (pathnode,T_IndexScan);
     set_parent (pathnode,rel);
@@ -289,9 +295,6 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
     set_sortpath(pathnode, (SortKey)NULL);
     set_indexqual(pathnode, LispNil);
 
-    pathnode->printFunc = PrintIndexPath;
-    pathnode->equalFunc = EqualIndexPath;
-    
     /*    The index must have an ordering for the
 	  path to have (ordering) keys, 
 	  and vice versa. */
@@ -327,9 +330,9 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	List pagesel = index_selectivity (CInteger(CAR(get_relids(index))),
 					  get_classlist (index),
 					  get_opnos (restriction_clauses),
-					  CInteger(getrelid (CInteger
-							(CAR(get_relids(rel))),
-						    _query_range_table_)),
+					  getrelid (CInteger(CAR(get_relids 
+								 (rel))),
+						    _query_range_table_),
 					  nth (0,relattvals),
 					  nth (1,relattvals),
 					  nth (2,relattvals),
@@ -385,11 +388,8 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      Path outer_path,inner_path;
      List keys ;
 {
-     JoinPath pathnode = CreateNode(JoinPath);
+     JoinPath pathnode = RMakeJoinPath();
      
-     pathnode->printFunc = PrintJoinPath;
-     pathnode->equalFunc = EqualJoinPath;
-
      set_pathtype(pathnode,T_NestLoop);
      set_parent (pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
@@ -447,10 +447,7 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      Path outer_path,inner_path;
      LispValue keys,order,mergeclauses,outersortkeys,innersortkeys ;
 {
-     MergePath pathnode = CreateNode(MergePath);
-
-     pathnode->printFunc = PrintMergePath;
-     pathnode->equalFunc = EqualMergePath;
+     MergePath pathnode = RMakeMergePath();
 
      set_pathtype (pathnode,T_MergeJoin);
      set_parent (pathnode,joinrel);
@@ -505,10 +502,7 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
      LispValue keys,hashclauses,outerkeys,innerkeys ;
      ObjectId operator;
 {
-    HashPath pathnode = CreateNode(HashPath);
-
-    pathnode->printFunc = PrintHashPath;
-    pathnode->equalFunc = EqualHashPath;
+    HashPath pathnode = RMakeHashPath();
 
     set_pathtype (pathnode,T_HashJoin); 
     set_parent (pathnode,joinrel);

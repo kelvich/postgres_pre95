@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	initsplan
@@ -40,6 +39,12 @@
 extern bool _enable_mergesort_;
 extern bool _enable_hashjoin_;
 extern int Quiet;
+
+/* ----------------
+ *	CInfo creator declaration
+ * ----------------
+ */
+extern CInfo RMakeCInfo();
 
 /*     	============
  *     	TARGET LISTS
@@ -167,15 +172,13 @@ add_clause_to_rels (clause)
       
       add_vars_to_rels (vars,LispNil);
     else {
-	CInfo clauseinfo = CreateNode(CInfo);
+	CInfo clauseinfo = RMakeCInfo();
 	set_clause (clauseinfo,clause);
 	set_notclause (clauseinfo,contains_not (clause));
 	set_selectivity (clauseinfo,0);
 	set_indexids (clauseinfo,LispNil);
 	set_mergesortorder (clauseinfo,(MergeOrder)NULL);
 	set_hashjoinoperator (clauseinfo,LispNil);
-	clauseinfo->printFunc = PrintCInfo;
-	clauseinfo->equalFunc = EqualCInfo;
 	
 	if(1 == length (relids)) {
 	    

@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	indxpath
@@ -27,6 +26,12 @@
 #include <math.h>
 #include "planner/costsize.h"
 #include "planner/pathnode.h"
+
+/* ----------------
+ *	IndexPath creator declaration
+ * ----------------
+ */
+extern IndexPath RMakeIndexPath();
 
 /*    
  *    	find-index-paths
@@ -509,7 +514,7 @@ index_innerjoin (rel,clausegroup_list,index)
 
      foreach(i,clausegroup_list) {
 	 clausegroup = CAR(i);
-	 pathnode = CreateNode(IndexPath);
+	 pathnode = RMakeIndexPath();
 	 relattvals =                
 	   get_joinvars (CAR(get_relids(rel)),clausegroup);
 	 pagesel = 

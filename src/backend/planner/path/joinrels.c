@@ -23,6 +23,12 @@
 #include "planner/joininfo.h"
 #include "planner/relnode.h"
 
+/* ----------------
+ *	node creator declarations
+ * ----------------
+ */
+extern JInfo RMakeJInfo();
+extern Rel RMakeRel();
 
 /*    
  *    	find-join-rels
@@ -204,7 +210,7 @@ init_join_rel (outer_rel,inner_rel,joininfo)
      Rel outer_rel,inner_rel;
      JInfo joininfo ;
 {
-    Rel joinrel = CreateNode (Rel);
+    Rel joinrel = RMakeRel();
     LispValue joinrel_joininfo_list = LispNil;
 #ifdef _xprs_
     void deactivate_joininfo();
@@ -222,8 +228,6 @@ init_join_rel (outer_rel,inner_rel,joininfo)
 		      ,get_relids (outer_rel),
 		      length (new_outer_tlist) + 1);
      
-    joinrel->printFunc = PrintRel;
-    joinrel->equalFunc = EqualRel;
      
     set_relids (joinrel, LispNil);
     set_indexed (joinrel,false);
@@ -421,9 +425,7 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
 					              (other_joininfo)));
 	} 
 	else {
-	    other_joininfo = CreateNode (JInfo);
-	    other_joininfo->printFunc = PrintJInfo;
-	    other_joininfo->equalFunc = EqualJInfo;
+	    other_joininfo = RMakeJInfo();
 
 	    set_otherrels (other_joininfo,new_otherrels);
 	    set_jinfoclauseinfo (other_joininfo,

@@ -34,6 +34,17 @@
 
 #define _watch_costs_  LispNil
 
+/* ----------------
+ *	node creator declarations
+ * ----------------
+ */
+extern Unique RMakeUnique();
+extern Sort RMakeSort();
+extern MergeJoin RMakeMergeJoin();
+extern HashJoin RMakeHashJoin();
+extern NestLoop RMakeNestLoop();
+extern IndexScan RMakeIndexScan();
+extern SeqScan RMakeSeqScan();
 
 /*    	================
  *    	GENERIC ROUTINES
@@ -381,7 +392,7 @@ fix_indxqual_references (clause,index_path)
 					  (get_function (clause)),
 					  LispNil,
 					  LispNil,
-					  LispNil, 0),
+					  LispNil),
 				 get_rightop (clause)));
 
       } 
@@ -833,10 +844,7 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
      Index scanrelid;
      Plan lefttree;
 {
-    extern void PrintSeqScan(); 
-    extern bool EqualSeqScan(); 
-    
-    SeqScan node = New_Node(SeqScan);
+    SeqScan node = RMakeSeqScan();
     
     if (!null(lefttree))
       Assert(IsA(lefttree,Plan));
@@ -851,8 +859,6 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
     set_scanrelid (node , scanrelid);
     set_scanstate (node, (ScanState)NULL);
 
-    node->printFunc = PrintSeqScan; 
-    node->equalFunc = EqualSeqScan; 
     return(node);
 }
 
@@ -863,9 +869,7 @@ make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
      List indxid, indxqual;
 
 {
-    extern bool EqualIndexScan();
-
-    IndexScan node = New_Node(IndexScan);
+    IndexScan node = RMakeIndexScan();
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -879,10 +883,6 @@ make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
     set_indxqual(node,indxqual);
     set_scanstate (node, (ScanState)NULL);
 
-    node->printFunc = PrintIndexScan;
-    node->equalFunc = NULL;
-/*    node ->equalFunc = EqualIndexScan;   */
-
     return(node);
 }
 
@@ -894,10 +894,7 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
      Plan lefttree;
      Plan righttree;
 {
-    extern void PrintNestLoop(); 
-    extern bool EqualNestLoop(); 
-
-    NestLoop node = CreateNode(NestLoop);
+    NestLoop node = RMakeNestLoop();
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -908,10 +905,7 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
     set_righttree (node , righttree);
     set_nlstate (node, (NestLoopState)NULL);
 
-    node->printFunc = PrintNestLoop; 
-    node->equalFunc = EqualNestLoop; 
     return(node);
-
 }
 
 HashJoin
@@ -920,7 +914,7 @@ make_hashjoin(tlist,qpqual,hashclauses,opcode,righttree,lefttree)
      ObjectId opcode;
      Plan righttree,lefttree;
 {
-    HashJoin node = CreateNode(HashJoin);
+    HashJoin node = RMakeHashJoin();
     
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -932,10 +926,7 @@ make_hashjoin(tlist,qpqual,hashclauses,opcode,righttree,lefttree)
     set_hashclauses(node,hashclauses);
     set_hashjoinop(node,opcode);
 
-    node->printFunc = PrintHashJoin;
-    /* node->equalFunc = EqualHashJoin;  until function is defined */
     return(node);
-
 }
 
 Hash
@@ -945,7 +936,8 @@ make_hash (tlist,tempid,lefttree, keycount)
      Plan lefttree;
      ObjectId tempid;
 {
-    Hash node = CreateNode(Hash);
+    extern Hash RMakeHash();
+    Hash node = RMakeHash();
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -957,9 +949,6 @@ make_hash (tlist,tempid,lefttree, keycount)
     set_tempid(node,tempid);
     set_keycount(node,keycount);
 
-    node->printFunc = PrintHash;
-/*    node->equalFunc = EqualHash;  */
-    node->equalFunc = NULL;
     return(node);
 }
 
@@ -971,7 +960,7 @@ make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
      LispValue rightorder, leftorder;
      Plan righttree,lefttree;
 {
-    MergeJoin node = CreateNode(MergeJoin);
+    MergeJoin node = RMakeMergeJoin();
     
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -985,8 +974,6 @@ make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
     set_mergerightorder(node, rightorder);
     set_mergeleftorder(node, leftorder);
 
-    node->printFunc = PrintMergeJoin;
-    /* node->equalFunc = EqualMergeJoin;  until function is defined */
     return(node);
 
 }
@@ -998,7 +985,7 @@ make_sort (tlist,tempid,lefttree, keycount)
      Plan lefttree;
      ObjectId tempid;
 {
-    Sort node = CreateNode(Sort);
+    Sort node = RMakeSort();
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -1010,9 +997,6 @@ make_sort (tlist,tempid,lefttree, keycount)
     set_tempid(node,tempid);
     set_keycount(node,keycount);
 
-    node->printFunc = PrintSort;
-/*    node->equalFunc = EqualSort;  */
-    node->equalFunc = NULL;
     return(node);
 }
 
@@ -1026,7 +1010,7 @@ make_unique(tlist,lefttree)
      List tlist;
      Plan lefttree;
 {
-    Unique node = CreateNode(Unique);
+    Unique node = RMakeUnique();
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -1037,9 +1021,6 @@ make_unique(tlist,lefttree)
     set_righttree(node,LispNil);
     set_tempid(node,-1);
     set_keycount(node,0);
-
-    node->printFunc = PrintUnique;
-    node->equalFunc = NULL;
 
     return(node);
 }

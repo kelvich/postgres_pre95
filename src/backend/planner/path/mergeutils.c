@@ -23,7 +23,11 @@
 #include "planner/mergeutils.h"
 #include "planner/clauses.h"
 
-
+/* ----------------
+ *	MInfo creator declaration
+ * ----------------
+ */
+extern MInfo RMakeMInfo();
 
 /*    
  *    	group-clauses-by-order
@@ -68,7 +72,7 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       } 
 
 	       if ( null (xmergeinfo)) {
-		    xmergeinfo = CreateNode (MInfo);
+		    xmergeinfo = RMakeMInfo();
 		    set_m_ordering(xmergeinfo,merge_ordering);
 		    mergeinfo_list = push (xmergeinfo,mergeinfo_list);
 	       }

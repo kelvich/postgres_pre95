@@ -22,7 +22,11 @@
 #include "planner/hashutils.h"
 #include "planner/clauses.h"
 
-
+/* ----------------
+ *	HInfo creator declaration
+ * ----------------
+ */
+extern HInfo RMakeHInfo();
 
 /*    
  *    	group-clauses-by-hashop
@@ -79,7 +83,7 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	    }
 	    
 	    if ( null(xhashinfo)) {
-		xhashinfo = CreateNode(HInfo);
+		xhashinfo = RMakeHInfo();
 		set_hashop(xhashinfo,
 			   hashjoinop);
 
@@ -92,8 +96,6 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 		set_indexids(xhashinfo,LispNil);
 		set_mergesortorder(xhashinfo,(MergeOrder)NULL);
  */
-		xhashinfo->printFunc = PrintHInfo;
-		xhashinfo->equalFunc = EqualHInfo;
 
 		/* XXX was push  */
 		hashinfo_list = nappend1(hashinfo_list,xhashinfo);

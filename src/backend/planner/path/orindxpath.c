@@ -30,6 +30,12 @@
 
 #define INDEX_SCAN 1
 
+/* ----------------
+ *	IndexPath creator declaration
+ * ----------------
+ */
+extern IndexPath RMakeIndexPath();
+
 /*    
  *    	create-or-index-paths
  *    
@@ -72,7 +78,7 @@ create_or_index_paths (rel,clauses)
 		      index_flag = false;
 	       }
 	       if (index_flag) {   /* used to be a lisp every function */
-		    IndexPath pathnode = CreateNode (IndexPath);
+		    IndexPath pathnode = RMakeIndexPath();
 		    LispValue indexinfo = 
 		      best_or_subclause_indices (rel,
 						 get_orclauseargs
