@@ -959,9 +959,17 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
 /* ----------------------------------------------------------------
  *    	ExecEvalNot
  *    	ExecEvalOr
+ *	ExecEvalAnd
  *    
  *    	Evaluate boolean expressions.  Evaluation of 'or' is
  *	short-circuited when the first true (or null) value is found.
+ *
+ *	The query planner reformulates clause expressions in the
+ *	qualification to conjunctive normal form.  If we ever get
+ *	an AND to evaluate, we can be sure that it's not a top-level
+ *	clause in the qualification, but appears lower (as a function
+ *	argument, for example), or in the target list.  Not that you
+ *	need to know this, mind you...
  * ----------------------------------------------------------------
  */
 /**** xxref:
@@ -1065,6 +1073,67 @@ ExecEvalOr(orExpr, econtext, isNull)
     
     return const_value;
 }
+
+/* ----------------------------------------------------------------
+ *	ExecEvalAnd
+ * ----------------------------------------------------------------
+ */
+ 
+/**** xxref:
+ *           ExecEvalExpr
+ ****/
+Datum
+ExecEvalAnd(andExpr, econtext, isNull)
+    List 	andExpr;
+    ExprContext econtext;
+    Boolean *isNull;
+{
+    List   clauses;
+    List   clause;
+    Datum  const_value;
+    bool   isDone;
+ 
+    clauses = (List) get_andclauseargs(andExpr);
+ 
+    /* ----------------
+     *	we evaluate each of the clauses in turn,
+     *  as soon as one is true we return that
+     *  value.  If none are true then we return
+     *  the value of the last clause evaluated, which
+     *  should be false. -cim 8/31/89
+     * ----------------
+     */
+    foreach (clause, clauses) {
+
+	/* ----------------
+	 *  We don't iterate over sets in the quals, so pass in an isDone
+	 *  flag, but ignore it.
+	 * ----------------
+	 */
+	const_value = ExecEvalExpr((Node) CAR(clause),
+				   econtext,
+				   isNull,
+				   &isDone);
+	
+	/* ----------------
+	 *  if the expression evaluates to null, then we just
+	 *  cascade the null back to whoever called us.
+	 * ----------------
+	 */
+	if (*isNull)
+	    return const_value;
+	
+	/* ----------------
+	 *   if we have a false result, then we return it, since the
+	 *   conjunction must be false.
+	 * ----------------
+	 */
+	if (ExecCFalse(DatumGetInt32(const_value)))
+	    return const_value;
+    }
+
+    return const_value;
+}
  
 /* ----------------------------------------------------------------  
  *    	ExecEvalExpr
@@ -1148,6 +1217,9 @@ ExecEvalExpr(expression, econtext, isNull, isDone)
     else if (fast_or_clause(expression))
 	retDatum = (Datum) ExecEvalOr((List) expression, econtext, isNull);
    
+    else if (fast_and_clause(expression))
+	retDatum = (Datum)  ExecEvalAnd((List) expression, econtext, isNull);
+
     else if (fast_not_clause(expression))
 	retDatum = (Datum)  ExecEvalNot((List) expression, econtext, isNull);
 
