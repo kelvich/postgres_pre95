@@ -920,19 +920,3 @@ QueryRewrite ( parsetree )
 
 	
     
-#ifdef OLDCODE
-
-/*****************************************************
-  
-  the following routines still need to be written
-
- *****************************************************/
-
-List
-ModifyDeleteQueries( drop_user_query )
-     bool *drop_user_query;
-{
-    return(NULL);
-}
-
-#endif
