@@ -57,7 +57,6 @@ extern List ParseAgg();
 
 bool CurrentWasUsed = false;
 bool NewWasUsed = false;
-bool attr_is_nested_dots = false;
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
@@ -1717,49 +1716,41 @@ agg_where_clause:
 a_expr:
 	  attr
            {
-	       if (attr_is_nested_dots)
+	       List temp = NULL;
+
+	       if (IsA(CAR($1),Param))
 		{
-		    $$ = HandleNestedDots($1);
+		    Param f = (Param)CAR($1); 
+		    set_param_tlist(f,
+				    setup_tlist(CString(CDR($1)),
+						get_paramtype(f)));
+		    temp = (List) f;
 		}
 	       else
-		{
-		    List temp = NULL;
+		 temp = HandleNestedDots($1);
+	       $$ = (LispValue)temp;
 
-		    if (IsA(CAR($1),Param))
-		     {
-			 Param f = (Param)CAR($1); 
-			 set_param_tlist(f,
-					 setup_tlist(CString(CDR($1)),
-						     get_paramtype(f)));
-			 temp = (List) f;
-		     }
-		    else
-			temp = CDR(make_var((Name)CString(CAR($1)), 
-					    (Name)CString(CADR($1))));
-		    $$ = (LispValue)temp;
+	       if (CurrentWasUsed) {
+		   $$ = (LispValue)MakeParam ( PARAM_OLD , 
+					      get_varattno((Var)temp), 
+					      (Name)CString(CDR($1)),
+					      get_vartype((Var)temp));
+		   CurrentWasUsed = false;
+	       }
 
-		    if (CurrentWasUsed) {
-			$$ = (LispValue)MakeParam ( PARAM_OLD , 
-						   get_varattno((Var)temp), 
-						   (Name)CString(CDR($1)),
-						   get_vartype((Var)temp));
-			CurrentWasUsed = false;
-		    }
-
-                    if (NewWasUsed) {
-			$$ = (LispValue)MakeParam ( PARAM_NEW , 
-						   get_varattno((Var)temp), (Name)CString(CDR($1)),
-						   get_vartype((Var)temp));
-			NewWasUsed = false;
-		    }
-  		    if (IsA(temp,Var)) {
-  			/* Obsolete, I think.  -- JMH  ??? 
-			  set_vardotfields ( (Var) temp , CDR(CDR($1)));  */
- 			if (null(CDR(CDR($1))))
- 			    $$ = lispCons ( lispInteger
- 					   (get_vartype((Var)temp)),$$ );
- 		    }
-  		}
+	       if (NewWasUsed) {
+		   $$ = (LispValue)MakeParam ( PARAM_NEW , 
+					      get_varattno((Var)temp), (Name)CString(CDR($1)),
+					      get_vartype((Var)temp));
+		   NewWasUsed = false;
+	       }
+	       if (IsA(temp,Var)) {
+		   /* Obsolete, I think.  -- JMH  ??? 
+		      set_vardotfields ( (Var) temp , CDR(CDR($1)));  */
+		   if (null(CDR(CDR($1))))
+		     $$ = lispCons ( lispInteger
+				    (get_vartype((Var)temp)),$$ );
+	       }
 	   }
 	| AexprConst		
 	| attr optional_indirection
@@ -1847,42 +1838,22 @@ expr_list:
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:
-          relation_name '.' nested_func '.' nested_dots
+          relation_name '.' attrs
                 {
-		    attr_is_nested_dots = true;
 		    INC_NUM_LEVELS(1);
 		    $$ = MakeList($1, $3, -1);
-		    $$ = nappend1($$, $5);
 		}
-        | relation_name '.' attr_name
-		{
-                    attr_is_nested_dots = false;
-		    INC_NUM_LEVELS(1);		
-		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
-		      ADD_TO_RT( MakeRangeTableEntry ((Name)CString($1) ,
-						      LispNil, 
-						      (Name)CString($1)));
-		    $$ = MakeList ( $1, $3, -1 );
-		}
-	| ParamNo '.' nested_func '.' nested_dots	{
-		attr_is_nested_dots = true;
+
+	| ParamNo '.' attrs
+            {
+		INC_NUM_LEVELS(1);
 		$$ = MakeList($1, $3, -1);
-		$$ = nappend1($$, $5);
-	    }
-        | ParamNo '.' attr_name				{
-		attr_is_nested_dots = false;
-		INC_NUM_LEVELS(1);		
-		$$ = MakeList ( $1, $3, -1 );
 	    }
 	;
 
-nested_func:
-        attr_name			{ $$ = $1; }
-
-nested_dots:
-        attr_name			{ $$ = $1; }
-      | attr_name '.' nested_dots	{ $$ = MakeList($1, $3, -1); }
-      ;
+attrs:
+        attr_name                       { $$ = $1; }
+      | attrs '.' attr_name             { $$ = MakeList ($1, $3, -1); }
 
 agg_res_target_el:
        attr
@@ -1891,12 +1862,7 @@ agg_res_target_el:
 	       Resdom resnode;
 	       int type_id, type_len;
 
-	        if (attr_is_nested_dots)
-		    temp = HandleNestedDots($1);
-	        else
-		    temp = make_var ( (Name)CString(CAR($1)) ,
-				     (Name)CString(CADR($1)),
-     				     CDR(CDR($1)));
+	        temp = HandleNestedDots($1);
 
 	        type_id = CInteger(CAR(temp));
 	        type_len = tlen(get_id_type(type_id));
@@ -1908,14 +1874,13 @@ agg_res_target_el:
 
 	        varnode = CDR(temp);
 
-		if (!attr_is_nested_dots) {
-		   if (IsA(varnode,Var)) {
-		       set_vardotfields((Var)varnode, CDR(CDR($1)));
-		   } else {
-		       if ( CDR(CDR($1)) != LispNil )
-			   elog(WARN,"cannot mix procedures with unions");
-		   }
-		}
+	        if (IsA(varnode,Var)) {
+		     set_vardotfields((Var)varnode, CDR(CDR($1)));
+		} else {
+		   if ( CDR(CDR($1)) != LispNil )
+		     elog(WARN,"cannot mix procedures with unions");
+		  }
+
 
 	        $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	 }
@@ -2010,12 +1975,7 @@ res_target_el:
 		 Resdom resnode;
 		 int type_id, type_len;
 
-		 if (attr_is_nested_dots)
-		      temp = HandleNestedDots($1);
-		 else
-		      temp = make_var ( (Name)CString(CAR($1)) ,
-				       (Name)CString(CADR($1)),
- 				       CDR(CDR($1)));
+		 temp = HandleNestedDots($1);
 
 		 type_id = CInteger(CAR(temp));
 		 type_len = tlen(get_id_type(type_id));
@@ -2026,15 +1986,12 @@ res_target_el:
 					0 );
 		 varnode = CDR(temp);
 
-		 if (!attr_is_nested_dots) {
-		      if ( IsA(varnode,Var))
-		      {
-			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
-		      }
-		      else if ( CDR(CDR($1)) != LispNil )
-			elog(WARN,"cannot mix procedures with unions");
-
-		  }
+		 if ( IsA(varnode,Var))
+		 {
+		   set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+		 }
+		 else if ( CDR(CDR($1)) != LispNil )
+		   elog(WARN,"cannot mix procedures with unions");
 
 		  $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	    }
