@@ -1,13 +1,16 @@
 /* ----------------------------------------------------------------
- * btree.h --
+ *   FILE
+ *	btree.h
+ *
+ *   DESCRIPTION
  *	B-tree definitions.
  *
- * Note:
+ *   NOTES
  *	Based on Philip L. Lehman and S. Bing Yao's paper, "Efficient
  *	Locking for Concurrent Operations on B-trees," ACM Transactions
  *	on Database Systems, v.6, n.4, Dec. '81, pp650-670.
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
  */
@@ -40,7 +43,7 @@
 #include "access/skey.h"
 #include "access/tqual.h"
 
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 #include "storage/block.h"
 #include "storage/buf.h"
 #include "storage/bufmgr.h"

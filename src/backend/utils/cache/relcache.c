@@ -48,7 +48,7 @@ RcsId("$Header$");
 #include "access/tupdesc.h"
 #include "access/tupmacs.h"
  
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 #include "storage/buf.h"
 #include "storage/lmgr.h"
  

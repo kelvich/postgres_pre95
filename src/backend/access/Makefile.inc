@@ -15,7 +15,7 @@
 HEADERS+= att.h attnum.h attval.h \
 	 btree-externs.h btree.h ftup.h funcindex.h \
 	 genam.h hash.h heapam.h hio.h hrnd.h htup.h ibit.h imark.h iqual.h \
-	 isop.h istrat.h itup.h nbtree.h newam.h \
+	 isop.h istrat.h itup.h nbtree.h \
 	 nobtree.h printtup.h relscan.h rtree.h rulescan.h sdir.h \
 	 skey.h tqual.h transam.h tupdesc.h tupmacs.h valid.h \
-	 xact.h xcxt.h xlog.h xtim.h
+	 xact.h xlog.h xtim.h

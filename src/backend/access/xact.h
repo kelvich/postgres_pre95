@@ -17,7 +17,6 @@
 
 #include <signal.h>
 
-#include "access/xcxt.h"
 #include "access/xlog.h"
 #include "storage/ipci.h"
 #include "tmp/miscadmin.h"

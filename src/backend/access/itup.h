@@ -5,6 +5,8 @@
  *   DESCRIPTION
  *	POSTGRES index tuple definitions.
  *
+ *   NOTES
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -16,7 +18,7 @@
 #include "storage/form.h"
 #include "access/ibit.h"
 #include "storage/itemptr.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 
 #define MaxIndexAttributeNumber	7
 

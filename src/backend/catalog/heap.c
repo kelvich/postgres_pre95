@@ -38,7 +38,7 @@ RcsId("$Header$");
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "access/tqual.h"	/* for NowTimeQual */
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 #include "storage/buf.h"
 #include "storage/itemptr.h"
 #include "tmp/hasht.h"
@@ -60,10 +60,6 @@ RcsId("$Header$");
 #include "catalog/indexing.h"
 
 #include "lib/catalog.h"
-
-#ifdef sprite
-#include "sprite_file.h"
-#endif /* sprite */
 
 #ifndef	private
 #define private	/* public */

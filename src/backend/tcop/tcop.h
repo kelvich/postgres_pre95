@@ -35,7 +35,6 @@
 #include "access/htup.h"
 #include "access/sdir.h"
 #include "access/tupdesc.h"
-#include "access/xcxt.h"
 
 #include "catalog/catname.h"
 #include "catalog/syscache.h"

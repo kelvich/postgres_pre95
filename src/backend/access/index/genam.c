@@ -41,11 +41,12 @@
 
 #include "tmp/postgres.h"
 
+RcsId("$Header$");
+
 #include "access/attnum.h"
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/itup.h"
-#include "access/newam.h"
 #include "access/relscan.h"
 #include "access/sdir.h"
 #include "access/skey.h"
@@ -59,7 +60,7 @@
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
-RcsId("$Header$");
+#include "lib/index.h"
 
 /* ----------------------------------------------------------------
  *	general access method routines

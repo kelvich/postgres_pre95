@@ -1,14 +1,24 @@
-/*
- * tqual.c --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	tqual.c
+ *
+ *   DESCRIPTION
  *	POSTGRES time qualification code.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 /* #define TQUALDEBUG	1 */
 
 #include "tmp/postgres.h"
 
+RcsId("$Header$");
+
 #include "access/htup.h"
-#include "access/xcxt.h"
 #include "access/xlog.h"
 #include "access/xact.h"
 #include "access/transam.h"
@@ -16,8 +26,6 @@
 #include "utils/nabstime.h"
 
 #include "access/tqual.h"
-
-RcsId("$Header$");
 
 /*
  * TimeQualMode --

@@ -1,15 +1,19 @@
-/*
- * heapam.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	heapam.h
+ *
+ *   DESCRIPTION
  *	POSTGRES heap access method definitions.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	HeapAMIncluded		/* Include this file only once */
 #define HeapAMIncluded	1
-
-/*
- * Identification:
- */
-#define HEAPAM_H	"$Header$"
 
 #include <sys/types.h>
 
@@ -25,7 +29,7 @@
 
 #include "storage/smgr.h"
 
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 #include "utils/rel.h"
 
 /* ----------------------------------------------------------------

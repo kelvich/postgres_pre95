@@ -1,10 +1,16 @@
-static	char ami_h[] = "$Header$";
-/**********************************************************************
-  ami.h
-
-  include file for ami_parser.y ami_lexer.l ami_code.c
-
- **********************************************************************/
+/* ----------------------------------------------------------------
+ *   FILE
+ *	bkint.h
+ *
+ *   DESCRIPTION
+ *	include file for the bootstrapping code
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 
 #include <sys/file.h>
 #include <stdio.h>
@@ -18,7 +24,6 @@ static	char ami_h[] = "$Header$";
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "access/tqual.h"
-#include "access/xcxt.h"
 #include "storage/buf.h"
 #include "storage/bufmgr.h"	/* for BufferManagerFlush */
 #include "tmp/portal.h"

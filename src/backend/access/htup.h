@@ -1,15 +1,19 @@
-/*
- * htup.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	htup.h
+ *
+ *   DESCRIPTION
  *	POSTGRES heap tuple definitions.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	HTupIncluded		/* Include this file only once */
 #define HTupIncluded	1
-
-/*
- * Identification:
- */
-#define HTUP_H	"$Header$"
 
 #include "tmp/postgres.h"	/* XXX obsolete, for XID, etc. */
 
@@ -18,18 +22,14 @@
 #include "storage/page.h"  		/* just to reduce levels of #include */
 #include "storage/part.h"  		/* just to reduce levels of #include */
 #include "storage/itemptr.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 #include "utils/nabstime.h"
 
 #define MinHeapTupleBitmapSize	32		/* 8 * 4 */
 
 /* check these, they are likely to be more severely limited by t_hoff */
 
-#ifdef  vax
-#define MaxHeapAttributeNumber	1584		/* 8 * 198 */
-#else
 #define MaxHeapAttributeNumber	1600		/* 8 * 200 */
-#endif
 
 /*-----------------------------------------------------------
  * NOTE:

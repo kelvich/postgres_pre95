@@ -30,7 +30,6 @@ RcsId("$Header$");
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/itup.h"
-#include "access/newam.h"
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "access/tqual.h"

@@ -1,9 +1,15 @@
-/*
- * rac.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	rac.h
+ *
+ *   DESCRIPTION
  *	POSTGRES rule lock access definitions.
  *
- * Identification:
+ *   NOTES
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	RAcIncluded	/* Include this file only once. */
@@ -15,7 +21,7 @@
 #include "storage/buf.h"
 #include "access/htup.h"
 #include "utils/rel.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 
 /*
  * HeapTupleFreeRuleLock

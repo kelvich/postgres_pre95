@@ -89,12 +89,11 @@ RcsId("$Header$");
 
 #include "access/tqual.h"
 #include "access/valid.h"
-#include "access/xcxt.h"
 #include "access/xact.h"
 
 #include "catalog/catname.h"
 #include "rules/rac.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 
 #include "storage/buf.h"
 #include "storage/bufmgr.h"

@@ -32,7 +32,7 @@
 
 #include "storage/form.h"
 #include "storage/itemptr.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 
 #include "utils/log.h"
 #include "utils/palloc.h"
