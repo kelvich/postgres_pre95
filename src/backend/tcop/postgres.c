@@ -101,6 +101,23 @@ EndCommand(commandTag)
     }
 }
 
+/*
+ * NullCommand
+ * 
+ * Necessary to implement the hacky FE/BE interface to handle multiple-return
+ * queries.
+ */
+
+void
+NullCommand()
+{
+    if (IsUnderPostmaster) {
+	putnchar("I", 1);
+	putint(0, 4);
+	pflush();
+    }
+}
+
 /* ----------------------------------------------------------------
  *	routines to obtain user input
  * ----------------------------------------------------------------
@@ -480,6 +497,7 @@ main(argc, argv)
     int		setjmp(), chdir();
     char	*getenv();
     char	parser_input[MAX_PARSE_BUFFER];
+	int	empty_buffer = 0;	
 
     
     /* ----------------
@@ -790,12 +808,13 @@ main(argc, argv)
 	     */
 	  case 'Q':
 	    fflush(stdout);
-	    if ( *parser_input ==  0 ) {
-		break;
+	    if ( parser_input[0] ==  ' ' && parser_input[1] == '\0' )
+		{
+			empty_buffer = 1;
 	    } else {
 		pg_eval(parser_input);
-		break;
 	    }
+		break;
 	  default:
 	    elog(WARN,"unknown frontend message was recieved");
 	}
@@ -808,7 +827,13 @@ main(argc, argv)
 	    time(&tim);
 	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	}
-	CommitTransactionCommand();
+	if (!empty_buffer)
+		CommitTransactionCommand();
+	else
+	{
+		empty_buffer = 0;
+		NullCommand();
+	}
 
 	/*
 	 * clear the parse buffer
