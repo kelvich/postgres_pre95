@@ -35,10 +35,7 @@
 #include "tmp/postgres.h"
 #include "utils/fmgr.h"
 #include "utils/builtins.h"	/* for ftod() prototype */
-
-#ifndef sun
 #include "utils/log.h"
-#endif
 
 RcsId("$Header$");
 
