@@ -31,7 +31,7 @@ extern PortalEntry *be_currentportal ARGS(());
 extern PortalEntry *be_newportal ARGS((String pname));
 extern void be_typeinit ARGS((PortalEntry *entry, struct attribute **attrs, int natts));
 extern void be_printtup ARGS((HeapTuple tuple, struct attribute *typeinfo[]));
-extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int result_is_int, int n args, int nargs));
+extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int result_is_int, PQArgBlock *args, int nargs));
 extern char *PQexec ARGS((char *query));
 
 #endif LibpqBeIncluded

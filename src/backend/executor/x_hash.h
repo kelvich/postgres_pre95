@@ -2,7 +2,7 @@
 extern TupleTableSlot ExecHash ARGS((Hash node));
 extern List ExecInitHash ARGS((Hash node, EState estate, int level, Plan parent));
 extern void ExecEndHash ARGS((Hash node));
-extern HashJoinTable ExecHashTableCreate ARGS((Plan node, int nbatch));
+extern HashJoinTable ExecHashTableCreate ARGS((Plan node));
 extern void ExecHashTableInsert ARGS((HashJoinTable hashtable, ExprContext econtext, Var hashkey, HashState hashstate));
 extern void ExecHashTableDestroy ARGS((HashJoinTable hashtable));
 extern int ExecHashGetBucket ARGS((HashJoinTable hashtable, ExprContext econtext, Var hashkey));
