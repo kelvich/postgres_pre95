@@ -712,12 +712,15 @@ IPCKey key;
 #endif
 }
 
+int NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
+int NDirectFileWrite;   /* e.g., I/O in psort and hashjoin.		     */
+
 void
 PrintBufferUsage()
 {
 	fprintf(stderr, "\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
-		ReadBufferCount - BufferHitCount,
-		BufferFlushCount,
+		ReadBufferCount - BufferHitCount + NDirectFileRead,
+		BufferFlushCount + NDirectFileWrite,
 	       (float)BufferHitCount * 100.0/ReadBufferCount);
 }
 
@@ -727,6 +730,8 @@ ResetBufferUsage()
 	BufferHitCount = 0;
 	ReadBufferCount = 0;
 	BufferFlushCount = 0;
+	NDirectFileRead = 0;
+	NDirectFileWrite = 0;
 }
 
 void
