@@ -520,11 +520,6 @@ ParseFunc ( funcname , fargs )
 	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
 	      relname = (Name)CString(CDR(pair));
-	      toid = typeid(type(relname));
-
-	      rd = heap_openr(relname);
-	      relid = RelationGetRelationId(rd);
-	      heap_close(rd);
 
 	      /* get the range table entry for the var node */
 	      vnum = RangeTablePosn(relname, 0);
@@ -533,6 +528,19 @@ ParseFunc ( funcname , fargs )
 				      MakeRangeTableEntry(relname, 0, relname));
 		  vnum = RangeTablePosn (relname, 0);
 	      }
+
+	      /*
+	       *  We have to do this because the relname in the pair
+	       *  may have been a range table variable name, rather
+	       *  than a real relation name.
+	       */
+
+	      relname = (Name) VarnoGetRelname(vnum);
+
+	      rd = heap_openr(relname);
+	      relid = RelationGetRelationId(rd);
+	      heap_close(rd);
+	      toid = typeid(type(relname));
 
 	      /*
 	       *  for func(relname), the param to the function
