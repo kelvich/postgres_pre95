@@ -67,6 +67,10 @@ HEADERFILES= port/${PORTNAME}/machine.h catalog/pg_user.h catalog/pg_lobj.h \
 	tmp/simplelists.h utils/dynamic_loader.h utils/exc.h \
 	utils/exception.h utils/log.h utils/geo-decls.h libpq/auth.h
 
+.if (${PORTNAME} == "hpux")
+HEADERFILES+= port/${PORTNAME}/fixade.h
+.endif
+
 install-headers::
 .if defined(OLD_MKDIR)
 	@-if [ ! -d ${HEADERDIR} ]; then mkdir ${HEADERDIR}; fi
