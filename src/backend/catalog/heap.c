@@ -57,6 +57,7 @@ RcsId("$Header$");
 #include "catalog/pg_ipl.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "catalog/indexing.h"
 
 #include "lib/catalog.h"
 
@@ -263,6 +264,7 @@ heap_creatr(relname, natts, smgr, att)
      * ----------------
      */
     rdesc->rd_fd = fd;
+
     /* ----------------
      *  nail the reldesc if this is a bootstrap create reln and
      *  we may need it in the cache later on in the bootstrap
@@ -485,12 +487,23 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
     HeapTuple	tup;
     Relation	rdesc;
     int		i;
+    bool	hasindex;
+    Relation	idescs[Num_pg_attr_indices];
 
     /* ----------------
      *	open pg_attribute
      * ----------------
      */
     rdesc = amopenr(AttributeRelationName);
+
+    /* -----------------
+     * Check if we have any indices defined on pg_attribute.
+     * -----------------
+     */
+    Assert(rdesc);
+    Assert(rdesc->rd_rel);
+    if (hasindex = RelationGetRelationTupleForm(rdesc)->relhasindex)
+	CatalogOpenIndices(Num_pg_attr_indices, Name_pg_attr_indices, idescs);
 
     /* ----------------
      *	initialize tuple descriptor.  Note we use setheapoverride()
@@ -522,6 +535,9 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
 			     (char *) *dpp);
 	
 	aminsert(rdesc, tup, (double *)NULL);
+
+	if (hasindex)
+	    CatalogIndexInsert(idescs, Num_pg_attr_indices, rdesc, tup);
 	
 	pfree((char *)tup);
 	dpp++;
@@ -542,6 +558,9 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
 
 	aminsert(rdesc, tup, (double *)NULL);
 	
+	if (hasindex)
+	    CatalogIndexInsert(idescs, Num_pg_attr_indices, rdesc, tup);
+
 	pfree((char *)tup);
 	dpp++;
     }
@@ -553,6 +572,11 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
      */
     setclusteredappend(false);
     amclose(rdesc);
+    /*
+     * close pg_attribute indices
+     */
+    if (hasindex)
+	CatalogCloseIndices(Num_pg_attr_indices, idescs);
 }
 
 /* --------------------------------
