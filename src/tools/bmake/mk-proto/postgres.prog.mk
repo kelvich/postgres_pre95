@@ -203,6 +203,22 @@ localobj:
 .endif
 .endif
 
+.if !target(TAGS)
+TAGS: ${HEADERS} ${SRCS} _PROGSUBDIR
+.if defined(PROG)
+.if (${.CURDIR} == "..")
+	-rm -f TAGS; \
+	etags -t ${.ALLSRC:S%access/common/../../%%g}; \
+	sed -e '/^.$$/,/,/s%^%obj/%' \
+	    -e 's%^obj/\(.\)$$%\1%' \
+	    -e "s%obj/\.\./%%" < TAGS > ../TAGS
+.else
+	-cd ${.CURDIR}; \
+	rm -f TAGS; \
+	etags -t ${.ALLSRC:S%${.CURDIR}/%%g}
+.endif
+.endif
+.endif
 
 .if !target(tags)
 tags: _linktags _maketags
@@ -233,7 +249,7 @@ _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 #
 .if ${.CURDIR} == ".."
 	-rm -f tags; \
-	ctags -t ${.ALLSRC}; \
+	ctags -t ${.ALLSRC:S%access/common/../../%%g}; \
 	HERE=`pwd`/; \
 	sed "s,	,	$$HERE," < tags > ../tags; \
 	#rm tags
