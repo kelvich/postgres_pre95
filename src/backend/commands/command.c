@@ -351,11 +351,10 @@ PerformAddAttribute(relationName, schema)
     List	schema;
 {	
     List		element;
-    Buffer		buf;
     AttributeNumber	newAttributes;
     
     Relation		relrdesc, attrdesc;
-    HeapScanDesc	relsdesc, attsdesc;
+    HeapScanDesc	attsdesc;
     HeapTuple		reltup;
     HeapTuple		attributeTuple;
     AttributeTupleForm	attribute;
@@ -364,10 +363,11 @@ PerformAddAttribute(relationName, schema)
     int			i;
     int			minattnum, maxatts;
     HeapTuple		tup;
-    struct	skey	key[2];	/* static better? [?] */
+    struct	skey	key[2];	/* static better?  static not better --mao */
     ItemPointerData	oldTID;
     int			att_nvals;
     Relation		idescs[Num_pg_attr_indices];
+    Relation		ridescs[Num_pg_class_indices];
     bool		hasindex;
     
     if (issystem(relationName)) {
@@ -393,19 +393,11 @@ PerformAddAttribute(relationName, schema)
     newAttributes = length(schema);
     
     relrdesc = heap_openr(RelationRelationName);
-	ScanKeyEntryInitialize((ScanKeyEntry) &key[0],
-			       (bits16) NULL,
-			       (AttributeNumber) RelationNameAttributeNumber,
-			       (RegProcedure) Character16EqualRegProcedure,
-			       (Datum)relationName);
-    relsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, key);
-    reltup = heap_getnext(relsdesc, 0, &buf);
+    reltup = ClassNameIndexScan(relrdesc, relationName);
+
     if (!PointerIsValid(reltup)) {
-	heap_endscan(relsdesc);
 	heap_close(relrdesc);
-	elog(WARN, "addattribute: relation \"%s\" not found",
-	     relationName);
-	return;
+	elog(WARN, "addattribute: relation \"%s\" not found", relationName);
     }
     /*
      * XXX is the following check sufficient?
@@ -415,9 +407,7 @@ PerformAddAttribute(relationName, schema)
 	     relationName);
 	return;
     }
-    reltup = palloctup(reltup, buf, relrdesc);
-    heap_endscan(relsdesc);
-    
+
     minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
     maxatts = minattnum + newAttributes;
     if (maxatts > MaxHeapAttributeNumber) {
@@ -427,7 +417,7 @@ PerformAddAttribute(relationName, schema)
 	     MaxHeapAttributeNumber);
 	return;
     }
-    
+
     attrdesc = heap_openr(AttributeRelationName);
 
     Assert(attrdesc);
@@ -537,15 +527,21 @@ PerformAddAttribute(relationName, schema)
 			       attributeTuple);
 	i += 1;
     }
-    
+    if (hasindex)
+	CatalogCloseIndices(Num_pg_attr_indices, idescs);
     heap_close(attrdesc);
+
     ((struct relation *) GETSTRUCT(reltup))->relnatts = maxatts;
     oldTID = reltup->t_ctid;
     heap_replace(relrdesc, &oldTID, reltup);
+
+    /* keep catalog indices current */
+    CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, ridescs);
+    CatalogIndexInsert(ridescs, Num_pg_class_indices, relrdesc, reltup);
+    CatalogCloseIndices(Num_pg_class_indices, ridescs);
+
     pfree((char *) reltup);
     heap_close(relrdesc);
-    if (hasindex)
-	CatalogCloseIndices(Num_pg_attr_indices, idescs);
 }
 
 
