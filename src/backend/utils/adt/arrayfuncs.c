@@ -27,33 +27,34 @@ char *string;
 char delimiter;
 
 {
-    int i = 0, nelems = 0;
-    bool end_on_bracket = false;
+    int i = 1, nelems = 0;
     bool scanning_string = false;
+    int nest_level = 1;
 
-    if (string[0] == '{')
+    while (nest_level >= 1)
     {
-        end_on_bracket = true;
-        i++;
-    }
-
-    while (string[i] != (end_on_bracket ? '}' : '\0'))
-    {
-        if (string[i] == '\\')
+        switch (string[i])
         {
-            i++;
-        }
-        else if (string[i] == delimiter && !scanning_string)
-        {
-            nelems++;
-        }
-        else if (scanning_string && string[i] == '\"')
-        {
-            scanning_string = false;
-        }
-        else if (!scanning_string && string[i] == '\"')
-        {
-            scanning_string = true;
+            case '\\':
+                i++;
+                break;
+            case '{':
+                if (!scanning_string) nest_level++;
+                break;
+            case '}':
+                if (!scanning_string) nest_level--;
+                break;
+            case '\"':
+                scanning_string = !scanning_string;
+                break;
+            default:
+                if (!scanning_string
+                  && nest_level == 1
+                  && string[i] == delimiter)
+                {
+                    nelems++;
+                }
+                break;
         }
         i++;
     }
@@ -77,13 +78,11 @@ char *string;
 ObjectId element_type;
 
 {
-    static ObjectId element_type_save = 0;
-    static int typlen;
-    static bool typbyval;
-    static char typdelim;
-    static ObjectId typinput;
-    static ObjectId typelem;
-
+    int typlen;
+    bool typbyval;
+    char typdelim;
+    ObjectId typinput;
+    ObjectId typelem;
     char *string_save, *p, *q, *r;
     char **values;
     FmgrFunction inputproc;
@@ -92,27 +91,23 @@ ObjectId element_type;
     char *retval;
     bool scanning_string = false;
 
-    if (element_type_save != element_type)
-    {
-        system_cache_lookup(element_type, true, &typlen, &typbyval,
-                            &typdelim, &typelem, &typinput);
-        element_type_save = element_type;
-    }
+    system_cache_lookup(element_type, true, &typlen, &typbyval,
+                        &typdelim, &typelem, &typinput);
 
     fmgr_info(typinput, & inputproc, &dummy);
-
-    nitems = array_count(string, typdelim);
 
     string_save = (char *) palloc(strlen(string) + 3);
 
     if (string[0] != '{')
     {
-        sprintf(string_save, "{%s}", string);
+		elog(WARN, "array_in: malformatted array constant");
     }
     else
     {
         strcpy(string_save, string);
     }
+
+    nitems = array_count(string, typdelim);
 
     values        = (char **) palloc(nitems * sizeof(char *));
 
@@ -122,25 +117,44 @@ ObjectId element_type;
 
     for (i = 0; i < nitems; i++)
     {
-        while (*q != typdelim && !scanning_string && *q != '}')
+        int nest_level = 0;
+        bool done = false;
+
+        while (!done)
         {
-            if (*q == '\\')
+            switch (*q)
             {
-                /* Crunch the string on top of the backslash. */
-                for (r = q; *r != '}'; r++) *r = *(r+1);
+                case '\\':
+                    /* Crunch the string on top of the backslash. */
+                    for (r = q; *r != '\0'; r++) *r = *(r+1);
+                    break;
+                case '\"':
+                    if (!scanning_string && nest_level == 0)
+                    {
+                        scanning_string = true;
+                        while (p != q) p++;
+                        p++; /* get p past first doublequote */
+                        break;
+                    }
+                    else if (nest_level == 0)
+                    {
+                        scanning_string = false;
+                        *q = '\0';
+                    }
+                    break;
+                case '{':
+                    if (!scanning_string) nest_level++;
+                    break;
+                case '}':
+                    if (nest_level == 0 && !scanning_string)
+                        done = true;
+                    else if (!scanning_string) nest_level--;
+                    break;
+                default:
+                    if (*q == typdelim && nest_level == 0) done = true;
+                    break;
             }
-            else if (*q == '\"' && !scanning_string)
-            {
-                scanning_string = true;
-                while (*p != '\"') p++;
-                p++; /* get p past first doublequote */
-            }
-            else if (*q == '\"' && scanning_string)
-            {
-                scanning_string = false;
-                *q = '\0';
-            }
-            q++;
+            if (!done) q++;
         }
         *q = '\0';                    /* Put a null at the end of it */
         values[i] = (*inputproc) (p, typelem);
@@ -202,12 +216,11 @@ ObjectId element_type;
      * statics so we don't do excessive system cache lookups.
      */
 
-    static ObjectId element_type_save = 0;
-    static int typlen;
-    static bool typbyval;
-    static char typdelim;
-    static ObjectId typoutput;
-    static ObjectId typelem;
+    int typlen;
+    bool typbyval;
+    char typdelim;
+    ObjectId typoutput;
+    ObjectId typelem;
 
     char *p;
     char *retval;
@@ -217,12 +230,8 @@ ObjectId element_type;
     FmgrFunction outputproc;
     char delim[2];
 
-    if (element_type != element_type_save)
-    {
-        system_cache_lookup(element_type, false, &typlen, &typbyval,
-                            &typdelim, &typelem, &typoutput);
-        element_type_save = element_type;
-    }
+    system_cache_lookup(element_type, false, &typlen, &typbyval,
+                        &typdelim, &typelem, &typoutput);
 
     fmgr_info(typoutput, & outputproc, &dummy);
     sprintf(delim, "%c", typdelim);
