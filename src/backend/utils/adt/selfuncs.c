@@ -441,6 +441,31 @@ int32		nIndexKeys;
 }
 
 float64
+hashsel(operatorObjectId, indrelid, attributeNumber,
+	 constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+    return ((float64) NULL);
+}
+
+float64
+hashnpage(operatorObjectId, indrelid, attributeNumber,
+	 constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+	return((float64) NULL);
+}
+
+
+float64
 rtsel(operatorObjectId, indrelid, attributeNumber,
       constValue, constFlag, nIndexKeys, indexrelid)
 ObjectId 	operatorObjectId, indrelid, indexrelid;
