@@ -403,7 +403,7 @@ CInteger(lval)
 {
 	if(lval != NULL)
 	  if(lval->type == PGLISP_INT)
-	    return(lstr->val.fixnum);
+	    return(lval->val.fixnum);
 	  else
 	    return(0);
 	else
