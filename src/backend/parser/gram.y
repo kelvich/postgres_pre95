@@ -207,7 +207,7 @@ ClosePortalStmt:
 
   **********************************************************************/
 ClusterStmt:
-	  CLUSTER Relation ON index_name OptUseOp
+	  CLUSTER relation_name ON index_name OptUseOp
   		{ elog(WARN,"cluster statement unimplemented in version 2"); }
 	;
 
@@ -333,7 +333,7 @@ CreateStmt:
 		     CDR(temp) = $4;
 		     /* $$ = nappend1 ( $$, $4 ); */
 		}
-	| CREATE NEWVERSION relation_name FROM Relation
+	| CREATE NEWVERSION relation_name FROM relation_expr
 		{
 		    $$ = MakeList ( KW(version), $3, $5 );
 		}
@@ -561,7 +561,7 @@ IndexStmt:
 
   ************************************************************/
 MergeStmt:
-	MERGE Relation INTO relation_name
+	MERGE relation_expr INTO relation_name
 		{ 
 		    elog(NOTICE, "merge is unsupported in version 1");
 		    $$ = MakeList ( $1, $2, $4, -1 );
@@ -1249,7 +1249,7 @@ from_list:
 	;
 
 from_val:
-	  var_list IN Relation
+	  var_list IN relation_expr
 		{
 		    extern List MakeFromClause ();
 		    $$ = MakeFromClause ( $1, $3 );
@@ -1285,12 +1285,6 @@ OptUseOp:
 	| USING '>'			{ $$ = lispString(">"); }
 	;
 
-new_Relation:
-	  relation_expr
-		{
-		      $$ = FlattenRelationList ( $1 ); 
-		}
-	;
 relation_expr:
 	  relation_name
   		{ 
@@ -1321,7 +1315,7 @@ relation_expr:
 	;
 
 	  
-Relation:
+old_Relation:
 	    relation_name opt_time_range '*'
 
 		{
@@ -1831,42 +1825,6 @@ make_targetlist_expr ( name , expr )
 					  attrlen , 
 					  CString(name), 0 , 0 ) ,
 			      lispCons((Var)CDR(expr),LispNil)) );
-    
-}
-
-List
-MakeFromClause ( from_list, base_rel )
-     List from_list;
-     LispValue base_rel;
-{
-    /* Convert "p, p1 in proc" to 
-       "p in proc, p1 in proc" */
-    LispValue temp,temp2,temp3;
-    LispValue frelname;
-    
-    temp = p_rtable;
-    while(! lispNullp(CDR (temp))) {
-	temp = CDR(temp); 
-    }
-    
-    /* 
-     * we depend on the base_rel
-     * to be in the last element, for now
-     */
-
-    frelname = CAR(CDR(CAR(temp)));
-
-    printf("from relname = %s\n",CString(frelname));
-      fflush(stdout);
-
-    CAR(CAR(temp)) = CAR(from_list); 
-    
-    temp2 = CDR(from_list);
-    while(! lispNullp(temp2)) {
-	temp3 = lispCons(CAR(temp2),CDR(CAR(temp)));
-	ADD_TO_RT(temp3);
-	temp2 = CDR(temp2);
-    }
     
 }
 
