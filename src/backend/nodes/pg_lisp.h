@@ -1,28 +1,45 @@
-/*
- * lispdep.h --
- *	LISP-dependent declarations.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	pg_lisp.h
+ *	
+ *   DESCRIPTION
+ *	C definitions to simulate LISP structures
  *
- * Identification:
+ *   NOTES
+ *	Prior to version 1, this file was only used by the C portions
+ *	of the postgres code (esp. the parser) to allow that code to
+ *	function independently of allegro common lisp.  When V1 was
+ *	ported to C, this file became the place where portions of
+ *	the allegro lisp functionality was moved.  More specifically,
+ *	the lisp list structure simulation stuff is here.
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	LispDepIncluded
 #define	LispDepIncluded
 
-#include "nodes.h"
 #include <stdio.h>
-#include "tags.h"
-#include "c.h"
+#include "nodes.h"
 
-/* ==========================================================================
- *	POSTGRES "LISP"
- *		A hack to let the parser run standalone.
+/* ----------------
+ *	vectori definition used in LispValue
+ * ----------------
  */
 struct vectori {
 	int	size;
 	char	data[1];		/* variable length array */
 };
 
+/* ----------------
+ *	LispValue definition -- class used to support lisp structures
+ *	in C.  This is here because we did not want to totally rewrite
+ *	planner and executor code which depended on lisp structures when
+ *	we ported postgres V1 from lisp to C. -cim 4/23/90
+ * ----------------
+ */
 class (LispValue) public (Node) {
     /* private: */
     inherits(Node);
@@ -38,6 +55,11 @@ class (LispValue) public (Node) {
     /* public: */
 };
 
+/* ----------------
+ *	"List" abbreviation for LispValue -- basically used anywhere
+ *	we expect to deal with list data.
+ * ----------------
+ */
 #define List LispValue
 
 /* ----------------
@@ -48,38 +70,41 @@ class (LispValue) public (Node) {
 typedef LispValue *LispValuePtr;
 #define	ListPtr	 LispValuePtr
 
-/*
-struct lisp_atom {
-	int 			type;
-	union {
-		char			*name;
-		char   			*str;
-		int    			fixnum;
-		double 			flonum;
-		struct lisp_atom	*car;
-		struct vectori		*veci;
-	} 			val;
-	struct lisp_atom	*cdr;
+/* ----------------
+ *	dummy classes
+ *
+ *	these next node classes are actually only used for
+ *	the tags generated.. the classes themselves are bogus.
+ * ----------------
+ */
+class (LispSymbol) public (Node) {
+    inherits(Node);
 };
 
-typedef struct lisp_atom	*LispValue;
-*/
+class (LispList) public (Node) {
+    inherits(Node);
+};
 
-#define	LISP_GC_OFF		/* yow! */
-#define	LISP_GC_ON		/* yow! */
-#define	LISP_GC_PROTECT(X)	/* yow! */
+class (LispInt) public (Node) {
+    inherits(Node);
+};
 
-#define	CAR(LISPVALUE)			((LISPVALUE)->val.car)
-#define	CDR(LISPVALUE)			((LISPVALUE)->cdr)
-#define CAAR(lv)                (CAR(CAR(lv)))
-#define CADR(lv)			(CAR(CDR(lv)))
-#define CADDR(lv)			(CAR(CDR(CDR(lv))))
-#define	LISPVALUE_DOUBLE(LISPVALUE)	((LISPVALUE)->val.flonum)
-#define	LISPVALUE_INTEGER(LISPVALUE)	((LISPVALUE)->val.fixnum)
-#define	LISPVALUE_BYTEVECTOR(LISPVALUE)	((LISPVALUE)->val.veci->data)
+class (LispFloat) public (Node) {
+    inherits(Node);
+};
 
-#define	LISP_TYPE(LISPVALUE)		((LISPVALUE)->type)
+class (LispVector) public (Node) {
+    inherits(Node);
+};
 
+class (LispStr) public (Node) {
+    inherits(Node);
+};
+
+/* ----------------
+ *	macros and defines which depend on dummy class tags
+ * ----------------
+ */
 #define	PGLISP_ATOM	T_LispSymbol
 #define	PGLISP_DTPR	T_LispList
 #define	PGLISP_FLOAT	T_LispFloat
@@ -96,11 +121,50 @@ typedef struct lisp_atom	*LispValue;
 #define lispIntegerp(x) ((bool)(LISP_TYPE(x)==PGLISP_INT))
 #define lispAtomp(x) ((bool)(LISP_TYPE(x)==PGLISP_ATOM))
 
+/* ----------------
+ *	lisp value accessor macros
+ * ----------------
+ */
+#define	CAR(LISPVALUE)			((LISPVALUE)->val.car)
+#define	CDR(LISPVALUE)			((LISPVALUE)->cdr)
+#define CAAR(lv)                (CAR(CAR(lv)))
+#define CADR(lv)			(CAR(CDR(lv)))
+#define CADDR(lv)			(CAR(CDR(CDR(lv))))
+#define	LISPVALUE_DOUBLE(LISPVALUE)	((LISPVALUE)->val.flonum)
+#define	LISPVALUE_INTEGER(LISPVALUE)	((LISPVALUE)->val.fixnum)
+#define	LISPVALUE_BYTEVECTOR(LISPVALUE)	((LISPVALUE)->val.veci->data)
+
+#define	LISP_TYPE(LISPVALUE)		((LISPVALUE)->type)
+
 /*
  *	Defined in lisplib/lispdep.c
  */
 #define LispTrue 	((LispValue)1)
 
+/* ----------------
+ *	lisp support macros
+ * ----------------
+ */
+#define nth(index,list)         CAR(nthCdr(index,list))
+
+#define foreach(_elt_,_list_)	for(_elt_=(LispValue)_list_; \
+_elt_!=LispNil;_elt_=CDR(_elt_))
+
+/* sigh, used so often, I'm lazy to do global search & replace -jeff*/
+#define cons(x,y) lispCons(x,y)
+
+/* ----------------
+ *	obsolete garbage.  this should go away -cim 4/23/90
+ * ----------------
+ */
+#define	LISP_GC_OFF		/* yow! */
+#define	LISP_GC_ON		/* yow! */
+#define	LISP_GC_PROTECT(X)	/* yow! */
+
+/* ----------------
+ *	extern definitions
+ * ----------------
+ */
 extern LispValue 	LispNil;
 extern LispValue	lispAtom();
 extern LispValue	lispDottedPair();
@@ -134,9 +198,6 @@ extern LispValue	lprestore();
 /* 
  * as yet undefined, but should be defined soon
  */
-
-#define nth(index,list)         CAR(nthCdr(index,list))
-
 extern LispValue nthCdr();
 extern LispValue lispArray();
 /* extern LispValue list(); /* XXX - varargs ??? */
@@ -171,11 +232,5 @@ extern int CInteger();
 /* temporary functions */
 
 extern LispValue mapcar();
-#define foreach(_elt_,_list_)	for(_elt_=(LispValue)_list_; \
-_elt_!=LispNil;_elt_=CDR(_elt_))
-
-/* sigh, used so often, I'm lazy to do global search & replace */
-#define cons(x,y) lispCons(x,y)
-
 
 #endif /* !LispDepIncluded */
