@@ -129,6 +129,34 @@ particular rule application, remember that in the rewrite system
 refers to a relation and some qualifiers whereas in the instance
 system it refers to an instance (tuple).
 .PP
+It is very important to note that the 
+.BR rewrite 
+rule system will 
+neither detect nor process circular
+rules. For example, though each of the following two rule
+definitions are accepted by \*(PG, the  
+.IR retrieve 
+command will cause 
+\*(PG to 
+.IR crash :
+.(C
+/*
+ * Example of a circular rewrite rule combination. 
+ */
+define rewrite rule bad_rule_combination_1 is
+	on retrieve to EMP 
+	do instead retrieve to TOYEMP
+
+define rewrite rule bad_rule_combination_2 is
+	on retrieve to TOYEMP
+	do instead retrieve to EMP
+
+/*
+ * This attempt to retrieve from EMP will cause \*(PG to crash.
+ */
+retrieve (EMP.all)
+.)C
+.PP
 You must have
 .IR "rule definition"
 access to a class in order to define a rule on it (see
