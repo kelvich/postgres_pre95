@@ -30,9 +30,24 @@
 #define MaxHeapAttributeNumber	1600		/* 8 * 200 */
 #endif
 
+/*-----------------------------------------------------------
+ * NOTE:
+ * A rule lock has 2 different representations:
+ *    The disk representation (t_lock.l_ltid) is an ItemPointer
+ * to the actual rule lock data (stored somewhere else in the disk page).
+ * In this case `t_locktype' has the value DISK_RULE_LOCK.
+ *    The main memory representation (t_lock.l_lock) is a pointer
+ * (RuleLock) to a (palloced) structure. In this case `t_locktype' has
+ * the value MEM_RULE_LOCK.
+ */
+
+#define DISK_RULE_LOCK	'd'
+#define MEM_RULE_LOCK	'm'
+
 typedef struct HeapTupleData {
 	Size		t_len;		/* length of entire tuple */
 	ItemPointerData	t_ctid;		/* current TID of this tuple */
+	char		t_locktype;	/* type of rule lock representation*/
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
 		RuleLock	l_lock;	/* internal lock format */
@@ -129,6 +144,7 @@ HeapTupleGetForm ARGS((
 struct	tuple	{
 	uint32		t_len;		/* length of entire tuple */
 	ItemPointerData	t_ctid;		/* current TID of this tuple */
+	char		t_locktype;	/* type of rule lock representation*/
 	union {
 		ItemPointerData	l_ltid;		/* TID of the lock */
 		RuleLock	l_lock;		/* internal lock format */

@@ -17,7 +17,22 @@
 
 #define MaxIndexAttributeNumber	7
 
+/*-----------------------------------------------------------
+ * NOTE:
+ * A rule lock has 2 different representations:
+ *    The disk representation (t_lock.l_ltid) is an ItemPointer
+ * to the actual rule lock data (stored somewher else in the disk page).
+ * In this case `t_locktype' has the value DISK_INDX_RULE_LOCK.
+ *    The main memory representation (t_lock.l_lock) is a pointer
+ * (RuleLock) to a (palloced) structure. In this case `t_locktype'
+ * has the value MEM_INDX_RULE_LOCK.
+ */
+
+#define DISK_INDX_RULE_LOCK	'd'
+#define MEM_INDX_RULE_LOCK	'm'
+
 typedef struct IndexTupleData {
+        char            t_locktype;     /* type of rule lock representation*/
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
 		RuleLock	l_lock;		/* internal lock format */
