@@ -932,7 +932,7 @@ make_arguments(nargs, fargs, input_typeids, function_typeids)
     for (i=0, current_fargs = fargs;
 	 i<nargs;
 	 i++, current_fargs = CDR(current_fargs)) {
-	if (input_typeids[i] == UNKNOWNOID) {
+	if (input_typeids[i] == UNKNOWNOID && function_typeids[i] != 0) {
 	    rplaca(current_fargs,
 		   lispCons(lispInteger(function_typeids[i]),
 			    parser_typecast2(CAR(current_fargs),
