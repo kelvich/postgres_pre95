@@ -12,7 +12,7 @@
 #include "c.h"
 
 #include "mnodes.h"
-#include "tnodes.h"
+#include "nodes.h"
 
 /*
  * CurrentMemoryContext --

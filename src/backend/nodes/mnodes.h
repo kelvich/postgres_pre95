@@ -15,7 +15,7 @@
 #include "fstack.h"
 #include "oset.h"
 
-#include "tnodes.h"
+#include "nodes.h"
 
 /*
  * MemoryContext --

@@ -38,6 +38,21 @@
 #define	PrintSortExists
 #define	PrintHashExists
 
+extern void	PrintPlan();
+extern void	PrintResult();
+extern void	PrintExistential();
+extern void	PrintAppend();
+extern void	PrintJoin();
+extern void	PrintNestLoop();
+extern void	PrintMergeSort();
+extern void	PrintHashJoin();
+extern void	PrintScan();
+extern void	PrintSeqScan();
+extern void	PrintIndexScan();
+extern void	PrintTemp();
+extern void	PrintSort();
+extern void	PrintHash();
+
 class (Plan) public (Node) { 
 #define PlanDefs \
 	inherits(Node); \

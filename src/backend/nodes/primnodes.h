@@ -13,12 +13,47 @@
 #ifndef PrimNodesIncluded
 #define	PrimNodesIncluded
 
+/*
+ *  These #defines indicate that we've written print support routines for
+ *  the named classes.  The print routines are in lib/C/printfuncs.c.  The
+ *  automatic inheritance generator builds interface and default routines
+ *  that call those in printfuncs.c.
+ */
+
+#define	PrintResdomExists
+#define	PrintExprExists
+#define	PrintParamExists
+#define	PrintFuncExists
+#define	PrintOperExists
+#define PrintConstExists
+#define PrintVarExists
+
+extern void	PrintResdom();
+extern void	PrintExpr();
+extern void	PrintParam();
+extern void	PrintFunc();
+extern void	PrintOper();
+extern void	PrintConst();
+extern void	PrintVar();
+
+/*
+ *  Same for functions that test nodes for equality.
+ */
+
+#define	EqualResdomExists
+#define	EqualExprExists
+#define	EqualParamExists
+#define	EqualFuncExists
+#define	EqualOperExists
+#define EqualConstExists
+#define EqualVarExists
+
 #include "nodes.h"	/* bogus inheritance system */
 #include "attnum.h"
 #include "oid.h"
 #include "name.h"
 #include "cat.h"
-#define List LispValue
+#include "pg_lisp.h"
 
 /*
  * ============
@@ -65,7 +100,7 @@ class (Expr) public (Node) {
 class (Var) public (Expr) {
  /* private: */
 	inherits(Expr);
-	Index			varno;
+	Index			varno; 
 	AttributeNumber		varattno;
 	ObjectId		vartype;
 	List			vardotfields;
