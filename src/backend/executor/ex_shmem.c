@@ -121,8 +121,11 @@ MemoryHeader lowSeg, highSeg;
 {
     if (lowSeg == NULL || highSeg == NULL)
 	return false;
-    if ((char*)LONGALIGN(lowSeg->beginaddr + lowSeg->size) == (char*)highSeg)
-	return false;
+    if ((char*)LONGALIGN(lowSeg->beginaddr + lowSeg->size) == (char*)highSeg) {
+	lowSeg->size = highSeg->beginaddr + highSeg->size - lowSeg->beginaddr;
+	lowSeg->next = highSeg->next;
+	return true;
+      }
     return false;
 }
 
@@ -148,22 +151,17 @@ MemoryHeader mp;
       }
     if (prev == NULL) {
 	FreeSMQueue = mp;
-	if (mergeSMSegment(mp, cur))
-	    mp->next = cur->next;
-	else
+	if (!mergeSMSegment(mp, cur))
 	    mp->next = cur;
       }
     else {
+	mp->next = cur;
 	if (mergeSMSegment(prev, mp)) {
-	    if (mergeSMSegment(prev, cur))
-		prev->next = cur->next;
+	    mergeSMSegment(prev, cur);
 	  }
 	else {
 	    prev->next = mp;
-	    if (mergeSMSegment(mp, cur))
-		mp->next = cur->next;
-	    else
-		mp->next = cur;
+	    mergeSMSegment(mp, cur);
 	  }
       }
 }
@@ -188,5 +186,6 @@ int usedsize;
     newmp = (MemoryHeader)LONGALIGN(mp->beginaddr + usedsize);
     newmp->beginaddr = (char*)newmp + sizeof(MemoryHeaderData);
     newmp->size = mp->beginaddr + mp->size - newmp->beginaddr;
+    mp->size = usedsize;
     ExecSMSegmentFree(newmp);
 }
