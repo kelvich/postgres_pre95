@@ -515,6 +515,7 @@ inv_fetchtup(obj_desc, bufP)
      */
 
     if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.hibyte
+	|| obj_desc->ofs.i_fs.offset < obj_desc->ofs.i_fs.lowbyte
 	|| !ItemPointerIsValid(&(obj_desc->ofs.i_fs.htid))) {
 
 	do {
@@ -534,14 +535,14 @@ inv_fetchtup(obj_desc, bufP)
 	    htup = heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
 			      &(res->heapItemData), bufP);
 
-	    /* remember this tid -- we may need it for later reads/writes */
-	    ItemPointerCopy(&(res->heapItemData), &(obj_desc->ofs.i_fs.htid));
-
 	} while (htup == (HeapTuple) NULL);
 
+	/* remember this tid -- we may need it for later reads/writes */
+	ItemPointerCopy(&(res->heapItemData), &(obj_desc->ofs.i_fs.htid));
+
     } else {
-	heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
-		   &(obj_desc->ofs.i_fs.htid), bufP);
+	htup = heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
+		          &(obj_desc->ofs.i_fs.htid), bufP);
     }
 
     /*
