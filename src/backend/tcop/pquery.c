@@ -187,7 +187,15 @@ ProcessQuery(parser_output, plan)
 	 * ----------------
 	 */
 
-	BeginCommand("blank", attinfo);
+	switch(commandType) {
+	  case RETRIEVE:
+	    BeginCommand("blank",attinfo);
+	    break;
+	  default:
+	    putnchar("P",1);
+	    putint(0,4);
+	    putstr("blank");
+	}
 
 	/* ----------------
 	 *   now how in the hell is this ever supposed to work?
