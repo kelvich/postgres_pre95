@@ -228,4 +228,16 @@ typedef Prs2LocksData	*RuleLock;
  */
 #define prs2RuleLockIsEmpty(l)	(prs2GetNumberOfLocks(l) == 0)
 
+/*=================================================================
+ *
+ * VARIOUS SYSTEM RELATION CONSTANTS
+ *
+ *=================================================================
+ */
+
+/*----
+ * pg_type.oid for the "lock" type
+ */
+#define PRS2_LOCK_TYPEID	((ObjectId) 31)
+
 #endif Prs2LocksIncluded
