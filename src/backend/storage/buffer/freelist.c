@@ -22,6 +22,7 @@
 static
 BufferDesc 	*SharedFreeList;
 extern int	*PrivateRefCount;
+extern int	*LastRefCount;
 extern Buffer	BufferDescriptorGetBuffer();
 
 /* only actually used in debugging.  The lock
@@ -90,7 +91,9 @@ PinBuffer(buf)
     NotInQueue(buf);
   }
 
-  if (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0)
+  if (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0 &&
+      LastRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0 &&
+      buf->refcount == 0)
       buf->refcount++;
   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
 }
@@ -123,7 +126,7 @@ UnpinBuffer(buf)
   Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
   b = BufferDescriptorGetBuffer(buf) - 1;
   PrivateRefCount[b]--;
-  if (PrivateRefCount[b] == 0)
+  if (PrivateRefCount[b] == 0 && LastRefCount[b] == 0)
       buf->refcount--;
   NotInQueue(buf);
 
@@ -242,4 +245,3 @@ int nfree;
 	   
   }
 }
-

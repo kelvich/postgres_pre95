@@ -81,7 +81,7 @@ static int	*NWaitIOBackendP;
 Buffer           BufferDescriptorGetBuffer();
 
 int	*PrivateRefCount;
-int	ExecMainLevel = 0;  /* level of ExecMain nestings */
+int	*LastRefCount;  /* refcounts of last ExecMain level */
 
 /*
  * Data Structures:
@@ -722,8 +722,8 @@ BlockNumber blockNum;
     if (BufferIsValid(buffer)) {
 	bufHdr = BufferGetBufferDescriptor(buffer);
 	PrivateRefCount[buffer - 1]--;
-	if (PrivateRefCount[buffer - 1] == 0 && ExecMainLevel <= 1) {
-	    /* only release buffer in the top level of ExecMain */
+	if (PrivateRefCount[buffer - 1] == 0 && LastRefCount[buffer - 1] == 0) {
+	/* only release buffer if it is not pinned in previous ExecMain level */
 	    SpinAcquire(BufMgrLock);
 	    bufHdr->refcount--;
 	    if (bufHdr->refcount == 0) {
@@ -1003,8 +1003,11 @@ IPCKey key;
 				   1, IPCProtection, 0, &status);
 #endif
   PrivateRefCount = (int*)malloc(NBuffers * sizeof(int));
-  for (i = 0; i < NBuffers; i++)
+  LastRefCount = (int*)malloc(NBuffers * sizeof(int));
+  for (i = 0; i < NBuffers; i++) {
       PrivateRefCount[i] = 0;
+      LastRefCount[i] = 0;
+    }
 }
 
 int NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
@@ -1055,8 +1058,8 @@ ResetBufferPool()
 		ReleaseBuffer(i);
 	      }
 	  }
+	LastRefCount[i - 1] = 0;
       }
-    ExecMainLevel = 0; /* reset ExecMain nesting level */
 }
 
 /* -----------------------------------------------
@@ -1488,8 +1491,8 @@ Buffer	buffer;
 
   Assert(PrivateRefCount[buffer - 1] > 0);
   PrivateRefCount[buffer - 1]--;
-  if (PrivateRefCount[buffer - 1] == 0 && ExecMainLevel <= 1) {
-      /* only release buffer in the top level of ExecMain */
+  if (PrivateRefCount[buffer - 1] == 0 && LastRefCount[buffer - 1] == 0) {
+      /* only release buffer if it is not pinned in previous ExecMain levels */
       SpinAcquire(BufMgrLock);
       bufHdr->refcount--;
       if (bufHdr->refcount == 0) {
@@ -1713,6 +1716,7 @@ int *refcountsave;
     int i;
     for (i=0; i<NBuffers; i++) {
 	refcountsave[i] = PrivateRefCount[i];
+	LastRefCount[i] += PrivateRefCount[i];
 	PrivateRefCount[i] = 0;
       }
 }
@@ -1724,6 +1728,7 @@ int *refcountsave;
     int i;
     for (i=0; i<NBuffers; i++) {
 	PrivateRefCount[i] = refcountsave[i];
+	LastRefCount[i] -= PrivateRefCount[i];
 	refcountsave[i] = 0;
       }
 }

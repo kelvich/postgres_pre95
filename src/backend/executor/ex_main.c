@@ -112,7 +112,6 @@ ExecMain(queryDesc, estate, feature)
     List 	result;
     CommandDest dest;
     void	(*destination)();
-    extern int	ExecMainLevel;  /* defined in storage/buffer/bufmgr.c */
     
     /* ----------------
      *	sanity checks
@@ -161,20 +160,17 @@ ExecMain(queryDesc, estate, feature)
 			  parseTree,
 			  plan,
 			  estate);
-	ExecMainLevel++; /* increment ExecMain nesting level */
-	if (ExecMainLevel > 1)
-	    /* if this is not the first time ExecMain is called
-	     * reset buffer refcount.  the current refcounts
-	     * are saved and will be restored at the end of
-	     * this ExecMain cycle.
-	     *
-	     * this makes sure that when ExecMain's are
-	     * called recursively as for tuple level rules
-	     * or postquel functions, the buffers pinned
-	     * by one ExecMain will not be unpinned by another
-	     * ExecMain.
-	     */
-	    BufferRefCountReset(get_es_refcount(estate));
+	/* reset buffer refcount.  the current refcounts
+	 * are saved and will be restored at the end of
+	 * this ExecMain cycle.
+	 *
+	 * this makes sure that when ExecMain's are
+	 * called recursively as for tuple level rules
+	 * or postquel functions, the buffers pinned
+	 * by one ExecMain will not be unpinned by another
+	 * ExecMain.
+	 */
+	BufferRefCountReset(get_es_refcount(estate));
 	break;
 		
     case EXEC_RUN:
@@ -191,12 +187,8 @@ ExecMain(queryDesc, estate, feature)
     case EXEC_END:
 	/* result is a tuple or LispNil */
 	result = EndPlan(plan, estate);
-	if (ExecMainLevel > 1)
-	    /* if this is not the first time ExecMain is called,
-	     * restore saved refcounts.
-	     */
-	    BufferRefCountRestore(get_es_refcount(estate));
-	ExecMainLevel--; /* decrement ExecMain nesting level */
+	/* restore saved refcounts. */
+	BufferRefCountRestore(get_es_refcount(estate));
 	break;
 
 	/* ----------------
