@@ -44,7 +44,7 @@
 /*ARGSUSED*/
 void
 ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
-		canCache, arch_pct, disk_pct, byte_pct, perbyte_cpu, 
+		canCache, byte_pct, perbyte_cpu, 
 		percall_cpu, outin_ratio, argList)
      Name 		procedureName;
      Name 		returnTypeName;	
@@ -52,7 +52,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
      char 		*prosrc;
      char               *probin;
      Boolean		canCache;
-     int32              arch_pct, disk_pct, perbyte_cpu, percall_cpu,
+     int32              perbyte_cpu, percall_cpu,
                         outin_ratio;
      List		argList;
 {
@@ -163,8 +163,6 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
      * The following assignments of constants are made.  The real values
      * will have to be extracted from the arglist someday soon.
      */
-    values[i++] = (char *) arch_pct; /* proarch_pct */
-    values[i++] = (char *) disk_pct; /* prodisk_pct */
     values[i++] = (char *) byte_pct; /* probyte_pct */
     values[i++] = (char *) perbyte_cpu; /* properbyte_cpu */
     values[i++] = (char *) percall_cpu; /* propercall_cpu */
