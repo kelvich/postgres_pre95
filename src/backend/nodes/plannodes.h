@@ -53,6 +53,21 @@ extern void	PrintTemp();
 extern void	PrintSort();
 extern void	PrintHash();
 
+extern bool	EqualPlan();
+extern bool	EqualResult();
+extern bool	EqualExistential();
+extern bool	EqualAppend();
+extern bool	EqualJoin();
+extern bool	EqualNestLoop();
+extern bool	EqualMergeSort();
+extern bool	EqualHashJoin();
+extern bool	EqualScan();
+extern bool	EqualSeqScan();
+extern bool	EqualIndexScan();
+extern bool	EqualTemp();
+extern bool	EqualSort();
+extern bool	EqualHash();
+
 class (Plan) public (Node) { 
 #define PlanDefs \
 	inherits(Node); \
