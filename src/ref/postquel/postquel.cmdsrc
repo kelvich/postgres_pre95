@@ -1,7 +1,13 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP POSTQUEL POSTQUEL 6/14/90
-.XA 0 "Section 4 \*- \*(PQ Commands (\*(PQ)" _
+.SS COMMANDS 6/14/90
+.XA 0 "Section 4 \*- \*(PQ Commands (COMMANDS)"
+.SP POSTQUEL COMMANDS 6/14/90
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 4 \*- \*(PQ COMMANDS (COMMANDS)"
+.sp 3
 .XA 1 "General Information"
 .uh DESCRIPTION
 .lp
@@ -49,33 +55,32 @@ and may not be used otherwise:
 \t\\$1\t\\$2\t\\$3\t\\$4
 .br
 ..
-.xx abort define is relation 
-.xx addattr delete key remove 
-.xx after demand leftouter rename 
-.xx all descending light replace 
-.xx always destroy load retrieve 
-.xx and destroydb merge returns 
-.xx append do move rewrite 
-.xx arch_store empty never rightouter 
-.xx archive end new rule 
-.xx arg execute none sort 
-.xx ascending fetch nonulls stdin 
-.xx attachas forward not stdout 
-.xx backward from NULL store 
-.xx before function on to 
-.xx begin heavy once transaction 
-.xx binary in operator type 
-.xx by index or union 
-.xx c indexable output_proc unique 
-.xx cfunction inherits parallel using 
-.xx close input_proc pfunction vacuum 
-.xx cluster instance portal version 
-.xx copy instead postquel view 
-.xx create intersect priority where 
-.xx createdb into purge with 
-.xx current intotemp quel
+.xx abort delete key remove 
+.xx addattr demand leftouter rename 
+.xx after descending light replace
+.xx all destroy load retrieve
+.xx always destroydb merge returns
+.xx and do move rewrite
+.xx append empty never rightouter 
+.xx arch_store end new rule
+.xx archive execute none sort
+.xx arg fetch nonulls stdin
+.xx ascending forward not stdout
+.xx attachas from NULL store
+.xx backward function on to
+.xx before heavy once transaction
+.xx begin in operator type
+.xx binary index or union
+.xx by indexable output_proc unique
+.xx cfunction inherits parallel using
+.xx close input_proc pfunction vacuum
+.xx cluster instance portal variable
+.xx copy instead postquel version
+.xx create intersect priority view
+.xx createdb into purge where
+.xx current intotemp quel with
+.xx define is relation
 .ft
-.dt
 .lp
 In addition,
 all \*(PP
@@ -214,10 +219,10 @@ on these fields consult [STON87].  Times are represented internally
 as instances of the 
 .q "abstime"
 data type.  Transaction identifiers are
-40 bit quantities which are assigned sequentially
-starting at 1.  Command identifiers are 8 bit objects;
+32 bit quantities which are assigned sequentially
+starting at 512.  Command identifiers are 16 bit objects;
 hence, it is an error
-to have more than 256 \*(PQ commands within one transaction.
+to have more than 65535 \*(PQ commands within one transaction.
 .uh "Attributes"
 .lp
 An
@@ -266,7 +271,7 @@ b. system types
 (postquel).
 For a list of user defined
 operators consult your system administrator or run a query on the
-OPERATOR class.
+pg_operator class.
 Parentheses may be used for arbitrary grouping of operators.
 .uh "Expressions (a_expr)"
 .lp
@@ -277,15 +282,15 @@ is one of the following:
 ( a_expr )
 constant
 attribute
-a_expr binary_operator a_expr
+a_expr  binary_operator  a_expr
 .\" a_expr right_unary_operator
-left_unary_operator a_expr
+left_unary_operator  a_expr
 
 parameter
 functional expressions 
 aggregate expressions
 set expressions
-class expression (not in Version 3.0)
+class expression (not in Version \*(PV)
 .)l
 We have already discussed constants and attributes.
 The two kinds
@@ -297,7 +302,7 @@ options.
 .lp
 A 
 .i parameter
-is used to indicate a parameter in a \*(PQ command.  Typically this
+is used to indicate a parameter in a \*(PQ function.  Typically this
 is used in \*(PQ function definition statement.
 The form of a parameter is:
 .(l
@@ -306,8 +311,10 @@ The form of a parameter is:
 .lp
 For example, consider the definition of a function, DEPT, as
 .(l
-define \*(PQ function DEPT (char16) returning (dept) as
-   retrieve (dept.all) where dept.dname = $1
+define function DEPT 
+   (language="postquel", returntype = dept)
+arg is (char16) as 
+retrieve (dept.all) where dept.name = $1
 .)l
 .uh "Functional Expressions"
 .lp
@@ -357,11 +364,13 @@ are defined in the from list, a simple aggregate has been defined.  For
 example, to sum employee salaries whose age is greater than 30, one would
 write:
 .(l
-sum {e.salary from e in emp where e.age > 30}
+retrieve (total = sum {e.salary from e in emp
+where e.age > 30})
 .)l
 or
 .(l
-sum {emp.salary where emp.age > 30}
+retrieve (total = sum {EMP.salary
+where emp.age > 30})
 .)l
 In either case, \*(PP is instructed to find 
 the instances in the from_list which
@@ -381,7 +390,7 @@ retrieve (e.age, avg {emp.salary where emp.age = e.age})
    from e in emp 
    where e.age > 18
 .)l
-Such aggregate functions are not supported in Version 3.0. Furthermore,
+Such aggregate functions are not supported in Version \*(PV. Furthermore,
 in this version, only the a_expr and the where-qualification clause 
 are supported.  Therefore, for the above simple sum aggregate, the 
 supported query would be the latter.  One other note:  the qualification
@@ -390,7 +399,7 @@ will support inheritance, but the expression to be aggregated will not.
 .uh "Set Expressions"
 .lp
 .b
-Set expressions are not supported in Version 3.0.
+Set expressions are not supported in Version \*(PV.
 .r
 .lp
 A
@@ -419,7 +428,7 @@ are defined below.
 .uh "Class Expression"
 .lp
 .b
-Class expressions are not supported in Version 3.0.
+Class expressions are not supported in Version \*(PV.
 .r
 .lp
 A 
@@ -472,7 +481,7 @@ already existing attribute name in the case of update statements.)
 If result_attname is not present, then a_expr must 
 contain only one attribute name
 which is assumed to be the name of the result field.
-In Version 3.0 default naming is only used if the a_expr is an attribute.
+In Version \*(PV default naming is only used if the a_expr is an attribute.
 .uh "Qualification"
 .lp
 A 
@@ -538,7 +547,7 @@ In each case,
 the date is a character string
 of the form
 .(b
-``MMM DD [HH:MM:SS] YYYY''
+[MON-FRI] ``MMM DD [HH:MM:SS] YYYY'' [Timezone]
 .)b
 where MMM is the month (Jan \- Dec),
 DD is a legal day number in the specified month,
@@ -552,7 +561,7 @@ all times are interpreted as GMT.
 For example,
 .(b
 [``Jan 1 1990'']
-[``Mar 3 00:00:00 1940'', ``Mar 3 23:59:59 1941'']
+[``Mar 3 00:00:00 1980'', ``Mar 3 23:59:59 1981'']
 .)b
 are valid time specifications.
 .uh "SEE ALSO"
@@ -565,7 +574,7 @@ retrieve(commands),
 monitor(unix).
 .uh BUGS
 .lp
-The following constructs are not available in Version 3.0:
+The following constructs are not available in Version \*(PV:
 .(l
 class expressions
 set expressions
