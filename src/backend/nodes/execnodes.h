@@ -531,7 +531,8 @@ class (CommonState) public (BaseNode) {
       ExprContext         cs_ExprContext; \
       ProjectionInfo      cs_ProjInfo; \
       int                 cs_NumScanAttributes; \
-      AttributeNumberPtr  cs_ScanAttributes
+      AttributeNumberPtr  cs_ScanAttributes; \
+      bool                cs_TupFromTlist
   /* private: */
       CommonStateDefs;
   /* public: */
