@@ -7,7 +7,7 @@ LispValue MakeTargetList ARGS((void));
 extern LispValue ExpandAll ARGS((Name relname, int *this_resno));
 extern LispValue MakeTimeRange ARGS((LispValue datestring1, LispValue datestring2, int timecode));
 extern LispValue make_op ARGS((LispValue op, LispValue ltree, LispValue rtree));
-extern LispValue make_var  ARGS((Name relname, Name attrname));
+extern LispValue make_var  ARGS((Name relname, Name attrname, List foo));
 SkipForwardToFromList ARGS((void));
 LispValue SkipBackToTlist ARGS((void));
 LispValue SkipForwardPastFromList ARGS((void));

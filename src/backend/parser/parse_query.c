@@ -37,6 +37,7 @@ extern LispValue parser_ppreserve();
 extern int Quiet;
 
 static ObjectId *param_type_info;
+static ObjectId param_type_relid;
 static int pfunc_num_args;
 
 LispValue
@@ -296,7 +297,7 @@ ExpandAll(relname,this_resno)
 
 		attrname = (char *) palloc (sizeof(NameData)+1);
 		strcpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname));
-		temp = make_var ( relname, (Name) attrname );
+		temp = make_var ( relname, (Name) attrname ,LispNil);
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
@@ -486,8 +487,9 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
  **********************************************************************/
 
 LispValue
-make_var ( relname, attrname)
+make_var ( relname, attrname,dots)
      Name relname, attrname;
+     List dots;
 {
     Var varnode;
     int vnum, attid, vartype;
@@ -499,7 +501,7 @@ make_var ( relname, attrname)
     extern List RangeTablePositions();
     List vararraylist = LispNil;
     List multi_varnos = RangeTablePositions ( relname , 0 );
-
+    ObjectId relid,check;
     vnum = RangeTablePosn ( relname,0) ;
     /* if (!Quiet)
       printf("vnum = %d\n",vnum);  */
@@ -517,7 +519,12 @@ make_var ( relname, attrname)
       printf("relname to open is %s",relname); */
     
     rd = amopenr ( relname );
-    attid = varattno (rd , attrname );
+    relid = RelationGetRelationId(rd);
+    attid =  nf_varattno(rd, (char *) attrname);
+    if (attid == InvalidAttributeNumber) {
+	amclose(rd);
+	return HandleNestedDots(vnum, relid, attrname, dots);
+    }
     vartype = att_typeid ( rd , attid );
     rtype = get_id_type(vartype);
     vardotfields = LispNil;                          /* XXX - fix this */
@@ -911,7 +918,7 @@ char *attrName;
 void param_type_init(def_list)
     List def_list;
 {
-    int nargs,y=0;
+    int nargs,y=0,z;
     List i,x,args = LispNil;
 
     nargs = length(def_list);
@@ -926,12 +933,13 @@ void param_type_init(def_list)
 	    return;
 	}
     foreach (i, def_list) {
-	List t = CAR(CAR(i));
+	List t = CAR(i);
 
 	if (!lispStringp(t))
 	    elog(WARN, "DefinePFunction: arg type = ?");
 	args = nappend1(args, t);
     }
+    z =0;
     foreach (x, args) {
 	List t = CAR(x);
 	ObjectId toid;
@@ -941,7 +949,11 @@ void param_type_init(def_list)
 	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
 		 CString(t));
 	}
+	if (z <1) {
+	    param_type_relid = typeid_get_relid(toid);
+	}	    
 	param_type_info[y++]= toid;
+	z++;
     }
     pfunc_num_args = nargs;
 }
@@ -950,6 +962,13 @@ ObjectId param_type(t)
 {
     if ((t >pfunc_num_args) ||(t ==0)) return InvalidObjectId;
     return param_type_info[t-1];
+}
+ObjectId param_type_complex(n)
+     Name n;
+{
+
+    if (!param_type_relid) return InvalidObjectId;
+    return get_atttype(param_type_relid, get_attnum(param_type_relid, n));
 }
 
 

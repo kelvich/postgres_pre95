@@ -271,6 +271,27 @@ varattno ( rd , a)
 	     RelationGetRelationName(rd), a );
 	return(-1);
 }
+/* given range variable, return id of variable */
+   
+int
+nf_varattno ( rd , a)
+     Relation rd;
+     char *a;
+{
+	int i;
+	
+	for (i = 0; i < rd->rd_rel->relnatts; i++) {
+		if (!strcmp(&rd->rd_att.data[i]->attname, a)) {
+			return(i+1);
+		}
+	}
+	for (i = 0; i < SPECIALS; i++) {
+		if (!strcmp(special_attr[i].field, a)) {
+			return(special_attr[i].code);
+		}
+	}
+	return InvalidAttributeNumber;
+}
 /*-------------
  * given an attribute number and a relation, return its relation name
  */
@@ -442,6 +463,24 @@ char *string;
 }
 
 OID
+funcid_get_rettype ( funcid)
+     OID funcid;
+{
+    HeapTuple func_tuple = NULL;
+    OID funcrettype = (OID)0;
+
+    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
+
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function  %d does not exist", funcid);
+    
+    funcrettype = (OID)
+      ((struct proc *)GETSTRUCT(func_tuple))->prorettype ;
+
+    return (funcrettype);
+}
+
+OID
 funcname_get_rettype ( function_name )
      char *function_name;
 {
@@ -474,6 +513,22 @@ funcname_get_funcnargs ( function_name )
       ((struct proc *)GETSTRUCT(func_tuple))->pronargs ;
 
     return (nargs);
+}
+ObjectId *
+funcid_get_funcargtypes ( funcid )
+     ObjectId funcid;
+{
+    HeapTuple func_tuple = NULL;
+    ObjectId *oid_array = NULL;
+    struct proc *foo;
+    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
+
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function %d does not exist", funcid);
+    
+    foo = (struct proc *)GETSTRUCT(func_tuple);
+    oid_array = foo->proargtypes.data;
+    return (oid_array);
 }
 ObjectId *
 funcname_get_funcargtypes ( function_name )
@@ -518,6 +573,19 @@ typeid_get_retinfunc(type_id)
                   (char *) NULL, (char *) NULL, (char *) NULL);
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typinput;
+        return(infunc);
+}
+OID
+typeid_get_relid(type_id)
+        int type_id;
+{
+        HeapTuple     typeTuple;
+        TypeTupleForm   type;
+        OID             infunc;
+        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
+                  (char *) NULL, (char *) NULL, (char *) NULL);
+        type = (TypeTupleForm) GETSTRUCT(typeTuple);
+        infunc = type->typrelid;
         return(infunc);
 }
 

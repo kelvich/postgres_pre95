@@ -396,7 +396,8 @@ ParseFunc ( funcname , fargs )
 	rettype = funcname_get_rettype ( funcname );
 	
 	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false, 0, NULL);
+	    funcnode = MakeFunc ( funcid , rettype , false, 0, LispNil ,0,
+				 NULL);
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
 
@@ -415,7 +416,7 @@ ParseFunc ( funcname , fargs )
 	rettype = funcname_get_rettype ( funcname );
 	
 	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false, 0, NULL );
+	    funcnode = MakeFunc ( funcid , rettype , false, 0,LispNil,0, NULL );
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
 	nargs = funcname_get_funcnargs(funcname);
@@ -653,3 +654,155 @@ char *relname;
     
     return ( varnode );
 }
+
+int is_postquel_func(parameters)
+     List parameters;
+{
+    List assoc_list;
+    List rest;
+    assoc_list = CDR(parameters);
+    foreach (rest, assoc_list) {
+	List item = CAR(CAR(rest));
+	List value;
+	
+	/*
+	 * if this parameter does not have an associated value.
+	 */
+	if ( !CDR(CAR(rest)) )
+	    continue;
+	else
+	    value = CAR(CDR(CAR(rest)));
+
+ 	if (!stringp(item)) continue;
+	if (!strcmp(CString(item), "language")) {
+	    char *name;
+	    char *c;
+
+	    name = CString(value);
+	    for (c = name; *c != '\0'; c++)
+		*c = (islower(*c) ? toupper(*c) : *c);
+	    if (!strcmp(name, "POSTQUEL")) 
+		return true;
+	    else
+		return false;
+	}
+    }
+    return false;
+}
+char *postquel_func_arg(parameters)
+     List parameters;
+{
+    List assoc_list;
+    List rest;
+    assoc_list = CDR(parameters);
+    foreach (rest, assoc_list) {
+	List item = CAR(CAR(rest));
+	List value = CAR(CDR(CAR(rest)));
+
+	if (atom(item) && (CAtom(item) == ARG)) {
+	    if (stringp(value)) {
+		char *name = CString(value);
+		return name;
+	    }
+	}
+
+    }
+    elog(WARN, "no zero argument postquel functions");
+}
+List func_arg_list(parameters)
+     List parameters;
+{
+    List assoc_list;
+    List rest;
+    assoc_list = CDR(parameters);
+    foreach (rest, assoc_list) {
+	List item = CAR(CAR(rest));
+	List value = CAR(CDR(CAR(rest)));
+
+	if (atom(item) && (CAtom(item) == ARG)) return CDR(CAR(rest));
+    }
+    return LispNil;
+}
+
+
+/* takes in attribute expression
+ *
+ */
+List HandleNestedDots(vnum, relid, attrname, dots)
+     int vnum;
+     ObjectId relid;
+     Name attrname; 
+     List dots;
+{
+    ObjectId producer_relid, producer_type, first_func;
+    List producer;
+    List mutator_iter,nest,newfunc;
+    int attnum;
+    List result;
+    /* nested dots expansion */
+
+    producer_relid = relid;
+    producer_type = relid+1;
+    producer = (List) MakeVar(vnum,
+		       1,
+		       RELATION,
+		       LispNil,
+		       LispNil,
+		       lispCons(lispInteger(1),
+				lispCons(lispInteger(1),LispNil)),
+		       0);
+    nest = LispNil;
+    first_func = 0;
+    dots = lispCons(lispString(attrname), dots);
+    foreach (mutator_iter, dots) {
+	List mutator_lisp = CAR(mutator_iter);
+	char *mutator = CString(mutator_lisp);
+
+	if (producer_relid == 0)
+	    elog(WARN,
+		 "projection in nested dot expression attempted prior to end");
+	attnum = get_attnum(producer_relid, (Name) mutator);
+	if (attnum) {
+	    producer_type = get_atttype(producer_relid, attnum);
+	    producer_relid = 0;
+	}
+	else {
+
+	    ObjectId funcid;
+	    ObjectId functype;
+	    funcid = funcname_get_funcid(mutator);
+	    if (funcid) {
+		ObjectId *oid_array,input_type;
+
+		int nargs;
+
+		functype = funcname_get_rettype(mutator);
+		if (first_func == 0) first_func = funcid;
+		input_type = producer_type;
+		producer_type = functype;
+		producer_relid = typeid_get_relid(functype);
+		nargs = funcname_get_funcnargs(mutator);
+		if (nargs != 1)
+		    elog(WARN,
+			 "Functions must take only one complex argument");
+		oid_array = funcname_get_funcargtypes(mutator);
+		if (oid_array[0] != input_type)
+		    elog(WARN,
+			 "Type incompatibility in nested dot");
+		nest = nappend1(nest, lispInteger(funcid));
+	    }
+	    else
+		elog(WARN,
+	     "Component of nested dot is not a function or final projection");
+	}
+    }
+    if (producer_relid != 0)
+	elog(WARN, "nested dot must return a base type [temporarily]");
+    newfunc = MakeFunc( first_func , producer_type, false, 0, nest,
+		       attnum, NULL );
+    result =  lispCons ( lispInteger (producer_type),
+			lispCons((List) newfunc,
+				 lispCons(producer, LispNil)));
+    return result;
+}
+
