@@ -99,10 +99,9 @@ op_class (opno,opclass)
      ObjectId opno;
      int32 opclass ;
 {
-    AccessMethodOperatorTupleForm amoptup = 
-      new(AccessMethodOperatorTupleFormD);
+    AccessMethodOperatorTupleFormD amoptup;
 
-    if (SearchSysCacheStruct (AMOPOPID,amoptup,opclass,opno,0,0))
+    if (SearchSysCacheStruct (AMOPOPID,&amoptup,opclass,opno,0,0))
       return(true);
     else
       return(false);
@@ -128,12 +127,12 @@ get_attname (relid,attnum)
      ObjectId relid;
      AttributeNumber attnum;
 {
-    Attribute att_tup = new(AttributeTupleFormD);
+    AttributeTupleFormD att_tup;
     Name retval = (Name)NULL;
 
-    if( SearchSysCacheStruct (ATTNUM,att_tup,relid,attnum,0,0)) {
-	retval = (Name)palloc(sizeof(att_tup->attname));
-	bcopy(&(att_tup->attname),retval,sizeof(att_tup->attname));
+    if( SearchSysCacheStruct (ATTNUM,&att_tup,relid,attnum,0,0)) {
+	retval = (Name)palloc(sizeof(att_tup.attname));
+	bcopy(&(att_tup.attname),retval,sizeof(att_tup.attname));
 	return(retval);
     }
     else
@@ -156,15 +155,12 @@ get_attnum (relid,attname)
      ObjectId relid;
      Name attname ;
 {
-	Attribute  att_tup = new(AttributeTupleFormD);
+	AttributeTupleFormD att_tup;
 
-	if(SearchSysCacheStruct (ATTNAME,att_tup,relid,attname,0,0) ) 
-	  attnum = att_tup->attnum;
+	if(SearchSysCacheStruct (ATTNAME,&att_tup,relid,attname,0,0) ) 
+	  return(att_tup.attnum);
 	else
-	  attnum = InvalidAttributeNumber;
-
-	delete(att_tup);
-	return(attnum);
+	  return(InvalidAttributeNumber);
 }
 
 /*    
@@ -217,10 +213,10 @@ RegProcedure
 get_opcode (opno)
      ObjectId opno;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if( SearchSysCacheStruct (OPROID,optup,opno,0,0,0) ) 
-      return(optup->oprcode);
+    if( SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) ) 
+      return(optup.oprcode);
     else
       return((RegProcedure)NULL);
 }
@@ -229,10 +225,10 @@ NameData
 get_opname(opno)
 ObjectId opno;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if (SearchSysCacheStruct(OPROID,optup,opno,0,0,0))
-       return(optup->oprname);
+    if (SearchSysCacheStruct(OPROID,&optup,opno,0,0,0))
+       return(optup.oprname);
     else
        elog(WARN, "can't look up operator %d\n", opno);
 }
@@ -253,15 +249,15 @@ op_mergesortable (opno,ltype,rtype)
      ObjectId opno;
      ObjectId ltype,rtype ;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0) &&
-       optup->oprlsortop &&
-       optup->oprrsortop && 
-       optup->oprleft == ltype &&
-       optup->oprright == rtype) 
-      return (lispCons ((LispValue)(optup->oprlsortop),
-	               lispCons ((LispValue)(optup->oprrsortop),LispNil)));
+    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) &&
+       optup.oprlsortop &&
+       optup.oprrsortop && 
+       optup.oprleft == ltype &&
+       optup.oprright == rtype) 
+      return (lispCons ((LispValue)(optup.oprlsortop),
+	               lispCons ((LispValue)(optup.oprrsortop),LispNil)));
     else
       return(LispNil);
 }
@@ -280,12 +276,12 @@ ObjectId
 op_hashjoinable (opno,ltype,rtype)
      ObjectId opno,ltype,rtype ;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if (SearchSysCacheStruct (OPROID,optup,opno,0,0,0) && 
-	optup->oprcanhash  &&
-	optup->oprleft == ltype &&
-	optup->oprright == rtype) 
+    if (SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) && 
+	optup.oprcanhash  &&
+	optup.oprleft == ltype &&
+	optup.oprright == rtype) 
       return(opno);
     else
       return((ObjectId)NULL);
@@ -304,10 +300,10 @@ ObjectId
 get_commutator (opno)
      ObjectId opno ;
 {
-    OperatorTupleForm optup = (OperatorTupleForm)palloc(sizeof(* optup));
+    OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
-      return(optup->oprcom);
+    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+      return(optup.oprcom);
     else
       return((ObjectId)NULL);
 }
@@ -340,10 +336,10 @@ ObjectId
 get_negator (opno)
      ObjectId opno ;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
-      return(optup->oprnegate);
+    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+      return(optup.oprnegate);
     else
       return((ObjectId)NULL);
 }
@@ -361,10 +357,10 @@ RegProcedure
 get_oprrest (opno)
      ObjectId opno ;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
-      return(optup->oprrest );
+    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+      return(optup.oprrest );
     else
       return((RegProcedure) NULL);
 }
@@ -383,10 +379,10 @@ RegProcedure
 get_oprjoin (opno)
      ObjectId opno ;
 {
-    OperatorTupleForm optup = new(OperatorTupleFormD);
+    OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
-      return(optup->oprjoin);
+    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+      return(optup.oprjoin);
     else
       return((RegProcedure)NULL);
 }
@@ -426,12 +422,12 @@ AttributeNumber
 get_relnatts (relid)
      ObjectId relid ;
 {
-    RelationTupleForm reltup = new(RelationTupleFormD);
+    RelationTupleFormD reltup;
 
-    if(SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))
-      return(reltup->relnatts);
+    if(SearchSysCacheStruct (RELOID,&reltup,relid,0,0,0))
+	return(reltup.relnatts);
     else
-      return((AttributeNumber)NULL);
+    	return(InvalidAttributeNumber);
 }
 
 /*    
@@ -448,13 +444,13 @@ Name
 get_rel_name (relid)
      ObjectId relid ;
 {
-    RelationTupleForm reltup = new(RelationTupleFormD);
+    RelationTupleFormD reltup;
     Name retval = (Name)NULL;
 
-    if((SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))) {
-	retval = (Name)palloc(sizeof(reltup->relname));
-	bcopy(&(reltup->relname),retval,sizeof(reltup->relname));
-	return(retval);
+    if((SearchSysCacheStruct (RELOID,&reltup,relid,0,0,0))) {
+	retval = (Name)palloc(sizeof(reltup.relname));
+	bcopy(&(reltup.relname),retval,sizeof(reltup.relname));
+	return (retval);
     } else
       return((Name)NULL);
 }
@@ -619,9 +615,10 @@ char
 get_typtype (typid)
      ObjectId typid ;
 {
-    TypeTupleForm typtup = new(TypeTupleFormD);
-    if(SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0)) {
-      return(typtup->typtype);
+    TypeTupleFormD typtup;
+
+    if(SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0)) {
+      return(typtup.typtype);
     } else {
       return('\0');
     }
