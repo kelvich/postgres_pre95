@@ -270,7 +270,7 @@ CompatRunCommand (cmd, gn)
 	    id = 0;
 	}
 
-	while ((stat = wait((int *)&reason)) != cpid) {
+	while ((stat = wait(&reason)) != cpid) {
 	    if (stat == -1 && errno != EINTR) {
 		break;
 	    }
