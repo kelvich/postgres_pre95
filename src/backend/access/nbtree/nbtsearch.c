@@ -681,7 +681,7 @@ _bt_first(scan, dir)
 	  return ((RetrieveIndexResult) NULL);
 
       case BTGreaterEqualStrategyNumber:
-	if (result <= 0) {
+	if (result < 0) {
 	    do {
 		if (!_bt_twostep(scan, &buf, BackwardScanDirection))
 		    break;
@@ -689,10 +689,7 @@ _bt_first(scan, dir)
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
-	    } while (result <= 0);
-
-	    if (result > 0)
-		(void) _bt_twostep(scan, &buf, ForwardScanDirection);
+	    } while (result < 0);
 	}
 	break;
 
@@ -706,9 +703,6 @@ _bt_first(scan, dir)
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result >= 0);
-
-	    if (result < 0)
-		(void) _bt_twostep(scan, &buf, BackwardScanDirection);
 	}
 	break;
     }
@@ -785,7 +779,13 @@ _bt_step(scan, bufP, dir)
 		    *bufP = _bt_getbuf(rel, blkno, BT_READ);
 		    page = BufferGetPage(*bufP, 0);
 		    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-		    if (!PageIsEmpty(page)) {
+		    maxoff = PageGetMaxOffsetIndex(page);
+		    if (opaque->btpo_next != P_NONE)
+			start = 1;
+		    else
+			start = 0;
+
+		    if (!PageIsEmpty(page) && start <= maxoff) {
 			break;
 		    } else {
 			blkno = opaque->btpo_next;
@@ -796,7 +796,7 @@ _bt_step(scan, bufP, dir)
 			}
 		    }
 		}
-		offind = 0;
+		offind = start;
 	    }
 	}
     } else if (ScanDirectionIsBackward(dir)) {
@@ -1041,7 +1041,7 @@ _bt_endpoint(scan, dir)
 	 *  way at the edge of the tree.  See the paper by Lehman and Yao.
 	 */
 
-	if (ScanDirectionIsForward(dir) && opaque->btpo_next != P_NONE) {
+	if (ScanDirectionIsBackward(dir) && opaque->btpo_next != P_NONE) {
 	    do {
 		blkno = opaque->btpo_next;
 		_bt_relbuf(rel, buf, BT_READ);
@@ -1049,15 +1049,6 @@ _bt_endpoint(scan, dir)
 		page = BufferGetPage(buf, 0);
 		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	    } while (opaque->btpo_next != P_NONE);
-	} else if (ScanDirectionIsBackward(dir)
-		    && opaque->btpo_prev != P_NONE) {
-	    do {
-		blkno = opaque->btpo_prev;
-		_bt_relbuf(rel, buf, BT_READ);
-		buf = _bt_getbuf(rel, blkno, BT_READ);
-		page = BufferGetPage(buf, 0);
-		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-	    } while (opaque->btpo_prev != P_NONE);
 	}
     }
 
