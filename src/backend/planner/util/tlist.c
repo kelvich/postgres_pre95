@@ -136,9 +136,7 @@ add_tl_element (rel,var,joinlist)
 	Var newvar = MakeVar (get_varno (var),
 			      get_varattno (var),
 			      get_vartype (var),LispNil,
-			      (consider_vararrayindex(var) ?
-			       varid_array_index(var) :
-			       0 ),
+				  get_vararraylist(var),
 			      get_varid (var),0);
 
 	set_targetlist (rel,nappend1 (tlist,
@@ -300,6 +298,10 @@ tlist_resdom(tlist,resnode)
  *    	'tlist' is the target list that is searched
  *    
  *    	Returns the target list entry (resdom var) of the matching var.
+ *
+ *      Now checks to make sure array references (in addition to range
+ *      table indices) are identical - retrieve (a.b[1],a.b[2]) should
+ *      not be turned into retrieve (a.b[1],a.b[1]).
  *    
  */
 
@@ -307,15 +309,18 @@ tlist_resdom(tlist,resnode)
  */
 
 LispValue
-match_varid (varid,tlist)
-     LispValue varid,tlist;
+match_varid (var_to_test,tlist)
+	Var var_to_test;
+	LispValue tlist;
 {
     LispValue i;
     TLE entry = (TLE)NULL;
+	List var1;
 
     foreach (i,tlist) {
 	entry = CAR(i);
-	if (equal(get_varid(get_expr(entry)),varid))
+	if (equal(get_varid(get_expr(entry)),get_varid(var_to_test))
+	 && equal(get_vararraylist(get_expr(entry)), get_vararraylist(var_to_test)))
 	  return(entry);
     }
     return (LispNil);
@@ -514,8 +519,7 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	return((TLE)NULL);
     } 
     else if (IsA (tlistentry,Var)) {
-	return((TLE)get_expr (match_varid (get_varid (tlistentry),
-					   flat_tlist)));
+	return((TLE)get_expr (match_varid (tlistentry, flat_tlist)));
     } 
     else if (single_node (tlistentry)) {
 	return(tlistentry);
