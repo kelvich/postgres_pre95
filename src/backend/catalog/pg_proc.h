@@ -132,6 +132,11 @@ DATA(insert OID =  75 (  charpl            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  76 (  charmi            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  77 (  charmul           6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  78 (  chardiv           6 11 f t f 2  16 foo bar ));
+
+DATA(insert OID =  79 (  char16regexeq     6 11 f t f 2  16 foo bar ));
+DATA(insert OID =  80 (  char16regexne     6 11 f t f 2  16 foo bar ));
+DATA(insert OID =  81 (  textregexeq       6 11 f t f 2  16 foo bar ));
+DATA(insert OID =  82 (  textregexne       6 11 f t f 2  16 foo bar ));
     
 DATA(insert OID =  99 (  btreesel          6 11 f t f 7 109 foo bar ));
 DATA(insert OID = 100 (  btreenpage        6 11 f t f 7 109 foo bar ));

@@ -229,6 +229,11 @@ DATA(insert OID = 636 (  "-"       6 0 b t f  18  18  16 0 0  0 0 charmi eqsel e
 DATA(insert OID = 637 (  "*"       6 0 b t f  18  18  16 0 0  0 0 charmul eqsel eqjoinsel ));
 DATA(insert OID = 638 (  "/"       6 0 b t f  18  18  16 0 0  0 0 chardiv eqsel eqjoinsel ));
 
+DATA(insert OID = 639 (  "~"       6 0 b t f  19  19  16 0 640  0 0 char16regexeq eqsel eqjoinsel ));
+DATA(insert OID = 640 (  "!~"      6 0 b t f  19  19  16 0 639  0 0 char16regexne eqsel eqjoinsel ));
+DATA(insert OID = 641 (  "~"       6 0 b t f  25  25  16 0 642  0 0 textregexeq eqsel eqjoinsel ));
+DATA(insert OID = 642 (  "!~"      6 0 b t f  25  25  16 0 641  0 0 textregexne eqsel eqjoinsel ));
+
 DATA(insert OID = 660 (  "<"       6 0 b t f  19  19  16 662 663  0 0 char16lt eqsel eqjoinsel ));
 DATA(insert OID = 661 (  "<="      6 0 b t f  19  19  16 663 662  0 0 char16le eqsel eqjoinsel ));
 DATA(insert OID = 662 (  ">"       6 0 b t f  19  19  16 660 661  0 0 char16gt eqsel eqjoinsel ));
