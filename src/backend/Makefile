@@ -238,7 +238,7 @@ afterinstall: pg_id
 pg_id:	pg_id.c
 	${CC} -o pg_id ${.ALLSRC} 
 
-CLEANFILES+= pg_ig
+CLEANFILES+= pg_id
 
 ###
 # depend target: since the backend has a bazillion source
