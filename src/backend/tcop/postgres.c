@@ -346,10 +346,10 @@ main(argc, argv)
 	  lispDisplay(parser_output,0);
 	  printf("\n");
 
-	  if (atom CAR(parser_output))
-	    /*utility_invoke(CAR(parser_output),CDR(parser_output));*/
-	    ;
-	  else {
+	  if (lispIntegerp(CAR(parser_output))) {
+		utility_invoke(LISPVALUE_INTEGER(CAR(parser_output)),
+			CDR(parser_output));
+	  } else {
 	      Node plan;
 	      extern Node planner();
 #ifdef NOTYET	      
