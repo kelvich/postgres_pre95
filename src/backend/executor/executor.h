@@ -22,18 +22,19 @@
 #include "c.h"
 #include "pg_lisp.h"
 
-#include "parse.h"
-#include "buf.h"
-#include "rel.h"
 #include "anum.h"
-#include "catname.h"
+#include "buf.h"
 #include "catalog.h"
+#include "catname.h"
+#include "itup.h"
 #include "log.h"
+#include "parse.h"
+#include "pmod.h"
+#include "rel.h"
 #include "strings.h"
 #include "syscache.h"
-#include "tuple.h"
 #include "tqual.h"
-#include "pmod.h"
+#include "tuple.h"
 
 #include "printtup.h"
 #include "primnodes.h"
@@ -60,8 +61,8 @@
 #define M_STATIC 		0 		/* Static allocation mode */
 #define M_DYNAMIC 		1 		/* Dynamic allocation mode */
 
-#define EXEC_FRWD		0		/* Scan forward */
-#define EXEC_BKWD		1		/* Scan backward */
+#define EXEC_FRWD		1		/* Scan forward */
+#define EXEC_BKWD		-1		/* Scan backward */
 
 #define ALL_TUPLES		0		/* return all tuples */
 #define ONE_TUPLE		1		/* return only one tuple */
@@ -402,10 +403,17 @@
  */
 
 extern Relation		amopen();
+extern Relation		AMopen();
 extern Relation		amopenr();
 extern HeapScanDesc 	ambeginscan();
 extern HeapTuple 	amgetnext();
 extern char *		amgetattr();
+extern RuleLock		aminsert();
+extern RuleLock		amdelete();
+extern RuleLock		amreplace();
+
+extern GeneralRetrieveIndexResult AMgettuple();
+extern HeapTuple		  RelationGetHeapTupleByItemPointer();
 
 extern Const		ConstTrue;
 extern Const		ConstFalse;
@@ -416,7 +424,6 @@ extern Const		ConstFalse;
 
 #include "executor/append.h"
 #include "executor/endnode.h"
-#include "executor/error.h"
 #include "executor/eutils.h"
 #include "executor/exist.h"
 #include "executor/indexscan.h"
