@@ -683,7 +683,7 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
      *  the tuple abstraction.
      */
 
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)htup->t_xmax);
+    TransactionIdStore(GetCurrentTransactionId(), &(htup->t_xmax));
     htup->t_cmax = GetCurrentCommandId();
 
     /*
@@ -858,9 +858,9 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     ItemPointerSetInvalid(&(ntup->t_chain));
     ItemPointerSetInvalid(&(ntup->t_lock.l_ltid));
     LastOidProcessed = ntup->t_oid = newoid();
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)ntup->t_xmin);
+    TransactionIdStore(GetCurrentTransactionId(), &(ntup->t_xmin));
     ntup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId((Pointer)ntup->t_xmax);
+    PointerStoreInvalidTransactionId(&(ntup->t_xmax));
     ntup->t_cmax = 0;
     ntup->t_tmin = ntup->t_tmax = InvalidTime;
     ntup->t_natts = 2;
@@ -1030,21 +1030,13 @@ DumpPage(page, blkno)
 
 			printf("\n\t:tmin=%d:cmin=%u:",
 				tup->t_tmin, tup->t_cmin);
-			printf("xmin=0x%02x%02x%02x%02x%02x:",
-				(unsigned char) tup->t_xmin[0],
-				(unsigned char) tup->t_xmin[1],
-				(unsigned char) tup->t_xmin[2],
-				(unsigned char) tup->t_xmin[3],
-				(unsigned char) tup->t_xmin[4]);
+
+			printf("xmin=%lu:", tup->t_xmin);
 
 			printf("\n\t:tmax=%d:cmax=%u:",
 				tup->t_tmax, tup->t_cmax);
-			printf("xmax=0x%02x%02x%02x%02x%02x:",
-				(unsigned char) tup->t_xmax[0],
-				(unsigned char) tup->t_xmax[1],
-				(unsigned char) tup->t_xmax[2],
-				(unsigned char) tup->t_xmax[3],
-				(unsigned char) tup->t_xmax[4]);
+
+			printf("xmax=%lu:", tup->t_xmax);
 
 			printf("\n\t:chain=%s:\n",
 				ItemPointerFormExternal(&tup->t_chain));
