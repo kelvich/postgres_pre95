@@ -514,7 +514,7 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 	      cost_sort(nth(0,keyquals), get_size(outerrel),
 			get_width(outerrel), LispNil);
 	    
-	    temp2 = (bool) (null(get_outerjoincost(innerpath))
+	    temp2 = (bool) (FLOAT_IS_ZERO(get_outerjoincost(innerpath))
 			    || (get_outerjoincost(innerpath) > temp1));
 	
 	    if (temp2) {
