@@ -420,7 +420,8 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
 	     /* XXX was "push" function  */
 	     considered_subkeys = nappend1(considered_subkeys,
 					   tlist_other_var);
-	     considered_subkeys = nreverse(considered_subkeys);
+	     /* considered_subkeys = nreverse(considered_subkeys); 
+		XXX -- I am not sure of this. */
 
 	     temp = lispCons (tlist_other_var,LispNil);
 	     t_list = nconc(t_list,temp);
