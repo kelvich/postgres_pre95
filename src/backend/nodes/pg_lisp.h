@@ -100,7 +100,7 @@ typedef union {
     
 class (LispValue) public (Node) {
 #define LispValueDefs \
-    inherits(Node); \
+    inherits0(Node); \
     LispValueUnion	val; \
     struct _LispValue	*cdr 
 /* private: */
@@ -141,27 +141,27 @@ typedef LispValue *LispValuePtr;
  * ----------------
  */
 class (LispSymbol) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 class (LispList) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 class (LispInt) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 class (LispFloat) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 class (LispVector) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 class (LispStr) public (Node) {
-    inherits(Node);
+    inherits0(Node);
 };
 
 /* ----------------

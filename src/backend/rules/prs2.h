@@ -121,12 +121,13 @@ typedef Prs2RuleDataData *Prs2RuleData;
  */
 extern
 bool
-prs2MustCallRuleManager ARGS((
+prs2MustCallRuleManager();/* BAD PROTOTYPE DELETED -- glass */
+/*    ARGS((
     RelationInfo	relationInfo,
     HeapTuple           oldTuple,
     Buffer              oldBuffer,
     int			operation
-));
+));*/
 
 /*------------------------------------------------------------------
  * prs2Main
@@ -142,7 +143,8 @@ typedef int Prs2Status;
 
 extern
 Prs2Status
-prs2Main ARGS((
+prs2Main(); /* BAD PROTOTYPE DELETED -- glass */
+/*ARGS((
     EState		estate,
     RelationInfo	scanRelInfo,
     int                 operation,
@@ -159,7 +161,7 @@ prs2Main ARGS((
     HeapTuple           *returnedTupleP,
     Buffer              *returnedBufferP
 ));
-
+*/
 /*==================================================================
  * PRS2 LOCKS
  *==================================================================
@@ -198,7 +200,7 @@ prs2AddLock ARGS((
     ObjectId		ruleId,
     Prs2LockType	lockType,
     AttributeNumber	attributeNumber,
-    Prs2PlanNumber	planNumber
+    Prs2PlanNumber	planNumber,
     int			partialindx,
     int		 	npartial
 ));
@@ -223,7 +225,7 @@ extern
 bool
 prs2OneLocksAreTheSame ARGS((
     Prs2OneLock	oneLock1,
-    Prs2OneLock	oneLock2,
+    Prs2OneLock	oneLock2
 ));
 
 /*------------------------------------------------------------------
@@ -235,7 +237,7 @@ extern
 bool
 prs2OneLockIsMemberOfLocks ARGS((
     Prs2OneLock	oneLock,
-    RuleLock	locks;
+    RuleLock	locks
 ));
 
 /*------------------------------------------------------------------
@@ -250,7 +252,7 @@ extern
 RuleLock
 prs2GetLocksFromTuple ARGS((
     HeapTuple		tuple,
-    Buffer		buffer,
+    Buffer		buffer
 ));
 
 /*------------------------------------------------------------------
@@ -324,7 +326,7 @@ prs2RemoveAllLocksOfRule ARGS((
 extern
 RuleLock
 prs2CopyLocks ARGS((
-    RuleLock	locks;
+    RuleLock	locks
 ));
 
 /*------------------------------------------------------------------
@@ -345,7 +347,7 @@ extern
 RuleLock
 prs2LockUnion ARGS((
     RuleLock	lock1,
-    RuleLock	lock1
+    RuleLock	lock2
 ));
 
 /*------------------------------------------------------------------
@@ -356,7 +358,7 @@ extern
 RuleLock
 prs2LockDifference ARGS((
     RuleLock	lock1,
-    RuleLock	lock1
+    RuleLock	lock2
 ));
 
 /*------------------------------------------------------------------
@@ -367,7 +369,7 @@ extern
 RuleLock
 prs2FindLocksOfType ARGS((
     RuleLock		locks,
-    Prs2LockType	locktype;
+    Prs2LockType	locktype
 ));
 
 /*------------------------------------------------------------------
@@ -654,9 +656,9 @@ typedef AttributeValuesData *AttributeValues;
 extern
 AttributeValues
 attributeValuesCreate ARGS((
-    HeapTuple tuple;
-    Buffer buffer;
-    Relation relation;
+    HeapTuple tuple,
+    Buffer buffer,
+    Relation relation
 ));
 
 /*---------------------------------------------------------------------
@@ -680,12 +682,12 @@ attributeValuesFree ARGS((
 extern
 int
 attributeValuesMakeNewTuple ARGS((
-    HeapTuple tuple;
-    Buffer buffer;
-    AttributeValues attrValues;
-    RuleLock locks;
-    Relation relation;
-    HeapTuple *newTupleP;
+    HeapTuple tuple,
+    Buffer buffer,
+    AttributeValues attrValues,
+    RuleLock locks,
+    Relation relation,
+    HeapTuple *newTupleP
 ));
 
 /*--------------------------------------------------------------------
@@ -761,7 +763,7 @@ prs2RuleStackPush ARGS((
 extern
 void
 prsRuleStackPop ARGS((
-    Prs2EStateInfo p;
+    Prs2EStateInfo p
 ));
 
 /*
@@ -774,7 +776,7 @@ bool
 prs2RuleStackSearch ARGS((
     Prs2EStateInfo p,
     ObjectId ruleId,
-    ObjectId tupleOid;
+    ObjectId tupleOid,
     AttributeNumber attributeNumber
 ));
 
@@ -794,7 +796,7 @@ prs2RuleStackInitialize ARGS((
 extern
 void
 prs2RuleStackFree ARGS((
-    Prs2EStateInfo p;
+    Prs2EStateInfo p
 ));
 
 /*========================================================================
@@ -841,7 +843,7 @@ extern RuleLock prs2FindLocksForNewTupleFromStubs();
 /*
  * These are functions in prs2plans.c
  */
-extern LispValue prs2GetRulePlanFromCatalog();
+/*extern LispValue prs2GetRulePlanFromCatalog(); -glass */
 extern int prs2CheckQual();
 extern void prs2RunActionPlans();
 extern int prs2RunOnePlanAndGetValue();

@@ -87,8 +87,8 @@ HeapTupleSetRuleLock ARGS((
 extern
 void
 HeapTupleStoreRuleLock ARGS((
-	HeapTuple	tuple;
-	Buffer		buffer;
+	HeapTuple	tuple,
+	Buffer		buffer
 ));
 
 #endif	/* !defined(RAcIncluded) */
