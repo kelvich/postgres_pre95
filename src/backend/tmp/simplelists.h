@@ -35,20 +35,20 @@ SLList {
     uint32  sl_Pad0;	/* pad byte for 8 char align.	*/
 };
 
-extern void SetNewList();
-extern void SetNewNode();
-extern void *SetGetHead();
-extern void *SetGetTail();
-extern void *SetGetSucc();
-extern void *SetGetPred();
-extern void SetRemove();
-extern void SetAddHead();
-extern void SetAddTail();
-extern void *SetRemHead();
-extern void *SetRemTail();
-extern void SetInsertAfter();
-extern void SetInsertBefore();
-extern SLList *SetGetList();
+extern void SLNewList();
+extern void SLNewNode();
+extern Pointer SLGetHead();
+extern Pointer SLGetTail();
+extern Pointer SLGetSucc();
+extern Pointer SLGetPred();
+extern void SLRemove();
+extern void SLAddHead();
+extern void SLAddTail();
+extern Pointer SLRemHead();
+extern Pointer SLRemTail();
+extern void SLInsertAfter();
+extern void SLInsertBefore();
+extern SLList *SLGetList();
 
 #endif
 
