@@ -1,31 +1,73 @@
-
-/*
- * This routine contains compiled assembly language files for spin locks.
- * In doing ports, machines that have a native test and set instruction should
- * implement the following code fragment in assembly language:
+/* ----------------------------------------------------------------
+ *   FILE
+ *	s_lock.c
  *
- * void
- * S_LOCK(char_address)
+ *   DESCRIPTION
+ *	This file contains the implementation (if any) for spinlocks.
+ *	The following code fragment should be written (in assembly 
+ *	language) on machines that have a native test-and-set instruction:
  *
- * char *char_address;
+ *	void
+ *	S_LOCK(char_address)
+ *	    char *char_address;
+ *	{
+ *	    while (test_and_set(char_address))
+ *		;
+ *	}
  *
- * {
- *     while (test_and_set(char_address));
- * }
+ *	If this is not done, Postgres will default to using System V
+ *	semaphores (and take a large performance hit).
  *
- * If this is not done, Postgres will default to using System V semaphores,
- * which result in a 100% degradation of performance.
+ *   NOTES
+ *	AIX has a test-and-set but the recommended interface is the cs(3)
+ *	system call.  This provides an 8-instruction (plus system call 
+ *	overhead) uninterruptible compare-and-set operation.  True 
+ *	spinlocks might be faster but using cs(3) still speeds up the 
+ *	regression test suite by about 25%.
  *
- * RcsId("$Header$");
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "storage/ipc.h"
 
+RcsId("$Header$");
+
 /*
- * sun3 (and eventually amiga)
+ * AIX (POWER)
+ *
+ * Note that slock_t is int instead of char (see storage/ipc.h).
+ */
+
+#if defined(PORTNAME_aix)
+
+S_LOCK(lock)
+    slock_t *lock;
+{
+    while (cs((int *) lock, 0, 1))
+	;
+}
+
+S_UNLOCK(lock)
+    slock_t *lock;
+{
+    *lock = 0;
+}
+
+S_INIT_LOCK(lock)
+    slock_t *lock;
+{
+    S_UNLOCK(lock);
+}
+
+#endif /* PORTNAME_aix */
+
+/*
+ * sun3
  */
  
-#if (defined(sun) && ! defined(sparc)) || defined(amiga)
+#if (defined(sun) && ! defined(sparc))
 
     
 S_LOCK(lock)
