@@ -211,12 +211,12 @@ List tree;
 			else {
 			    n = (List) make_null(get_vartype(this_node));
 			    CAR(i) = CAR(n);
-			    CDR(i) = CDR(n);
+/*			    CDR(i) = CDR(n);*/
 			}
 		    }
 		    else {
 			CAR(i) = CAR(n);
-			CDR(i) = CDR(n);
+/*			CDR(i) = CDR(n);*/
 		    }
 		}
 		break;
@@ -270,7 +270,7 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 			if (get_vartype(this_node) == 32) { /* HACK */
 			    n = (List) make_null(get_vartype(this_node));
 			    CAR(i) = CAR(n);
-			    CDR(i) = CDR(n);
+/*			    CDR(i) = CDR(n);*/
 			    *modified = TRUE;
 			    break;
 			}
@@ -285,7 +285,7 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 		    if (n == NULL)
 			n = (List) make_null(get_vartype(this_node));
 		    CAR(i) = CAR(n);
-		    CDR(i) = CDR(n);
+/*		    CDR(i) = CDR(n);*/
 		    if (NodeType(CAR(n)) == classTag(Var) && vardots) {
 			set_vardotfields(CAR(n), lispCopy(CDR(vardots)));
 		    }			
@@ -327,7 +327,7 @@ void HandleViewRule(parsetree, rt,tl, rt_index,modified)
  		    if (n == NULL)
 			n = (List) make_null(get_vartype(this_node));
 		    CAR(i) = CAR(n);
-		    CDR(i) = CDR(n);
+/*		    CDR(i) = CDR(n);*/
 		    *modified = TRUE;
 		}
 	    }
