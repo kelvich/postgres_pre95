@@ -170,12 +170,9 @@ planner (parse)
     LispValue flag = LispNil;
     List plan_list = LispNil;
 
-/*    if ( root_ruleinfo (root) )
+    if ( root_ruleinfo (root) )
       special_plans = process_rules (parse);
     else 
- * 
- * turn rules off for now.
- */
       plan_list = lispCons(lispAtom("inherits"),
 			   lispCons(lispAtom("union"),
 				    lispCons(lispAtom("archive"),LispNil)));
