@@ -384,7 +384,7 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks,qual_products)
        List qual;
        List event_qual, actions;
        List r;
-       int foo;
+       int foo = *instead_flag;
        *instead_flag = FALSE;
        rule = RuleIdGetActionInfo (prs2OneLockGetRuleId(rule_lock),
 				   instead_flag);
