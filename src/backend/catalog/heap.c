@@ -692,7 +692,7 @@ heap_create(relname, arch, natts, tupdesc)
 			      "textout",	/* output procedure */
 			      "textin",		/* send procedure */
 			      "textout",	/* recieve procedure */
-			      "char",		/* array element type */
+				  NULL,     /* array element type - irrelevent */
 			      "-",		/* default type value */
 			      (Boolean) 0);	/* passed by value */
 
