@@ -100,6 +100,7 @@
 #define	OutAppendExists
 #define	OutRecursiveExists
 #define	OutJoinExists
+#define OutJoinRuleInfoExists
 #define	OutNestLoopExists
 #define	OutMergeJoinExists
 #define	OutHashJoinExists
@@ -119,6 +120,7 @@ extern void	OutExistential();
 extern void	OutAppend();
 extern void	OutRecursive();
 extern void	OutJoin();
+extern void	OutJoinRuleInfo();
 extern void	OutNestLoop();
 extern void	OutMergeJoin();
 extern void	OutHashJoin();
@@ -164,6 +166,7 @@ extern bool     EqualFragment();
 #define	CopyAppendExists
 #define	CopyRecursiveExists
 #define	CopyJoinExists
+#define CopyJoinRuleInfoExists
 #define	CopyNestLoopExists
 #define	CopyMergeJoinExists
 #define	CopyHashJoinExists
@@ -182,6 +185,7 @@ extern bool	CopyExistential();
 extern bool	CopyAppend();
 extern bool	CopyRecursive();
 extern bool	CopyJoin();
+extern bool	CopyJoinRuleInfo();
 extern bool	CopyNestLoop();
 extern bool	CopyMergeJoin();
 extern bool	CopyHashJoin();
