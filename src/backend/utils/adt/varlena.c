@@ -162,7 +162,6 @@ textin(inputText)
 {
 	register struct varlena	*result;
 	register int		len;
-	extern			bcopy();
 
 	if (inputText == NULL)
 		return(NULL);
@@ -182,7 +181,6 @@ textout(vlena)
 {
 	register int	len;
 	char		*result;
-	extern		bcopy();
 
 	if (vlena == NULL) {
 		result = (char *) palloc(2);
