@@ -13,6 +13,7 @@
  *		char16		dt		int2
  *		int28		int4		oid		
  *		oid8		regproc		text
+ *		char8
  *
  *	Currently this file is also the home of struct varlena and
  *	some other stuff.  Some of this may change.  -cim 8/6/90
@@ -139,6 +140,16 @@ typedef int4 aclitem;
  * ----------------
  */
 typedef struct varlena bytea;
+
+/* ----------------
+ *	char8
+ * ----------------
+ */
+typedef struct char8 {
+	char	data[8];
+} char8;
+
+typedef char8	*Char8;
 
 /* ----------------
  *	char16
