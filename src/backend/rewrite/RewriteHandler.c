@@ -563,9 +563,15 @@ List RewriteQuery(parsetree,instead_flag,qual_products)
 	char *temp;
 	List new_pt;
 	List other;
-	temp = PlanToString(parsetree);
-	
-	new_pt = (List)StringToPlan(temp);
+	/*
+	 * This looks a little foolish.  Something must have been removed
+	 * in between these two lines of code.... ?  Commenting these lines
+	 * out gives us about an 8% speed up on the wisconsin benchmark.
+	 *
+	 * temp = PlanToString(parsetree);
+	 *
+	 * new_pt = (List)StringToPlan(temp);
+	 */
 	other = (List) CopyObject(parsetree);
 	return ProcessRetrieveQuery(other, rt, instead_flag,FALSE);
     }
