@@ -211,14 +211,8 @@ char SocketBackend(inBuf, parseList)
 	getpstr(inBuf, MAX_PARSE_BUFFER);
 
 	if (!Quiet)
-	    printf("Received Query: %s\n", inBuf);
+	    printf("Received Query: \"%s\"\n", inBuf);
 	
-	if (inBuf == NULL) {
-	    if (! Quiet)
-		puts("EOF");
-	    AbortCurrentTransaction();
-	    exitpg(0);
-	}
 	return('Q');
 	break;
 	
@@ -787,16 +781,24 @@ main(argc, argv)
 	     *      XXX HandleFunctionRequest
 	     * ----------------
 	     */
-	case 'F':
+	  case 'F':
 	    HandleFunctionRequest();
 	    break;
 	    /* ----------------
 	     *	'Q' indicates a user query
 	     * ----------------
 	     */
-	case 'Q':
-	    pg_eval(parser_input);
-	    break;
+	  case 'Q':
+	    printf ( "the first char is %d \n", (int)parser_input[0] );
+	    fflush(stdout);
+	    if ( *parser_input ==  0 ) {
+		break;
+	    } else {
+		pg_eval(parser_input);
+		break;
+	    }
+	  default:
+	    elog(WARN,"unknown frontend message was recieved");
 	}
 
 	/* ----------------
