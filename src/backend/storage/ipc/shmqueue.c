@@ -185,3 +185,19 @@ SHM_QUEUE	*queue;
   Assert(nextElem->prev == MAKE_OFFSET(queue));
   Assert(prevElem->next == MAKE_OFFSET(queue));
 }
+
+/*
+ * SHMQueueEmpty -- TRUE if queue head is only element, FALSE otherwise
+ */
+SHMQueueEmpty(queue)
+SHM_QUEUE       *queue;
+{
+  Assert(SHM_PTR_VALID(queue));
+
+  if (queue->prev == MAKE_OFFSET(queue)) 
+  {
+    Assert(queue->next = MAKE_OFFSET(queue));
+    return(TRUE);
+  }
+  return(FALSE);
+}
