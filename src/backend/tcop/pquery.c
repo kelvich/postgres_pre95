@@ -372,7 +372,7 @@ ProcessQueryDesc(queryDesc)
 	    putint(0,4);
 	    putstr("blank");
 	} else {
-	    if (!isIntoTemp)
+	    if (!isIntoTemp && !ExecIsHash(plan))
 	       BeginCommand("blank", attinfo);
 	   }
     } else {

@@ -108,6 +108,7 @@ Fragment rootFragment;
 	      hashtable = ExecHashTableCreate(plan);
 	      set_hashtable(plan, hashtable);
 	      hashTableMemorySize = get_hashtablesize(plan);
+	      parse_tree_result_relation(parseTree) = LispNil;
 	      }
 	   else if (fragment != rootFragment || nparallel > 1) {
 	      parse_tree_result_relation(parseTree) =
