@@ -78,8 +78,6 @@ BufferBlock 	BufferBlocks;
 static int	*NWaitIOBackendP;
 #endif
 
-Buffer           BufferDescriptorGetBuffer();
-
 int	*PrivateRefCount;
 int	*LastRefCount;  /* refcounts of last ExecMain level */
 
@@ -1104,27 +1102,6 @@ int StableMainMemoryFlag;
 }
 
 /**************************************************
-  BufferDescriptorIsValid
-
- **************************************************/
-
-bool
-BufferDescriptorIsValid(bufdesc)
-     BufferDesc *bufdesc;
-{
-    int temp;
-    
-    Assert(PointerIsValid(bufdesc));
-    
-    temp = (bufdesc-BufferDescriptors)/sizeof(BufferDesc);
-    if (temp >= 0 && temp<NBuffers)
-        return(true);
-    else
-        return(false);
-    
-} /*BufferDescriptorIsValid*/
-
-/**************************************************
   BufferIsValid
   returns true iff the refcnt of the local
   buffer is > 0
@@ -1184,20 +1161,36 @@ BufferGetRelation(buffer)
     return (relation);
 }
 
+#ifndef NO_ASSERT_CHECKING
+
 /**************************************************
+  BufferGetBufferDescriptor
   BufferDescriptorGetBuffer
 
  **************************************************/
 
+BufferDesc *
+BufferGetBufferDescriptor(buffer)
+    Buffer buffer;
+{
+    Assert(!BAD_BUFFER_ID(buffer));
+
+    return(&BufferDescriptors[buffer-1]);
+}
 
 Buffer
 BufferDescriptorGetBuffer(descriptor)
     BufferDesc *descriptor;
 {
-    Assert(BufferDescriptorIsValid(descriptor));
+    /* XXX assumes ANSI semantics for pointer subtraction */
+    Buffer buffer = 1 + (descriptor - BufferDescriptors);
 
-    return(1+descriptor - BufferDescriptors);
+    Assert(!BAD_BUFFER_ID(buffer));
+
+    return(buffer);
 }
+
+#endif /* !NO_ASSERT_CHECKING */
 
 BufferReplace(bufHdr)
     BufferDesc 	*bufHdr;
