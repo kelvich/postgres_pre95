@@ -17,7 +17,16 @@ RcsId("$Header$");
  * OrderedElemGetBase --
  *	Returns base of enclosing structure.
  */
-#define OrderedElemGetBase(elem) ((Pointer)((char*)(elem) - (elem)->set->offset))
+
+Pointer
+OrderedElemGetBase(elem)
+	OrderedElem	elem;
+{
+	if (elem == (OrderedElem) NULL)
+		return (Pointer) NULL;
+
+	return ((Pointer)((char*)(elem) - (elem)->set->offset));
+}
 
 void
 OrderedSetInit(set, offset)
@@ -179,7 +188,7 @@ OrderedSetPopHead(set)
 {
 	register OrderedElem elem = set->head;
 
-	if (elem->next) {
+	if (elem != NULL && elem->next) {
 		OrderedElemPop(elem);
 		return (OrderedElemGetBase(elem));
 	}
@@ -192,7 +201,7 @@ OrderedSetPopTail(set)
 {
 	register OrderedElem elem = set->tail;
 
-	if (elem->prev) {
+	if (elem != NULL && elem->prev) {
 		OrderedElemPop(elem);
 		return (OrderedElemGetBase(elem));
 	}
