@@ -1,4 +1,20 @@
-/* $Header$ */
+/* ----------------------------------------------------------------
+ *   FILE
+ *	keys.h
+ *
+ *   DESCRIPTION
+ *	prototypes for keys.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+
+#ifndef keysIncluded		/* include this file only once */
+#define keysIncluded	1
 
 #define INNER 65000
 #define OUTER 65001
@@ -27,10 +43,13 @@
 
 extern bool match_indexkey_operand ARGS((LispValue indexkey, Var operand, Rel rel));
 extern bool equal_indexkey_var ARGS((LispValue index_key, Var var));
-extern LispValue extract_subkey ARGS((JoinKey joinKey, int which_subkey));
+extern LispValue extract_subkey ARGS((JoinKey jk, int which_subkey));
 extern bool samekeys ARGS((LispValue keys1, LispValue keys2));
+extern Expr matching2_tlvar ARGS((Var var, LispValue tlist, bool (*test)()));
 extern LispValue collect_index_pathkeys ARGS((LispValue index_keys, LispValue tlist));
 extern bool match_sortkeys_pathkeys ARGS((LispValue relid, LispValue sortkeys, LispValue pathkeys));
 extern bool equal_sortkey_pathkey ARGS((LispValue relid, LispValue sortkey, LispValue pathkey));
 extern bool valid_sortkeys ARGS((LispValue node));
 extern bool valid_numkeys ARGS((LispValue sortkeys));
+
+#endif /* keysIncluded */

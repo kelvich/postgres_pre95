@@ -1,7 +1,21 @@
-/* $Header$ */
+/* ----------------------------------------------------------------
+ *   FILE
+ *	setrefs.h
+ *
+ *   DESCRIPTION
+ *	prototypes for setrefs.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 
-extern LispValue new_level_tlist ARGS((LispValue tlist, LispValue prevtlist, int prevlevel));
-extern LispValue new_level_qual ARGS((LispValue quals, LispValue prevtlist, int prevlevel));
+#ifndef setrefsIncluded		/* include this file only once */
+#define setrefsIncluded	1
+
 extern LispValue new_result_tlist ARGS((LispValue tlist, LispValue ltlist, LispValue rtlist, int levelnum, bool sorted));
 extern LispValue new_result_qual ARGS((LispValue clauses, LispValue ltlist, LispValue rtlist, int levelnum));
 extern Expr replace_clause_resultvar_refs ARGS((Expr clause, List ltlist, List rtlist, int levelnum));
@@ -17,6 +31,8 @@ extern LispValue replace_clause_joinvar_refs ARGS((LispValue clause, LispValue o
 extern LispValue replace_subclause_joinvar_refs ARGS((LispValue clauses, LispValue outer_tlist, LispValue inner_tlist));
 extern Var replace_joinvar_refs ARGS((Var var, List outer_tlist, List inner_tlist));
 extern List tlist_temp_references ARGS((ObjectId tempid, List tlist));
-extern void replace_result_clause ARGS((List clause, List subplanTargetList));
 extern void set_result_tlist_references ARGS((Result resultNode));
+extern void replace_result_clause ARGS((LispValue clause, List subplanTargetList));
 extern bool OperandIsInner ARGS((LispValue opnd, int inner_relid));
+
+#endif /* setrefsIncluded */

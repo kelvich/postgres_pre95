@@ -36,6 +36,7 @@ RcsId ("$Header$");
 #include "utils/lsyscache.h"
 
 #include "planner/internal.h"
+#include "planner/archive.h"
 #include "planner/cfi.h"
 #include "planner/plancat.h"
 #include "planner/planner.h"

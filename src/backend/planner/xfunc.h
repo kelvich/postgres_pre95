@@ -1,4 +1,20 @@
-/* $Header$ */
+/* ----------------------------------------------------------------
+ *   FILE
+ *	xfunc.h
+ *
+ *   DESCRIPTION
+ *	prototypes for xfunc.c and predmig.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+
+#ifndef xfuncIncluded		/* include this file only once */
+#define xfuncIncluded	1
 
 #include "nodes/relation.h"
 
@@ -33,49 +49,34 @@ extern int XfuncMode;  /* defined in tcop/postgres.c */
 #define is_join(pathnode) (length(get_relids(get_parent(pathnode))) > 1 ? 1 : 0)
 
 /* function prototypes from planner/path/xfunc.c */
-int xfunc_cinfo_compare ARGS((void *arg1 , void *arg2 ));
-extern int xfunc_clause_compare ARGS((void *arg1 , void *arg2 ));
-Cost xfunc_expense ARGS((LispValue clause ));
-Cost xfunc_join_expense ARGS((JoinPath path, int whichchild));
-Cost xfunc_local_expense ARGS((LispValue clause ));
-Cost xfunc_func_expense ARGS((LispValue node, LispValue args));
-List xfunc_find_references ARGS((LispValue clause));
-Cost xfunc_rank ARGS((LispValue clause));
-extern void xfunc_disjunct_sort ARGS((LispValue clause_list ));
-int xfunc_disjunct_compare ARGS((void *arg1 , void *arg2 ));
-int xfunc_width ARGS((LispValue clause));
 extern void xfunc_trypullup ARGS((Rel rel));
-int xfunc_shouldpull ARGS((Path childpath, JoinPath parentpath, int whichchild, CInfo *maxclausept));
-CInfo xfunc_pullup ARGS((Path childpath, JoinPath parentpath, LispValue clause, int whichrel, int clausetype));
-void xfunc_fixvars ARGS((LispValue clause, Path path, int varno));
-LispValue xfunc_primary_join ARGS((JoinPath pathnode));
+extern int xfunc_shouldpull ARGS((Path childpath, JoinPath parentpath, int whichchild, CInfo *maxcinfopt));
+extern CInfo xfunc_pullup ARGS((Path childpath, JoinPath parentpath, CInfo cinfo, int whichchild, int clausetype));
+extern Cost xfunc_rank ARGS((LispValue clause));
+extern Cost xfunc_expense ARGS((LispValue clause));
+extern Cost xfunc_join_expense ARGS((JoinPath path, int whichchild));
+extern Cost xfunc_local_expense ARGS((LispValue clause));
+extern Cost xfunc_func_expense ARGS((LispValue node, LispValue args));
+extern int xfunc_width ARGS((LispValue clause));
+extern Count xfunc_card_unreferenced ARGS((LispValue clause, Relid referenced));
+extern Count xfunc_card_product ARGS((Relid relids));
+extern List xfunc_find_references ARGS((LispValue clause));
+extern LispValue xfunc_primary_join ARGS((JoinPath pathnode));
 extern Cost xfunc_get_path_cost ARGS((Path pathnode));
-bool xfunc_copyrel ARGS((Rel from, Rel *to));
-LispValue xfunc_LispRemove ARGS((LispValue foo, List bar));
-int xfunc_func_width ARGS((regproc funcid, LispValue args));
-int xfunc_tuple_width ARGS((Relation rd));
-Cost xfunc_total_path_cost ARGS((Path pathnode));
-Cost xfunc_expense_per_tuple ARGS((JoinPath joinnode, int whichchild));
-Count xfunc_card_unreferenced ARGS((LispValue clause));
-Count xfunc_card_product ARGS((Relid relids));
+extern Cost xfunc_total_path_cost ARGS((JoinPath pathnode));
+extern Cost xfunc_expense_per_tuple ARGS((JoinPath joinnode, int whichchild));
+extern void xfunc_fixvars ARGS((LispValue clause, Rel rel, int varno));
+extern int xfunc_cinfo_compare ARGS((void *arg1, void *arg2));
+extern int xfunc_clause_compare ARGS((void *arg1, void *arg2));
+extern void xfunc_disjunct_sort ARGS((LispValue clause_list));
+extern int xfunc_disjunct_compare ARGS((void *arg1, void *arg2));
+extern int xfunc_func_width ARGS((regproc funcid, LispValue args));
+extern int xfunc_tuple_width ARGS((Relation rd));
+extern int xfunc_num_join_clauses ARGS((JoinPath path));
+extern LispValue xfunc_LispRemove ARGS((LispValue foo, List bar));
+extern bool xfunc_copyrel ARGS((Rel from, Rel *to));
 
+/* function prototypes from planner/path/predmig.c */
+#include "planner/predmig.h"
 
-/* protos from planner/path/predmig.c */
-extern bool xfunc_do_predmig ARGS((Path root));
-void xfunc_predmig ARGS((JoinPath pathnode, Stream streamroot, Stream laststream, bool *progressp));
-bool xfunc_series_llel ARGS((Stream stream));
-bool xfunc_llel_chains ARGS((Stream root, Stream bottom));
-Stream xfunc_complete_stream ARGS((Stream stream));
-bool xfunc_prdmig_pullup ARGS((Stream origstream, Stream pullme, JoinPath joinpath));
-void xfunc_form_groups ARGS((Stream root, Stream bottom));
-void xfunc_free_stream ARGS((Stream root));
-Stream xfunc_add_clauses ARGS((Stream current));
-void xfunc_setup_group ARGS((Stream node, Stream bottom));
-Stream xfunc_streaminsert ARGS((CInfo clauseinfo, Stream current, int clausetype));
-int xfunc_num_relids ARGS((Stream node));
-StreamPtr xfunc_get_downjoin ARGS((Stream node));
-StreamPtr xfunc_get_upjoin ARGS((Stream node));
-Stream xfunc_stream_qsort ARGS((Stream root, Stream bottom));
-int xfunc_stream_compare ARGS((void *arg1, void *arg2));
-bool xfunc_check_stream ARGS((Stream node));
-bool xfunc_in_stream ARGS((Stream node,stream));
+#endif /* xfuncIncluded */

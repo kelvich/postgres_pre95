@@ -1,16 +1,19 @@
-
-/*     
- *      FILE
+/* ----------------------------------------------------------------
+ *   FILE
  *     	internal
  *     
- *      DESCRIPTION
+ *   DESCRIPTION
  *     	Definitions required throughout the query optimizer.
- *     
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	"$Header$"
+ * ----------------------------------------------------------------
  */
-/* RcsId ("$Header$"); */
 
-/*     
- */
+#ifndef internalIncluded		/* include this file only once */
+#define internalIncluded	1
 
 /*    
  *    	---------- SHARED MACROS
@@ -20,7 +23,6 @@
  *    	Shared with the executor.
  *    
  */
- /* provide ("internal"); */
 
 #include "nodes/nodes.h"
 #include "nodes/primnodes.h"
@@ -28,14 +30,12 @@
 #include "parser/parsetree.h"
 #include "nodes/relation.h"
 #include "catalog/pg_index.h"
-#include "tmp/c.h"
+#include "catalog/syscache.h"	/* for SearchSysCacheGetAttribute, etc. */
 
 /* XXX - versions don't work yet, so parsetree doesn't have them,
    I define the constant here just for the heck of it - jeff */
 
 /*   parse tree manipulation routines */
-
-
 
 /*    
  *    	---------- GLOBAL VARIABLES
@@ -55,10 +55,8 @@ extern List _base_relation_list_;    /*   base relation list */
 extern List _join_relation_list_;    /*   join relation list */
 extern bool _query_is_archival_;       /*   archival query flag */
 
-char *save_globals ARGS((void ));
-void restore_globals ARGS((char *pgh ));
-
 extern int NBuffers;
+
 /*
  *    	System-dependent tuning constants
  *    
@@ -113,28 +111,9 @@ extern int NBuffers;
 #define _SELEC_CONSTANT_LEFT_  0
 #define _SELEC_CONSTANT_RIGHT_ 2
 
-extern LispValue joinmethod_clauses ARGS((JoinMethod node));
-extern LispValue joinmethod_keys ARGS((JoinMethod node));
-
-extern LispValue SearchSysCacheGetAttribute();
-extern LispValue TypeDefaultRetrieve();
-
 #define retrieve_cache_attribute SearchSysCacheGetAttribute
 
-
 #define or_clause_p or_clause
-/*
-#define INDEXSCAN  20
-#define SEQSCAN    21
-#define NESTLOOP   22
-#define HASHJOIN   23
-#define MERGESORT  24
-#define SORT       25    
-#define HASH       26
-#define MATERIAL   27
-*/
-extern TLE MakeTLE();
-extern void set_joinlist();
 
 #define TOLERANCE 0.000001
 
@@ -145,3 +124,28 @@ extern int BushyPlanFlag;
 #define deactivate_joininfo(joininfo)	set_inactive(joininfo, true)
 #define joininfo_inactive(joininfo)	get_inactive(joininfo)
 
+/*
+ *	prototypes for internal.c.
+ *	Automatically generated using mkproto
+ */
+
+extern char *save_globals ARGS((void));
+extern void restore_globals ARGS((char *pgh));
+extern List joinmethod_clauses ARGS((JoinMethod method));
+extern List joinmethod_keys ARGS((JoinMethod method));
+extern Node rule_lock_plan ARGS((void));
+extern Node make_rule_lock ARGS((void));
+extern Node rule_lock_type ARGS((void));
+extern Node rule_lock_attribute ARGS((void));
+extern Node rule_lock_relation ARGS((void));
+extern Node rule_lock_var ARGS((void));
+extern TLE MakeTLE ARGS((Resdom foo, Expr bar));
+extern void set_joinlist ARGS((TL foo, List bar));
+extern Var get_expr ARGS((TLE foo));
+extern Resdom get_resdom ARGS((TLE foo));
+extern TLE get_entry ARGS((TL foo));
+extern void set_entry ARGS((TL node, TLE foo));
+extern List get_joinlist ARGS((TL foo));
+extern void init_planner ARGS((void));
+
+#endif /* internalIncluded */

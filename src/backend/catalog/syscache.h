@@ -1,9 +1,15 @@
-/*
- * syscache.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	syscache.h
+ *
+ *   DESCRIPTION
  *	System catalog cache definitions.
  *
- * Identification:
+ *   NOTES
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	SysCacheIncluded
@@ -73,19 +79,14 @@ struct cachedesc {
     HeapTuple (*iScanFunc)();  /* function to handle index scans */
 };
 
-int zerocaches ARGS(( void ));
-void InitCatalogCache ARGS((void ));
-/*
- * SearchSysCacheStruct and SearchSysCacheTuple take a varying number of 
- * args depending on how many keys the lookup requires.  For this reason 
- * the formal arg list has been left out.
- */
-int32 SearchSysCacheStruct();
-HeapTuple SearchSysCacheTuple();
+/* from utils/init/postinit.c */
+int zerocaches ARGS((void));
+
+/* from utils/cache/syscache.c */
+extern void InitCatalogCache ARGS((void));
+extern HeapTuple SearchSysCacheTuple ARGS((int cacheId, char *key1, char *key2, char *key3, char *key4));
+extern int32 SearchSysCacheStruct ARGS((int cacheId, char *returnStruct, char *key1, char *key2, char *key3, char *key4));
+extern struct _LispValue *SearchSysCacheGetAttribute ARGS((int cacheId, AttributeNumber attributeNumber, char *key1, char *key2, char *key3, char *key4));
+extern struct _LispValue *TypeDefaultRetrieve ARGS((ObjectId typId));
 
 #endif /* !SysCacheIncluded */
-
-
-
-
-

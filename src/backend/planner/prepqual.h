@@ -1,4 +1,20 @@
-/* $Header$ */
+/* ----------------------------------------------------------------
+ *   FILE
+ *	prepqual.h
+ *
+ *   DESCRIPTION
+ *	prototypes for prepqual.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+
+#ifndef prepqualIncluded		/* include this file only once */
+#define prepqualIncluded	1
 
 extern LispValue preprocess_qualification ARGS((LispValue qual, LispValue tlist));
 extern LispValue cnfify ARGS((LispValue qual, bool removeAndFlag));
@@ -14,3 +30,5 @@ extern LispValue qualcleanup ARGS((LispValue qual));
 extern LispValue remove_ands ARGS((LispValue qual));
 extern LispValue update_relations ARGS((LispValue tlist));
 extern LispValue update_clauses ARGS((LispValue update_relids, LispValue qual, LispValue command));
+
+#endif /* prepqualIncluded */

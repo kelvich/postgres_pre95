@@ -23,6 +23,6 @@ extern void IndexSelectivity ARGS((ObjectId indexrelid, ObjectId indrelid, int32
 extern float64data restriction_selectivity ARGS((ObjectId functionObjectId, ObjectId operatorObjectId, ObjectId relationObjectId, AttributeNumber attributeNumber, char *constValue, int32 constFlag));
 extern float64data join_selectivity ARGS((ObjectId functionObjectId, ObjectId operatorObjectId, ObjectId relationObjectId1, AttributeNumber attributeNumber1, ObjectId relationObjectId2, AttributeNumber attributeNumber2));
 extern LispValue find_inheritance_children ARGS((LispValue inhparent));
-extern LispValue VersionGetParents ARGS((LispValue verrelid, LispValuelist));
+extern LispValue VersionGetParents ARGS((LispValue verrelid, LispValue list));
 
 #endif /* plancatIncluded */
