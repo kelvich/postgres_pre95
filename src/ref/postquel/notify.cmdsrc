@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "NOTIFY" COMMANDS 01/23/93
+.TH "NOTIFY" COMMANDS 02/09/94
 .XA 2 "Notify"
 .SH NAME
 notify \(em signal all frontends and backends listening on a relation
@@ -22,6 +22,3 @@ this can be thought of as the alerter mechanism.
 define rule(commands),
 listen(commands),
 libpq.
-.SH BUGS
-.BR Notify
-is not implemented in Version \*(PV.

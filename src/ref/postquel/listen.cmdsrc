@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "LISTEN" COMMANDS 01/23/93
+.TH "LISTEN" COMMANDS 02/09/94
 .XA 2 "Listen"
 .SH NAME
 listen \(em listen for notification on a relation
@@ -22,6 +22,3 @@ define rule(commands),
 notify(commands),
 retrieve(commands),
 libpq.
-.SH BUGS
-.BR Listen
-is not implemented in Version \*(PV.
