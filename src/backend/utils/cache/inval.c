@@ -245,19 +245,27 @@ getmyrelids()
 {
     HeapTuple	tuple;
      
-    tuple = SearchSysCacheTuple(RELNAME, RelationRelationName);
+    tuple = SearchSysCacheTuple(RELNAME,
+				RelationRelationName->data,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     Assert(HeapTupleIsValid(tuple));
     MyRelationRelationId = tuple->t_oid;
      
-    tuple = SearchSysCacheTuple(RELNAME, AttributeRelationName);
+    tuple = SearchSysCacheTuple(RELNAME,
+				AttributeRelationName->data,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     Assert(HeapTupleIsValid(tuple));
     MyAttributeRelationId = tuple->t_oid;
      
-    tuple = SearchSysCacheTuple(RELNAME, AccessMethodRelationName);
+    tuple = SearchSysCacheTuple(RELNAME,
+				AccessMethodRelationName->data,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     Assert(HeapTupleIsValid(tuple));
     MyAMRelationId = tuple->t_oid;
      
-    tuple = SearchSysCacheTuple(RELNAME, AccessMethodOperatorRelationName);
+    tuple = SearchSysCacheTuple(RELNAME,
+				AccessMethodOperatorRelationName->data,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     Assert(HeapTupleIsValid(tuple));
     MyAMOPRelationId = tuple->t_oid;
 }
