@@ -381,8 +381,8 @@ index_getprocid(irel, attnum, procnum)
 
     natts = irel->rd_rel->relnatts;
 
-    loc = (RegProcedure *)
-       (((char *) &(irel->rd_att.data[natts])) + sizeof(IndexStrategy));
+    loc = *((RegProcedure **)
+       (((char *) &(irel->rd_att.data[natts])) + sizeof(IndexStrategy)));
 
     Assert(loc != NULL);
 

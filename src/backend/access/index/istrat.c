@@ -651,14 +651,14 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 	    entry[1].argument =
 		ObjectIdGetDatum(operatorClassObjectId[attributeNumber - 1]);
 
-	    scan = heap_beginscan(relation, false, NowTimeQual, 3,
+	    scan = heap_beginscan(relation, false, NowTimeQual, 2,
 				  (ScanKey)entry);
 
 	    while (tuple = heap_getnext(scan, false, (Buffer *)NULL),
 		   HeapTupleIsValid(tuple)) {
 
 		form = (Form_pg_amproc) HeapTupleGetForm(tuple);
-		loc[form->amprocnum] = form->amproc;
+		loc[(form->amprocnum - 1)] = form->amproc;
 	    }
 
 	    heap_endscan(scan);
