@@ -33,10 +33,11 @@ typedef uint32	PagePartition;	/* subpage partition indicator */
  */
 extern
 PagePartition
-CreatePagePartition ARGS((
+CreatePagePartition();/* BAD PROTOTYPE DELETED -- glass */
+/*ARGS((
 	BlockSize	blockSize,
 	PageSize	pageSize
-));
+)); */
 
 /*
  * PagePartitionGetPagesPerBlock --

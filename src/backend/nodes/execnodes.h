@@ -86,7 +86,7 @@ typedef void    (*HookFunction)();
  */
 
 class (IndexInfo) public (Node) {
-    inherits(Node);
+    inherits0(Node);
     int                 ii_NumKeyAttributes;
     AttributeNumberPtr  ii_KeyAttributeNumbers;
 };
@@ -110,7 +110,7 @@ typedef IndexInfo       *IndexInfoPtr;
  */
 
 class (RelationInfo) public (Node) {
-    inherits(Node);
+    inherits0(Node);
     Index               ri_RangeTableIndex;
     Relation            ri_RelationDesc;
     int                 ri_NumIndices;
@@ -130,7 +130,7 @@ class (RelationInfo) public (Node) {
  * ----------------
  */
 class (TupleCount) public (Node) {
-      inherits(Node);
+      inherits0(Node);
   /* private: */
       int       tc_retrieved;
       int       tc_appended;
@@ -172,7 +172,7 @@ class (TupleCount) public (Node) {
  * ----------------
  */
 class (TupleTableSlot) public (LispValue) {
-      inherits(LispValue);
+      inherits2(LispValue);
   /* private: */
       bool		ttc_shouldFree;
       bool		ttc_descIsNew;
@@ -207,7 +207,7 @@ class (TupleTableSlot) public (LispValue) {
  */
 class (ExprContext) public (Node) {
 #define ExprContextDefs \
-        inherits(Node); \
+        inherits0(Node); \
         TupleTableSlot ecxt_scantuple; \
         TupleTableSlot ecxt_innertuple; \
         TupleTableSlot ecxt_outertuple; \
@@ -236,7 +236,7 @@ class (ExprContext) public (Node) {
  * ----------------
  */
 class (ProjectionInfo) public (Node) {
-      inherits(Node);
+      inherits0(Node);
   /* private: */
       List		  pi_targetlist;
       int		  pi_len;
@@ -276,7 +276,7 @@ class (ProjectionInfo) public (Node) {
  * ----------------
  */
 class (JunkFilter) public (JunkFilter) {
-      inherits(Node);
+      inherits0(Node);
   /* private: */
       List			jf_targetList;
       int			jf_length;
@@ -357,7 +357,7 @@ class (JunkFilter) public (JunkFilter) {
  */
 
 class (EState) public (Node) {
-      inherits(Node);
+      inherits0(Node);
       ScanDirection     es_direction;
       abstime           es_time;
       ObjectId          es_owner;
@@ -432,7 +432,7 @@ class (EState) public (Node) {
  */
 class (HookNode) public (Node) {
 #define HookNodeDefs \
-      inherits(Node); \
+      inherits0(Node); \
       HookFunction      hook_at_initnode; \
       HookFunction      hook_pre_procnode; \
       HookFunction      hook_pre_endnode; \
@@ -474,7 +474,7 @@ class (HookNode) public (Node) {
  */
 class (BaseNode) public (Node) {
 #define BaseNodeDefs \
-      inherits(Node); \
+      inherits0(Node); \
       int               base_id; \
       Pointer		base_parent; \
       Pointer		base_parent_state; \
@@ -520,7 +520,7 @@ class (BaseNode) public (Node) {
 
 class (CommonState) public (BaseNode) {
 #define CommonStateDefs \
-      inherits(BaseNode); \
+      inherits1(BaseNode); \
       TupleTableSlot      cs_OuterTupleSlot; \
       TupleTableSlot      cs_ResultTupleSlot; \
       ExprContext         cs_ExprContext; \
@@ -556,7 +556,7 @@ class (CommonState) public (BaseNode) {
  */
 
 class (ResultState) public (CommonState) {
-   inherits(CommonState);
+   inherits2(CommonState);
    int          rs_Loop;
 };
 
@@ -584,7 +584,7 @@ class (ResultState) public (CommonState) {
  */
 
 class (AppendState) public (BaseNode) {
-    inherits(CommonState);
+    inherits2(CommonState);
     int         as_whichplan;
     int         as_nplans;
     ListPtr     as_initialized;
@@ -623,7 +623,7 @@ class (AppendState) public (BaseNode) {
 
 class (CommonScanState) public (CommonState) {
 #define CommonScanStateDefs \
-      inherits(CommonState); \
+      inherits2(CommonState); \
       Relation          css_currentRelation; \
       HeapScanDesc      css_currentScanDesc; \
       RelationRuleInfo	css_ruleInfo; \
@@ -659,7 +659,7 @@ class (CommonScanState) public (CommonState) {
  */
 
 class (ScanState) public (CommonScanState) {
-      inherits(CommonScanState);
+      inherits3(CommonScanState);
   /* private: */
       bool                      ss_ProcOuterFlag;
       Index                     ss_OldRelId;
@@ -667,7 +667,7 @@ class (ScanState) public (CommonScanState) {
 };
 
 class (ScanTempState) public (CommonScanState) {
-	inherits(CommonScanState);
+	inherits3(CommonScanState);
 /* private: */
         int         st_whichplan;
         int         st_nplans;
@@ -701,7 +701,7 @@ class (ScanTempState) public (CommonScanState) {
  * ----------------
  */
 class (IndexScanState) public (CommonState) {
-    inherits(CommonState);
+    inherits2(CommonState);
     int                 iss_NumIndices;
     int                 iss_IndexPtr;
     ScanKeyPtr          iss_ScanKeys;
@@ -732,7 +732,7 @@ class (IndexScanState) public (CommonState) {
  */
 class (JoinState) public (CommonState) {
 #define JoinStateDefs \
-    inherits(CommonState)
+    inherits2(CommonState)
   /* private: */
     JoinStateDefs;
   /* public: */
@@ -757,7 +757,7 @@ class (JoinState) public (CommonState) {
  */
 
 class (NestLoopState) public (JoinState) {
-      inherits(JoinState);
+      inherits3(JoinState);
   /* private: */
       bool         nl_PortalFlag;
   /* public: */
@@ -785,7 +785,7 @@ class (NestLoopState) public (JoinState) {
  */
 
 class (MergeJoinState) public (JoinState) {
-      inherits(JoinState);
+      inherits3(JoinState);
   /* private: */
       List           mj_OSortopI;
       List           mj_ISortopO;
@@ -813,8 +813,10 @@ typedef char	*charP;
  *	hj_InnerBatches		file descriptors for inner batches
  *	hj_OuterReadPos		current read position of outer batch
  *	hj_OuterReadBlk		current read block of outer batch
- *	hj_OuterTupleSlot	tuple slot for outer tuples
- *	hj_HashTupleSlot	tuple slot for hashed tuples
+ *	hj_OuterTupleSlot       tuple slot for outer tuples
+ *      hj_HashTupleSlot        tuple slot for hashed tuples
+ *
+ *	
  *
  *   JoinState information
  *
@@ -830,7 +832,7 @@ typedef char	*charP;
  */
 
 class (HashJoinState) public (JoinState) {
-      inherits(JoinState);
+      inherits3(JoinState);
   /* private: */
       HashJoinTable     hj_HashTable;
       IpcMemoryId	hj_HashTableShmId;
@@ -882,7 +884,7 @@ class (HashJoinState) public (JoinState) {
  */
 
 class (MaterialState) public (CommonScanState) {
-      inherits(CommonScanState);
+      inherits3(CommonScanState);
   /* private: */
       bool      mat_Flag;
       Relation  mat_TempRelation;
@@ -925,7 +927,7 @@ class (MaterialState) public (CommonScanState) {
  */
 
 class (AggState) public (CommonScanState) {
-	inherits(CommonScanState);
+	inherits3(CommonScanState);
     /* private: */
 	 bool      agg_Flag;
 	 Relation  agg_TempRelation;
@@ -968,7 +970,7 @@ class (AggState) public (CommonScanState) {
 
 class (SortState) public (CommonScanState) {
 #define SortStateDefs \
-      inherits(CommonScanState); \
+      inherits3(CommonScanState); \
       bool      sort_Flag; \
       Pointer   sort_Keys; \
       Relation  sort_TempRelation
@@ -999,7 +1001,7 @@ class (SortState) public (CommonScanState) {
  */
 
 class (UniqueState) public (CommonState) {
-      inherits(CommonState);
+      inherits2(CommonState);
   /* private: */
   /* public: */
 };
@@ -1021,7 +1023,7 @@ class (UniqueState) public (CommonState) {
  */
 
 class (HashState) public (CommonState) {
-      inherits(CommonState);
+      inherits2(CommonState);
   /* private: */
       FileP		hashBatches;
   /* public: */

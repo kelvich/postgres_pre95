@@ -213,7 +213,7 @@ typedef	struct Plan *PlanPtr;
 
 class (Plan) public (Node) {
 #define PlanDefs \
-	inherits(Node); \
+	inherits0(Node); \
 	Cost			cost; \
 	Count			plan_size; \
 	Count			plan_width; \
@@ -242,7 +242,7 @@ typedef	struct Fragment *FragmentPtr;
 
 class (Fragment) public (Node) {
 #define FragmentDefs \
-        inherits(Node); \
+        inherits0(Node); \
         Plan           	frag_root; \
         Plan           	frag_parent_op; \
         int            	frag_parallel; \
@@ -266,7 +266,7 @@ class (Fragment) public (Node) {
  * ----------------
  */
 class (Existential) public (Plan) {
-	inherits(Plan);
+	inherits1(Plan);
  /* public: */
 };
 
@@ -275,7 +275,7 @@ class (Existential) public (Plan) {
  * ----------------
  */
 class (Result) public (Plan) {
-	inherits(Plan);
+	inherits1(Plan);
  /* private: */
 	List			resrellevelqual;
 	List			resconstantqual;
@@ -288,7 +288,7 @@ class (Result) public (Plan) {
  * ----------------
  */
 class (Append) public (Plan) {
-	inherits(Plan);
+	inherits1(Plan);
  /* private: */
 	List			unionplans;
 	Index			unionrelid;
@@ -305,7 +305,7 @@ class (Append) public (Plan) {
 
 class (Scan) public (Plan) {
 #define	ScanDefs \
-	inherits(Plan); \
+	inherits1(Plan); \
 	Index			scanrelid; \
    	ScanState		scanstate
  /* private: */
@@ -318,14 +318,14 @@ class (Scan) public (Plan) {
  * ----------------
  */
 class (SeqScan) public (Scan) {
-	inherits(Scan);
+	inherits2(Scan);
  /* private: */
  /* public: */
 };
 
 class (ScanTemps) public (Plan) {
 #define ScanTempDefs \
-        inherits(Plan); \
+        inherits1(Plan); \
         List        temprelDescs; \
         ScanTempState   scantempState
 /* private: */
@@ -338,7 +338,7 @@ class (ScanTemps) public (Plan) {
  * ----------------
  */
 class (IndexScan) public (Scan) {
-	inherits(Scan);
+	inherits2(Scan);
  /* private: */
 	List			indxid;
 	List			indxqual;
@@ -357,7 +357,7 @@ class (IndexScan) public (Scan) {
  * ----------------
  */
 class (JoinRuleInfo) public (Node) {
-	inherits(Node);
+	inherits0(Node);
  /* private: */
 	ObjectId	jri_operator;
 	AttributeNumber	jri_inattrno;
@@ -383,7 +383,7 @@ typedef	struct JoinRuleInfo *JoinRuleInfoPtr;
 
 class (Join) public (Plan) {
 #define	JoinDefs \
-	inherits(Plan);	\
+	inherits1(Plan);	\
 	JoinRuleInfoPtr	ruleinfo
  /* private: */
 	JoinDefs;
@@ -395,7 +395,7 @@ class (Join) public (Plan) {
  * ----------------
  */
 class (NestLoop) public (Join) {
-	inherits(Join);
+	inherits2(Join);
  /* private: */
 	NestLoopState		nlstate;
 	JoinRuleInfo		nlRuleInfo;
@@ -407,7 +407,7 @@ class (NestLoop) public (Join) {
  * ----------------
  */
 class (MergeJoin) public (Join) {
-	inherits(Join);
+	inherits2(Join);
  /* private: */
 	List			mergeclauses;
 	ObjectId		mergesortop;
@@ -422,7 +422,7 @@ class (MergeJoin) public (Join) {
  * ----------------
  */
 class (HashJoin) public (Join) {
-	inherits(Join);
+	inherits2(Join);
  /* private: */
 	List			hashclauses;
 	ObjectId		hashjoinop;
@@ -443,7 +443,7 @@ class (HashJoin) public (Join) {
 
 class (Temp) public (Plan) {
 #define	TempDefs \
-	inherits(Plan); \
+	inherits1(Plan); \
 	ObjectId		tempid; \
 	Count			keycount
  /* private: */
@@ -457,7 +457,7 @@ class (Temp) public (Plan) {
  */
 class (Material) public (Temp) {
 #define MaterialDefs \
-	inherits(Temp); \
+	inherits2(Temp); \
 	MaterialState		matstate
  /* private: */
 	MaterialDefs;
@@ -470,7 +470,7 @@ class (Material) public (Temp) {
  */
 class (Sort) public (Temp) {
 #define	SortDefs \
-	inherits(Temp); \
+	inherits2(Temp); \
 	SortState		sortstate
  /* private: */
 	SortDefs;
@@ -482,7 +482,7 @@ class (Sort) public (Temp) {
  */
 class (Agg) public (Temp) {
 #define AggDefs \
-	inherits(Temp); \
+	inherits2(Temp); \
 	Name                    aggname; \
 	AggState                aggstate
     /* private */
@@ -496,7 +496,7 @@ class (Agg) public (Temp) {
  */
 class (Unique) public (Temp) {
 #define UniqueDefs \
-	inherits(Temp); \
+	inherits2(Temp); \
 	UniqueState		uniquestate
  /* private: */
 	UniqueDefs;
@@ -509,7 +509,7 @@ class (Unique) public (Temp) {
  */
 class (Hash) public (Plan) {
 #define HashDefs \
-	inherits(Plan); \
+	inherits1(Plan); \
 	Var			hashkey; \
 	HashState		hashstate; \
 	HashJoinTable		hashtable; \
@@ -526,7 +526,7 @@ class (Hash) public (Plan) {
  */
 class (Choose) public (Plan) {
 #define ChooseDefs \
-	inherits(Plan); \
+	inherits1(Plan); \
 	List			chooseplanlist
 /* private: */
 	ChooseDefs;

@@ -41,16 +41,22 @@
  */
 
 typedef struct MemoryContextMethodsData {
-	Pointer	(*alloc)
-		ARGS((classObj(MemoryContext) context, uint32 length));
-	void	(*free_p) /* need to use free as a #define, so can't use free */
-		ARGS((classObj(MemoryContext) context, Pointer pointer));
-	Pointer	(*realloc) ARGS((
+	Pointer	(*alloc)();
+/* BAD PROTOTYPE DELETED -- glass */
+/*		ARGS((classObj(MemoryContext) context, uint32 length));*/
+	void	(*free_p)(); /* need to use free as a #define, so can't use free */
+/* BAD PROTOTYPE DELETED -- glass */
+/*		ARGS((classObj(MemoryContext) context, Pointer pointer));*/
+	Pointer	(*realloc)();
+/* BAD PROTOTYPE DELETED -- glass */
+/*	    ARGS((
 			classObj(MemoryContext) context,
 			Pointer pointer,
 			uint32 length
-		));
-	String	(*getName) ARGS((classObj(MemoryContext) context));
+		));*/
+	String	(*getName)();
+/* BAD PROTOTYPE DELETED -- glass */
+/*   ARGS((classObj(MemoryContext) context)); */
 #if	0
 /*
  * Do these make sense as general methods?  Probably not, but I am not
@@ -59,7 +65,9 @@ typedef struct MemoryContextMethodsData {
 	void	(*reset) ARGS((classObj(MemoryContext) context));
 	void	(*destroy) ARGS((classObj(MemoryContext) context));
 #endif
-	void	(*dump) ARGS((classObj(MemoryContext) context));
+	void	(*dump)();
+/* BAD PROTOTYPE DELETED -- glass */	
+	    /* ARGS((classObj(MemoryContext) context));*/
 } MemoryContextMethodsData;
 
 typedef MemoryContextMethodsData	*MemoryContextMethods;
@@ -68,7 +76,7 @@ typedef MemoryContextMethodsData	*MemoryContextMethods;
 
 class (MemoryContext) public (Node) {
 #define MemoryContextDefs \
-	inherits(Node); \
+	inherits0(Node); \
 	MemoryContextMethods	method
 /* private: */
 	MemoryContextDefs;
@@ -83,7 +91,7 @@ class (MemoryContext) public (Node) {
 };
 
 class (GlobalMemory) public (MemoryContext) {
-	inherits(MemoryContext);
+	inherits1(MemoryContext);
 	AllocSetData	setData;	/* set of allocated items */
 	String		name;
 	OrderedElemData	elemData;	/* member of set of GlobalMemory */
@@ -92,7 +100,7 @@ class (GlobalMemory) public (MemoryContext) {
 
 class (PortalMemoryContext) public (MemoryContext) {
 #define PortalMemoryContextDefs \
-	inherits(MemoryContext)
+	inherits1(MemoryContext)
 /* private: */
 	PortalMemoryContextDefs;
 /* protected: */
@@ -101,12 +109,12 @@ class (PortalMemoryContext) public (MemoryContext) {
 };
 
 class (PortalVariableMemory) public (PortalMemoryContext) {
-	inherits(PortalMemoryContext);
+	inherits2(PortalMemoryContext);
 	AllocSetData	setData;
 };
 
 class (PortalHeapMemory) public (PortalMemoryContext) {
-	inherits(PortalMemoryContext);
+	inherits2(PortalMemoryContext);
 	Pointer		block;
 	FixedStackData	stackData;
 };

@@ -662,9 +662,10 @@ AttributeSizeIsValid ARGS((
  */
 extern
 bool
-TupleSizeIsValid ARGS((
+TupleSizeIsValid();/* BAD PROTOTYPE DELETED -- glass */
+/*    ARGS((
 	TupleSize	size
-));
+));*/
 
 #endif	/* !defined(LimitIncluded) */
 

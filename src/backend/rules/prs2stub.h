@@ -154,7 +154,7 @@ typedef Prs2StubStatsData *Prs2StubStats;
 extern
 Prs2RawStub
 prs2StubToRawStub ARGS((
-	Prs2Stub	stub;
+	Prs2Stub	stub
 ));
 
 /*-------------------------
@@ -178,7 +178,7 @@ prs2StubToSmallRawStubs ARGS((
 extern
 Prs2Stub
 prs2RawStubToStub ARGS((
-	Prs2RawStub	rawStub;
+	Prs2RawStub	rawStub
 ));
 
 /*-------------------------
@@ -232,7 +232,7 @@ extern
 int
 prs2SearchStub ARGS((
 	Prs2Stub	stubs,
-	Prs2OneStub	oneStub,
+	Prs2OneStub	oneStub
 ));
 
 /*-------------------------
@@ -242,10 +242,11 @@ prs2SearchStub ARGS((
  */
 extern
 void
-prs2AddOneStub ARGS((
+prs2AddOneStub();/* BAD PROTOTYPE DELETED -- glass */ 
+ /*ARGS((
 	Prs2Stubs	oldStubs,
 	Prs2OneStub	newStub
-));
+));*/
 
 /*-------------------------
  * prs2DeleteOneStub
@@ -342,8 +343,8 @@ stubin ARGS((
 extern
 void
 prs2AddRelationStub ARGS((
-	Relation	relation;
-	Prs2OneStub	stub;
+	Relation	relation,
+	Prs2OneStub	stub
 ));
 
 /*-------------------------
@@ -353,8 +354,8 @@ prs2AddRelationStub ARGS((
 extern
 void
 prs2DeleteRelationStub ARGS((
-	Relation	relation;
-	Prs2OneStub	stub;
+	Relation	relation,
+	Prs2OneStub	stub
 ));
 
 /*-------------------------
@@ -409,7 +410,7 @@ RuleLock
 prs2StubGetLocksForTuple ARGS((
 	HeapTuple	tuple,
 	Buffer		buffer,
-	TupleDescriptor	tupDesc;
+	TupleDescriptor	tupDesc,
 	Prs2Stub	stubs
 ));
 
@@ -437,13 +438,14 @@ prs2StubQualTestTuple ARGS((
  */
 extern
 Prs2OneStub
-prs2MakeStubForInnerRelation ARGS((
+prs2MakeStubForInnerRelation(); /* BAD PROTOTYPE DELETED -- glass */ /*
+ARGS((
     JoinRuleInfo	ruleInfo,
     HeapTuple		tuple,
     Buffer		buffer,
     TupleDescriptor	outerTupleDesc
 ));
-
+*/
 /*--------------------------
  * prs2AddLocksAndReplaceTuple:
  * test the given tuple to see if it satisfies the stub qualification,
@@ -466,9 +468,11 @@ prs2AddLocksAndReplaceTuple ARGS((
  */
 extern
 void
-prs2UpdateStats ARGS((
+prs2UpdateStats(); /* BAD PROTOTYPE DELETED -- glass */
+/*
+    ARGS((
     JoinRuleInfo	ruleInfo,
-    int			operation;
-));
+    int			operation
+));*/
 
 #endif Prs2StubIncluded
