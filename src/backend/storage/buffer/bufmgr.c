@@ -1015,15 +1015,17 @@ ResetBufferPool()
  *
  * -----------------------------------------------
  */
-void
+int
 BufferPoolCheckLeak()
 {
     register int i;
     for (i=1; i<=NBuffers; i++) {
 	if (BufferIsValid(i)) {
 	    elog(DEBUG, "BUFFER LEAK!!! send mail to wei.");
+	    return(1);
 	  }
       }
+    return(0);
 }
 
 /* ------------------------------------------------
@@ -1325,7 +1327,18 @@ PrintBufferDescs()
      }
 }
 
+void
+PrintPinnedBufs()
+{
+    register int i;
+    BufferDesc *buf;
 
+    for (i=0; i<NBuffers; i++) {
+	buf = &(BufferDescriptors[i]);
+	if (PrivateRefCount[i] > 0)
+	    printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d %d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount, PrivateRefCount[i]);
+     }
+}
 
 /* -----------------------------------------------------
  * BufferShmemSize
@@ -1475,7 +1488,7 @@ BlockNumber blockNum;
     if (ShowPinTrace) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(b);
-        fprintf(stderr, "PIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", b, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+        fprintf(stderr, "PIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", b, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[b - 1], file, line);
       }
     return b;
 }
