@@ -20,7 +20,7 @@ CFLAGS+= ${KRBFLAGS}
 .endif
 
 SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
-	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c \
+	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c pqsignal.c \
 	dynahash.c format.c hashfn.c simplelists.c
 
 .if (${PORTNAME} == "sparc")
@@ -65,7 +65,8 @@ HEADERFILES= port/${PORTNAME}/machine.h catalog/pg_user.h catalog/pg_lobj.h \
 	tmp/fastpath.h tmp/libpq-be.h tmp/libpq-fe.h \
 	tmp/libpq-fs.h tmp/libpq.h tmp/postgres.h tmp/pqcomm.h \
 	tmp/simplelists.h utils/dynamic_loader.h utils/exc.h \
-	utils/exception.h utils/log.h utils/geo-decls.h libpq/auth.h
+	utils/exception.h utils/log.h utils/geo-decls.h \
+	libpq/auth.h libpq/pqsignal.h
 
 .if (${PORTNAME} == "hpux")
 HEADERFILES+= port/${PORTNAME}/fixade.h
