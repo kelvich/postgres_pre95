@@ -258,8 +258,8 @@ MakeRangeTableEntry( relname , options , refname)
 	extern LispValue p_trange;
 	int index;
 
-	/* printf("relname is : %s\n",(char *)relname); */
-	fflush(stdout);
+	/*printf("relname is : %s\n",(char *)relname); 
+	fflush(stdout);*/
 
 	index = RangeTablePosn (CString(relname)); 
 	

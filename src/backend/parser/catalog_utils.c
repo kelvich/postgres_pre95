@@ -241,8 +241,9 @@ varattno ( rd , a)
 }
 
 /* given range variable, return id of variable */
-RangeTablePosn ( rangevar )
+RangeTablePosn ( rangevar , inherit , timerange)
      char *rangevar;
+     int inherit,timerange;
 {
 	int index = 1;
 	extern LispValue p_rtable;
@@ -251,15 +252,28 @@ RangeTablePosn ( rangevar )
 	/*printf("Looking for relation : %s\n",rangevar);
 	fflush(stdout);*/
 	while ( ! lispNullp (temp )) {
-		/*printf("%s\n",CString ( CAR(CAR (temp ))));*/
-		fflush (stdout );
+		/*printf("%s\n",CString ( CAR(CAR (temp ))));
+		fflush (stdout );*/
 		if ( ! strcmp ( CString ( CAR( CAR (temp ))),
 			        rangevar ))
 		  return (index );
 		temp = CDR(temp);
 		index++;
 	}
-	return(0);
+	index = 1;
+	temp = p_rtable;
+	while ( ! lispNullp (temp )) {
+		/*printf("%s\n",CString ( CAR(CDR(CAR (temp )))));
+		fflush (stdout );*/
+		if ( (! strcmp ( CString ( CAR( CDR(CAR (temp )))),
+				rangevar ) ) &&
+		    (inherit == inherit) &&
+		    (timerange == timerange))
+		  return (index );
+		temp = CDR(temp);
+		index++;
+	}
+		return(0);
 }
 
 /* Given a range variable name, reutrn associated reldesc pointer 

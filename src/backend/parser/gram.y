@@ -269,9 +269,8 @@ CreateStmt:
 
 			$$ = nappend1 ( $$, $6 );
 			temp = $$;
-			while (temp != LispNil && CDR(temp) != LispNil) {
-				temp = CDR(temp);
-			}
+			while (temp != LispNil && CDR(temp) != LispNil) 
+			  temp = CDR(temp);
 			CDR(temp) = $4;
 			/* $$ = nappend1 ( $$, $4 ); */
 		}
@@ -934,8 +933,9 @@ from_val:
 		{
 			/* Convert "p, p1 in proc" to 
 			   "p in proc, p1 in proc" */
-			LispValue temp2;
+			LispValue temp,temp2,temp3;
 			LispValue frelname;
+
 			temp = p_rtable;
 			while(! lispNullp(CDR (temp))) {
 				temp = CDR(temp); /* move to last elt */
@@ -947,8 +947,8 @@ from_val:
 
 			temp2 = CDR($1);
 			while(! lispNullp(temp2)) {
-				temp = lispCons(CAR(temp2),CDR(temp));
-				p_rtable = nappend1(p_rtable,temp);
+				temp3 = lispCons(CAR(temp2),CDR(CAR(temp)));
+				p_rtable = nappend1(p_rtable,temp3);
 				temp2 = CDR(temp2);
 			}
 
