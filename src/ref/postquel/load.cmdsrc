@@ -52,4 +52,3 @@ takes about one minute.
 .lp
 On DECstations, you must use the "-G O" option when compiling object files to
 be loaded.
-.pp
