@@ -13,8 +13,7 @@ is sponsored by the Defense Advanced Research Projects Agency
 .A DARPA ),
 the
 Army Research Office (ARO), the National Science Foundation (NSF),
-.A 3M 
-Corp, and
+and
 .A ESL ,
 Inc.
 .lp
@@ -33,10 +32,10 @@ this is
 software.
 .uh "POSTGRES DISTRIBUTION"
 .sp
-This manual describes Version 2.1 of POSTGRES.  The POSTGRES software is
-about 170,000 lines of C code, and is available for SUN 3 and
-SUN 4 class machines, for DECstation 3100 machines and for
-the SEQUENT Symetry machine.
+This manual describes Version 3.0 of POSTGRES.  The POSTGRES software is
+about 190,000 lines of C code, and is available for SUN 3 and
+SUN 4 class machines, for DECstation 3100 and 5000 machines and for
+the SEQUENT Symmetry machine.
 Information on obtaining the source code for these computers is
 available from:
 .(l
@@ -48,28 +47,19 @@ Berkeley, Ca. 94720
 (415) 642-4662
 .)l
 .sp
-No
-attempt has been made to optimize Version 2.1;
-consequently, one
-should expect
-performance comparable to the public domain,
+Version 3.0 has been tuned modestly.  Hence on the Wisconsin benchmark,
+one should expect performance about twice that of the public domain,
 University of
 California Version of \*(II, a relational prototype
 from the late 1970s.
 .sp
-This manual contains the description of a few capabilities
-which are not implemented in Version 2.1.  We expect to support
-additional functionality in Version 3, currently scheduled for third quarter 1991. 
-Moreover, Version 3
-will be tuned to run as fast as possible.
-
 .uh "POSTGRES DOCUMENTATION"
 .lp
 This
-reference manual describes the functionality of Version 3
+reference manual describes the functionality of Version 3.0
 and contains
 notations where appropriate to indicate which features are not implemented in
-Version 3.
+Version 3.0.
 Application developers should note that
 this reference manual contains only the specification for
 the low-level call-oriented application program interface,
@@ -77,7 +67,7 @@ LIBPQ.
 In addition, a companion project directed by Professor Rowe is
 building a collection of powerful development tools called
 .b \*(OF ,
-which will be the subject of a separate reference manual.
+which is the subject of a separate reference manual.
 .lp
 The remainder of this manual is structured as follows.
 In Section 2,
