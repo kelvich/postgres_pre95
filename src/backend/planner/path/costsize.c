@@ -512,7 +512,7 @@ compute_rel_size (rel)
     Count temp1;
 
     temp = get_tuples(rel) * product_selec(get_clauseinfo(rel)); 
-    temp1 = floor(temp);
+    temp1 = ceil(temp);
     return(temp1);
       
 }
