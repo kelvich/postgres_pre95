@@ -19,8 +19,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "c.h"
-#include "pg_lisp.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
 
 /* ----------------
  * executor debugging definitions are kept in a separate file
@@ -29,53 +29,53 @@
  * executor.h is checked in -cim 10/26/89
  * ----------------
  */
-#include "execdebug.h"
+#include "executor/execdebug.h"
 
-#include "istrat.h"
-#include "skey.h"
-#include "align.h"
-#include "buf.h"
-#include "catname.h"
-#include "clib.h"
+#include "access/istrat.h"
+#include "access/skey.h"
+#include "tmp/align.h"
+#include "storage/buf.h"
+#include "catalog/catname.h"
+#include "tmp/clib.h"
 #include "executor/execdefs.h"
 #include "executor/tuptable.h"
-#include "fmgr.h"
-#include "ftup.h"
-#include "heapam.h"
-#include "htup.h"
-#include "itup.h"
-#include "log.h"
-#include "mcxt.h"
-#include "parse.h"
-#include "pmod.h"
-#include "recursion_a.h"
-#include "recursion.h"
-#include "rel.h"
-#include "simplelists.h"
+#include "utils/fmgr.h"
+#include "access/ftup.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/itup.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "parser/parse.h"
+#include "tmp/pmod.h"
+#include "executor/recursion_a.h"
+#include "executor/recursion.h"
+#include "utils/rel.h"
+#include "tmp/simplelists.h"
 #include "strings.h"
-#include "syscache.h"
-#include "tqual.h"
+#include "catalog/syscache.h"
+#include "access/tqual.h"
 
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
-#include "printtup.h"
-#include "primnodes.h"
-#include "plannodes.h"
-#include "execnodes.h"
-#include "parsetree.h"
+#include "access/printtup.h"
+#include "nodes/primnodes.h"
+#include "nodes/plannodes.h"
+#include "nodes/execnodes.h"
+#include "parser/parsetree.h"
 
-#include "prs2.h"
-#include "prs2stub.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
 
 /* ----------------
  * .h files made from running pgdecs over generated .c files in obj/lib/C
  * ----------------
  */
-#include "primnodes.a.h"
-#include "plannodes.a.h"
-#include "execnodes.a.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.a.h"
 
 /* ----------------------------------------------------------------
  *	executor shared memory segment header definition
@@ -105,33 +105,10 @@ typedef struct ExecSMHeaderData {
 typedef ExecSMHeaderData *ExecSMHeader;
 
 /* ----------------------------------------------------------------
- * 	parallel fragment definition
- *
- *	The parallel optimiser returns a FragmentInfo structure
- *	which contains an array of fragment structures which
- *	the executor executes in parallel.  The Fragment structure
- *	contains a pair of pointers - one to a current node in
- *	the query plan and one to a replacement parallel node.
- *
- *	ExecuteFragements() executes the fragment plans and replaces
- *	the corresponding nodes in the query plan with materialized
- *	results.
- * ----------------------------------------------------------------
- */
-typedef struct FragmentData {
-    Plan	current;	/* pointer to node in query plan */
-    Plan	replacement;	/* pointer to parallel replacement node */
-} FragmentData;
-
-typedef FragmentData *Fragment;
-
-typedef struct FragmentInfo {
-    Fragment	fragments;	/* fragments to execute in parallel */
-    int		numFragments;	/* size of fragements array */
-} FragmentInfo;
-
-/* ----------------------------------------------------------------
  *     #define macros
+ *	XXX some of the macro definitions are copied to
+ *	tcop/pfrag.c in order to break up this catch-all
+ *	.h file.
  * ----------------------------------------------------------------
  */
 
@@ -250,6 +227,7 @@ typedef struct FragmentInfo {
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsUnique(node)	IsA(node,Unique)
 #define ExecIsHash(node)	IsA(node,Hash)
+#define ExecIsScanTemp(node)	IsA(node,ScanTemp)
 
 /* ----------------------------------------------------------------
  *	debugging structures
