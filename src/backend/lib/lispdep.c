@@ -869,17 +869,17 @@ zerop(foo)
      LispValue foo;
 {
     if (integerp(foo))
-      return((bool)(CInteger(foo) == 0));
-	else
+	return((bool)(CInteger(foo) == 0));
+    else
 	{
-	  elog(WARN,"zerop called on noninteger");
-	  return(1); /* non-integer is always zero */
+	    elog(WARN,"zerop called on noninteger");
+	    return ((bool) 1); /* non-integer is always zero */
 	}
 }
 
 bool
 eq(foo,bar)
-     LispValue foo,bar;
+    LispValue foo,bar;
 {
     return ((bool)(foo == bar));
 }
