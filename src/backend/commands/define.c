@@ -1095,7 +1095,7 @@ DefineOperator(name, parameters)
 	 * XXX Associativity code below must be fixed when the catalogs and
 	 * XXX the planner/executor support proper associativity semantics.
 	 */
-	entry = DefineListRemoveOptionalAssignment(&parameters, "precedence");
+	entry = DefineListRemoveOptionalAssignment(&parameters, "associativity");
 	if (null(entry)) {
 		isLeftAssociative = true;	/* XXX FetchDefault */
 	} else {
