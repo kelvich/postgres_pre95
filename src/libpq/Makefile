@@ -77,6 +77,7 @@ install-headers::
 	-ln ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
 #	XXX - installing fmgr.h depends on the backend being built
 	install -c -m 444 ${.CURDIR}/../backend/obj/fmgr.h ${HEADERDIR}/fmgr.h
+	install -c -m 444 ${.CURDIR}/../backend/obj/tags.h ${HEADERDIR}/tags.h
 	-rm -f ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME ${PORTNAME}" > ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME_${PORTNAME}" >> ${HEADERDIR}/tmp/c.h
