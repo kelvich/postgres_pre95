@@ -302,10 +302,10 @@ DATA(insert OID = 291 (  float4gt          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 292 (  float4ge          6 11 f t f 2  16 foo bar ));
     
 DATA(insert OID = 319 (  btbeginscan       6 11 f t f 3  23 foo bar ));
-DATA(insert OID = 320 (  rtreeinsert       6 11 f t f 3  23 foo bar ));
-DATA(insert OID = 321 (  rtreedelete       6 11 f t f 2  23 foo bar ));
-DATA(insert OID = 322 (  rtreegettuple     6 11 f t f 6  23 foo bar ));
-DATA(insert OID = 323 (  rtreebuild        6 11 f t f 7  23 foo bar ));
+DATA(insert OID = 320 (  rtinsert          6 11 f t f 3  23 foo bar ));
+DATA(insert OID = 321 (  rtdelete          6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 322 (  rtgettuple        6 11 f t f 6  23 foo bar ));
+DATA(insert OID = 323 (  rtbuild           6 11 f t f 7  23 foo bar ));
 DATA(insert OID = 324 (  rtbeginscan       6 11 f t f 4  23 foo bar ));
 DATA(insert OID = 325 (  rtendscan         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 326 (  rtmarkpos         6 11 f t f 1  23 foo bar ));
