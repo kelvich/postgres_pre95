@@ -19,24 +19,28 @@
 # control the behavior of this script
 verbose=0
 master=/usr/local/devel/postgres
-M=
-getmaster=0
 
+# control the behavior of ci and co
 ulf=
 msgs=
 files=
 
-# parse the argument list
+# parse the argument list -- we know what ci expects
 while [ $# -gt 0 ]
 do
 	case $1 in
+
+#	pci args
 	-v)		verbose=1;;
 	-M)		master=$2;shift;;
 	-M*)		master=`echo $2 | sed -e "s/-M//"`;;
+
+#	ci args
 	-[ulf])		ulf="$ulf $1";;
 	-[mnNst])	msgs="$msgs $1 ""'""$2""'";shift;;
 	-[mnNs]t*)	msgs="$msgs ""'""$1""'";;
 	*)		files="$files $1";;
+
 	esac
 	shift
 done
@@ -47,6 +51,7 @@ then
 	echo ci $ulf $msgs $files
 fi
 
+# do it
 ci $ulf $msgs $files
 
 if [ $? -ne 0 ]
@@ -55,9 +60,8 @@ then
 	exit 1
 fi
 
-curdir=`pwd`
-
 # extract the pathname relative to the postgres root directory from curdir
+curdir=`pwd`
 subtree=`echo $curdir | sed -e "s%.\*/src/%%"`
 
 if [ $verbose -ne 0 ]
@@ -65,6 +69,7 @@ then
 	echo cd $master/src/$subdir
 fi
 
+# go to the master tree
 cd $master/src/$subdir
 if [ $? -ne 0 ]
 then
@@ -79,6 +84,7 @@ then
 	echo co $files
 fi
 
+# check out the files
 co $files
 
 exit 0
