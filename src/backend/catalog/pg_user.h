@@ -65,7 +65,12 @@ typedef FormData_pg_user	*Form_pg_user;
  *	initial contents of pg_user
  * ----------------
  */
-DATA(insert OID =    6 ( postgres 6 t t t t ));
+DATA(insert OID =    PGUID ( postgres PGUID t t t t ));
+
+BKI_BEGIN
+#ifdef ALLOW_PG_GROUP
+BKI_END
+
 DATA(insert OID =  799 ( mike 799 t t t t ));
 DATA(insert OID = 1511 ( sp 1511 t t t t ));
 DATA(insert OID = 2359 ( cimarron 2359 t t t t ));
@@ -83,6 +88,10 @@ DATA(insert OID = 5209 ( joey 5209 t t t t ));
 DATA(insert OID = 5568 ( clarsen 5568 t t t t ));
 DATA(insert OID = 5443 ( jolly 5443 t t t t ));
 DATA(insert OID = 5443 ( sunita 6559 t t t t ));
+
+BKI_BEGIN
+#endif ALLOW_PG_GROUP
+BKI_END
 
 /* ----------------
  *	old definition of struct user
