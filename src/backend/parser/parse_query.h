@@ -6,7 +6,7 @@ extern LispValue MakeRangeTableEntry ARGS((Name relname , List options , Name re
 LispValue MakeTargetList ARGS((void));
 extern LispValue ExpandAll ARGS((Name relname, int *this_resno));
 extern LispValue MakeTimeRange ARGS((LispValue datestring1, LispValue datestring2, int timecode));
-extern LispValue make_op ARGS((LispValue op, LispValue ltree, LispValue rtree));
+extern LispValue make_op ARGS((LispValue op, LispValue ltree, LispValue rtree, char optype));
 extern LispValue make_var  ARGS((Name relname, Name attrname));
 int SkipForwardToFromList ARGS((void));
 LispValue SkipBackToTlist ARGS((void));
@@ -15,7 +15,7 @@ int StripRangeTable ARGS((void));
 extern LispValue make_const ARGS((LispValue value));
 extern LispValue make_param ARGS((int paramKind, char * relationName, char *attrName));
 extern LispValue HandleNestedDots ARGS((List dots));
-extern LispValue setup_tlist ARGS((Func func, int attno, ObjectID typeid));
+extern LispValue setup_tlist ARGS((Name attname, ObjectId relid));
 
 /* defined in gram.y, used in ylib.c and gram.y */
 extern int NumLevels;
