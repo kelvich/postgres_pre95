@@ -6,11 +6,11 @@ static char *scan_l =
   lexical scanner for POSTGRES 
  **********************************************************************/
 
-#include "atoms.h"
 #include "parse.h"
 #include "pg_lisp.h"
 #include "ctype.h"
 #include "math.h"
+#include "atoms.h"
 
 #undef input
 #undef unput
@@ -30,6 +30,7 @@ op_only		[\!\@\#\%\^\&\|\`\|\?]
 
 operator	({op_and_self}{op_and_self}+)|{op_only}+
 string		\"
+specialstr	\`
 character	"'"
 
 integer		[-+]?{digit}+
@@ -43,6 +44,12 @@ other		.
 %%
 {comment}	{ scancmnt();		}
 "::"		{ return TYPECAST;	}
+{specialstr}	{
+			char buf[8192];
+			scanspecial(buf,sizeof(buf));
+			yylval = lispString(buf);
+			return (SCONST);
+		}
 {self}		{ return (yytext[0]);	}
 {operator}	{
 			yylval = lispString(yytext);
@@ -62,6 +69,7 @@ other		.
 			yylval = lispString(buf);
 			return (SCONST);
 		}
+
 {character}	{
 			char buf[2];
 			scanchar(buf);
