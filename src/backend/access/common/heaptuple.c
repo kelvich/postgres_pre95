@@ -504,6 +504,13 @@ heap_getsysattr(tup, b, attnum)
     }
 }
 
+#define fetchatt(A, T) \
+((*(A))->attlen < 0 ? (char *) (LONGALIGN((T) + sizeof(long))) : \
+ ((*(A))->attbyval ? \
+  ((*(A))->attlen > sizeof(short) ? (char *) *(long *) (T) : \
+   ((*(A))->attlen < sizeof(short) ? (char *) *(T) : \
+	(char *) * (short *) (T))) : (char *) (T)))
+	
 /* ----------------
  *	fetchatt
  *
@@ -513,7 +520,7 @@ heap_getsysattr(tup, b, attnum)
  * ----------------
  */
 char *
-fetchatt(ap, tp)
+fetchatt2(ap, tp)
     register struct attribute	**ap;	/* attribute pointer */
     register char		*tp;	/* tuple pointer */
 {
@@ -916,7 +923,7 @@ fastgetattr(tup, attnum, att, isnull)
      * ----------------
      */
     return
-	fetchatt(ap, tp);
+	fetchatt2(ap, tp);
 }
 
 
