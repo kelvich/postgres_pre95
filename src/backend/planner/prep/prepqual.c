@@ -283,7 +283,7 @@ push_nots (qual)
 	  Oper op = (Oper) MakeOper (negator,
 				     get_oprelationlevel (oper),
 				     get_opresulttype (oper), NULL, NULL);
-	  op->op_fcache = (FunctionCache *) init_fcache(get_opno(op));
+	  op->op_fcache = (FunctionCache *) NULL;
 	  return (lispCons(op, lispCons(get_leftop (qual),
 				    lispCons(get_rightop (qual),
 					     LispNil))));
