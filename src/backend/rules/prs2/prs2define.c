@@ -20,7 +20,7 @@
 #include "access/tqual.h"	/* 'NowTimeQual' defined here.. */
 #include "access/heapam.h"	/* heap AM calls defined here */
 #include "utils/lsyscache.h"	/* get_attnum()  defined here...*/
-#include "parse.h"		/* RETRIEVE, APPEND etc defined here.. */
+#include "parse.h"      	/* RETRIEVE, APPEND etc defined here.. */
 #include "parser/parsetree.h"
 #include "catalog/catname.h"	/* names of various system relations */
 #include "fmgr.h"		/* for F_CHAR16EQ, F_CHAR16IN etc. */
@@ -694,7 +694,8 @@ Prs2RuleData r;
 			    (Size) 4,		/* size */
 			    value,		/* value */
 			    false,		/* isnull */
-			    true);		/* byval */
+			    true,		/* byval */
+			    false);             /* isset */
 	targetList = lispCons(
 			lispCons((LispValue)resdom,
 				 lispCons((LispValue)constant, LispNil)),
