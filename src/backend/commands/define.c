@@ -108,11 +108,11 @@ DefineFunction(nameargsexe, dest)
      * ----------------
      */
     entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
-    if (IsA(CDR(entry),LispList)) {
+    if (IsA(CADR(entry),LispList)) {
 	returnTypeName = LISPVALUE_STRING(CDR(CADR(entry)));
 	returnsSet = true;
     } else {
-	returnTypeName = DefineEntryGetString(entry);
+	returnTypeName = CString(CADR(entry));
 	returnsSet = false;
     }
 
