@@ -30,7 +30,7 @@
 #include "plannodes.h"
 #include "plannodes.a.h"
 #include "planner/relnode.h"
-#include "planner/joininfo.h
+#include "planner/joininfo.h"
 #include "planner/initsplan.h"
 #include "pg_lisp.h"
 #include "lsyscache.h"
