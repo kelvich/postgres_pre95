@@ -103,8 +103,6 @@ heap_keytest(t, tupdesc, nkeys, keys)
 	    /* XXX eventually should check if SK_ISNULL */
 	    return false;
 
-	Assert(PointerIsValid(keys->func));
-	
 	if (keys->sk_flags & SK_COMMUTE)
 	    test = (int) (*(keys->func)) (keys->sk_data, atp);
 	else
