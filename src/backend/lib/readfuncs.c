@@ -1846,7 +1846,7 @@ ObjectId type;
 	    elog(WARN, "readValue: byval & length = %d", length);
 	}
 	s = (char *) (&res);
-	for (i=0; i<length; i++) {
+	for (i=0; i<sizeof(Datum); i++) {
 	    token = lsptok(NULL, &tokenLength);
 	    s[i] = (char) atoi(token);
 	}
