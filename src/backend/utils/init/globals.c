@@ -29,6 +29,7 @@ RcsId("$Header$");
 
 int Debugfile, Ttyfile, Dblog, Slog;
 int Portfd, Packfd, Slog, Pipefd;
+int Noversion = 0;
 
 BackendId	MyBackendId;
 BackendTag	MyBackendTag;
@@ -37,6 +38,8 @@ Name		MyDatabaseName = &MyDatabaseNameData;
 bool		MyDatabaseIdIsInitialized = false;
 ObjectId	MyDatabaseId = InvalidObjectId;
 bool		TransactionInitWasProcessed = false;
+
+bool		IsUnderPostmaster = false;
 
 struct	bcommon	Ident;	/* moved to dlog */
 
