@@ -24,6 +24,7 @@ RcsId("$Header$");
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"
+#include "catalog/pg_type.h"	/* for OID of int28 type */
  
 /* ----------------
  *	variables, macros and other stuff
@@ -167,10 +168,6 @@ CatalogCacheInitializeCache(cache, relation)
     Assert(RelationIsValid(relation));
     cache->relationId = RelationGetRelationId(relation);
     
-    /* ----------------
-     *	
-     * ----------------
-     */
     CACHE3_elog(DEBUG, "CatalogCacheInitializeCache: relid %d, %d keys", 
 		cache->relationId, cache->cc_nkeys);
     
@@ -179,9 +176,22 @@ CatalogCacheInitializeCache(cache, relation)
 	CatalogCacheInitializeCache_DEBUG2;
 	
 	if (cache->cc_key[i] > 0) {
-	    cache->cc_klen[i] = 
-		relation->rd_att.data[cache->cc_key[i]-1]->attlen;
-	    
+
+	    /*
+	     *  Yoiks.  The implementation of the hashing code and the
+	     *  implementation of int28's are at loggerheads.  The right
+	     *  thing to do is to throw out the implementation of int28's
+	     *  altogether; until that happens, we do the right thing here
+	     *  to guarantee that the hash key generator doesn't try to
+	     *  dereference an int2 by mistake.
+	     */
+
+	    if (relation->rd_att.data[cache->cc_key[i]-1]->atttypid == INT28OID)
+		cache->cc_klen[i] = sizeof (short);
+	    else
+		cache->cc_klen[i] = 
+		    relation->rd_att.data[cache->cc_key[i]-1]->attlen;
+
 	    cache->cc_skey[i].sk_opr =
 	        EQPROC(relation->rd_att.data[cache->cc_key[i]-1]->atttypid);
 	    
@@ -252,45 +262,13 @@ comphash(l, v)
     case 4:
 	return((int) v);
     }
-    if (l == 16) {
-	extern etext;
-#ifdef notdef
-	if (v < (char *) &etext) {
-	    /*
-	     * XXX int2, v, is first element of int16[8] key
-	     * XXX this is a non-portable hack for built-in arrays
-	     * XXX even I don't understand this well and I wrote
-	     * XXX this -hirohama
-	     */
 
-	    return((int16) v);
-#endif /* notdef */
-	/*
-	 *  The ouzo fix -- this is the WRONG thing to do, and the thinking
-	 *  man might wonder WHAT hirohama was thinking about here, but a bet
-	 *  is a bet...  it's now Tue Jan  8 16:24:52 PST 1991, meaning i
-	 *  can beat my five o'clock deadline by a half hour if i do a
-	 *  quick-and-dirty hack here.  the real fix will be installed
-	 *  asap.
-	 *
-	 *  What hirohama wanted was some way to tell the difference between
-	 *  an integer and an address.  In principle, there's no way to do
-	 *  this at this depth in the code.  I happen to know that unless
-	 *  we're really unlucky, and the user is running a single database
-	 *  for a very long time, OIDs are going to stay relatively small,
-	 *  and program addresses will be larger than 2^16.  That's the
-	 *  nasty hack.  In the long term, DON'T SAY THE ARGUMENT IS SIXTEEN
-	 *  BYTES LONG IF IT ISN'T!!!
-	 */
-	if (v < (char *) 32768) {
-	    return((int16) v);
-	} else {
-	    /* XXX char16 special handling */
-	    l = NameComputeLength((Name)v);
-	}
-    } else if (l < 0) {
+    /* special hack for char16 values */
+    if (l == 16)
+	l = NameComputeLength((Name)v);
+    else if (l < 0)
 	l = PSIZE(v);
-    }
+
     i = 0;
     while (l--) {
 	i += *v++;
