@@ -163,7 +163,7 @@ lint:
 
 .if !target(tags)
 tags: ${SRCS}
-	ctags ${.ALLSRC:M*.c}; \
+	ctags -t ${.ALLSRC:M*.c}; \
 	mv tags tags.tmp; \
 	sed "s;${.CURDIR}/;;" < tags.tmp > ${.CURDIR}/tags; \
 #	rm tags.tmp
