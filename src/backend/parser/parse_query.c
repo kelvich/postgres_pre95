@@ -29,6 +29,7 @@ RcsId("$Header$");
 #include "nodes/primnodes.a.h"
 
 #include "catalog/syscache.h"
+#include "catalog/pg_type.h"
 #include "catalog_utils.h"
 #include "parse_query.h"
 #include "utils/lsyscache.h"
@@ -374,7 +375,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 
 void
 disallow_setop(op, optype, operand)
-    LispValue op;
+    char *op;
     Type optype;
     LispValue operand;
 {
@@ -383,110 +384,117 @@ disallow_setop(op, optype, operand)
 
     if (IsA(operand,Iter)) {
 	elog(NOTICE, "An operand to the '%s' operator returns a set of %s,",
-		     LISPVALUE_STRING(op), tname(optype));
+		     op, tname(optype));
 	elog(WARN, "but '%s' takes single values, not sets.",
-		     LISPVALUE_STRING(op));
+		     op);
     }
 }
+
+LispValue
+make_operand(opname, tree, orig_typeId, true_typeId)
+char *opname;
+LispValue tree;
+int orig_typeId, true_typeId;
+{
+    LispValue result;
+    Type true_type;
+    Datum val;
+    ObjectId infunc;
+
+    if (!lispNullp(tree)) {
+	result = CDR(tree);
+	true_type = get_id_type(true_typeId);
+	disallow_setop(opname, true_type, result);
+	if (true_typeId != orig_typeId) {	/* must coerce */
+	    val = textout((struct varlena *)
+			  get_constvalue((Const)result));
+	    infunc = typeid_get_retinfunc(true_typeId);
+	    result = (LispValue)MakeConst(true_typeId,
+					  tlen(type),
+					  (Datum)fmgr(infunc, val),
+					  false, true);
+	}
+    }
+    else {
+	result = (LispValue) MakeConst(true_typeId, 0,
+				       (Datum)(struct varlena *)NULL,
+				       true, true );
+    }
+
+    return result;
+}
+
 
 LispValue 
 make_op(op,ltree,rtree, optype)
      LispValue op,ltree,rtree;
      char optype;
 {
-	Type ltype,rtype;
-	Operator temp;
-	OperatorTupleForm opform, optemp;
-	Oper newop;
-	LispValue left,right;
-	LispValue t1;
-	ObjectId fid;
+    int ltypeId, rtypeId;
+    Operator temp;
+    OperatorTupleForm opform;
+    Oper newop;
+    LispValue left,right;
+    LispValue t1;
+    char *opname;
 
-	if ( optype == 'r' ) {
+    opname = CString(op);
+
+    if ( optype == 'r' ) {
 	/* right operator */
-	    if (lispNullp(ltree))
-	    elog(WARN, "NULL not allowed with this operator type");
-	    left = CDR(ltree);
-	    right = LispNil;
-	    if (! lispNullp(left)) {
-		ltype = get_id_type ( CInteger ( CAR(ltree) ));
-		disallow_setop(op, ltype, left);
-	    }
-	    temp = right_oper( CString( op ), typeid(ltype));
-	 } else if (optype == 'l') {
-	    /* left operator */
-	    if (lispNullp(rtree))
-		elog(WARN, "NULL not allowed with this operator type");
-	    right = CDR(rtree);
-	    left = right;
-	    if (! lispNullp(right)) {
-		rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-		disallow_setop(op, rtype, right);
-	    }
-	    temp = left_oper( CString( op ), typeid(rtype) );
-	    right = LispNil;
-	} else {
-	    /* binary operator */
-	    if (lispNullp(ltree)) {
-		elog(WARN, "NULL not allowed with this operator type");
-	    } else {
-		left = CDR(ltree);
-		ltype = get_id_type ( CInteger ( CAR(ltree) ));
-
-		disallow_setop(op, ltype, left);
-
-		if (! lispNullp(rtree)) {
-		    right = CDR(rtree);
-		    rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-		    disallow_setop(op, rtype, right);
-		    if (typeid(rtype) == typeid(type("unknown"))) {
-			/* trying to find default type for the right arg... */
-			temp = (Operator) oper_default(CString(op),
-							typeid(ltype));
-			/* now, we have the default type, typecast */
-			if(temp){
-			Datum val;
-			val = textout((struct varlena *)
-				       get_constvalue((Const)right));
-			optemp = (OperatorTupleForm) GETSTRUCT(temp);
-			right = (LispValue) MakeConst(optemp->oprright,
-					tlen(get_id_type(optemp->oprright)),
-					(Datum)fmgr(typeid_get_retinfunc(optemp->oprright),val),
-					false, true /*XXX was omitted */);
-			} else
-			    op_error(CString(op), typeid(ltype), typeid(rtype));
-			    
-		    } else
-			temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
-		} else {
-		    /* Right Operator is NULL */
-                    temp = (Operator) oper_default(CString(op),typeid(ltype));
-                    if(temp){
-                        optemp = (OperatorTupleForm) GETSTRUCT(temp);
-                        right = (LispValue) MakeConst(optemp->oprright, 0,
-			     		(Datum)(struct varlena *)NULL,
-					true, true );
-                     } else 
-			op_error(CString(op), typeid(ltype), typeid(rtype));
-		}
-	    }
-	}
-	opform = (OperatorTupleForm) GETSTRUCT(temp);
-
-	newop = MakeOper ( oprid(temp),    /* opno */
-			    InvalidObjectId,	/* opid */
-			    0 ,       	     /* operator relation level */
-			    opform->oprresult, /* operator result type */
-			    NULL, NULL);
-	if (!left)
-	    t1 = lispCons ( (LispValue)newop , lispCons (right,LispNil) );
-	else if (!right)
-	    t1 = lispCons ( (LispValue)newop , lispCons (left,LispNil) );
+	if (lispNullp(ltree))
+	    ltypeId = UNKNOWNOID;
 	else
-	    t1 = lispCons ( (LispValue)newop , lispCons (left ,
-					     lispCons (right,LispNil)));
-	return ( lispCons (lispInteger ( opform->oprresult ) ,
-			   t1 ));
+	    ltypeId = CInteger(CAR(ltree));
+
+	temp = right_oper(opname, ltypeId);
+	opform = (OperatorTupleForm) GETSTRUCT(temp);
+	left = make_operand(opname, ltree, ltypeId, opform->oprleft);
+	right = LispNil;
+    }
+    else if ( optype == 'l' ) {
+	/* left operator */
+	if (lispNullp(rtree))
+	    rtypeId = UNKNOWNOID;
+	else
+	    rtypeId = CInteger(CAR(rtree));
+
+	temp = left_oper(opname, rtypeId);
+	opform = (OperatorTupleForm) GETSTRUCT(temp);
+	right = make_operand(opname, rtree, rtypeId, opform->oprright);
+	left = LispNil;
+    }
+    else {
+	/* binary operator */
+	if (lispNullp(ltree))
+	    ltypeId = UNKNOWNOID;
+	else
+	    ltypeId = CInteger(CAR(ltree));
+	if (lispNullp(rtree))
+	    rtypeId = UNKNOWNOID;
+	else
+	    rtypeId = CInteger(CAR(rtree));
+	
+	temp = oper(opname, ltypeId, rtypeId);
+	opform = (OperatorTupleForm) GETSTRUCT(temp);
+	left = make_operand(opname, ltree, ltypeId, opform->oprleft);
+	right = make_operand(opname, rtree, rtypeId, opform->oprright);
+    }
+
+    newop = MakeOper ( oprid(temp),    /* opno */
+		      InvalidObjectId,	/* opid */
+		      0 ,       	     /* operator relation level */
+		      opform->oprresult, /* operator result type */
+		      NULL, NULL);
+    if (!left)	
+	t1 = lispCons ( (LispValue)newop , lispCons (right,LispNil) );
+    else if (!right)
+	t1 = lispCons ( (LispValue)newop , lispCons (left,LispNil) );
+    else
+	t1 = lispCons ( (LispValue)newop , lispCons (left ,
+						     lispCons (right,LispNil)));
+    return ( lispCons (lispInteger ( opform->oprresult ) ,
+		       t1 ));
 } /* make_op */
 
 /*
