@@ -36,7 +36,7 @@ Rel
 get_rel (relid)
      LispValue relid ;
 {
-    Rel rel = rel_member (lispCons(relid,LispNil),
+    Rel rel = rel_member (listp(relid)?relid:lispCons (relid,LispNil),
 			  _query_relation_list_);
 
     if /*when */ ( null (rel)) {
@@ -45,7 +45,11 @@ get_rel (relid)
 	rel->printFunc = PrintRel;
 	rel->equalFunc = EqualRel;
 	
+#ifdef _xprs_
+	set_relids (rel,listp(relid)?relid:lispCons (relid,LispNil));
+#else /* _xprs_ */
 	set_relids (rel,lispCons (relid,LispNil));
+#endif /* _xprs_ */
 	set_indexed (rel,false);
 	set_pages (rel, 0);
 	set_tuples (rel,0);
@@ -59,6 +63,7 @@ get_rel (relid)
 	set_clauseinfo (rel,LispNil);
 	set_joininfo (rel,LispNil);
 	set_innerjoin (rel,LispNil);
+	set_superrels (rel,LispNil);
 
 	_query_relation_list_ = lispCons (rel,_query_relation_list_);
 
