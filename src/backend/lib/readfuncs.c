@@ -958,6 +958,10 @@ _readOper()
 
 	local_node->opno = atol(token);
 
+	token = lsptok(NULL, &length);      /* get :opid */
+	token = lsptok(NULL, &length);      /* now read it */
+	local_node->opid = atol(token);
+
 	token = lsptok(NULL, &length);      /* get :oprelationlevel */
 	token = lsptok(NULL, &length);      /* now read it */
 
@@ -974,6 +978,11 @@ _readOper()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	local_node->opresulttype = atol(token);
+
+	/*
+	 * NOTE: Alternatively we can call 'replace_opid' 
+	 * which initializes both 'opid' and 'op_fcache'.
+	 */
 	local_node->op_fcache = (FunctionCache *) NULL;
 
 	return(local_node);

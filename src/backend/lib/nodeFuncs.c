@@ -165,7 +165,7 @@ consider_vararrayindex (var)
 /*    
  *    	replace_opid
  *    
- *    	Given a oper node, resets the opno (operator OID) field with the
+ *    	Given a oper node, resets the opfid field with the
  *    	procedure OID (regproc id).
  *    
  *    	Returns the modified oper node.
@@ -180,7 +180,7 @@ Oper
 replace_opid (oper)
      Oper oper ;
 {
-    set_opno (oper,get_opcode (get_opno (oper)));
+    set_opid (oper,get_opcode (get_opno (oper)));
     set_op_fcache(oper, NULL); 
     return(oper);
 }

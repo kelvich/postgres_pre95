@@ -86,21 +86,21 @@ AttributeGetAttName (attribute)
 /*    
  *    	op_class
  *    
- *    	Return t iff operator 'opid' is in operator class 'opclass'.
+ *    	Return t iff operator 'opno' is in operator class 'opclass'.
  *    
  */
 
 /*  .. in-line-lambda%598040608, match-index-orclause
  */
 bool
-op_class (opid,opclass)
-     ObjectId opid;
+op_class (opno,opclass)
+     ObjectId opno;
      int32 opclass ;
 {
     AccessMethodOperatorTupleForm amoptup = 
       new(AccessMethodOperatorTupleFormD);
 
-    if (SearchSysCacheStruct (AMOPOPID,amoptup,opclass,opid,0,0))
+    if (SearchSysCacheStruct (AMOPOPID,amoptup,opclass,opno,0,0))
       return(true);
     else
       return(false);
@@ -209,12 +209,12 @@ get_atttype (relid,attnum)
 
 
 RegProcedure
-get_opcode (opid)
-     ObjectId opid;
+get_opcode (opno)
+     ObjectId opno;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if( SearchSysCacheStruct (OPROID,optup,opid,0,0,0) ) 
+    if( SearchSysCacheStruct (OPROID,optup,opno,0,0,0) ) 
       return(optup->oprcode);
     else
       return((RegProcedure)NULL);
@@ -232,13 +232,13 @@ get_opcode (opid)
  */
 
 LispValue
-op_mergesortable (opid,ltype,rtype)
-     ObjectId opid;
+op_mergesortable (opno,ltype,rtype)
+     ObjectId opno;
      ObjectId ltype,rtype ;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0) &&
+    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0) &&
        optup->oprlsortop &&
        optup->oprrsortop && 
        optup->oprleft == ltype &&
@@ -260,16 +260,16 @@ op_mergesortable (opid,ltype,rtype)
 /*  .. hashjoinop
  */
 ObjectId
-op_hashjoinable (opid,ltype,rtype)
-     ObjectId opid,ltype,rtype ;
+op_hashjoinable (opno,ltype,rtype)
+     ObjectId opno,ltype,rtype ;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if (SearchSysCacheStruct (OPROID,optup,opid,0,0,0) && 
+    if (SearchSysCacheStruct (OPROID,optup,opno,0,0,0) && 
 	optup->oprcanhash  &&
 	optup->oprleft == ltype &&
 	optup->oprright == rtype) 
-      return(opid);
+      return(opno);
     else
       return((ObjectId)NULL);
 }
@@ -284,12 +284,12 @@ op_hashjoinable (opid,ltype,rtype)
 /*  .. in-line-lambda%598040608
  */
 ObjectId
-get_commutator (opid)
-     ObjectId opid ;
+get_commutator (opno)
+     ObjectId opno ;
 {
     OperatorTupleForm optup = (OperatorTupleForm)palloc(sizeof(* optup));
 
-    if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
+    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
       return(optup->oprcom);
     else
       return((ObjectId)NULL);
@@ -306,12 +306,12 @@ get_commutator (opid)
  */
 
 ObjectId
-get_negator (opid)
-     ObjectId opid ;
+get_negator (opno)
+     ObjectId opno ;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
+    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
       return(optup->oprnegate);
     else
       return((ObjectId)NULL);
@@ -327,12 +327,12 @@ get_negator (opid)
 /*  .. compute_selec
  */
 RegProcedure
-get_oprrest (opid)
-     ObjectId opid ;
+get_oprrest (opno)
+     ObjectId opno ;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
+    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
       return(optup->oprrest );
     else
       return((RegProcedure) NULL);
@@ -349,12 +349,12 @@ get_oprrest (opid)
  */
 
 RegProcedure
-get_oprjoin (opid)
-     ObjectId opid ;
+get_oprjoin (opno)
+     ObjectId opno ;
 {
     OperatorTupleForm optup = new(OperatorTupleFormD);
 
-    if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
+    if(SearchSysCacheStruct (OPROID,optup,opno,0,0,0))
       return(optup->oprjoin);
     else
       return((RegProcedure)NULL);

@@ -87,6 +87,15 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      /* 1. Pull out any non-variable qualifications so these can be put in */
      /*    the topmost result node.  The opids for the remaining */
      /*    qualifications will be changed to regprocs later. */
+     /*    ------
+      *    NOTE: we used to have one field called 'opno' in the Oper
+      *    nodes which used to be also be called 'opid' in some comments.
+      *    This field was either the pg_operator oid, or the
+      *    regproc oid. However now we have two separate
+      *    fields, the 'opno' (pg_operator oid) and the 'opid' (pg_proc
+      *    oid) so things are a little bit more clear now...   [sp.]
+      *    ------
+      */
      /* 2. Determine the keys on which the result is to be sorted. */
      /* 3. Create a target list that consists solely of (resdom var) target */
      /*    list entries, i.e., contains no arbitrary expressions. */

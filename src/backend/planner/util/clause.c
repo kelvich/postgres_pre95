@@ -376,7 +376,7 @@ function_index_clause_p (clause,rel,index)
 /*    
  *    	fix-opid
  *    
- *    	Replace all opnos within a clause with the corresponding regproc id.
+ *	Calculate the opfid from the opno...
  *    
  *    	Returns nothing.
  *    
@@ -388,6 +388,8 @@ void
 fix_opid (clause)
      LispValue clause ;
 {
+
+	Oper oper;
 
 	if(null(clause) || single_node (clause)) {
 		;
@@ -402,7 +404,7 @@ fix_opid (clause)
 		fix_opid (get_notclausearg (clause));
 	} 
 	else if (is_clause (clause)) {
-		replace_opid (get_op (clause));
+		replace_opid(get_op(clause));
 		fix_opid (get_leftop (clause));
 		fix_opid (get_rightop (clause));
 	}
@@ -412,8 +414,7 @@ fix_opid (clause)
 /*    
  *    	fix-opids
  *    
- *    	Replaces the opno field in all oper nodes with the corresponding
- *    	regproc id.
+ *	Calculate the opfid from the opno for all the clauses...
  *    
  *    	Returns its argument.
  *    

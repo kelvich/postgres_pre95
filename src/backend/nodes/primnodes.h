@@ -186,17 +186,30 @@ class (Var) public (Expr) {
 
 /*
  * Oper
- *	opno - at exit from parser: PG_OPERATOR OID of the operator
- *	       at exit from planner: PG_FUNCTION OID for the operator
+ *	opno - PG_OPERATOR OID of the operator
+ *	opid -  PG_PROC OID for the operator
  *	oprelationlevel - true iff the operator is relation-level
  *	opresulttype - PG_TYPE OID of the operator's return value
  *	opsize - size of return result (cached by executor)
+ *
+ * ----
+ * NOTE: in the good old days 'opno' used to be both (or either, or
+ * neither) the pg_operator oid, and/or the pg_proc oid depending 
+ * on the postgres module in question (parser->pg_operator,
+ * executor->pg_proc, planner->both), the mood of the programmer,
+ * and the phase of the moon (rumors that it was also depending on the day
+ * of the week are probably false). To make things even more postgres-like
+ * (i.e. a mess) some comments were referring to 'opno' using the name
+ * 'opid'. Anyway, now we have two separate fields, and of course that
+ * immediately removes all bugs from the code...	[ sp :-) ].
+ * ---
  */
 
 class (Oper) public (Expr) {
  /* private: */
 	inherits(Expr);
 	ObjectId		opno;
+	ObjectId		opid;
 	bool			oprelationlevel;
 	ObjectId		opresulttype;
 	int			opsize;
