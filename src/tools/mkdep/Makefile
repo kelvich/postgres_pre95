@@ -1,9 +1,15 @@
+#
+# $Header$
+#
+
 .include <postgres.global.mk>
 
-clean depend lint tags:
+depend lint tags:
 
-install:
-	install -c -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
-	    ${.CURDIR}/mkdep.sh ${DESTDIR}/${BINDIR}/mkdep
+SHPROG=mkdep
 
-.include <postgres.prog.mk>
+.if (${PORTNAME} == "hpux")
+SEDSCRIPT= -e 's/^cc /gcc -traditional /'
+.endif
+
+.include <postgres.shell.mk>
