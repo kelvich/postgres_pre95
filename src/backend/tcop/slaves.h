@@ -16,7 +16,7 @@
 #define SlavesIncluded
 #include "utils/rel.h"
 #include "nodes/plannodes.h"
-#include "executor/x_shmem.h"
+#include "executor/execshmem.h"
 
 extern int MyPid;
 #define IsMaster	(MyPid == -1)
