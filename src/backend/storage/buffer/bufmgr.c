@@ -54,15 +54,6 @@ BufferBlock 	BufferBlocks;
 
 Buffer           BufferDescriptorGetBuffer();
 
-/*
- * XXX this is completely bogus, but necessary to make multiple backends
- * sharing the same buffer pool possible.  each backend will keep track of
- * how many times it has pinned the each buffer so at end of transaction
- * in BufferManagerFlush(), it will only unpin the buffers that many times.
- * this ensures that one backend will not blow away buffers of the another
- * backend.  this is a big hack, should be gotten rid of as soon as we
- * get the refcounts right.
- */
 int	*PrivateRefCount;
 
 #define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
@@ -107,6 +98,14 @@ int	*PrivateRefCount;
  *	released, written, or flushed before the end of 
  * 	transaction.
  *
+ * PrivateRefCount -- Each buffer also has a private refcount the keeps
+ *	track of the number of times the buffer is pinned in the current
+ *	processes.  This is used for two purposes, first, if we pin a
+ *	a buffer more than once, we only need to change the shared refcount
+ *	once, thus only lock the buffer pool once, second, when a transaction
+ *	aborts, it should only unpin the buffers exactly the number of times it
+ *	has pinned them, so that it will not blow away buffers of another
+ *	backend.
  *
  */
 
@@ -125,7 +124,7 @@ int BufferFlushCount;
  *	requested is NEW_BLOCK, extend the relation file and
  *	allocate a new block.
  *
- * Returns: the buffer descriptor for the buffer containing
+ * Returns: the buffer number for the buffer containing
  *	the block read or NULL on an error.
  *
  * Assume when this function is called, that reln has been
@@ -168,36 +167,14 @@ bool		bufferLockHeld;
   /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
    * block is not currently in memory.
    */
-
-  if (!bufferLockHeld) {
-      SpinAcquire(BufMgrLock);
-  }
-
-  bufHdr = BufferAlloc(reln, blockNum, &found, true);
-
+  bufHdr = BufferAlloc(reln, blockNum, &found, bufferLockHeld);
   if (! bufHdr) {
-	if (!bufferLockHeld) SpinRelease(BufMgrLock);
     return(InvalidBuffer);
   }
 
   /* if its already in the buffer pool, we're done */
   if (found) {
-
-    /*
-     * This happens when a bogus buffer was returned previously and is
-     * floating around in the buffer pool.  A routine calling this would
-     * want this extended.
-     */
-
-    if (extend) {
-
-      /* I don't think this is an error, but should be careful */
-      virtFile = RelationGetFile(reln);
-      status = BlockExtend(virtFile,bufHdr);
-      /* elog(DEBUG,"BufferAlloc: found new block in buf table"); */
-    }
     BufferHitCount++;
-	if (!bufferLockHeld) SpinRelease(BufMgrLock);
     return(BufferDescriptorGetBuffer(bufHdr));
   }
 
@@ -212,6 +189,9 @@ bool		bufferLockHeld;
   } else {
     status = BlockRead(virtFile,bufHdr);
   }
+
+  /* lock buffer manager again to update IO IN PROGRESS */
+  SpinAcquire(BufMgrLock);
 
   if (! status) {
     /* IO Failed.  cleanup the data structures and go home */
@@ -241,8 +221,7 @@ bool		bufferLockHeld;
   if (bufHdr->refcount > 1)
     SignalIO(bufHdr);
 #endif
-  if (!bufferLockHeld)
-      SpinRelease(BufMgrLock);
+  SpinRelease(BufMgrLock);
     
   return(BufferDescriptorGetBuffer(bufHdr));
 }
@@ -319,8 +298,7 @@ bool		bufferLockHeld;
 	*foundPtr = FALSE;
       }
     }
-    if (!bufferLockHeld)
-        SpinRelease(BufMgrLock);
+    SpinRelease(BufMgrLock);
   
     return(buf);
   }
@@ -398,8 +376,7 @@ bool		bufferLockHeld;
   Assert(!buf->io_in_progress_lock);
   S_LOCK(&(buf->io_in_progress_lock));
 #endif
-  if (!bufferLockHeld)
-      SpinRelease(BufMgrLock);
+  SpinRelease(BufMgrLock);
 
   if (oldbufdesc.flags & BM_DIRTY) {
      (void) BlockReplace(&oldbufdesc);
@@ -549,6 +526,7 @@ Buffer	buffer;
   }
   bufHdr = BufferGetBufferDescriptor(buffer);
 
+  Assert(PrivateRefCount[buffer - 1] > 0);
   PrivateRefCount[buffer - 1]--;
   if (PrivateRefCount[buffer - 1] == 0) {
       SpinAcquire(BufMgrLock);
@@ -587,7 +565,6 @@ BlockNumber blockNum;
 		bufHdr->flags |= BM_FREE;
 	      }
 	    retbuf = ReadBufferWithBufferLock(relation, blockNum, true);
-	    SpinRelease(BufMgrLock);
 	    return retbuf;
 	 }
       }
@@ -898,7 +875,7 @@ BufferIsValid(bufnum)
     if (BAD_BUFFER_ID(bufnum)) {
         return(false);
     }
-    return((bool)(BufferDescriptors[bufnum - 1].refcount > 0));
+    return((bool)(PrivateRefCount[bufnum - 1] > 0));
 } /* BufferIsValid */
 
 BlockSize
