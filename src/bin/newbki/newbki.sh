@@ -16,15 +16,19 @@
 # ----------------------------------------------------------------
 [ -z "$PGDATA" ] && PGDATA=_fUnKy_DATADIR_sTuFf_
 
+CMDNAME=`basename $0`
 
 cd $PGDATA/files || exit
 
-if [ -f ../pg_user ]; then
-echo  "Error: it looks like you already ran initdb."
-echo  "You should first run cleardbdir if you want to reset the postgres userid."
-exit
+if [ -d ../base ]; then
+    echo "$CMDNAME: error: the following database directory already exists:"
+    echo "$CMDNAME:   $PGDATA/base"
+    echo "$CMDNAME: You must first run cleardbdir if you want to reset the"
+    echo "$CMDNAME: postgres user id."
+    exit
 fi
-echo _fUnKy_DASH_N_sTuFf_ 'Enter username that postgres should use (default is postgres):  '_fUnKy_BACKSLASH_C_sTuFf_
+
+echo _fUnKy_DASH_N_sTuFf_ 'Enter username that postgres should use (default is postgres): '_fUnKy_BACKSLASH_C_sTuFf_
 read name || exit
 case $name in
 "")	name=postgres ;;
@@ -34,12 +38,12 @@ pguid=
 pguid=`pg_id $name`
 case $pguid in
 "")
-	echo "Failed: did you put the postgres bin/ in your path?"
+	echo "$CMDNAME: Failed: did you put the postgres bin/ in your path?"
 	exit
 	;;
 NOUSER)
-	echo "Failed: the username $name does not exist on this system - please"
-	echo "choose a login name that exists"
+	echo "$CMDNAME: Failed: the username $name does not exist on this"
+	echo "$CMDNAME: system - please choose a login name that exists."
 	exit
 	;;
 esac
@@ -48,6 +52,6 @@ rm -f *.bki
 for i in *.source
 do
 	dest=`echo $i | sed 's/\.source$//'`
-	sed "s/PGUID/$pguid/" < $i > $dest
+	sed -e "s/postgres PGUID/$name $pguid/" < $i > $dest
 done
-echo "Done, you can now run initdb."
+echo "Done.  You must now run initdb."

@@ -231,10 +231,12 @@ afterinstall: pg_id
 	-PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
 	case $$PG_UID in "NOUSER") \
 		echo "Warning: no account named ${POSTGRESLOGIN}, using yours";\
+		POSTGRESLOGIN=`whoami`; \
 		PG_UID=`./pg_id`;; \
 	esac ;\
 	for bki in ${BKIFILES}; do \
-		sed "s/PGUID/$$PG_UID/" < $$bki > $$bki.sed ; \
+		sed -e "s/postgres PGUID/$$POSTGRESLOGIN $$PG_UID/" \
+		    < $$bki > $$bki.sed ; \
 		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
 		rm -f $$bki.sed; \
