@@ -677,11 +677,21 @@ nabstimeout(time)
     WeekdayToStr(timeValp->tm_wday, weekday);
 
 #if defined(USE_POSIX_TIME)
-    tzset();
-    tzoneStr = tzname[daylight ? 1 : 0];
-#else /* assume we have BSD struct tm, which has tm_zone */
+    tzset(); /* should be unnecessary if localtime() has been called, but.. */
+    switch (timeValp->tm_isdst) {
+    case 0:
+    case 1:
+	tzoneStr = tzname[timeValp->tm_isdst];
+	break;
+    default:
+	timeValp = gmtime((time_t *)&time);
+	tzoneStr = "GMT";
+	break;
+    }
+#else /* !USE_POSIX_TIME */
+    /* assume we have BSD struct tm, which has tm_zone */
     tzoneStr = timeValp->tm_zone;
-#endif /* USE_POSIX_TIME */
+#endif /* !USE_POSIX_TIME */
 
     sprintf(outStr,
 	    "%s %s %d %2.2d:%2.2d:%2.2d %d %s",
