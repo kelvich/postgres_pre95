@@ -62,7 +62,8 @@ fi
 
 # extract the pathname relative to the postgres root directory from curdir
 curdir=`pwd`
-subtree=`echo $curdir | sed -e "s%.*/postgres/%%"`
+#subtree=`echo $curdir | sed -e "s%.*/postgres/%%"`
+subtree=`echo $curdir | sed -e "s%.*/src/%src/%"`
 
 if [ $verbose -ne 0 ]
 then
