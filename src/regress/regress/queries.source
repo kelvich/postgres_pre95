@@ -91,6 +91,12 @@ retrieve (tf_12_ff_4 = "", BOOLTBL1.all, BOOLTBL2.all)
 
 /********testing built-in time types: abstime, reltime, and tinterval *****/
 
+/*
+ * timezones may vary based not only on location but the operating
+ * system.  the main correctness issue is that the OS may not get 
+ * DST right for times prior to unix epoch (jan 1 1970).
+ */
+
 create ABSTIME_TBL (f1 = abstime)
 \g
 append ABSTIME_TBL (f1 = "Jan 14, 1973 03:14:21")
@@ -1457,26 +1463,131 @@ retrieve unique (p.age) from p in person* sort by age using >
  * hash index
  * grep 843938989 hash.data
  */
-retrieve (hasham_heap.all) where hasham_heap.random = 843938989
+retrieve (hash_i4_heap.all)
+	where hash_i4_heap.random = 843938989
 \g
 /*
  * hash index
  * grep 66766766 hash.data
  */
-retrieve (hasham_heap.all) where hasham_heap.random = 66766766
+retrieve (hash_i4_heap.all)
+	where hash_i4_heap.random = 66766766
+\g
+/*
+ * hash index
+ * grep 1505703298 hash.data
+ */
+retrieve (hash_c16_heap.all)
+	where hash_c16_heap.random = "1505703298"::char16
+\g
+/*
+ * hash index
+ * grep 7777777 hash.data
+ */
+retrieve (hash_c16_heap.all)
+	where hash_c16_heap.random = "7777777"::char16
+\g
+/*
+ * hash index
+ * grep 1351610853 hash.data
+ */
+retrieve (hash_txt_heap.all)
+	where hash_txt_heap.random = "1351610853"::text
+\g
+/*
+ * hash index
+ * grep 111111112222222233333333 hash.data
+ */
+retrieve (hash_txt_heap.all)
+	where hash_txt_heap.random = "111111112222222233333333"::text
+\g
+/*
+ * hash index
+ * grep 444705537 hash.data
+ */
+retrieve (hash_f8_heap.all)
+	where hash_f8_heap.random = "444705537"::float8
+\g
+/*
+ * hash index
+ * grep 88888888 hash.data
+ */
+retrieve (hash_f8_heap.all)
+	where hash_f8_heap.random = "88888888"::float8
+\g
+/*
+ * btree index
+ * test retrieval of min/max keys for each
+ */
+retrieve (b.all)
+	from b in bt_i4_heap
+	where b.seqno < 1
+\g
+retrieve (b.all)
+	from b in bt_i4_heap
+	where b.seqno >= 9999
+\g
+retrieve (b.all)
+	from b in bt_i4_heap
+	where b.seqno = 4500
+\g
+retrieve (b.all)
+	from b in bt_c16_heap
+	where b.seqno < "1"::char16
+\g
+retrieve (b.all)
+	from b in bt_c16_heap
+	where b.seqno >= "9999"::char16
+\g
+retrieve (b.all)
+	from b in bt_c16_heap
+	where b.seqno = "4500"::char16
+\g
+retrieve (b.all)
+	from b in bt_txt_heap
+	where b.seqno < "1"::text
+\g
+retrieve (b.all)
+	from b in bt_txt_heap
+	where b.seqno >= "9999"::text
+\g
+retrieve (b.all)
+	from b in bt_txt_heap
+	where b.seqno = "4500"::text
+\g
+retrieve (b.all)
+	from b in bt_f8_heap
+	where b.seqno < "1"::float8
+\g
+retrieve (b.all)
+	from b in bt_f8_heap
+	where b.seqno >= "9999"::float8
+\g
+retrieve (b.all)
+	from b in bt_f8_heap
+	where b.seqno = "4500"::float8
 \g
 
 /*
  * replace
  */
+/*
+ * BTREE
+ */
 replace onek (unique1 = onek.unique1 + 1)
 \g
 replace onek (unique1 = onek.unique1 - 1)
 \g
+/*
+ * BTREE partial
+ */
 replace onek2 (unique1 = onek2.unique1 + 1)
 \g
 replace onek2 (unique1 = onek2.unique1 - 1)
 \g
+/*
+ * BTREE shutting out non-functional updates
+ */
 replace temp (stringu1 = reverse_c16(o.stringu1))
     from o in onek
     where o.stringu1 = "JBAAAA" and
@@ -1493,22 +1604,73 @@ replace p (age = p.age + 1) from p in person*
 \g
 replace p (age = p.age + 3) from p in person* where p.name = "linda"
 \g
-replace hasham_heap (random = 1) where hasham_heap.seqno = 1492
+
+/*
+ * HASH
+ */
+replace hash_i4_heap (random = 1)
+	where hash_i4_heap.seqno = 1492
 \g
-retrieve (hasham_heap.all) where hasham_heap.random = 1
+retrieve (i1492 = h.seqno, i1 = h.random)
+	from h in hash_i4_heap
+	where h.random = 1
 \g
-replace hasham_heap (seqno = 20000) where hasham_heap.random = 1492795354
+replace hash_i4_heap (seqno = 20000) 
+	where hash_i4_heap.random = 1492795354
 \g
-retrieve (hasham_heap.all) where hasham_heap.random = 1492795354
+retrieve (i20000 = h.seqno)
+	from h in hash_i4_heap
+	where h.random = 1492795354
+\g
+replace hash_c16_heap (random = "0123456789abcdef"::char16)
+	where hash_c16_heap.seqno = 6543
+\g
+/*
+ * XXX broken, index scan returns two rows instead of one 
+ */
+retrieve (i6543 = h.seqno, c0_to_f = h.random)
+	from h in hash_c16_heap
+	where h.random = "0123456789abcdef"::char16
+\g
+replace hash_c16_heap (seqno = 20000)
+	where hash_c16_heap.random = "76652222"::char16
+\g
+retrieve (c20000 = h.seqno)
+	from h in hash_c16_heap
+	where h.random = "76652222"::char16
+\g
+replace hash_txt_heap (random = "0123456789abcdefghijklmnop"::text)
+	where hash_txt_heap.seqno = 4002
+\g
+retrieve (i4002 = h.seqno, c0_to_p = h.random)
+	from h in hash_txt_heap
+	where h.random = "0123456789abcdefghijklmnop"::text
+\g
+replace hash_txt_heap (seqno = 20000)
+	where hash_txt_heap.random = "959363399"::text
+\g
+retrieve (t20000 = h.seqno)
+	from h in hash_txt_heap
+	where h.random = "959363399"::text
+\g
+replace hash_f8_heap (random = "-1234.1234"::float8)
+	where hash_f8_heap.seqno = 8906
+\g
+retrieve (i8096 = h.seqno, f1234_1234 = h.random)
+	from h in hash_f8_heap
+	where h.random = "-1234.1234"::float8
+\g
+replace hash_f8_heap (seqno = 20000)
+	where hash_f8_heap.random = "488912369"::float8
+\g
+retrieve (f20000 = h.seqno)
+	from h in hash_f8_heap
+	where h.random = "488912369"::float8
 \g
 
 /*
  * append
  * 	(is tested in create.source)
- */
-
-/*
- * delete
  */
 
 /*
@@ -1844,6 +2006,25 @@ end
 /*
  * purge
  */
+/* hash index was getting trashed - pma 02/14/94 */
+/*
+purge hash_f8_heap before "now"
+\\g
+retrieve (has10001 = count{h.seqno}) from h in hash_f8_heap[,]
+\\g
+vacuum
+\\g
+retrieve (has10000 = count{h.seqno}) from h in hash_f8_heap[,]
+\\g
+purge hash_i4_heap after "@ 1 second ago"
+\\g
+retrieve (has10001 = count{h.seqno}) from h in hash_i4_heap[,]
+\\g
+vacuum
+\\g
+retrieve (has10000 = count{h.seqno}) from h in hash_i4_heap[,]
+\\g
+*/
 
 /*
  * add attribute
@@ -1910,6 +2091,69 @@ retrieve (temp.all)
 \g
 destroy temp
 \g
+/* the wolf bug - schema mods caused inconsistent row descriptors */
+create temp (initial = int4) archive = light
+\g
+addattr (a = int4) to temp
+\g
+addattr
+    (b = char16,
+     c = text,
+     d = float8,
+     e = float4,
+     f = int2,
+     g = polygon,
+     h = abstime,
+     i = char,
+     j = abstime[],
+     k = dt,
+     l = tid,
+     m = xid,
+     n = oid8,
+     o = lock,
+     p = smgr,
+     q = point,
+     r = lseg,
+     s = path,
+     t = box,
+     u = tinterval,
+     v = oidint4,
+     w = oidchar16,
+     x = float8[],
+     y = float4[],
+     z = int2[])
+to temp
+\g
+append temp (a=4,
+	     b="char16",
+	     c="text",
+	     d=4.1,
+	     e=4.1,
+	     f=2,
+	     g="(4.1,4.1,3.1,3.1)",
+	     h="now",
+	     i='c',
+	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}",
+	     k=314159,
+	     l="(1,0,1)",
+	     m=512,
+	     n="1 2 3 4 5 6 7 8",
+	     p="magnetic disk",
+	     q="(1.1,1.1)",
+	     r="(4.1,4.1,3.1,3.1)",
+	     s="(0,2,4.1,4.1,3.1,3.1)",
+	     t="(4.1,4.1,3.1,3.1)",
+	     u="['current' 'infinity']",
+	     v="1/3",
+	     w="1,char16",
+	     x="{1.0,2.0,3.0,4.0}",
+	     y="{1.0,2.0,3.0,4.0}",
+	     z="{1,2,3,4}")
+\g
+retrieve (t.all) from t in temp[,]
+\g
+destroy temp
+\g
 
 /*
  * rename -
@@ -1973,13 +2217,62 @@ retrieve (cnt_1000 = newcnt{onek.four})
 \g
 
 /*
- * versions
+ * inheritance stress test
  */
+retrieve (x.all) from x in a_star*
+\g
+retrieve (x.all) from x in b_star*
+        where x.b = "bumble"::text or x.a < 3
+\g
+retrieve (x.class, x.a) from x in c_star* where x.c ~ "hi"::text
+\g
+retrieve (x.class, x.b, x.c) from x in d_star* where x.a < 100
+\g
+retrieve (x.class, x.c) from x in e_star* where x.c NOTNULL
+\g
+retrieve (x.all) from x in f_star* where x.c ISNULL
+\g
+rename f in f_star to ff
+\g
+rename e in e_star* to ee
+\g
+rename d in d_star* to dd
+\g
+rename c in c_star* to cc
+\g
+rename b in b_star* to bb
+\g
+rename a in a_star* to aa
+\g
+retrieve (x.class, x.aa) from x in a_star* where x.aa ISNULL
+\g
+rename aa in a_star to foo
+\g
+retrieve (x.class, x.foo) from x in a_star where x.foo >= 2
+\g
+rename foo in a_star to aa
+\g
+retrieve (x.all) from x in a_star* where x.aa < 1000
+\g
+addattr (f = int4) to f_star
+\g
+replace f_star (f = 10)
+\g
+addattr (e = int4) to e_star*
+\g
+replace x (e = 42) from x in e_star*
+\g
+retrieve (x.all) from x in e_star*
+\g
+addattr (a = text) to a_star*
+\g
+replace x (a = "gazpacho"::text) from x in b_star* where x.aa > 4
+\g
+retrieve (x.class, x.aa, x.a) from x in a_star*
+\g
 
 /*
- * listen,notify - not sure how to do this yet, may need a multi-user
- *                 portion of the regression test.  These commands
- *                 would fall under that category.
+ * versions
  */
 
 /*

@@ -118,9 +118,51 @@ create shighway (surface = text)
 \g
 create real_city (pop = int4, cname = text, outline = path)
 \g
+
+/*
+ * test the "star" operators a bit more thoroughly -- this time,
+ * throw in lots of NULL fields...
+ *
+ * a is the type root
+ * b and c inherit from a (one-level single inheritance)
+ * d inherits from b and c (two-level multiple inheritance)
+ * e inherits from c (two-level single inheritance)
+ * f inherits from e (three-level single inheritance)
+ */
+create a_star (class = char, a = int4)
+\g
+create b_star (b = text) inherits (a_star)
+\g
+create c_star (c = char16) inherits (a_star)
+\g
+create d_star (d = float8) inherits (b_star, c_star)
+\g
+create e_star (e = int2) inherits (c_star)
+\g
+create f_star (f = polygon) inherits (e_star)
+\g
+
 create aggtest (a = int2, b = float4)
 \g
 create arrtest (a = int2[], b = int4[][][], c = char16[], d = text[][], e = float8[])
+\g
+
+create hash_i4_heap (seqno = int4, random = int4)
+\g
+create hash_c16_heap (seqno = int4, random = char16)
+\g
+create hash_txt_heap (seqno = int4, random = text)
+\g
+create hash_f8_heap (seqno = int4, random = float8)
+\g
+
+create bt_i4_heap (seqno = int4, random = int4)
+\g
+create bt_c16_heap (seqno = char16, random = int4)
+\g
+create bt_txt_heap (seqno = text, random = int4)
+\g
+create bt_f8_heap (seqno = float8, random = int4)
 \g
 
 /*
@@ -277,9 +319,207 @@ append shighway (road.all) where road.name ~ "State Hwy.*"
 replace shighway (surface = "asphalt")
 \g
 
-create hasham_heap (seqno = int4, random = int4)
+append a_star (class = 'a', a = 1)
 \g
-copy hasham_heap from "_CWD_/../data/hash.data"
+append a_star (class = 'a', a = 2)
+\g
+append a_star (class = 'a')
+\g
+append b_star (class = 'b',
+               a = 3,
+               b = "mumble"::text)
+\g
+append b_star (class = 'b',
+               a = 4)
+\g
+append b_star (class = 'b',
+               b = "bumble"::text)
+\g
+append b_star (class = 'b')
+\g
+append c_star (class = 'c',
+               a = 5,
+               c = "hi mom"::char16)
+\g
+append c_star (class = 'c',
+               a = 6)
+\g
+append c_star (class = 'c', 
+               c = "hi paul"::char16)
+\g
+append c_star (class = 'c')
+\g
+append d_star (class = 'd',
+               a = 7,
+               b = "grumble"::text,
+               c = "hi sunita"::char16,
+               d = "0.0"::float8)
+\g
+append d_star (class = 'd',
+               a = 8,
+               b = "stumble"::text,
+               c = "hi koko"::char16)
+\g
+append d_star (class = 'd',
+               a = 9,
+               b = "rumble"::text,
+               d = "1.1"::float8)
+\g
+append d_star (class = 'd',
+               a = 10,
+               c = "hi kristin"::char16,
+               d = "10.01"::float8)
+\g
+append d_star (class = 'd',
+               b = "crumble"::text,
+               c = "hi boris"::char16,
+               d = "100.001"::float8)
+\g
+append d_star (class = 'd',
+               a = 11,
+               b = "fumble"::text)
+\g
+append d_star (class = 'd',
+               a = 12,
+               c = "hi avi"::char16)
+\g
+append d_star (class = 'd',
+               a = 13,
+               d = "1000.0001"::float8)
+\g
+append d_star (class = 'd',
+               b = "tumble"::text,
+               c = "hi andrew"::char16)
+\g
+append d_star (class = 'd',
+               b = "humble"::text,
+               d = "10000.00001"::float8)
+\g
+append d_star (class = 'd',
+               c = "hi ginger"::char16,
+               d = "100000.000001"::float8)
+\g
+append d_star (class = 'd',
+               a = 14)
+\g
+append d_star (class = 'd',
+               b = "jumble"::text)
+\g
+append d_star (class = 'd',
+               c = "hi jolly"::char16)
+\g
+append d_star (class = 'd',
+               d = "1000000.0000001"::float8)
+\g
+append d_star (class = 'd')
+\g
+append e_star (class = 'e',
+               a = 15,
+               c = "hi carol"::char16,
+               e = "-1"::int2)
+\g
+append e_star (class = 'e',
+               a = 16,
+               c = "hi bob"::char16)
+\g
+append e_star (class = 'e',
+               a = 17,
+               e = "-2"::int2)
+\g
+append e_star (class = 'e',
+               c = "hi michelle"::char16,
+               e = "-3"::int2)
+\g
+append e_star (class = 'e',
+               a = 18)
+\g
+append e_star (class = 'e',
+               c = "hi elisa"::char16)
+\g
+append e_star (class = 'e',
+               e = "-4"::int2)
+\g
+append f_star (class = 'f',
+               a = 19,
+               c = "hi claire"::char16,
+               e = "-5"::int2,
+               f = "(1,2,3,4)"::polygon)
+\g
+append f_star (class = 'f',
+               a = 20,
+               c = "hi mike"::char16,
+               e = "-6"::int2)
+\g
+append f_star (class = 'f',
+               a = 21,
+               c = "hi marcel"::char16,
+               f = "(11,22,33,44,55,66)"::polygon)
+\g
+append f_star (class = 'f',
+               a = 22,
+               e = "-7"::int2,
+               f = "(111,222,333,444,555,666,777,888)"::polygon)
+\g
+append f_star (class = 'f',
+               c = "hi keith"::char16,
+               e = "-8"::int2,
+               f = "(1111,2222,3333,4444)"::polygon)
+\g
+append f_star (class = 'f',
+               a = 24,
+               c = "hi marc"::char16)
+\g
+append f_star (class = 'f',
+               a = 25,
+               e = "-9"::int2)
+\g
+append f_star (class = 'f',
+               a = 26,
+               f = "(11111,22222,33333,44444)"::polygon)
+\g
+append f_star (class = 'f',
+               c = "hi allison"::char16,
+               e = "-10"::int2)
+\g
+append f_star (class = 'f',
+               c = "hi jeff"::char16,
+               f = "(111111,222222,333333,444444)"::polygon)
+\g
+append f_star (class = 'f',
+               e = "-11"::int2,
+               f = "(1111111,2222222,3333333,4444444)"::polygon)
+\g
+append f_star (class = 'f',
+               a = 27)
+\g
+append f_star (class = 'f',
+               c = "hi carl"::char16)
+\g
+append f_star (class = 'f',
+               e = "-12"::int2)
+\g
+append f_star (class = 'f',
+               f = "(11111111,22222222,33333333,44444444)"::polygon)
+\g
+append f_star (class = 'f')
+\g
+
+copy hash_i4_heap from "_CWD_/../data/hash.data"
+\g
+copy hash_c16_heap from "_CWD_/../data/hash.data"
+\g
+copy hash_txt_heap from "_CWD_/../data/hash.data"
+\g
+copy hash_f8_heap from "_CWD_/../data/hash.data"
+\g
+
+copy bt_i4_heap from "_CWD_/../data/desc.data"
+\g
+copy bt_c16_heap from "_CWD_/../data/hash.data"
+\g
+copy bt_txt_heap from "_CWD_/../data/desc.data"
+\g
+copy bt_f8_heap from "_CWD_/../data/hash.data"
 \g
 
 /*
@@ -314,6 +554,9 @@ append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon)
 /*
  * Define ancillary data structures (i.e. indices)
  */
+/*
+ * BTREE
+ */
 define index onek_unique1 on onek using btree(unique1 int4_ops)
 \g
 define index onek_unique2 on onek using btree(unique2 int4_ops)
@@ -334,6 +577,31 @@ define index tenk2_unique2 on tenk2 using btree(unique2 int4_ops)
 \g
 define index tenk2_hundred on tenk2 using btree(hundred int4_ops)
 \g
+define index rix on road using btree (name text_ops)
+\g
+define index iix on ihighway using btree (name text_ops)
+\g
+define index six on shighway using btree (name text_ops)
+\g
+/*
+ * BTREE ascending/descending cases
+ *
+ * we load int4/text from pure descending data (each key is a new
+ * low key) and c16/f8 from pure ascending data (each key is a new
+ * high key).  we had a bug where new low keys would sometimes be
+ * "lost".
+ */
+define index bt_i4_index on bt_i4_heap using btree (seqno int4_ops)
+\g
+define index bt_c16_index on bt_c16_heap using btree (seqno char16_ops)
+\g
+define index bt_txt_index on bt_txt_heap using btree (seqno text_ops)
+\g
+define index bt_f8_index on bt_f8_heap using btree (seqno float8_ops)
+\g
+/*
+ * BTREE partial indices
+ */
 define index onek2_u1_prtl on onek2 using btree(unique1 int4_ops)
 	where onek2.unique1 < 20 or onek2.unique1 > 980
 \g
@@ -347,15 +615,26 @@ extend index onek2_u2_prtl
 define index onek2_stu1_prtl on onek2 using btree(stringu1 char16_ops)
 	where onek2.stringu1 >= "J" and onek2.stringu1 < "K"
 \g
+/*
+ * RTREE
+ * 
+ * rtrees use a quadratic page-splitting algorithm that takes a
+ * really, really long time.  we don't test all rtree opclasses
+ * in the regression test (we check them using the sequoia 2000
+ * benchmark).
+ */
 define index rect2ind on fast_emp4000 using rtree (home_base bigbox_ops)
 \g
-define index rix on road using btree (name text_ops)
+/*
+ * HASH
+ */
+define index hash_i4_index on hash_i4_heap using hash (random int4_ops)
 \g
-define index iix on ihighway using btree (name text_ops)
+define index hash_c16_index on hash_c16_heap using hash (random char16_ops)
 \g
-define index six on shighway using btree (name text_ops)
+define index hash_txt_index on hash_txt_heap using hash (random text_ops)
 \g
-define index hasham_index on hasham_heap using hash (random int4_ops)
+define index hash_f8_index on hash_f8_heap using hash (random float8_ops)
 \g
 
 /*
@@ -372,6 +651,17 @@ define operator <% ( arg1 = point,
 		     procedure = pt_in_circle,
 		     associativity = left,
 		     commutator = >=% )
+\g
+define operator @#@ ( arg2 = int4,		/* left unary */
+                      associativity = right,
+                      procedure = int4fac )
+\g
+define operator #@# ( arg1 = int4,		/* right unary */
+                      associativity = left,
+                      procedure = int4fac )
+\g
+define operator #%# ( arg1 = int4,		/* right unary */
+                      procedure = int4fac )
 \g
 
 /*
@@ -395,6 +685,10 @@ define view toyemp ( emp.name,
 		     emp.location,
 		     annualsal = 12*emp.salary )
 \g
+
+/*
+ * RULES
+ */
 
 /*
  * AGGREGATE DEFINITIONS
@@ -426,4 +720,5 @@ vacuum
  */
 retrieve ( pg_class.relname, pg_class.relhasindex )
 	   where pg_class.relhasindex
+           sort by relname
 \g
