@@ -63,7 +63,7 @@ shl_t *handle;
         *err = "could not malloc memory";
         goto failed;
     }
-    strcpy( fname, startptr );
+    (void) strcpy( fname, startptr );
 
     endptr = strchr( fname, '.' );
     if( endptr != NULL )
@@ -194,7 +194,7 @@ char *filename;
 
     /* Allocate memory and read in string table: */
 
-    if( ( strings = (char *) malloc( str_size ) ) == NULL )
+    if( ( strings = (char *) malloc( str_size + 1 ) ) == NULL )
         goto cleanup;
 
     if( fseek( fp, fheader.symbol_strings_location, SEEK_SET ) )
@@ -205,7 +205,7 @@ char *filename;
 
     /* Allocate memory for symbol table and read it in: */
 
-    if( ( stable = (char *) malloc( st_size ) ) == NULL )
+    if( ( stable = (char *) malloc( st_size + 1 ) ) == NULL )
         goto cleanup;
 
     if( fseek( fp, fheader.symbol_location, SEEK_SET ) )
@@ -272,7 +272,8 @@ char *filename;
 
             /* Copy it into the linked list: */
 
-            strcpy( this_dyna->funcname, str_entry );
+	    this_dyna->funcname = (char *) malloc(strlen(str_entry) + 1);
+            (void) strcpy( this_dyna->funcname, str_entry );
         }
     }
 
@@ -303,7 +304,8 @@ DynamicFunctionList **dyna_list;
     while( this_dyna != NULL )
     {
         that_dyna = this_dyna ->next;
-        free( this_dyna );
+	free( this_dyna->funcname );
+        free( (char *) this_dyna );
         this_dyna = that_dyna;
     }
 
