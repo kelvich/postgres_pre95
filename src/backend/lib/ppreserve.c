@@ -3,8 +3,8 @@
  *	Routines to preserve palloc'd memory in LISP.
  */
 
-#include "postgres.h"
-#include "pg_lisp.h"
+#include "tmp/postgres.h"
+#include "nodes/pg_lisp.h"
 
 RcsId("$Header$");
 
