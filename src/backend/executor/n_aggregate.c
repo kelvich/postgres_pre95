@@ -202,7 +202,7 @@ ExecAgg(node)
 	    running_comp[1] = (char *)
 		fmgr_by_ptr_array_args( functionptrarray[1],
 					nargs[1],
-					&running_comp[1] );
+					&running_comp[1], &isNull) ;
 	}
     }
 	
@@ -225,7 +225,7 @@ ExecAgg(node)
 	running_comp[0] = (char *) 
 	    fmgr_by_ptr_array_args( functionptrarray[0],
 				    nargs[0],
-				    &args[0] );
+				    &args[0], &isNull );
 	/* ----------
 	 * We aggregated another tuple
 	 * ----------
@@ -237,7 +237,7 @@ ExecAgg(node)
 	    running_comp[1] = (char *)
 		fmgr_by_ptr_array_args( functionptrarray[1],
 					nargs[1],
-					&running_comp[1] );
+					&running_comp[1], &isNull );
 	}
     }
 
@@ -250,7 +250,7 @@ ExecAgg(node)
 	final_value = (char *)
 	    fmgr_by_ptr_array_args( functionptrarray[2],
 				    nargs[2],
-				    &running_comp[0] );
+				    &running_comp[0], &isNull );
     }
     else
 	final_value = running_comp[0];
