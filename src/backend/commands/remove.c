@@ -24,6 +24,7 @@ RcsId("$Header$");
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "catalog/syscache.h"
+#include "parser/catalog_utils.h"
 
 void
 RemoveOperator(operatorName, typeName1, typeName2)
@@ -292,13 +293,18 @@ RemoveType(typeName)
 }
 
 void
-RemoveFunction(functionName)
-	Name 	functionName;             /* type name to be removed */
+RemoveFunction(functionName, nargs, argNameList)
+	Name 	   functionName;             /* type name to be removed */
+        int	   nargs;
+        List	   argNameList;
 {
 	Relation         relation;
 	HeapScanDesc         scan;
 	HeapTuple        tup;
 	Buffer           buffer;
+	bool		 bufferUsed = FALSE;
+	ObjectId	 argList[8];
+	Form_pg_proc	 the_proc;
 #ifdef USEPARGS
 	ObjectId         oid;
 #endif
@@ -307,14 +313,34 @@ RemoveFunction(functionName)
 		{ 0, ProcedureNameAttributeNumber, NameEqualRegProcedure }
 	};
 	NameData	user;
+	NameData	typename;
+	int 		i;
 	
 	Assert(NameIsValid(functionName));
 
+	bzero(argList, 8 * sizeof(ObjectId));
+	for (i=0; i<nargs; i++) {
+	        strncpy(&typename, CString(CAR(argNameList)),
+			sizeof(NameData));
+		argNameList = CDR(argNameList);
+		tup = SearchSysCacheTuple(TYPNAME, &typename, NULL, NULL, NULL);
+		if (!HeapTupleIsValid(tup))
+		        elog(WARN, "RemoveFunction: type \"%-*s\" not found",
+			     sizeof(NameData), &typename);
+		argList[i] = tup->t_oid;
+	}
+
+	tup = SearchSysCacheTuple(PRONAME, functionName, nargs, argList, NULL);
+	if (!HeapTupleIsValid(tup))
+	        func_error("RemoveFunction", functionName, nargs, argList);
+
 #ifndef NO_SECURITY
 	GetUserName(&user);
-	if (!pg_ownercheck(user.data, (char *) functionName, PRONAME))
+	if (!pg_func_ownercheck(user.data, (char *) functionName, 
+				nargs, argList)) {
 		elog(WARN, "RemoveFunction: function \"%-*s\": permission denied",
 		     sizeof(NameData), functionName);
+	}
 #endif
 
 	key[0].argument = NameGetDatum(functionName);
@@ -324,18 +350,37 @@ RemoveFunction(functionName)
 	relation = RelationNameOpenHeapRelation(ProcedureRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1,
 		(ScanKey)key);
-	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
-	if (!HeapTupleIsValid(tup)) {	
-		HeapScanEnd(scan);
-		RelationCloseHeapRelation(relation);
-		elog(WARN, "RemoveFunction: function \"%-*s\" does not exist",
-		     sizeof(NameData), functionName);
-	}
+
+	do { /* hope this is ok because it's indexed */
+	        if (bufferUsed) {
+		        ReleaseBuffer(buffer);
+			bufferUsed = FALSE;
+		}
+	        tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
+		if (!HeapTupleIsValid(tup))
+		        break;
+		bufferUsed = TRUE;
+		the_proc = (Form_pg_proc) GETSTRUCT(tup);
+	} while (!strcmp(&(the_proc->proname.data[0]), functionName) &&
+		 (the_proc->pronargs != nargs ||
+		  !oid8eq(&(the_proc->proargtypes.data[0]), &argList[0])));
+
+
+	if (!HeapTupleIsValid(tup) || strcmp(&(the_proc->proname.data[0]), 
+					     functionName))
+	        {	
+		      HeapScanEnd(scan);
+		      RelationCloseHeapRelation(relation);
+		      func_error("RemoveFunction", functionName,
+				 nargs, argList);
+		}
+
+/* ok, function has been found */
 #ifdef USEPARGS
 	oid = tup->t_oid;
 #endif
 
-	if (((Form_pg_proc) GETSTRUCT(tup))->prolang == INTERNALlanguageId)
+	if (the_proc->prolang == INTERNALlanguageId)
 		elog(WARN, "RemoveFunction: function \"%-*s\" is built-in",
 		     sizeof(NameData), functionName);
 
