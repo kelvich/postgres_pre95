@@ -481,8 +481,19 @@ AdjustParallelism()
     signalProcGroup(i, SIGPARADJ);
     max_curpage = getProcGroupMaxPage(i);
     SLAVE1_elog(DEBUG, "master gets maxpage = %d", max_curpage);
-    MasterDataP->data[0] = max_curpage + 1; /* page on which to adjust par. */
     oldnproc = ProcGroupInfoP[i].nprocess;
+    if (max_curpage == NOPARADJ) {
+	/* --------------------------
+	 *  forget about adjustment to parallelism
+	 *  in this case -- the fragment is almost finished
+	 * ---------------------------
+	 */
+	SLAVE_elog(DEBUG, "master changes mind on adjusting parallelism");
+        MasterDataP->data[0] = NOPARADJ;
+        OneSignalM(&(MasterDataP->m1lock), oldnproc);
+	return;
+      }
+    MasterDataP->data[0] = max_curpage + 1; /* page on which to adjust par. */
     ProcGroupInfoP[i].nprocess += NumberOfFreeSlaves;
     ProcGroupInfoP[i].countdown = ProcGroupInfoP[i].nprocess;
     MasterDataP->data[1] = ProcGroupInfoP[i].nprocess;

@@ -336,6 +336,7 @@ SlaveMain()
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
 	SlaveLocalInfoD.isworking = false;
+	SlaveInfoP[MyPid].isDone = true;
 	V_Finished(SlaveInfoP[MyPid].groupId);
     }
 }
@@ -597,6 +598,7 @@ int nproc;
     SlaveInfoP[pid].groupId = p->id;
     SlaveInfoP[pid].groupPid = 0;
     SlaveInfoP[pid].isAddOnSlave = false;
+    SlaveInfoP[pid].isDone = false;
     p->memberProc = SlaveArray + pid;
     slavep = p->memberProc;
     for (i=1; i<nproc; i++) {
@@ -604,6 +606,7 @@ int nproc;
 	SlaveInfoP[pid].groupId = p->id;
 	SlaveInfoP[pid].groupPid = i;
         SlaveInfoP[pid].isAddOnSlave = false;
+        SlaveInfoP[pid].isDone = false;
 	slavep->next = SlaveArray + pid;
 	slavep = slavep->next;
       }
@@ -874,7 +877,9 @@ int groupid;
 	S_LOCK(&(SlaveInfoP[p->pid].comdata.lock));
 #endif
 	page = SlaveInfoP[p->pid].comdata.data;
-	if (maxpage < page)
+	if (page == NOPARADJ)
+	    maxpage = NOPARADJ;
+	if (maxpage < page && maxpage != NOPARADJ)
 	    maxpage = page;
       }
     return maxpage;
@@ -895,14 +900,24 @@ paradj_handler()
     ItemPointer tid;
 
     SLAVE1_elog(DEBUG, "slave %d got SIGPARADJ", MyPid);
+    if (SlaveInfoP[MyPid].isDone) {
+	/* -----------------------
+	 * this means that the whole job is almost done
+	 * no adjustment to parallelism should be made
+	 * ------------------------
+	 */
+	SlaveInfoP[MyPid].comdata.data = NOPARADJ;
+	curpage = NOPARADJ;
+      }
+    else
     if (!SlaveLocalInfoD.isworking || SlaveLocalInfoD.heapscandesc == NULL) {
 	if (SlaveInfoP[MyPid].isAddOnSlave) {
 	    SlaveInfoP[MyPid].comdata.data = SlaveLocalInfoD.startpage;
 	    curpage = SlaveLocalInfoD.startpage;
 	  }
 	else {
-	    SlaveInfoP[MyPid].comdata.data = -1;
-	    curpage = -1;
+	    SlaveInfoP[MyPid].comdata.data = NULLPAGE;
+	    curpage = NULLPAGE;
 	  }
       }
     else {
@@ -917,6 +932,14 @@ paradj_handler()
     SLAVE2_elog(DEBUG, "slave %d sending back curpage = %d", MyPid, curpage);
     MWaitOne(&(MasterDataP->m1lock));
     SLAVE1_elog(DEBUG, "slave %d complete handshaking with master", MyPid);
+    if (MasterDataP->data[0] == NOPARADJ) {
+	/* ----------------------
+	 * this means that the master changed his/her mind
+	 * no adjustment to parallelism will be done
+	 * ----------------------
+	 */
+	return;
+      }
     SlaveLocalInfoD.paradjpending = true;
     SlaveLocalInfoD.paradjpage = MasterDataP->data[0];
     SlaveLocalInfoD.newparallel = MasterDataP->data[1];
