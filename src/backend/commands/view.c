@@ -1,8 +1,5 @@
 /* 
- * $Source$
- * $Revision$
- * $State$
- * $Author$
+ * $Header$
  */
 
 #include "access/heapam.h"

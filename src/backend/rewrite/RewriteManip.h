@@ -1,8 +1,6 @@
 
 /* module: /users/goh/postgres/src/parser/RewriteManip.c 
- * $File:$
- * $Author$
- * $Version:$
+ * $Header$
  */
 
 void OffsetVarNodes ARGS(( List , int ));

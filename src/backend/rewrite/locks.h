@@ -1,8 +1,5 @@
 /* 
- * $Source$
- * $Revision$
- * $State$
- * $Author$
+ * $Header$
  */
 
 #define EventIsRetrieve		0x0 		/* %00000000 */

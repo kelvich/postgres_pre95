@@ -1,8 +1,5 @@
 /* 
- * $Source$
- * $Revision$
- * $State$
- * $Author$
+ * $Header$
  */
 
 unsigned int InsertRule ARGS((struct char16 *, int, struct char16 *, struct char16 *, char *, char, char *, double, double));

@@ -1,8 +1,5 @@
 /* 
- * $Source$
- * $Revision$
- * $State$
- * $Author$
+ * $Header$
  */
 
 #include <stdio.h>

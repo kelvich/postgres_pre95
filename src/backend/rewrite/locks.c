@@ -1,8 +1,5 @@
 /* 
- * $Source$
- * $Revision$
- * $State$
- * $Author$
+ * $Header$
  */
 
 #include "utils/log.h"			/* for elog */

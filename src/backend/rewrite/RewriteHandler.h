@@ -1,6 +1,7 @@
 
-/* module: /users/goh/postgres/o/rewrite/RewriteHandler.c */
-/* $Id$ */
+/* module: /users/goh/postgres/o/rewrite/RewriteHandler.c
+ * $Header$
+ */
 
 int ChangeTheseVars ARGS((int, short, struct _LispValue *, struct _LispValue *));
 int ReplaceVarWithMulti ARGS((int, short, struct _LispValue *, struct _LispValue *));

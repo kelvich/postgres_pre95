@@ -1,3 +1,8 @@
+/*
+ * $Header$
+ */
+
+
 #include "nodes/relation.h"
 #include "nodes/primnodes.a.h"
 #include "parser/parsetree.h"
