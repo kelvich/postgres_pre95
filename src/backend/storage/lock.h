@@ -1,5 +1,7 @@
 /* $Header$ */
 
+#ifndef _LOCK_H_
+#define _LOCK_H_
 #include "tmp/postgres.h"
 #include "storage/itemptr.h"
 
@@ -40,3 +42,4 @@ typedef struct ltag {
 	 tag->relId,\
 	 tag->tupleId.blockData,tag->tupleId.positionData);
 */
+#endif /* ndef _LOCK_H_ */
