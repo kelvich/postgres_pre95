@@ -96,13 +96,13 @@ equal_indexkey_var (index_key,var)
 {
 /*    if ((consp (index_key) &&
  *	 equal (get_attribute_number (index_key), get_varattno (var)) &&
- *	 equal (get_array_index (index_key),get_vararrayindex (var))) ||
+ *	 equal (get_array_index (index_key),get_vararraylist (var))) ||
  *
  *  trun this portion off for now since vararraryindex is always nil
  */
 
     if (CInteger(index_key) == get_varattno (var) &&
-	null (get_vararrayindex (var)))
+	null (get_vararraylist (var)))
       return(true);
     else
       return(false);
