@@ -58,7 +58,8 @@ Prs2Stub stubs;
 
     for (i=0; i<stubs->numOfStubs; i++) {
 	oneStub = stubs->stubRecords[i];
-	if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub->qualification)){
+	if (prs2StubQualTestTuple(tuple, buffer, tupDesc,
+			    oneStub->qualification)){
 	    temp = prs2LockUnion(resultLock, oneStub->lock);
 	    prs2FreeLocks(resultLock);
 	    resultLock = temp;
@@ -71,14 +72,14 @@ Prs2Stub stubs;
 
 /*--------------------------------------------------------------------
  *
- * prs2StubTestTuple
+ * prs2StubQualTestTuple
  *
  * test if a tuple satisfies the given qualifications of a
  * stub record.
  *--------------------------------------------------------------------
  */
 bool
-prs2StubTestTuple(tuple, buffer, tupDesc, qual)
+prs2StubQualTestTuple(tuple, buffer, tupDesc, qual)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupDesc;
@@ -86,10 +87,9 @@ LispValue qual;
 {
     ExprContext econtext;
     bool qualResult;
-    static TupleTable tupleTable;
-    static TupleTableSlot slot;
-    static int slotnum;
-    static int firstTime = 1;
+    TupleTable tupleTable;
+    TupleTableSlot slot;
+    int slotnum;
 
     /*
      * Use ExecEvalQual to test for the qualification.
@@ -98,21 +98,21 @@ LispValue qual;
      *
      * Note also, that as 'ExecQual' expects its tuple
      * to be in a 'tuple table slot' we have to create
-     * a dummy one. Of course instead of creating a new one & 
-     * then destroying it every time we call this routine,
-     * it is better to do it only once.
+     * a dummy one.
+     * It would be nice to keep it for a long time and not
+     * allocate it & deallocate it continuously,
+     * but we can not keep it as a static variable because the
+     * memory is pfreed by the end of the Xact.
+     * (No, I didn't think all that by just reading the code,
+     * I tried it & learned the hard way... sigh!)
      */
 
-    if (firstTime) {
-	/*
-	 * this is the first time we call this routine.
-	 * Initialize the tuple table stuff...
-	 */
-	firstTime = 0;
-	tupleTable = ExecCreateTupleTable(1);
-	slotnum = ExecAllocTableSlot(tupleTable);
-	slot = (TupleTableSlot) ExecGetTableSlot(tupleTable, slotnum);
-    }
+    /*
+     * Initialize the tuple table stuff...
+     */
+    tupleTable = ExecCreateTupleTable(1);
+    slotnum = ExecAllocTableSlot(tupleTable);
+    slot = (TupleTableSlot) ExecGetTableSlot(tupleTable, slotnum);
 
     econtext = RMakeExprContext();
     (void)ExecStoreTuple(tuple, slot, false);
@@ -126,6 +126,11 @@ LispValue qual;
     set_ecxt_param_list_info(econtext, NULL);
 
     qualResult = ExecQual(qual, econtext);
+
+    /*
+     * release the tuple table stufffffff....
+     */
+    ExecDestroyTupleTable(tupleTable, false);
 
     if (qualResult) {
 	return(true);
