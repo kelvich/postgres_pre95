@@ -69,6 +69,29 @@ byteain(text)
 }
 
 /*
+ * Shoves a bunch of memory pointed at by bytes into varlena.
+ * BUGS:  Extremely unportable as things shoved can be string
+ * representations of structs, etc.
+ */
+
+struct varlena *
+shove_bytes(text, len)
+
+unsigned char *text;
+int len;
+
+{
+	struct varlena *result;
+
+	result = palloc(len + sizeof(int32));
+	result->len = len;
+	bcopy(text + sizeof(int32), result->vl_dat, len - sizeof(int32));
+	return(result);
+}
+
+
+
+/*
  *	byteaout	- converts to printable representation of byte array
  *
  *	Non-printable characters are inserted as '\nnn' (octal) and '\' as
