@@ -23,10 +23,10 @@ RcsId("$Header$");
  */
 
 static int	Nfds = 100;	/* must be same as in storage/file/fd.c */
-static int	*Md_fdvec;
+static char	*Md_fdvec;
 
-#define MDFD_CLEAN	0
-#define MDFD_DIRTY	1
+#define MDFD_CLEAN	(char) 0
+#define MDFD_DIRTY	(char) 1
 
 /*
  *  mdinit() -- Initialize private state for magnetic disk storage manager.
@@ -43,14 +43,10 @@ static int	*Md_fdvec;
 int
 mdinit()
 {
-#ifdef lint
-    unused = unused;
-#endif /* lint */
-
-    if ((Md_fdvec = (int *) malloc(Nfds * sizeof(int))) == (int *) NULL)
+    if ((Md_fdvec = (char *) malloc(Nfds)) == (char *) NULL)
 	return (SM_FAIL);
 
-    (void) bzero(Md_fdvec, Nfds * sizeof(int));
+    (void) bzero(Md_fdvec, Nfds);
 
     return (SM_SUCCESS);
 }
@@ -84,6 +80,10 @@ mdcreate(reln)
 	    }
 	}
     }
+
+    if (fd >= Nfds)
+	if (_fdvec_ext(fd) == SM_FAIL)
+	    return (-1);
 
     return (fd);
 }
@@ -152,6 +152,10 @@ mdopen(reln)
     /* this should only happen during bootstrap processing */
     if (fd < 0)
 	fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
+
+    if (fd >= Nfds)
+	if (_fdvec_ext(fd) == SM_FAIL)
+	    return (-1);
 
     return (fd);
 }
@@ -436,5 +440,38 @@ int
 mdabort()
 {
     bzero(Md_fdvec, Nfds * sizeof(int));
+    return (SM_SUCCESS);
+}
+
+/*
+ *  _fdvec_ext() -- Extend the md file descriptor vector.
+ *
+ *	The file descriptor vector must be large enough to hold at least
+ *	'fd' entries.
+ */
+
+int
+_fdvec_ext(fd)
+    int fd;
+{
+    char *nvec;
+    int orig;
+
+    orig = Nfds;
+
+    do
+	Nfds *= 2;
+    while (Nfds <= fd);
+
+    if ((nvec = (char *) malloc(Nfds)) == (char *) NULL)
+	return (SM_FAIL);
+
+    (void) bzero(nvec, Nfds);
+    (void) bcopy(Md_fdvec, nvec, orig);
+
+    free(Md_fdvec);
+
+    Md_fdvec = nvec;
+
     return (SM_SUCCESS);
 }
