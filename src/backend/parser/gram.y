@@ -227,15 +227,13 @@ ClusterStmt:
  /**********************************************************************
 
 	QUERY :
-		COPY [BINARY] [NONULLS] <relname> 
-		'(' [col_name = id]* ')'  FROM/TO 
+		COPY [BINARY] [NONULLS] <relname> FROM/TO 
 		<filename> [USING <maprelname>]
 
 	TREE:
 		( COPY ("relname" [BINARY] [NONULLS] )
 		       ( FROM/TO "filename")
 		       ( USING "maprelname")
-		       ( "col_name" "id")* )
 
   **********************************************************************/
 
@@ -1795,7 +1793,6 @@ access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
 attr_name: 		Id		/*$$=$1*/;
 class: 			Id		/*$$=$1*/;
-col_name:		Id		/*$$=$1*/;
 index_name: 		Id		/*$$=$1*/;
 map_rel_name:		Id		/*$$=$1*/;
 var_name:		Id		/*$$=$1*/;
