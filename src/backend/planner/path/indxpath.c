@@ -684,7 +684,10 @@ List indexpaths, new_indexpaths;
     LispValue x;
     IndexPath path;
     List retlist;
+    extern int testFlag;
 
+    if (!testFlag)
+	return append(indexpaths, new_indexpaths);
     retlist = indexpaths;
     foreach (x, new_indexpaths) {
 	path = (IndexPath)CAR(x);
