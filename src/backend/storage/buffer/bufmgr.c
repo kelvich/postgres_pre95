@@ -1063,12 +1063,14 @@ ReleaseTmpRelBuffers(tempreldesc)
 Relation tempreldesc;
 {
     register int i;
+    BufferDesc *buf;
 
-    for (i=0; i<NBuffers; i++)
+    for (i=1; i<=NBuffers; i++)
+	buf = BufferGetBufferDescriptor(i);
         if (BufferIsDirty(i) &&
-            BufferDescriptors[i].tag.relId.relId == tempreldesc->rd_id) {
-            BufferDescriptors[i].flags &= ~BM_DIRTY;
-            if (!(BufferDescriptors[i].flags & BM_FREE))
+            buf->tag.relId.relId == tempreldesc->rd_id) {
+            buf->flags &= ~BM_DIRTY;
+            if (!(buf->flags & BM_FREE))
                ReleaseBuffer(i);
         }
 }
