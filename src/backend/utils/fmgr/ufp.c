@@ -146,7 +146,7 @@ ufp_send(fd, buf, buflen)
 	char *buf;
 	unsigned buflen;
 {
-	uint32 size;
+	Datum size;
 	int sent = 0;
 	void (*oldhandler)();
 
@@ -303,7 +303,7 @@ ufp_recvval(fd, value)
 		elog(NOTICE, "ufp_recvval: read failed on byvalue");
 		return(-1);
 	}
-	byvalue = *((uint32 *) bufptr);
+	byvalue = *((Datum *) bufptr);
 	if ((got = ufp_recv(fd, &bufptr)) < 0) {
 		elog(NOTICE, "ufp_recvval: read failed on data");
 		return(-1);
@@ -383,6 +383,10 @@ main(argc, argv)
 
 	strcpy(pg_pathname, argv[0]);
 	fd = atoi(argv[1]);
+#ifdef UFPDEBUG
+	fprintf(stderr, "ufp [%d]: image=%s, fd=%d\n",
+		getpid(), pg_pathname, fd);
+#endif /* UFPDEBUG */
 	while (1) {
 		if (ufp_recvstr(fd, &filename) < 0) {
 			fprintf(stderr, "ufp [%d]: file name botch\n",
@@ -671,6 +675,9 @@ ufp_start()
 	UFPfd = fd[0];
 
 	elog(NOTICE, "ufp_start: forked UFP[%d]", cpid);
+#ifdef UFPDEBUG
+	elog(NOTICE, "ufp_start: new UFP fd=[%d %d]", fd[0], fd[1]);
+#endif /* UFPDEBUG */
 	return(0);
 }
 
