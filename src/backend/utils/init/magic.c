@@ -3,6 +3,9 @@
  *
  *	XXX eventually, should be able to handle version identifiers
  *	of length != 4.
+ *
+ *  STANDALONE CODE - do not use error routines as this code is linked with
+ *  stuff that does not cinterface.a
  */
 
 #include <sys/file.h>
@@ -10,12 +13,13 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <strings.h>
-#include "magic.h"
-#include "postgres.h"
-#include "log.h"
-#include "globals.h"
+
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
+
+#include "utils/log.h"
+#include "tmp/miscadmin.h"
 
 static char	Pg_verfile[] = PG_VERFILE;
 
