@@ -28,6 +28,7 @@
 
 
 extern int NBuffers;
+static int HashTBSize;
 
 /* ----------------------------------------------------------------
  *   	ExecHash
@@ -318,12 +319,15 @@ ExecHashTableCreate(node)
     int		  *innerbatchSizes;
     RelativeAddr  tempname;
 
-    /*
-     * determine number of batches for the hashjoin
-     */
-    nbatch = ExecHashPartition((Hash) node);
-    if (nbatch < 0)
-       elog(WARN, "not enough memory for hashjoin.");
+    nbatch = -1;
+    HashTBSize = NBuffers/2;
+    while (nbatch < 0) {
+	/*
+	 * determine number of batches for the hashjoin
+	 */
+	HashTBSize *= 2;
+	nbatch = ExecHashPartition((Hash) node);
+      }
     /* ----------------
      *	get information about the size of the relation
      * ----------------
@@ -345,7 +349,7 @@ ExecHashTableCreate(node)
      * nbuckets is the number of hash buckets for the first pass
      * of hybrid hashjoin
      */
-    nbuckets = (NBuffers - nbatch) * BLCKSZ / (bucketsize * FUDGE_FAC);
+    nbuckets = (HashTBSize - nbatch) * BLCKSZ / (bucketsize * FUDGE_FAC);
     if (totalbuckets < nbuckets)
        totalbuckets = nbuckets;
     if (nbatch == 0)
@@ -366,7 +370,7 @@ ExecHashTableCreate(node)
        IpcMemoryKey hashtablekey;
        int	    hashtablesize;
        hashtablekey = get_hashtablekey((Hash)node);
-       hashtablesize = (NBuffers+SlaveLocalInfoD.nparallel)*BLCKSZ;
+       hashtablesize = (HashTBSize+SlaveLocalInfoD.nparallel)*BLCKSZ;
        shmid = IpcMemoryCreateWithoutOnExit(hashtablekey,
 				            hashtablesize,
 				            HASH_PERMISSION);
@@ -374,7 +378,7 @@ ExecHashTableCreate(node)
       }
     else
        shmid = IpcMemoryCreateWithoutOnExit(PrivateIPCKey,
-				     (NBuffers+1)*BLCKSZ,HASH_PERMISSION);
+				     (HashTBSize+1)*BLCKSZ,HASH_PERMISSION);
     hashtable = (HashJoinTable) IpcMemoryAttach(shmid);
 #else /* sequent */
     /* ----------------
@@ -382,7 +386,7 @@ ExecHashTableCreate(node)
      *  in the shared memory.  We just malloc it.
      * ----------------
      */
-    hashtable = (HashJoinTable)malloc((NBuffers+1)*BLCKSZ);
+    hashtable = (HashJoinTable)malloc((HashTBSize+1)*BLCKSZ);
 #endif /* sequent */
 
     if (hashtable == NULL) {
@@ -400,7 +404,7 @@ ExecHashTableCreate(node)
 #ifdef sequent
     S_INIT_LOCK(&(hashtable->overflowlock));
 #endif
-    hashtable->bottom = NBuffers * BLCKSZ;
+    hashtable->bottom = HashTBSize * BLCKSZ;
     /*
      *  hashtable->readbuf has to be long aligned!!!
      */
@@ -710,7 +714,7 @@ ExecHashOverflowInsert(hashtable, bucket, heapTuple)
 #ifdef sequent
 	elog(WARN, "hash table out of memory.");
 #else
-	elog(NOTICE, "hash table out of memory. expanding.");
+	elog(DEBUG, "hash table out of memory. expanding.");
 	/* ------------------
 	 * XXX this is a temporary hack
 	 * eventually, recursive hash partitioning will be 
@@ -929,12 +933,12 @@ Hash node;
      * if amount of buffer space below hashjoin threshold,
      * return negative
      */
-    if (ceil(sqrt((double)pages)) > NBuffers)
+    if (ceil(sqrt((double)pages)) > HashTBSize)
        return -1;
-    if (pages <= NBuffers)
+    if (pages <= HashTBSize)
        b = 0;  /* fit in memory, no partitioning */
     else
-       b = ceil((double)(pages - NBuffers)/(double)(NBuffers - 1));
+       b = ceil((double)(pages - HashTBSize)/(double)(HashTBSize - 1));
 
     return b;
 }
