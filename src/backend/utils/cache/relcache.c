@@ -893,6 +893,43 @@ RelationRegisterRelation(relation)
 
 }
 
+/* -----------------------------------
+ *  RelationRegisterTempRel
+ *  	Register a temporary relation created by another backend
+ *      only called in parallel mode.
+ * ----------------------------------
+ */
+void
+RelationRegisterTempRel(temprel)
+Relation temprel;
+{
+    extern  GlobalMemory CacheCxt;
+    MemoryContext   oldcxt;
+    Relation rd;
+
+
+    /* ----------------------------------------
+     *  see if the temprel is created by the current backend
+     *  and therefore is already in the hast table
+     * ----------------------------------------
+     */
+    rd = (Relation)KeyHashTableLookup(RelationCacheHashById,temprel->rd_id);
+    if (!RelationIsValid(rd))
+        rd = (Relation) KeyHashTableLookup(GlobalIdCache, temprel->rd_id);
+    if (RelationIsValid(rd))
+	return;
+
+    /* ----------------------------------------
+     *  the temprel is created by another backend, insert it into the 
+     *  hash table
+     * ----------------------------------------
+     */
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    RelationRegisterRelation(temprel);
+    MemoryContextSwitchTo(oldcxt);
+    return;
+}
+
 /*
  *	relopen		- physically open a relation
  *
