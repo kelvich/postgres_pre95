@@ -405,8 +405,8 @@ inv_read(obj_desc, buf, nbytes)
 
 	off = obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
 	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset + 1;
-	if (ncopy > nbytes)
-	    ncopy = nbytes;
+	if (ncopy > (nbytes - nread))
+	    ncopy = (nbytes - nread);
 	bcopy(&(fsblock->vl_dat[0]), buf, ncopy);
 
 	/* be a good citizen */
@@ -632,7 +632,7 @@ inv_wrnew(obj_desc, buf, nbytes)
             buffer = ReadBuffer(hr, P_NEW);
             page = BufferSimpleGetPage(buffer);
             BufferSimpleInitPage(buffer);
-	    if (nwritten > IMAXBLK)
+	    if (nbytes > IMAXBLK)
 		nwritten = IMAXBLK;
 	    else
 		nwritten = nbytes;
