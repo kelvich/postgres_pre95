@@ -49,6 +49,12 @@ typedef struct _f262desc {
 #define OidSeqLTProcedure	922
 #define OidSeqGEProcedure	925
 
+File f262file ARGS((struct varlena *name , int flags , int mode ));
+f262desc *f262open ARGS((ObjectId foid ));
+int f262seek ARGS((f262desc *f , int loc ));
+int f262read ARGS((f262desc *f , char *dbuf , int nbytes ));
+int f262close ARGS((f262desc *f ));
+
 File
 f262file(name, flags, mode)
     struct varlena *name;
@@ -69,7 +75,7 @@ f262file(name, flags, mode)
 	pfree(pathname);
 	return (-1);
     }
-    pfree(pathname);
+    pfree((char *)pathname);
 
     return (vfd);
 }
@@ -116,14 +122,14 @@ fimport(name)
     /* open pg_files and prepare to insert new tuples into it */
     if ((r = heap_openr(PGFILES)) == (Relation) NULL) {
 	elog(NOTICE, "fimport() cannot open %s", PGFILES);
-	pfree(fdata);
+	pfree((char *)fdata);
 	return ((ObjectId) NULL);
     }
     tupdesc = RelationGetTupleDescriptor(r);
 
-    if ((indrel = index_openr(INDNAME)) == (Relation) NULL) {
+    if ((indrel = index_openr((Name)INDNAME)) == (Relation) NULL) {
 	elog(NOTICE, "fimport() cannot open %s", INDNAME);
-	pfree(fdata);
+	pfree((char *)fdata);
 	(void) heap_close(r);
 	return ((ObjectId) NULL);
     }
@@ -151,10 +157,10 @@ fimport(name)
 	res = index_insert(indrel, itup, (double *) NULL);
 
 	if (res)
-	    pfree(res);
+	    pfree((char *)res);
 
-	pfree(itup);
-	pfree(htup);
+	pfree((char *)itup);
+	pfree((char *)htup);
 
 	/* bump sequence number */
 	fseqno++;
@@ -181,7 +187,7 @@ f262open(foid)
     f->f_offset = 0;
     f->f_heap = heap_openr(PGFILES);
     f->f_hdesc = RelationGetTupleDescriptor(f->f_heap);
-    f->f_index = index_openr(INDNAME);
+    f->f_index = index_openr((Name)INDNAME);
     (void) bzero((char *) &(f->f_htid), sizeof(f->f_htid));
 
     /* initialize the scan key */
@@ -192,7 +198,8 @@ f262open(foid)
     ScanKeyEntryInitialize(&fkey[1], 0x0, 1, OidSeqLTProcedure,
 			   PointerGetDatum(f->f_oshigh));
 
-    f->f_iscan = index_beginscan(f->f_index, 0x0, 2, &fkey[0]);
+    f->f_iscan = index_beginscan(f->f_index, (Boolean)0x0, 
+				 (uint16)2, (ScanKey)&fkey[0]);
 
     return (f);
 }
@@ -218,9 +225,9 @@ f262seek(f, loc)
 
     /* initialize the scan key */
     if (f->f_oslow != (OidSeq) NULL)
-	pfree(f->f_oslow);
+	pfree((char *)f->f_oslow);
     if (f->f_oshigh != (OidSeq) NULL)
-	pfree(f->f_oshigh);
+	pfree((char *)f->f_oshigh);
     f->f_oslow = (OidSeq) mkoidseq(f->f_oid, f->f_seqno);
     ScanKeyEntryInitialize(&fkey[0], 0x0, 1, OidSeqGEProcedure,
 			   PointerGetDatum(f->f_oslow));
@@ -229,7 +236,8 @@ f262seek(f, loc)
 			   PointerGetDatum(f->f_oshigh));
 
     /* reinit the index scan */
-    f->f_iscan = index_beginscan(f->f_index, 0x0, 2, &fkey[0]);
+    f->f_iscan = index_beginscan(f->f_index, (Boolean)0x0,
+				 (uint16)2, (ScanKey)&fkey[0]);
 
     /* clear out the heap tid */
     (void) bzero((char *) &(f->f_htid), sizeof(f->f_htid));
@@ -257,7 +265,7 @@ f262read(f, dbuf, nbytes)
 	res = index_getnext(f->f_iscan, ForwardScanDirection);
 	if (res != (RetrieveIndexResult) NULL) {
 	    bcopy(&(res->heapItemData), &(f->f_htid), sizeof(f->f_htid));
-	    pfree(res);
+	    pfree((char *)res);
 	} else {
 	    return (0);
 	}
@@ -267,7 +275,7 @@ f262read(f, dbuf, nbytes)
 	res = index_getnext(f->f_iscan, ForwardScanDirection);
 	if (res != (RetrieveIndexResult) NULL) {
 	    bcopy(&(res->heapItemData), &(f->f_htid), sizeof(f->f_htid));
-	    pfree(res);
+	    pfree((char *)res);
 	} else {
 	    return (0);
 	}
@@ -296,7 +304,7 @@ f262read(f, dbuf, nbytes)
 	    res = index_getnext(f->f_iscan, ForwardScanDirection);
 	    if (res != (RetrieveIndexResult) NULL) {
 		bcopy(&(res->heapItemData), &(f->f_htid), sizeof(f->f_htid));
-		pfree(res);
+		pfree((char *)res);
 	    } else {
 		bzero(&(f->f_htid), sizeof(f->f_htid));
 		nbytes = 0;
@@ -316,11 +324,11 @@ f262close(f)
     (void) heap_close(f->f_heap);
 
     if (f->f_oslow != (OidSeq) NULL)
-	pfree(f->f_oslow);
+	pfree((char *)f->f_oslow);
     if (f->f_oshigh != (OidSeq) NULL)
-	pfree(f->f_oshigh);
+	pfree((char *)f->f_oshigh);
 
-    pfree(f);
+    pfree((char *)f);
 
     return (0);
 }
@@ -358,7 +366,7 @@ fexport(name, foid)
 	    break;
 
 	htup = heap_fetch(f->f_heap, NowTimeQual, &(res->heapItemData), &b);
-	pfree(res);
+	pfree((char *)res);
 
 	if (htup == (HeapTuple) NULL)
 	    continue;
