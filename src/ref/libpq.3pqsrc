@@ -9,11 +9,10 @@ libpq \*- programmer's interface to \*(PP
 .lp
 LIBPQ is the programmer's interface to Postgres.  LIBPQ is a set of
 library routines which allow queries to pass to the Postgres back-end
-and instances returned through an IPC channel.
+and instances to return through an IPC channel.
 .lp
-This version of the documentation is based on the C library.  A similar
-package exists for Common Lisp.
-.uh CONTROL AND INITIALIZATION
+This version of the documentation is based on the C library.
+.uh "CONTROL AND INITIALIZATION"
 .lp
 .uh VARIABLES
 .lp
@@ -56,53 +55,94 @@ int	PQportset = 0;	/* 1 if communication with back-end is established */
 
 int	PQxactid = 0 ;	/* Transaction ID of the current transaction */
 
-char	*PQinitstr = NULL; 	/* Initialization string passed to back-end */
-
 int	PQtracep = 0 ;	/* 1 to print out front-end debugging messages */
 .)1
 .fi
-.uh QUERY EXECUTION FUNCTIONS
+.uh "QUERY EXECUTION FUNCTIONS"
 .lp
 The following routines control the execution of queries
 from a C program.
-.(l
-PQsetdb \*- Make the specified database the current database.
 
-PQsetdb ( dbname )
+.(1
+PQsetdb \*- Make the specified database the current database, 
+
+.nf
+void PQsetdb ( dbname )
 	char	*dbname;
+
+PQsetdb also resets communication via PQreset (see below).
 
 PQdb \*- Return the current database being accessed.
 
-	char*	PQdb ()
-.)l
+char * PQdb ()
+.)1
+.fi
 .lp
 Returns the name of the POSTGRES database
 being accessed, or NIL if no database is open.
 Only one database can be accessed at a time.  The database
 name is a string limited to 16 characters.
+.lp
+.nf
 .(1
-PQreset \*- Reset the communication port with the back-end.
+PQreset \*- Reset the communication port with the back-end in case of errors.
 
-PQreset ()
+void PQreset()
 
-Resets communication in case of errors.
+.fi
+This function will close the IPC socket connection to the backend thereby
+causing the next PQexec() call to ask for a new one from the postmaster.
+When the backend notices the socket was closed it will exit, and when the
+postmaster is asked for the new connection it will start a new back-end.
+.nf
 
 PQfinish \*- Close communication ports with the back-end.
 
-PQfinish ()
+void PQfinish ()
 .)1
+.fi
 .lp
 Terminates communications and frees up the memory taken up
 by the libpq buffer.
+.nf
+
+.(1
+PQfn \*- Send a function call to the POSTGRES backend.
+
+char *PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
+	int fnid;
+	int *result_buf;    /* can't use void, the compiler complains */
+	int result_len;
+	int result_is_int;
+	PQArgBlock *args;
+	int nargs;
+
+.fi
+PQfn provides access to the POSTGRES fastpath facility, a trapdoor into
+the system internals.  See \fBFASTPATH\fR.
+.nf
+
 .(1
 PQexec \*- Submit a query to POSTGRES.  
 
-PQexec (query)
+char *	PQexec (query)
 	char	* query;
 .)1
+.fi
 .lp
-This function returns a status indicator or an error message.
-.uh PORTAL FUNCTIONS
+This function returns a status indicator or an error message.  If the
+query submitted was a retrieve then PQexec returns a string consisting
+of a 'P' followed by the portal name.  If no portal was specified the
+portal name will be "blank".  When the query was not a retrieve PQexec
+will return a string consisting of 'C' followed by the command tag (e.g.
+"CREPLACE").  If an error occured during the execution of the query 
+PQexec will return "R".  You might be wondering "why an 'R'?"  The answer
+is that this stems from libpq's history.  It used to be the case that
+when libpq received an error message from the backend it would attempt
+to \fIreset\fR communications.  Thus it returned (and still returns) an 'R' 
+to the application program.
+
+.uh "PORTAL FUNCTIONS"
 .lp
 A portal is a POSTGRES buffer from which instances can be fetched.
 Each portal has a string name (currently limited to 16 bytes).
@@ -121,7 +161,7 @@ by executing a \fIfetch\fR statement, e.g:
 .)l
 .lp
 If no portal name is specified in a query, the default
-portal name is the empty string, known as the "blank portal."
+portal name is the string "blank", known as the "blank portal."
 All qualifying instances in a blank portal are fetched
 immediately, without the need for the programmer to issue a
 seperate fetch command.
@@ -146,7 +186,7 @@ same instance format.
 Portals that are associated with normal user commands
 are called synchronous.
 In this case, the application program is expected
-to issue a retrievel followed by one or more
+to issue a retrieval followed by one or more
 fetch commands.
 The functions that follow can now be used to
 manipulate data in the portal.
@@ -156,7 +196,7 @@ PQnportals \*- Return the number of open portals.
 int PQnportals ( rule_p )
 	int	rule_p ;
 
-If rule_p is not O, then only return the number of asynchronous portals.
+If rule_p is not 0, then only return the number of asynchronous portals.
 
 PQnames \*- Return all portal names.
 
@@ -169,7 +209,12 @@ portals.
 
 PQparray \*- Return the portal buffer given a portal name.
 
-PortalBuffer * PQparray (pname )
+PortalBuffer * PQparray ( pname )
+	char	*pname;
+
+PQclear \*- free storage claimed by named portal.
+
+void PQclear ( pname )
 	char	*pname;
 
 PQrulep \*- Return 1 if an asynchronous portal.
@@ -188,6 +233,7 @@ int PQngroups (portal)
 	PortalBuffer *portal
 
 PQntuplesGroup \*- Return the number of instances in an instance group.
+
 int PQntuplesGroup (portal, group_index)
 	PortalBuffer	*portal;
 	int	group_index;
@@ -263,11 +309,11 @@ char * PQgetvalue ( portal, tuple_index, field_number )
 All values are returned
 as string.  It is the programmer's responsibility to
 convert them to the correct type.
-.uh FUNCTIONS ASSOCIATED WITH THE COPY COMMAND
+.uh "FUNCTIONS ASSOCIATED WITH THE COPY COMMAND"
 .lp
 The
 .i copy
-command in \*PP has options to read from or write to the network
+command in POSTGRES has options to read from or write to the network
 connection used by LIBPQ.  Therefore, functions are necessary to access
 this network connection directly so applications may take full advantage
 of this capability.
@@ -288,7 +334,7 @@ PQputline(string) \*- Sends a null-terminated string.
 char *string;
 
 int
-PQendcopy() \*- Syncs with the backend.
+PQendcopy() \*- Syncs with the back-end.
 
 This function waits until the backend has finished processing the copy.
 It should either be issued when the last string has been sent to the
@@ -298,9 +344,21 @@ the backend using PGgetline().  It must be issued or the backend may get
 backend is ready to receive the next query.
 
 The return value is 0 on successful completion, nonzero otherwise.
+
+\fBFor Example:\fR
+
+.nf
+PQexec("create foo (a=int4, b=char16, d=float8)");
+PQexec("copy foo from stdin");
+PQputline("3<TAB>hello world<TAB>4.5");
+PQputline("4<TAB>goodbye world<TAB>7.11");
+...
+PQputline(".\en");
+PQendcopy();
+.fi
 .)1
 
-.uh TRACING FUNCTIONS
+.uh "TRACING FUNCTIONS"
 .lp
 .(1
 PQtrace \*- Enable tracing.
@@ -313,20 +371,13 @@ void PQuntrace ()
 .)1
 .uh BUGS
 .lp
-Only 3 portals can be open at a time.
-.lp
-IPC glitches between the front-end and the back-end may cause
-a query to hang.  When this happens try killing the query with
-a keyboard interrupt (^C).  If this does not work, you may have
-to kill the process.
-.lp
 The query buffer is only 8192 bytes long, and queries over that
 length will be silently truncated.
-.uh SAMPLE PROGRAM
+
+.uh "SAMPLE PROGRAM"
 .lp
 .(1
 .nf
-/*
 /*
  * testlibpq.c \*-
  * 	Test the C version of Libpq, the POSTGRES frontend library.
@@ -341,7 +392,10 @@ main ()
     char pnames[MAXPORTALS][portal_name_length];
 
     /* Specify the database to access. */
-    PQsetdb ("Pic-Demo");
+    PQsetdb ("pic_demo");
+
+    /* Start a transaction block for eportal */
+    PQexec ("begin");
 
     /* Fetch instances from the EMP class. */
     PQexec ("retrieve portal eportal (EMP.all)");
@@ -353,7 +407,7 @@ main ()
     t = 0;
     
     for (k = 0; k < g; k++) {
-	printf ("\nA new instance group:\en");
+	printf ("\enA new instance group:\en");
 	n = PQntuplesGroup (p, k);
 	m = PQnfieldsGroup (p, k);
 
@@ -374,10 +428,13 @@ main ()
     /* Close the portal. */
     PQexec ("close eportal");
 
+    /* End the transaction block */
+    PQexec("end");
+
     /* Try out some other functions. */
     
     /* Print out the number of portals. */
-    printf ("\nNumber of portals open: %d.\en", PQnportals ());
+    printf ("\enNumber of portals open: %d.\en", PQnportals ());
 
     /* If any tuples are returned by rules, print out the portal name. */
     if (PQnportals (1)) {
