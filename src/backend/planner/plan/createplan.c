@@ -278,8 +278,10 @@ create_join_node(best_path,tlist)
      **        -- JMH, 6/15/92
      */
      if (get_locclauseinfo(best_path) != LispNil)
-       nconc(get_qpqual((Plan) retval), 
-	     fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
+       set_qpqual((Plan)retval,
+		  nconc(get_qpqual((Plan) retval), 
+			fix_opids(get_actual_clauses
+				  (get_locclauseinfo(best_path)))));
 
      set_parallel((Plan)retval, 1);
      return(retval);
