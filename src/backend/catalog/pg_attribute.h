@@ -112,10 +112,10 @@ BKI_BEGIN
 insert OID = 0 (  OID ctid             27 0 0 0  6  -1 0 f t 0 0 -1) \
 insert OID = 0 (  OID lock             31 0 0 0 -1  -2 0 f t 0 0 -1) \
 insert OID = 0 (  OID oid              26 0 0 0  4  -3 0 t t 0 0 -1) \
-insert OID = 0 (  OID xmin             28 0 0 0  4  -4 0 t t 0 0 -1) \
-insert OID = 0 (  OID cmin             29 0 0 0  2  -5 0 t t 0 0 -1) \
-insert OID = 0 (  OID xmax             28 0 0 0  4  -6 0 t t 0 0 -1) \
-insert OID = 0 (  OID cmax             29 0 0 0  2  -7 0 t t 0 0 -1) \
+insert OID = 0 (  OID xmin             28 0 0 0  5  -4 0 f t 0 0 -1) \
+insert OID = 0 (  OID cmin             29 0 0 0  1  -5 0 t t 0 0 -1) \
+insert OID = 0 (  OID xmax             28 0 0 0  5  -6 0 f t 0 0 -1) \
+insert OID = 0 (  OID cmax             29 0 0 0  1  -7 0 t t 0 0 -1) \
 insert OID = 0 (  OID chain            27 0 0 0  6  -8 0 f t 0 0 -1) \
 insert OID = 0 (  OID anchor           27 0 0 0  6  -9 0 f t 0 0 -1) \
 insert OID = 0 (  OID tmax            702 0 0 0  4 -10 0 t t 0 0 -1) \
@@ -168,10 +168,10 @@ DATA(insert OID = 0 (  71 typdefault       25 0 0 0 -1  15 0 f t 0 0 -1));
 DATA(insert OID = 0 (  71 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  71 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  71 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  71 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  71 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  71 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  71 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  71 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  71 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  71 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  71 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  71 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  71 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  71 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -188,10 +188,10 @@ DATA(insert OID = 0 (  88 datpath          25 0 0 0 -1   3 0 f t 0 0 -1));
 DATA(insert OID = 0 (  88 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  88 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  88 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  88 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  88 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  88 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  88 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  88 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  88 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  88 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  88 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  88 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  88 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  88 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -209,10 +209,10 @@ DATA(insert OID = 0 (  76 demcode          24 0 0 0  4   4 0 t t 0 0 -1));
 DATA(insert OID = 0 (  76 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  76 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  76 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  76 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  76 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  76 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  76 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  76 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  76 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  76 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  76 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  76 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  76 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  76 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -234,20 +234,16 @@ DATA(insert OID = 0 (  76 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
 { 81l, "prorettype",    26l, 81l, 0l, 0l,  4,  8, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 81l, "proargtypes",   30l, 81l, 0l, 0l,  32, 9, 0,   '\0', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "proarch_pct",   23l, 81l, 0l, 0l,  4, 10, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "probyte_pct",   23l, 81l, 0l, 0l,  4, 10, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "prodisk_pct",   23l, 81l, 0l, 0l,  4, 11, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "properbyte_cpu",   23l, 81l, 0l, 0l,  4, 11, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "probyte_pct",   23l, 81l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "propercall_cpu",   23l, 81l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "properbyte_cpu",   23l, 81l, 0l, 0l,  4, 13, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "prooutin_ratio",   23l, 81l, 0l, 0l,  4, 13, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "propercall_cpu",   23l, 81l, 0l, 0l,  4, 14, 0, '\001', '\001', 0l, 0l, \
-      -1l }, \
-{ 81l, "prooutin_ratio",   23l, 81l, 0l, 0l,  4, 15, 0, '\001', '\001', 0l, 0l, \
-      -1l }, \
-{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1,  16, 0,   '\0', '\001', 0l, 0l, -1l }, \
-{ 81l, "probin",        17l, 81l, 0l, 0l, -1,  17, 0,   '\0', '\001', 0l, 0l, -1l }
+{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1,  14, 0,   '\0', '\001', 0l, 0l, -1l }, \
+{ 81l, "probin",        17l, 81l, 0l, 0l, -1,  15, 0,   '\0', '\001', 0l, 0l, -1l }
 
 DATA(insert OID = 0 (  81 proname          19 0 0 0 16   1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 proowner         26 0 0 0  4   2 0 t t 0 0 -1));
@@ -263,10 +259,10 @@ DATA(insert OID = 0 (  81 probin           17 0 0 0 -1  11 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  81 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  81 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  81 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -283,10 +279,10 @@ DATA(insert OID = 0 (  82 serport          21 0 0 0  2   3 0 t t 0 0 -1));
 DATA(insert OID = 0 (  82 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  82 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  82 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  82 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  82 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  82 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  82 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  82 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  82 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  82 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  82 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  82 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  82 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  82 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -306,10 +302,10 @@ DATA(insert OID = 0 (  86 usecatupd        16 0 0 0  1   6 0 t t 0 0 -1));
 DATA(insert OID = 0 (  86 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  86 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  86 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  86 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  86 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  86 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  86 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  86 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  86 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  86 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  86 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  86 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  86 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  86 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -353,10 +349,10 @@ DATA(insert OID = 0 (  75 attcacheoff      23 0 0 0  4  14 0 t t 0 0 -1));
 DATA(insert OID = 0 (  75 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  75 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  75 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  75 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  75 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  75 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  75 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  75 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  75 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  75 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  75 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  75 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  75 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  75 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -402,10 +398,10 @@ DATA(insert OID = 0 (  83 relkeyop         30 0 0 0 32  15 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  83 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  83 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  83 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  83 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  83 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  83 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  83 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  83 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -421,10 +417,10 @@ DATA(insert OID = 0 (  80 magvalue         19 0 0 0 16   2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  80 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  80 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  80 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  80 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  80 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  80 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  80 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  80 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  80 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  80 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  80 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  80 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  80 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  80 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
@@ -440,10 +436,10 @@ DATA(insert OID = 0 (  89 defvalue         19 0 0 0 16   2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  89 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  89 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  89 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
-DATA(insert OID = 0 (  89 xmin             28 0 0 0  4  -4 0 t t 0 0 -1));
-DATA(insert OID = 0 (  89 cmin             29 0 0 0  2  -5 0 t t 0 0 -1));
-DATA(insert OID = 0 (  89 xmax             28 0 0 0  4  -6 0 t t 0 0 -1));
-DATA(insert OID = 0 (  89 cmax             29 0 0 0  2  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  89 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  89 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  89 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  89 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
 DATA(insert OID = 0 (  89 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
 DATA(insert OID = 0 (  89 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  89 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
