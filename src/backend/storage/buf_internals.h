@@ -65,6 +65,8 @@ struct buftag{
   BlockNumber   blockNum;  /* blknum relative to begin of reln */
 };
 #define CLEAR_BUFFERTAG(a)\
+  (a)->relId.dbId = InvalidObjectId; \
+  (a)->relId.relId = InvalidObjectId; \
   (a)->blockNum = INVALID_BLOCKNUM;
 
 #define INIT_BUFFERTAG(a,xx_reln,xx_blockNum) \
