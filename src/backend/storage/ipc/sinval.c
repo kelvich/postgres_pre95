@@ -125,7 +125,7 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     }
    
     SpinAcquire(SInvalLock);
-    if (!SISetDataEntry(shmInvalBuffer, newInvalid)) {
+    if (!SISetDataEntry(shmInvalBuffer, &newInvalid)) {
     	/* buffer full */
     	/* release a message, mark process cache states to be invalid */
     	SISetProcStateInvalid(shmInvalBuffer);
@@ -137,7 +137,7 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     	}
 
     	/* write again */
-    	(void) SISetDataEntry(shmInvalBuffer, newInvalid);
+    	(void) SISetDataEntry(shmInvalBuffer, &newInvalid);
     }
     SpinRelease(SInvalLock);
 }
