@@ -7,6 +7,9 @@
  * the functions are lispRead, lsptok, and LispToken.
  *
  * Bugs:  (nil) won't work.
+ *
+ * Identification:
+ *    $Header$
  */
 
 #include <ctype.h>
