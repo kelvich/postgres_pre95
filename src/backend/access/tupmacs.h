@@ -10,10 +10,13 @@
 #define att_isnull(ATT, BITS) (!((BITS)[(ATT) >> 3] & (1 << ((ATT) & 0x07))))
 
 #define fetchatt(A, T) \
- ((*(A))->attbyval ? \
-  ((*(A))->attlen > sizeof(short) ? (char *) *(long *) (T) : \
-   ((*(A))->attlen < sizeof(short) ? *(char *) (T) : \
-	(char *) * (short *) (T))) : (char *) (T))
+ ((*(A))->attbyval \
+  ? ((*(A))->attlen > sizeof(short) \
+     ? (char *) *((long *)(T)) \
+     : ((*(A))->attlen < sizeof(short) \
+        ? (char *) *((char *)(T)) \
+        : (char *) *((short *)(T)))) \
+  : (char *) (T))
 	
 #endif
 
