@@ -170,7 +170,7 @@ void Async_NotifyHandler()
 {
   extern TransactionState CurrentTransactionState;
 
-  if ((CurrentTransactionState->state == TRANS_DEFAULT) ||
+  if ((CurrentTransactionState->state == TRANS_DEFAULT) &&
       (CurrentTransactionState->blockState == TRANS_DEFAULT)) {
     elog(DEBUG, "Waking up sleeping backend process");
     Async_NotifyFrontEnd();
@@ -295,7 +295,7 @@ void Async_NotifyAtCommit()
 
   INIT_NOTIFY_LIST;
   
-  if ((CurrentTransactionState->state == TRANS_DEFAULT) ||
+  if ((CurrentTransactionState->state == TRANS_DEFAULT) &&
       (CurrentTransactionState->blockState == TRANS_DEFAULT)) {
 
     if (notifyIssued) {		/* 'notify <relname>' issued by us */
@@ -373,7 +373,7 @@ Async_NotifyAtAbort()
   SLNewList(&pendingNotifies, offsetof(PendingNotifyNode, node));
   initialized = 1;
 
-  if ((CurrentTransactionState->state == TRANS_DEFAULT) ||
+  if ((CurrentTransactionState->state == TRANS_DEFAULT) &&
       (CurrentTransactionState->blockState == TRANS_DEFAULT)) {
     if (notifyFrontEndPending) { /* don't forget to notify front end */
       Async_NotifyFrontEnd();
