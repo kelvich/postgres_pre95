@@ -1,8 +1,16 @@
-/*
- * This include provides some definitions to support indexing on system
- * catalogs
+/* ----------------------------------------------------------------
+ *   FILE
+ *	indexing.h
  *
- * $Header$
+ *   DESCRIPTION
+ *	This include provides some definitions to support indexing 
+ *	on system catalogs
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef _INDEXING_H_INCL_
@@ -42,22 +50,26 @@ extern char *Name_pg_class_indices[];
 extern char *IndexedCatalogName[];
 
 /*
+ * indexing.c prototypes (automatically generate by mkproto)
+ *
  * Functions for each index to perform the necessary scan on a cache miss.
  */
-HeapTuple AttributeNameIndexScan ARGS((Relation heapRelation , ObjectId relid , char *relname ));
-HeapTuple AttributeNumIndexScan  ARGS((Relation heapRelation , ObjectId relid , AttributeNumber relname ));
 
-HeapTuple ProcedureOidIndexScan  ARGS((Relation heapRelation, ObjectId procId));
-HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName , int nargs , ObjectId *argTypes));
-HeapTuple ProcedureSrcIndexScan ARGS((Relation heapRelation, text *procSrc));
-
-HeapTuple TypeOidIndexScan  ARGS((Relation heapRelation, ObjectId typeId));
-HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
-
-HeapTuple NamingNameIndexScan ARGS((Relation heapRelation, ObjectId parentid, char *filename));
-
-HeapTuple ClassNameIndexScan ARGS((Relation heapRelation, char *relName));
-HeapTuple ClassOidIndexScan ARGS((Relation heapRelation, ObjectId relId));
+extern void CatalogOpenIndices ARGS((int nIndices, char *names[], Relation idescs[]));
+extern void CatalogCloseIndices ARGS((int nIndices, Relation *idescs));
+extern void CatalogIndexInsert ARGS((Relation *idescs, int nIndices, Relation heapRelation, HeapTuple heapTuple));
+extern bool CatalogHasIndex ARGS((char *catName, ObjectId catId));
+extern HeapTuple CatalogIndexFetchTuple ARGS((Relation heapRelation, Relation idesc, ScanKey skey));
+extern HeapTuple AttributeNameIndexScan ARGS((Relation heapRelation, ObjectId relid, char *attname));
+extern HeapTuple AttributeNumIndexScan ARGS((Relation heapRelation, ObjectId relid, AttributeNumber attnum));
+extern HeapTuple ProcedureOidIndexScan ARGS((Relation heapRelation, ObjectId procId));
+extern HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName, int nargs, ObjectId *argTypes));
+extern HeapTuple ProcedureSrcIndexScan ARGS((Relation heapRelation, char *procSrc));
+extern HeapTuple TypeOidIndexScan ARGS((Relation heapRelation, ObjectId typeId));
+extern HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
+extern HeapTuple NamingNameIndexScan ARGS((Relation heapRelation, ObjectId parentid, char *filename));
+extern HeapTuple ClassNameIndexScan ARGS((Relation heapRelation, char *relName));
+extern HeapTuple ClassOidIndexScan ARGS((Relation heapRelation, ObjectId relId));
 
 /*
  * What follows are lines processed by genbki.sh to create the statements
@@ -68,7 +80,7 @@ HeapTuple ClassOidIndexScan ARGS((Relation heapRelation, ObjectId relId));
  */
 DECLARE_INDEX(pg_attnameind on pg_attribute using btree (mkoidchar16(attrelid, attname) oidchar16_ops));
 DECLARE_INDEX(pg_attnumind  on pg_attribute using btree (mkoidint2(attrelid, attnum) oidint2_ops));
-DECLARE_INDEX(pg_attrelidind on pg_attribute using btree (attrelid oid_ops))
+DECLARE_INDEX(pg_attrelidind on pg_attribute using btree (attrelid oid_ops));
 
 DECLARE_INDEX(pg_procidind on pg_proc using btree (oid oid_ops));
 DECLARE_INDEX(pg_procnameind on pg_proc using btree (proname char16_ops));
@@ -85,12 +97,5 @@ DECLARE_INDEX(pg_classoidind on pg_class using btree (oid oid_ops));
 
 /* now build indices in the initialization scripts */
 BUILD_INDICES
-
-/* indexing.c prototypes */
-
-void CatalogOpenIndices ARGS((int nIndices, char *names [], Relation idescs[]));
-void CatalogCloseIndices ARGS((int nIndices , Relation *idescs ));
-void CatalogIndexInsert ARGS((Relation *idescs , int nIndices , Relation heapRelation , HeapTuple heapTuple ));
-bool CatalogHasIndex ARGS((char *catName , ObjectId catId ));
 
 #endif /* _INDEXING_H_INCL_ */
