@@ -808,7 +808,6 @@ copyRead(rdesc, maprdesc, fp, ndoms, doms)
 		 */
 		tup = formtuple(relnatts, rdatt->data, vals, nullmap);
 		(void) RelationInsertHeapTuple(rdesc, tup, (double *) NULL);
-#ifdef SHORTOFMEMORY
 		pfree((char *) tup);
 		for (i = 0; i < relnatts; ++i) {
 			attindex = doms[i].attnum - 1;
@@ -816,7 +815,6 @@ copyRead(rdesc, maprdesc, fp, ndoms, doms)
 			    BooleanIsFalse(rdatt->data[doms[i].attnum]->attbyval))
 				pfree(vals[attindex]);
 		}
-#endif
 	} /* tuple */
 
  exit_copyRead:
