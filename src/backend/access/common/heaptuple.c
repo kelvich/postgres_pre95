@@ -1298,8 +1298,6 @@ heap_addheader(natts, structlen, structure)
     long		len;
     int			i;
     int			hoff;
-    extern		bzero();
-    extern		bcopy();
     
     AssertArg(natts > 0);
 
