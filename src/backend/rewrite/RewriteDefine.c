@@ -44,7 +44,7 @@ bool prs2AttributeIsOfBasicType();
 
 OID
 InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
-	     actiontree , necessary, sufficient )
+	     actiontree )
      Name 	rulname;
      int 	evtype;
      Name 	evobj;
@@ -52,7 +52,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
      char	*evqual;
      bool	evinstead;
      char	*actiontree;
-     double	necessary, sufficient;
+
 {
     static char	rulebuf[4096];
     ObjectId eventrel_oid = InvalidObjectId;
@@ -79,7 +79,12 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 	is_instead = "t";
     if ( evqual == NULL )
       evqual = "nil";
-
+    amclose(eventrel);
+#ifdef SOMETHING_WANTS_THIS_BEHAVIOR
+    if (IsDefinedRewriteRule(rulname)) 
+	elog(WARN, "Attempt to insert rule '%s' failed: already exists",
+	     rulname);
+#endif SOMETHING_WANTS_THIS_BEHAVIOR
     sprintf(rulebuf,
 	    "append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,\
 	    ev_class=%d::oid,ev_attr= %d::int2,\
@@ -91,8 +96,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 	    evslot_index,
 	    actiontree,
 	    evqual,
-	    necessary,
-	    sufficient,
+	    0.0, 0.0,		/* deprecated */
 	    is_instead );
 
     /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
@@ -140,15 +144,6 @@ DefineQueryRewrite ( args )
     
     extern ObjectId att_typeid();
 
-#ifdef FUZZY
-    List support 		= nth (6 , args );
-    double necessary 		= CDouble(CAR(support));
-    double sufficient 		= CDouble(CDR(support));
-#else
-    double necessary 		= 1.0;
-    double sufficient 		= 0.0;
-#endif
-    
     extern	char		*PlanToString();
     extern	char		PutRelationLocks();
 
@@ -172,76 +167,99 @@ DefineQueryRewrite ( args )
 	event_attno = varattno ( event_relation, eslot_string );
 	event_attype = att_typeid(event_relation,event_attno);
     }
-    foreach ( i , action ) {
-	List 	this_action 		= CAR(i);
-	int 	this_action_is_instead 	= 0;
-	int 	action_type 		= 0;	 
-	List	action_result		= NULL;
-	int	action_result_index	= 0;
-
-	if (CDR(i) == LispNil && is_instead ) {
-	    this_action_is_instead = 1;
-	 }
-	
-	action_type = root_command_type(parse_root(this_action));
-	action_result = root_result_relation(parse_root(this_action));
-	if ( action_type == REPLACE ) {
-	    action_result_index = CInteger(action_result);
-	}
-	/*
-	 * if the action type is a RETRIEVE and this is a "set of"
-	 * type (i.e. "RELATION", or "foobar" where foobar is the
-	 * name of the relation, then this is a "postquel procedure"
-	 * rule.
-	 * If the attribute is of a basic type (e.g. int4, char16)
-	 * then this is a "normal" retrieve rule.
-	 * In this later case, change its action from RETRIEVE
-	 * to "REPLACE CURRENT".
-	 * NOTE: it also possible that 'event_attno' is equal to
-	 * InvalidAttributeNumber (in case of "view" rules, i.e
-	 * soemthing like "on retrieve to toyemp do...").
-	 */
-	if (action_type == RETRIEVE && event_attype != InvalidAttributeNumber
-	    && prs2AttributeIsOfBasicType(ev_relid, event_attno)) {
-	    /* transform to replace current */
-	    ModifyActionToReplaceCurrent ( this_action );
-	    action_type = REPLACE;
-	    action_result_index = 1;
-	}
-	ruleId[j] = InsertRule ( rulename, 
-				  CAtom(event_type),
-				  (Name)eobj_string,
-				  (Name)eslot_string,
-				  PlanToString(event_qual),
-				  this_action_is_instead,
-				  PlanToString(this_action),
-				  necessary,
-				  sufficient );
-	
-	locktype[j] = PutRelationLocks ( ruleId[j], 
+    amclose(event_relation);
+    /* fix bug about instead nothing */
+    if (action == LispNil) {
+	if (!is_instead) return;	/* doesn't do anything */
+	ruleId[0] = InsertRule ( rulename, 
+				CAtom(event_type),
+				(Name)eobj_string,
+				(Name)eslot_string,
+				PlanToString(event_qual),
+				1,
+				"nil ");
+	locktype[0] = PutRelationLocks ( ruleId[j], 
 					ev_relid,
 					event_attno,
 					CAtom(event_type),
-					action_type,
-					action_result_index,
-					this_action_is_instead );
-	j += 1;
-	if ( j > 15 )
-	  elog(WARN,"max # of actions exceeded");
-	
-    } /* foreach action */
-
-    for ( k = 0 ; k < j ; k++ ) {
-	if ( k != 0 ) {
-	    CommitTransactionCommand();
-	    StartTransactionCommand();
-	}
-	prs2AddRelationLevelLock(ruleId[k],locktype[k],
-			       ev_relid,event_attno);
+					0,
+					0,
+					1);
+	prs2AddRelationLevelLock(ruleId[0],locktype[0],
+				 ev_relid,event_attno);
     }
+    else {
+	foreach ( i , action ) {
+	    List 	this_action 		= CAR(i);
+	    int 	this_action_is_instead 	= 0;
+	    int 	action_type 		= 0;	 
+	    List	action_result		= NULL;
+	    int	action_result_index	= 0;
+	    
+	    if (CDR(i) == LispNil && is_instead ) {
+		this_action_is_instead = 1;
+	    }
+	
+	    action_type = root_command_type(parse_root(this_action));
+	    action_result = root_result_relation(parse_root(this_action));
+	    if ( action_type == REPLACE ) {
+		action_result_index = CInteger(action_result);
+	    }
+	    /*
+	     * if the action type is a RETRIEVE and this is a "set of"
+	     * type (i.e. "RELATION", or "foobar" where foobar is the
+	     * name of the relation, then this is a "postquel procedure"
+	     * rule.
+	     * If the attribute is of a basic type (e.g. int4, char16)
+	     * then this is a "normal" retrieve rule.
+	     * In this later case, change its action from RETRIEVE
+	     * to "REPLACE CURRENT".
+	     * NOTE: it also possible that 'event_attno' is equal to
+	     * InvalidAttributeNumber (in case of "view" rules, i.e
+	     * soemthing like "on retrieve to toyemp do...").
+	     */
+#ifdef HELL_FREEZES_OVER
+	    if (action_type == RETRIEVE && event_attype != InvalidAttributeNumber
+		&& prs2AttributeIsOfBasicType(ev_relid, event_attno)) {
+		/* transform to replace current */
+		ModifyActionToReplaceCurrent ( this_action );
+		action_type = REPLACE;
+		action_result_index = 1;
+	    }
+#endif HELL_FREEZES_OVER
+	    ruleId[j] = InsertRule ( rulename, 
+				    CAtom(event_type),
+				    (Name)eobj_string,
+				    (Name)eslot_string,
+				    PlanToString(event_qual),
+				    this_action_is_instead,
+				    PlanToString(this_action));
 
+	
+	    locktype[j] = PutRelationLocks ( ruleId[j], 
+					    ev_relid,
+					    event_attno,
+					    CAtom(event_type),
+					    action_type,
+					    action_result_index,
+					    this_action_is_instead );
+	    j += 1;
+	    if ( j > 15 )
+		elog(WARN,"max # of actions exceeded");
+	
+	} /* foreach action */
+	
+	for ( k = 0 ; k < j ; k++ ) {
+	    if ( k != 0 ) {
+		CommitTransactionCommand();
+		StartTransactionCommand();
+	    }
+	    prs2AddRelationLevelLock(ruleId[k],locktype[k],
+				     ev_relid,event_attno);
+	}
+
+    }
 }
-    
 ShowRuleAction(ruleaction)
      LispValue ruleaction;
 {
