@@ -16,7 +16,7 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <setjmp.h>
 
 #include "tmp/postgres.h"
