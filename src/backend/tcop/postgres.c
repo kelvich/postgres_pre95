@@ -76,13 +76,13 @@ bool override = false;
 void
 handle_warn()
 {
-	longjmp(Warn_restart,1);
+    longjmp(Warn_restart,1);
 }
 
 void
 die()
 {
-	ExitPostgres(0);
+    ExitPostgres(0);
 }
 
 /* ----------------
@@ -212,6 +212,7 @@ char SocketBackend(inBuf, parseList)
 
 	if (!Quiet)
 	    printf("Received Query: %s\n", inBuf);
+	
 	if (inBuf == NULL) {
 	    if (! Quiet)
 		puts("EOF");
@@ -237,7 +238,6 @@ char SocketBackend(inBuf, parseList)
      * ----------------
      */
     default:
-        /* elog(FATAL, "Socket command type $%02x unknown\n", *qtype); */
 	elog(FATAL, "Socket command type %c unknown\n", *qtype);
 	break;
     }
@@ -287,9 +287,9 @@ pg_eval( query_string )
      *	(1) parse the request string
      * ----------------
      */
-    parser(query_string,parsetree_list);
+    parser(query_string, parsetree_list);
 
-    foreach (i, parsetree_list ) {
+    foreach (i, parsetree_list) {
 	LispValue parsetree = CAR(i);
 	ValidateParse(parsetree);
 	
@@ -298,9 +298,9 @@ pg_eval( query_string )
 	 * ----------------
 	 */
 	if (! Quiet) {
-	    printf("\ninput string is %s\n",query_string);
+	    printf("\ninput string is %s\n", query_string);
 	    printf("\n---- \tparser outputs :\n");
-	    lispDisplay(parsetree,0);
+	    lispDisplay(parsetree, 0);
 	    printf("\n");
 	}
 	
@@ -323,7 +323,7 @@ pg_eval( query_string )
 	    
 	} else {
 	    /* ----------------
-	     *   rewrite queries (retrieve, append, delete, replace)
+	     *   process queries (retrieve, append, delete, replace)
 	     * ----------------
 	     */
 	    Node plan  	= NULL;
@@ -332,12 +332,11 @@ pg_eval( query_string )
 	    extern Node planner();
 	    extern void init_planner();
 	    extern List QueryRewrite();
-	    
+
 	    /* ----------------
-	     *   process queries (retrieve, append, delete, replace)
+	     *	first rewrite the query, if necessary
 	     * ----------------
 	     */
-	    
 	    if ( unrewritten == true && query_rewrite_is_enabled ) {
 		if (!Quiet) {
 		    printf("rewriting query if needed ...\n");
@@ -346,21 +345,19 @@ pg_eval( query_string )
 		if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
 		    parsetree_list = nconc ( parsetree_list , rewritten );
 		    unrewritten = false;
-		continue;
+		    continue;
 		}
 		
 		unrewritten = false;	
 		
 	    } /* if unrewritten, then rewrite */
 	    
-	    
 	    /* ----------------
 	     *   initialize the planner
 	     * ----------------
 	     */
 	    if (! Quiet)
-	    puts("\tinit_planner()..");
-	    
+		puts("\tinit_planner()..");
 	    init_planner();
 	    
 	    /* ----------------
@@ -371,7 +368,7 @@ pg_eval( query_string )
 	    
 	    if (! Quiet) {
 		printf("\nPlan is :\n");
-	    (*(plan->printFunc))(stdout, plan);
+		(*(plan->printFunc))(stdout, plan);
 		printf("\n");
 	    }
 	    
@@ -383,7 +380,8 @@ pg_eval( query_string )
 		time(&tim);
 		printf("\tProcessQuery() at %s\n", ctime(&tim));
 	    }
-	ProcessQuery(parsetree, plan);
+	    ProcessQuery(parsetree, plan);
+	    
 	}
     } /* foreach parsetree in parsetree_list */
 
@@ -541,7 +539,17 @@ main(argc, argv)
     InitPostgres(NULL, DatabaseName);
 
     signal(SIGHUP, handle_warn);
-
+    
+    /* ----------------
+     *	now fork and initialize the parallel slave backends
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	if (! Quiet)
+	    puts("\tInitializing Slave Backends...");
+	SlaveBackendsInit();
+    }
+        
     /* ----------------
      *	if an exception is encountered, processing resumes here
      *  so we abort the current transaction and start a new one.
@@ -554,18 +562,11 @@ main(argc, argv)
 	    printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
 	}
 	AbortCurrentTransaction();
+	
+	if (ParallelExecutorEnabled())
+	    SlaveBackendsAbort();
     }
-    
-    /* ----------------
-     *	now fork and initialize the parallel slave backends
-     * ----------------
-     */
-    if (ParallelExecutorEnabled()) {
-	if (! Quiet)
-	    puts("\tInitializing Slave Backends...");
-	InitSlaveBackends();
-    }
-    
+
     /* ----------------
      *	POSTGRES main processing loop begins here
      * ----------------

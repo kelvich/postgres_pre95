@@ -183,6 +183,28 @@ IpcSemaphoreCreate(semKey, semNum, permission, semStartValue, status)
 
 
 /****************************************************************************/
+/*   IpcSemaphoreSet()		- sets the initial value of the semaphore   */
+/*									    */
+/****************************************************************************/
+void
+IpcSemaphoreSet(semId, value)
+{
+    int		i;
+    int		errStatus;
+    int		semId;
+    ushort	array[IpcMaxNumSem];
+    union semun	semun;
+
+    /* **** RESUME HERE **** */
+    
+    semun.array = array;
+    errStatus = semctl(semId, 0, SETALL, semun);
+    if (errStatus == -1) {
+	perror("semctl");
+    }
+}
+
+/****************************************************************************/
 /*   IpcSemaphoreKill(key)	- removes a semaphore			    */
 /*									    */
 /****************************************************************************/

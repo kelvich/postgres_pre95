@@ -241,19 +241,14 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
 }
 
 /* ----------------------------------------------------------------
- *	ExecuteFragments
+ *	ProcessQueryDesc
  *
  *	Read the comments for ProcessQuery() below...
- *
- *	Since we do no parallism, planFragments is totally
- *	ignored for now.. -cim 9/18/89
  * ----------------------------------------------------------------
  */
-
-Plan
-ExecuteFragments(queryDesc, planFragments)
+void
+ProcessQueryDesc(queryDesc)
     List 	queryDesc;
-    Pointer 	planFragments;	/* haven't determined proper type yet */
 {
     List 	parseTree;
     Plan 	plan;
@@ -313,14 +308,14 @@ ExecuteFragments(queryDesc, planFragments)
      * ----------------
      */
     feature = lispCons(lispInteger(EXEC_START), LispNil);
-{
+    {
 	/*
 	 * temporary hack till the executor-rule manager interface
 	 * allocation is fixed.
 	 */
 	extern MemoryContext XXXExecutionPortalHeapMemory;
 	XXXExecutionPortalHeapMemory = NULL;
-}
+    }
     attinfo = ExecMain(queryDesc, state, feature);
     
     /* ----------------
@@ -337,7 +332,7 @@ ExecuteFragments(queryDesc, planFragments)
 		      state,
 		      attinfo);
 	EndCommand(tag);
-		return (NULL);
+	return;
     }
 
     /* ----------------
@@ -420,7 +415,7 @@ ExecuteFragments(queryDesc, planFragments)
      */
     DisplayTupleCount(state);
 #endif EXEC_TUPLECOUNT	    
-    
+
     /* ----------------
      *   not certain what this does.. -cim 8/29/89
      *
@@ -432,14 +427,51 @@ ExecuteFragments(queryDesc, planFragments)
      * ----------------
      */
     EndCommand(tag);
+}
 
+/* ----------------------------------------------------------------
+ *	ExecuteFragments
+ *
+ *	Read the comments for ProcessQuery() below...
+ *
+ *	Since we do no parallism, planFragments is totally
+ *	ignored for now.. -cim 9/18/89
+ * ----------------------------------------------------------------
+ */
+
+Plan
+ExecuteFragments(queryDesc, planFragments)
+    List 	queryDesc;
+    Pointer 	planFragments;	/* haven't determined proper type yet */
+{
     /* ----------------
-     *	Eventually we will return the transformed plan, but
-     *  for now since we do no parallism, return nil.
-     *  -cim 9/18/89
+     *	execute the query appropriately if we are running one or
+     *  several backend processes.
      * ----------------
      */
-    return NULL;
+    
+    if (ParallelExecutorEnabled()) {
+	/* ----------------
+	 *   parallel-backend case.  place each plan fragment
+	 *   in shared memory and signal slave-backend execution.
+	 *   When slave execution is completed, form a new plan
+	 *   representing the query with some of the work materialized
+	 *   and return this to ProcessQuery().
+	 *
+	 *	this will be implemented soon -cim 3/9/90
+	 * ----------------
+	 */
+	ProcessQueryDesc(queryDesc);
+	return NULL;
+    } else {
+	/* ----------------
+	 *   single-backend case. just execute the query
+	 *   and return NULL.
+	 * ----------------
+	 */
+	ProcessQueryDesc(queryDesc);
+	return NULL;
+    }
 }
 
 /* ----------------------------------------------------------------
@@ -475,7 +507,7 @@ ParallelOptimise(queryDesc)
  *	in which case ExecuteFragments returns NULL.
  *
  *	At present, almost all of the above is bogus, but will
- *	become truth when parallism is implemented.. -cim 9/18/89
+ *	become truth very soon now -cim 3/9/90
  * ----------------------------------------------------------------
  */
 

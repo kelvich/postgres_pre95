@@ -24,6 +24,7 @@
 
 #include "access.h"
 #include "anum.h"
+#include "align.h"
 #include "buf.h"
 #include "catalog.h"
 #include "catname.h"
@@ -70,7 +71,32 @@
 #include "plannodes.a.h"
 #include "execnodes.a.h"
 
+/* ----------------------------------------------------------------
+ *	executor shared memory segment header definition
+ *
+ *	After the executor's shared memory segment is allocated
+ *	the initial bytes are initialized to contain 2 pointers.
+ *	the first pointer points to the "low" end of the available
+ *	area and the second points to the "high" end.
+ *
+ *	When part of the shared memory is reserved by a call to
+ *	ExecSMAlloc(), the "low" pointer is advanced to point
+ *	beyond the newly allocated area to the available free
+ *	area.  If an allocation would cause "low" to exceed "high",
+ *	then the allocation fails and an error occurrs.
+ *
+ *	Note:  Since no heap management is done, there is no
+ *	provision for freeing shared memory allocated via ExecSMAlloc()
+ *	other than wipeing out the entire space with ExecSMClean().
+ * ----------------------------------------------------------------
+ */
 
+typedef struct ExecSMHeaderData {
+    Pointer	low;		/* pointer to low water mark */
+    Pointer	high;		/* pointer to high water mark */
+} ExecSMHeaderData;
+
+typedef ExecSMHeaderData *ExecSMHeader;
 
 /* ----------------------------------------------------------------
  * 	parallel fragment definition
@@ -177,10 +203,27 @@ typedef struct FragmentInfo {
  */
 
 /* ----------------
+ *	the reverse alignment macros are for use with the executor
+ *	shared memory allocator's ExecSMHighAlloc routine which
+ *	allocates memory from the high-area "down" to the low-area.
+ *	In this case we need alignment in the "other" direction than
+ *	provided by SHORTALIGN and LONGALIGN
+ * ----------------
+ */
+#define	REVERSESHORTALIGN(LEN)\
+    (((long)(LEN)) & ~01)
+
+#ifndef	sun
+#define	REVERSELONGALIGN(LEN)\
+    (((long)(LEN)) & ~03)
+#else
+#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
+#endif
+
+/* ----------------
  *	miscellany
  * ----------------
  */
-
 #define ExecCNull(Cptr)		(Cptr == NULL)
 #define ExecCTrue(bval)		(bval != 0)
 #define ExecCFalse(bval)	(bval == 0)
@@ -245,7 +288,7 @@ typedef struct FragmentInfo {
     CAR(CDR(CDR(CDR(CDR(parse_tree_root)))))
 
 #define parse_tree_root_rule_info(parse_tree_root) \
-    CAR(CDR(CDR(CDR(CDRCDR((parse_tree_root))))))
+    CAR(CDR(CDR(CDR(CDR(CDR((parse_tree_root)))))))
 
 
 #define parse_tree_range_table(parse_tree)	\
