@@ -89,8 +89,21 @@ attribute.
 .lp
 In the case of
 .b copy binary,
-the instance format is as follows.  Unsigned four byte integer quantities are
-called uint32 in the below description.
+the first four bytes in the file will be the number of instances in the file.
+If this number is
+.i zero,
+the
+.b copy binary
+command will read until end of file is encountered.  Otherwise, it will
+.i stop
+reading when this number of instances has been read.  Remaining data in the
+file will be ignored.
+.pp
+The format for each instance in the file is as follows.  Note that this format
+must be followed
+.i EXACTLY.
+Unsigned four byte integer quantities are called uint32 in the below
+description.
 .lp
 uint32 totallength (not including itself),
 uint32 number of null attributes
@@ -106,9 +119,6 @@ are aligned on single-byte boundaries.  On other machines, all attributes
 larger than 1 byte are aligned on four-byte boundaries.  Note that variable
 length attributes are preceeded by the attribute's length; arrays are simply
 contiguous streams of the array element type.
-.lp
-While it is possible to send and receive binary data through standard input
-and output, it is not recommended.
 .lp
 .uh "SEE ALSO"
 .lp
