@@ -268,7 +268,7 @@ init_query_planner (root,tlist,qual)
 						       _query_max_level_));
 
 	 restore_globals();
-	 return(exist_plan);
+	 return((Plan)exist_plan);
 }
 
  }  /* function end  */
