@@ -10,7 +10,7 @@ create \*- create a new class
 .b create
 classname (attributename = type
 { , attributename = type})
-[key (attributename [[using] operator] { , attributename [[using] operator])]
+[key (attributename [[using] operator] { , attributename [[using] operator])]}
 [inherits (classname { , classname} )]
 [archive = archive_mode]
 [store = ``smgr name'']
@@ -21,7 +21,7 @@ classname (attributename = type
 will enter a new class into the current data base.
 The class will be 
 .q "owned"
-by the user issueing the command.
+by the user issuing the command.
 The name of the class is
 \fIclassname\fR
 and the attributes are as specified in the list of
@@ -66,7 +66,8 @@ Common Lisp Object System (CLOS).
 In addition,
 .i classname 
 is automatically created as a type.  Therefore, one or more instances 
-from the class are automatically a type and can be used in other create statements. 
+from the class are automatically a type and can be used in 
+addattr or other create statements. 
 See 
 .b introduction
 (commands) for a further discussion of this point.
@@ -98,14 +99,17 @@ it defaults to ``magnetic disk.''
 .lp
 The class is created as a heap with
 no initial data.
-A class can have no more than 1600 domains,
+A class can have no more than 1600 domains (realistically,
+this is limited by the fact that tuple sizes must be less
+than 8K),
 but this limit may be configured lower at some sites.
 A class cannot have the same name as
 a system catalog class.
 .lp
 .i Archive
 specifies whether historical data is to be saved or discarded.
-.i Arch_mode may be one of:
+.i Arch_mode 
+may be one of:
 .(l
 none:	no historical access is supported
 light:	historical access is allowed and optimized for light update activity
@@ -127,19 +131,20 @@ Once the archive status is set, there is no way to change it.
    all fields of emp */
 
    create permemp (plan = char16)
-   inherits emp
+   inherits (emp)
 .lp
 .nf
 /* create a class foo on mag disk, and archive historical data */
 
-create foo (bar = int4) archive = heavy store = ``magnetic disk''
+create foo (bar = int4) archive = heavy
+  store = ``magnetic disk''
 .fi
 .uh "SEE ALSO"
 .lp
 destroy(commands)
 .uh BUGS
 .lp
-Key is not implemented in Version 3.0.
+Key is not implemented in Version \*(PV.
 .lp
 Optional specifications
 (inherits,
