@@ -22,7 +22,6 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "commands/copy.h"
 #include "nodes/pg_lisp.h"
-#include "storage/fd.h"
 #include "tmp/portal.h"		/* for StartPortalAllocMode, etc. */
 #include "utils/fmgr.h"
 #include "utils/log.h"
@@ -30,6 +29,12 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 
 #include "catalog/pg_type.h"
+
+#if sprite
+#include "sprite_file.h"
+#else
+#include "storage/fd.h"
+#endif /* sprite */
 
 #define	NON_NULL_ATT	(' ')
 #define	NULL_ATT	('n')
