@@ -8,7 +8,7 @@ destroyuser \*- destroy a \*(PP user
 .uh SYNOPSIS
 .lp
 .b destroyuser 
-[-p port -h host]
+[-p port] [-h host]
 .b username
 .uh DESCRIPTION
 .lp

@@ -8,7 +8,7 @@ destroydb \*- destroy an existing database
 .uh SYNOPSIS
 .lp
 .b destroydb
-[-p port] [-h hostname]
+[-p port][-h host]
 dbname
 .uh DESCRIPTION
 .lp
