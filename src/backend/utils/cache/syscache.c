@@ -23,10 +23,10 @@ RcsId("$Header$");
 #include "pg_lisp.h"
 #include "tuple.h"
 
-#ifdef	USE_UNUSED
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
+#ifdef	USE_UNUSED
 #ifndef PG_STANDALONE
 #define BIGENDIAN		/* e.g.: 68000, MIPS, Tahoe */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
