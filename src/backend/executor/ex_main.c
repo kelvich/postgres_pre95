@@ -19,6 +19,9 @@
 
 #include "tcop/slaves.h"
 #include "executor/executor.h"
+
+#include "utils/palloc.h"
+
 #include "tmp/acl.h"
 
  RcsId("$Header$");
@@ -113,8 +116,10 @@ ExecCheckPerms(operation, resultRelation, rangeTable, parseTree)
 	rr = integerp(resultRelation) ? CInteger(resultRelation) : 0;
 	foreach (lp, rangeTable) {
 		relid = (ObjectId) CInteger(rt_relid(CAR(lp)));
-		htp = SearchSysCacheTuple(RELOID, (char *) relid,
-					  NULL, NULL, NULL);
+		htp = SearchSysCacheTuple(RELOID,
+					  (char *) ObjectIdGetDatum(relid),
+					  (char *) NULL, (char *) NULL,
+					  (char *) NULL);
 		if (!HeapTupleIsValid(htp))
 			elog(WARN, "ExecCheckPerms: bogus RT relid: %d",
 			     relid);
@@ -750,7 +755,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	     * ---------------
 	     */
 	    if (operation == REPLACE || operation == DELETE) {
-		strcpy(&(attrName), "ctid");
+		(void) namestrcpy(&attrName, "ctid");
 		if (! ExecGetJunkAttribute(junkfilter,
 					   slot,
 					   &attrName,
@@ -770,7 +775,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	     * Find the "rule lock" info. (if it is there!)
 	     * ---------------
 	     */
-	    strcpy(&(attrName), "lock");
+	    (void) namestrcpy(&attrName, "lock");
 	    if (! ExecGetJunkAttribute(junkfilter,
 				       slot,
 				       &attrName,
@@ -1020,12 +1025,12 @@ ExecAppend(slot, tupleid, estate, newlocks)
 			  APPEND,
 			  0,
 			  resultRelationDesc,
-			  (HeapTuple) NULL,
-			  InvalidBuffer,
-			  tuple,
-			  InvalidBuffer,
-			  (HeapTuple) NULL,
-			  InvalidBuffer,
+			  (HeapTuple) NULL,	/* old */
+			  InvalidBuffer,	/* old */
+			  tuple,		/* new */
+			  InvalidBuffer,	/* new */
+			  (HeapTuple) NULL,	/* raw */
+			  InvalidBuffer,	/* raw */
 			  (AttributeNumberPtr) NULL,
 			  0,
 			  &returnedTuple,
@@ -1413,7 +1418,7 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
      * detected a non-functional update. -kw 12/30/93
      * ----------------
      */
-    if ((int) locks == 1)
+    if ((long) locks == 1)
 	return (TupleTableSlot)NULL;
 
 
