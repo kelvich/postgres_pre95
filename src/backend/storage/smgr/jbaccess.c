@@ -25,8 +25,6 @@
 
 RcsId("$Header$");
 
-extern char *malloc();
-
 /* debugging aid */
 /* # define DBUG(x) if (jb_debug) printf x */
 # define DBUG(x)
