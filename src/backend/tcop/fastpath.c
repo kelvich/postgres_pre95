@@ -148,6 +148,7 @@ SendFunctionResult ( fid, retval, rettype )
 {
     char *retdata;
 
+    printf("Sending results %d, %d, %d",fid,retval,rettype);
     putnchar("V",1);
     putint(fid,4);
     
@@ -175,7 +176,7 @@ SendFunctionResult ( fid, retval, rettype )
 	putnchar(retval,rettype);
     }
     putnchar("0",1);
-
+    pflush();
 } /* ReturnFunctionResult */
 
 /* 
