@@ -11,8 +11,6 @@
 
 #include "c.h"
 
-#include "pinit.h"	/* for ExitPostgres */
-
 #include "exc.h"
 
 RcsId("$Header$");
@@ -48,7 +46,8 @@ EnableExceptionHandling(on)
 {
 	if (on == ExceptionHandlingEnabled) {
 		/* XXX add logging of failed state */
-		ExitPostgres(FatalExitStatus);
+		exit(255);
+		/* ExitPostgres(FatalExitStatus); */
 	}
 
 	if (on) {	/* initialize */
@@ -107,17 +106,6 @@ ExcPrint(excP, detail, data, message)
 	(void) fprintf(stderr, "\n");
 
 	(void) fflush(stderr);
-}
-
-/*ARGSUSED*/
-void
-ExcAbort(excP, detail, data, message)
-	Exception	*excP;
-	ExcDetail	detail;
-	ExcData		data;
-	ExcMessage	message;
-{
-	AbortPostgres();
 }
 
 ExcProc *

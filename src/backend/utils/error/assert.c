@@ -13,20 +13,12 @@
 RcsId("$Header$");
 
 #include "exc.h"
-#include "excid.h"	/* for FailedAssertion */
-#include "pinit.h"	/* for AbortPostgres */
 
-
-/* This may be removed someday. */
-void
-AssertionFailed(assertionName, fileName, lineNumber)
-	const String	assertionName;
-	const String	fileName;
-	int		lineNumber;
-{
-	ExceptionalCondition(assertionName, &FailedAssertion, (String)NULL,
-		fileName, lineNumber);
-}
+/*
+ * There might be a need to specially handle FailedAssertion, below.
+ *
+#include "excid.h"	// for FailedAssertion
+ */
 
 void
 ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
@@ -47,7 +39,7 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 			|| !PointerIsValid(exceptionP)) {
 		fprintf(stderr, "ExceptionalCondition: bad arguments\n");
 
-		AbortPostgres();
+		ExcAbort(exceptionP, detail, NULL, NULL);	/* ??? */
 	} else {
 		fprintf(stderr,
 			"%s(\"%s:%s\", File: \"%s\", Line: %d)\n",
