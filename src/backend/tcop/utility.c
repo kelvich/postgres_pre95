@@ -40,7 +40,7 @@
 #include "nodes/pg_lisp.h"
 #include "tcop/dest.h"
 
-#include "tmp/globals.h"
+#include "tmp/miscadmin.h"
 #include "tmp/acl.h"
 
 #include "rules/prs2.h" /* for GetRuleEventTargetFromParse() */
