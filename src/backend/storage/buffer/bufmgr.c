@@ -71,8 +71,6 @@ Buffer           BufferDescriptorGetBuffer();
 
 int	*PrivateRefCount;
 
-#define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
-
 /*
  * Data Structures:
  *      buffers live in a freelist and a lookup data structure.
