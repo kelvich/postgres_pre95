@@ -31,11 +31,11 @@
  */
 
 /* from the parse tree: */
-LispValue _query_result_relation_ = LispNil; 
+int _query_result_relation  = 0;
 					/*   relid of the result relation */
-LispValue _query_command_type_ = LispNil;    /*   command type as a symbol */
-LispValue _query_max_level_ = LispNil;      /*   max query nesting level */
-LispValue _query_range_table_;     /*   relations to be scanned */
+int  _query_command_type_ = 0;    /*   command type as a symbol */
+int  _query_max_level_ = 0;      /*   max query nesting level */
+LispValue  _query_range_table_;     /*   relations to be scanned */
 
 /*     internal to planner:  */
 LispValue _query_relation_list_;    /*   global relation list */
@@ -48,20 +48,18 @@ LispValue _query_is_archival_;       /*   archival query flag */
 
 LispValue 
 with_saved_globals (body)
-     LispValue body;
+     LispValue (* body)();
 {
-	LispValue global_save = gensym ();
-	LispValue body_result = gensym ();
-	LispValue global_save = list (_query_result_relation_,
-				      _query_command_type_,
-				      _query_max_level_,
+	LispValue global_save = list (lispInteger(_query_result_relation_),
+				      lispInteger(_query_command_type_),
+				      lispInteger(_query_max_level_),
 				      _query_range_table_,
 				      _query_relation_list_,
 				      _query_is_archival_);
-	LispValue body_result = body;
-	_query_result_relation_ = nth (0,global_save);
-	_query_command_type_ = nth (1,global_save);
-	_query_max_level_ = nth (2,global_save);
+	LispValue body_result = (* body)();
+	_query_result_relation_ = CInteger(nth (0,global_save));
+	_query_command_type_ = CInteger(nth (1,global_save));
+	_query_max_level_ = CInteger(nth (2,global_save));
 	_query_range_table_ = nth (3,global_save);
 	_query_relation_list_ = nth (4,global_save);
 	_query_is_archival_ = nth (5,global_save);
