@@ -1303,6 +1303,7 @@ ResetUsage()
 #ifdef PARALLELDEBUG
         ResetParallelDebugInfo();
 #endif
+	ResetPrs2Stats();
 }
 
 ShowUsage()
@@ -1381,4 +1382,5 @@ ShowUsage()
 #ifdef PARALLELDEBUG
         PrintParallelDebugInfo();
 #endif
+	ShowPrs2Stats();
 }
