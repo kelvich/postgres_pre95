@@ -46,8 +46,8 @@
  *	ExecInitScanTupleSlot       \  	the various tuple slots for nodes
  *	ExecInitRawTupleSlot        \ 	which store copies of tuples.
  *	ExecInitMarkedTupleSlot      /  	
- *	ExecInitSavedTupleSlot      /  	
- *	ExecInitTemporaryTupleSlot /  	
+ *	ExecInitOuterTupleSlot      /  	
+ *	ExecInitHashTupleSlot /  	
  *
  *   old routines:
  *   	ExecGetTupType	 	- get type of tuple returned by this node
@@ -757,7 +757,7 @@ ExecSlotDescriptorIsNew(slot)
  * ----------------------------------------------------------------
  */
 /* --------------------------------
- *	ExecInit{Result,Scan,Raw,Marked,Saved,Temporary}TupleSlot
+ *	ExecInit{Result,Scan,Raw,Marked,Outer,Hash}TupleSlot
  *
  *	These are convience routines to initialize the specfied slot
  *	in nodes inheriting the appropriate state.
@@ -834,31 +834,31 @@ ExecInitMarkedTupleSlot(estate, mergestate)
 }
 
 /* ----------------
- *	ExecInitSavedTupleSlot
+ *	ExecInitOuterTupleSlot
  * ----------------
  */
 void
-ExecInitSavedTupleSlot(estate, hashstate)
+ExecInitOuterTupleSlot(estate, hashstate)
     EState 		estate;
     HashJoinState	hashstate;
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_hj_SavedTupleSlot(hashstate, slot);
+    set_hj_OuterTupleSlot(hashstate, slot);
 }
 
 /* ----------------
- *	ExecInitTemporaryTupleSlot
+ *	ExecInitHashTupleSlot
  * ----------------
  */
 void
-ExecInitTemporaryTupleSlot(estate, hashstate)
+ExecInitHashTupleSlot(estate, hashstate)
     EState 		estate;
     HashJoinState	hashstate;
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_hj_TemporaryTupleSlot(hashstate, slot);
+    set_hj_HashTupleSlot(hashstate, slot);
 }
 
 /* ----------------------------------------------------------------
