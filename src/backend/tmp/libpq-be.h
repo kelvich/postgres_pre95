@@ -19,7 +19,7 @@
  * ----------------
  */
 #include "tmp/libpq.h"
-
+#include "access/htup.h"
 /* ----------------
  *	declarations for backend libpq support routines
  * ----------------
@@ -28,7 +28,7 @@ extern void be_portalinit ARGS(());
 extern void be_portalpush ARGS((PortalEntry *entry));
 extern PortalEntry *be_portalpop ARGS(());
 extern PortalEntry *be_currentportal ARGS(());
-extern PortalEntry *be_newportal ARGS((String pname));
+extern PortalEntry *be_newportal ARGS(());
 extern void be_typeinit ARGS((PortalEntry *entry, struct attribute **attrs, int natts));
 extern void be_printtup ARGS((HeapTuple tuple, struct attribute *typeinfo[]));
 extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int result_is_int, PQArgBlock *args, int nargs));
