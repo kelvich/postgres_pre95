@@ -1285,6 +1285,14 @@ heap_insert(relation, tup, off)
     if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 
+    /* ----------------
+     *	invalidate caches
+     * ----------------
+     */
+    SetRefreshWhenInvalidate(ImmediateInvalidation);
+    RelationInvalidateHeapTuple(relation, tup);
+    SetRefreshWhenInvalidate((bool)!ImmediateInvalidation);
+
     return(tup->t_oid);
 }
 
