@@ -94,14 +94,28 @@ DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 - - ));
 DATA(insert OID =  99 (  pg_log            6 0 0 0 0 0 f t s n 1 - - ));
 DATA(insert OID = 100 (  pg_time           6 0 0 0 0 0 f t s n 1 - - ));
 
+#define RelOid_pg_type		71
+#define RelOid_pg_database    	88   
+#define RelOid_pg_demon       	76   
+#define RelOid_pg_proc       	81   
+#define RelOid_pg_server     	82   
+#define RelOid_pg_user       	86   
+#define RelOid_pg_attribute  	75   
+#define RelOid_pg_relation   	83   
+#define RelOid_pg_magic   	80      
+#define RelOid_pg_defaults  	89    
+#define RelOid_pg_variable   	90   
+#define RelOid_pg_log   	99       
+#define RelOid_pg_time   	100      
+    
 /* ----------------
  *	XXX well known relation identifiers put here for now.
  *	these are obsolete, but they better match the above definitions.
  *	-cim 6/17/90
  * ----------------
  */
-#define	AttributeRelationId	75
-#define VariableRelationId	90
+#define	AttributeRelationId	RelOid_pg_attribute
+#define VariableRelationId	RelOid_pg_variable
     
 /* ----------------
  *	old definition of RelationTupleForm
