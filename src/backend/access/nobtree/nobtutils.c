@@ -403,3 +403,118 @@ _nobt_formiitem(bkno, datump, dsize)
 
     return (btitem);
 }
+
+struct timeval {
+    long	tv_sec;
+    long	tv_usec;
+};
+
+struct timezone {
+    int		tz_minuteswest;
+    int		tz_dsttime;
+};
+
+#include <sys/resource.h>
+
+struct rusage _base_r;
+struct timeval _base_t;
+struct rusage _count_r;
+struct timeval _count_t;
+int NOBT_NSplits = 0;
+
+_nobt_countstart()
+{
+    struct timezone tz;
+
+    getrusage(RUSAGE_SELF, &_base_r);
+    gettimeofday(&_base_t, &tz);
+}
+
+_nobt_countstop()
+{
+    struct rusage r;
+    struct timeval elapsed;
+    struct timezone tz;
+
+    getrusage(RUSAGE_SELF, &r);
+    gettimeofday(&elapsed, &tz);
+
+    if (elapsed.tv_usec < _base_t.tv_usec) {
+	elapsed.tv_sec--;
+	elapsed.tv_usec += 1000000;
+    }
+    if (r.ru_utime.tv_usec < _base_r.ru_utime.tv_usec) {
+	r.ru_utime.tv_sec--;
+	r.ru_utime.tv_usec += 1000000;
+    }
+    if (r.ru_stime.tv_usec < _base_r.ru_stime.tv_usec) {
+	r.ru_stime.tv_sec--;
+	r.ru_stime.tv_usec += 1000000;
+    }
+
+    _count_r.ru_utime.tv_sec += (r.ru_utime.tv_sec - _base_r.ru_utime.tv_sec);
+    _count_r.ru_utime.tv_usec += (r.ru_utime.tv_usec
+				   - _base_r.ru_utime.tv_usec);
+    _count_r.ru_stime.tv_sec += (r.ru_stime.tv_sec - _base_r.ru_stime.tv_sec);
+    _count_r.ru_stime.tv_usec += (r.ru_stime.tv_usec
+				   - _base_r.ru_stime.tv_usec);
+    _count_t.tv_sec += (elapsed.tv_sec - _base_t.tv_sec);
+    _count_t.tv_usec += (elapsed.tv_usec - _base_t.tv_usec);
+
+    if (_count_t.tv_usec >= 1000000) {
+	_count_t.tv_sec += (_count_t.tv_usec / 1000000);
+	_count_t.tv_usec %= 1000000;
+    }
+
+    if (_count_r.ru_utime.tv_usec >= 1000000) {
+	_count_r.ru_utime.tv_sec += (_count_r.ru_utime.tv_usec / 1000000);
+	_count_r.ru_utime.tv_usec %= 1000000;
+    }
+
+    if (_count_r.ru_stime.tv_usec >= 1000000) {
+	_count_r.ru_stime.tv_sec += (_count_r.ru_stime.tv_usec / 1000000);
+	_count_r.ru_stime.tv_usec %= 1000000;
+    }
+
+    _count_r.ru_inblock += (r.ru_inblock - _base_r.ru_inblock);
+    _count_r.ru_oublock += (r.ru_oublock - _base_r.ru_oublock);
+    _count_r.ru_majflt += (r.ru_majflt - _base_r.ru_majflt);
+    _count_r.ru_minflt += (r.ru_minflt - _base_r.ru_minflt);
+    _count_r.ru_nswap += (r.ru_nswap - _base_r.ru_nswap);
+    _count_r.ru_nsignals += (r.ru_nsignals - _base_r.ru_nsignals);
+    _count_r.ru_msgrcv += (r.ru_msgrcv - _base_r.ru_msgrcv);
+    _count_r.ru_msgsnd += (r.ru_msgsnd - _base_r.ru_msgsnd);
+    _count_r.ru_nvcsw += (r.ru_nvcsw - _base_r.ru_nvcsw);
+    _count_r.ru_nivcsw += (r.ru_nivcsw - _base_r.ru_nivcsw);
+}
+
+_nobt_countinit()
+{
+    bzero(&_count_r, sizeof(_count_r));
+    bzero(&_count_t, sizeof(_count_t));
+    NOBT_NSplits = 0;
+}
+
+#include <stdio.h>
+
+_nobt_countout()
+{
+    fprintf(stderr,
+	    "!\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
+	    _count_t.tv_sec, _count_t.tv_usec,
+	    _count_r.ru_utime.tv_sec, _count_r.ru_utime.tv_usec,
+	    _count_r.ru_stime.tv_sec, _count_r.ru_stime.tv_usec);
+    fprintf(stderr,
+	    "!\t%d/%d fs blocks in/out\n",
+	    _count_r.ru_inblock, _count_r.ru_oublock);
+    fprintf(stderr,
+	    "!\t%d/%d page faults/reclaims, %d swaps\n",
+	    _count_r.ru_majflt, _count_r.ru_minflt, _count_r.ru_nswap);
+    fprintf(stderr,
+	    "!\t%d signals received, %d/%d messages received/sent\n",
+	    _count_r.ru_nsignals, _count_r.ru_msgrcv, _count_r.ru_msgsnd);
+    fprintf(stderr,
+	    "!\t%d/%d voluntary/involuntary context switches\n",
+	    _count_r.ru_nvcsw, _count_r.ru_nivcsw);
+    fprintf(stderr, "!\t%d page splits\n", NOBT_NSplits);
+}

@@ -54,6 +54,8 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     TransactionId currxid;
     extern TransactionId GetCurrentTransactionId();
 
+    _nobt_countstart();
+
     /* don't bother with no-overwrite behavior for initial build */
     NOBT_Building = true;
 
@@ -134,6 +136,7 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     pfree(attdata);
 
     NOBT_Building = false;
+    _nobt_countstop();
 }
 
 /*
@@ -153,11 +156,13 @@ nobtinsert(rel, itup)
     int nbytes_btitem;
     InsertIndexResult res;
 
+    _nobt_countstart();
     btitem = _nobt_formitem(itup);
 
     res = _nobt_doinsert(rel, btitem);
     pfree(btitem);
 
+    _nobt_countstop();
     return (res);
 }
 
@@ -178,10 +183,14 @@ nobtgettuple(scan, dir)
      *  call a routine to get the first item in the scan.
      */
 
+    _nobt_countstart();
+
     if (ItemPointerIsValid(&(scan->currentItemData)))
 	res = _nobt_next(scan, dir);
     else
 	res = _nobt_first(scan, dir);
+
+    _nobt_countstop();
 
     return ((char *) res);
 }
