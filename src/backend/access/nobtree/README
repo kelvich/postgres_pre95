@@ -1,0 +1,14 @@
+$Header$
+
+This is an implementation of ``No-Overwrite B-trees'' (actually B-link
+tree, ala Lehman and Yao) written by Mark Sullivan and Mike Olson.
+The algorithms are described in:
+
+Sullivan, M.; Olson, M.
+An index implementation supporting fast recovery for the POSTGRES storage
+ system.
+Proceedings of the Eighth International Conference on Data
+ Engineering, Tempe, AZ, USA, Feb. 1992, p. 293-300.
+
+You are hereby warned that it hasn't been compiled, let alone run, in
+quite some time.
