@@ -41,21 +41,21 @@ ProcessUtility(command, args)
 	case BEGIN_TRANS:
 		commandTag = "BEGIN";
 #ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
+		AssertArg(null(args));
 #endif
 		StartTransactionBlock();
 		break;
 	case END_TRANS:
 		commandTag = "END";
 #ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
+		AssertArg(null(args));
 #endif
 		CommitTransactionBlock();
 		break;
 	case ABORT_TRANS:
 		commandTag = "ABORT";
 #ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
+		AssertArg(null(args));
 #endif
 		AbortTransactionBlock();
 		break;
