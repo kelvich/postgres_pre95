@@ -126,18 +126,25 @@ InteractiveBackend(inBuf)
 	char s[1024];
 	int v;
 
-	printf("> ");
-
-	while ( (c = (char)getc(stdin)) != EOF ) {
-	    *stuff++ = c;
+	if(Quiet){
+		while ( (c = (char)getc(stdin)) != '\n') {
+		    *stuff++ = c;
+		}
+		AbortCurrentTransaction();
+		exitpg(0);
 	}
+	else{
+		printf("> ");
+
+		while ( (c = (char)getc(stdin)) != EOF ) {
+		    *stuff++ = c;
+		}
     
-	if ( stuff == inBuf ) {
-	    if (!Quiet) {
-		puts("EOF");
-	    }
-	    AbortCurrentTransaction();
-	    exitpg(0);
+		if ( stuff == inBuf ) {
+		    puts("EOF");
+		    AbortCurrentTransaction();
+		    exitpg(0);
+		}
 	}
 
 #ifdef EXEC_DEBUGINTERACTIVE
