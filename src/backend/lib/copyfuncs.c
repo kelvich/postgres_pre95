@@ -1683,6 +1683,7 @@ _copyRel(from, to, alloc)
     newnode->tuples =  from->tuples;
     newnode->size =    from->size;
     newnode->width =   from->width;
+    newnode->indproc = from->indproc;
 
     Node_Copy(from, newnode, alloc, targetlist);
     Node_Copy(from, newnode, alloc, pathlist);
