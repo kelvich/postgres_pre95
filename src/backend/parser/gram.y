@@ -815,6 +815,10 @@ remove_operator:
 		{ $$ = lispCons($1, LispNil); }
 	| name ',' name
 		{ $$ = MakeList ( $1, $3, -1 ); }
+	| NONE ',' name		/* left unary */
+		{ $$ = MakeList ( LispNil, $3, -1 ); }
+	| name ',' NONE		/* right unary */
+		{ $$ = MakeList ( $1, LispNil, -1 ); }
 	;
 
  /**********************************************************************
