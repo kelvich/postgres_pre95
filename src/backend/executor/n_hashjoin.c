@@ -15,13 +15,14 @@
  * ----------------------------------------------------------------
  */
 
- RcsId("$Header$");
-
 #include <sys/file.h>
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 #include "planner/clauses.h"
+
+ RcsId("$Header$");
+
 /* ----------------------------------------------------------------
  *   	ExecHashJoin
  *
