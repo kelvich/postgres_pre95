@@ -26,23 +26,21 @@
  *	careful....
  */
 
-#include "c.h"
-
-RcsId("$Header$");
-
 #include <errno.h>
 #include <sys/file.h>
 #include <strings.h>
 /* XXX check above includes */
 
+#include "postgres.h"
+
+RcsId("$Header$");
+
 #include "os.h"
 #include "clib.h"
 
-#include "anum.h"
 #include "att.h"
 #include "attnum.h"
 #include "buf.h"
-#include "cat.h"
 #include "catname.h"
 #include "mcxt.h"
 #include "fd.h"
@@ -55,15 +53,18 @@ RcsId("$Header$");
 #include "istrat.h"
 #include "lmgr.h"
 #include "log.h"
-#include "oid.h"
 #include "rel.h"
 #include "rlock.h"
-#include "rproc.h"
 #include "skey.h"
 #include "syscache.h"
 #include "tqual.h"	/* for NowTimeQual */
 #include "tupdesc.h"
-/* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
+
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_index.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_relation.h"
+
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
 #include "relcache.h"
@@ -966,9 +967,9 @@ int	mode;
 }
 
 private void
-formrdesc(relationName, oid, natts, att, initialReferenceCount)
+formrdesc(relationName, reloid, natts, att, initialReferenceCount)
 	char		relationName[];
-	OID		oid;
+	OID		reloid;			/* XXX unused */
 	u_int		natts;
 	AttributeTupleFormData att[];
 	int		initialReferenceCount;
@@ -977,7 +978,9 @@ formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	int		fd;
 	int		len;
 	int		i;
+	
 /*	struct	attribute *attp; */
+	
 	char		*relpath();
 	File		relopen();
 	Relation	publicCopy;
@@ -987,34 +990,41 @@ formrdesc(relationName, oid, natts, att, initialReferenceCount)
 	len = sizeof *relation + ((int)natts - 1) * sizeof relation->rd_att;
 	relation = (Relation)palloc(len);
 	bzero((char *)relation, len);
+	
 #ifdef _xprs_
 	relation->rd_fd.fd[0] = -1;
 #else /* _xprs_ */
 	relation->rd_fd = -1;
 #endif /* _xprs_ */
+	
 	RelationSetReferenceCount(relation, 1);
+	
 	relation->rd_rel = (RelationTupleForm)palloc(sizeof (RuleLock) +
 		sizeof *relation->rd_rel);
+	
 	/* rdesc->rd_am.xxx */
+	
 	strncpy(&relation->rd_rel->relname, relationName, 16);
 	relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
-	relation->rd_rel->relpages = 1;				/* XXX */
-	relation->rd_rel->reltuples = 1;				/* XXX */
+	relation->rd_rel->relpages = 1;			/* XXX */
+	relation->rd_rel->reltuples = 1;		/* XXX */
 	relation->rd_rel->relhasindex = '\0';
 	relation->rd_rel->relkind = 'r';
 	relation->rd_rel->relarch = 'n';
 	relation->rd_rel->relnatts = (uint16)natts;
 	for (i = 0; i < natts; i++) {
-		relation->rd_att.data[i] = (Attribute)palloc(sizeof (RuleLock) +
+	    relation->rd_att.data[i] = (Attribute)
+		palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+
+	    bzero((char *)relation->rd_att.data[i], sizeof (RuleLock) +
 			sizeof *relation->rd_att.data[0]);
-		bzero((char *)relation->rd_att.data[i], sizeof (RuleLock) +
-			sizeof *relation->rd_att.data[0]);
-		bcopy((char *)&att[i], (char *)relation->rd_att.data[i],
+	    bcopy((char *)&att[i], (char *)relation->rd_att.data[i],
 			sizeof *relation->rd_att.data[0]);
 	}
+	
 	relation->rd_id = relation->rd_att.data[0]->attrelid;
-	HashTableInsert(PrivateRelationCacheHashByName,relation);
-	HashTableInsert(PrivateRelationCacheHashById,relation);
+	HashTableInsert(PrivateRelationCacheHashByName, relation);
+	HashTableInsert(PrivateRelationCacheHashById, relation);
 
 	if (initialReferenceCount != 0) {
 
