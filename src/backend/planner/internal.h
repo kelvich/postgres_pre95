@@ -27,7 +27,7 @@
 #include "nodes/plannodes.h"
 #include "parser/parsetree.h"
 #include "nodes/relation.h"
-#include "catalog/pg_index.h
+#include "catalog/pg_index.h"
 #include "tmp/c.h"
 
 /* XXX - versions don't work yet, so parsetree doesn't have them,
