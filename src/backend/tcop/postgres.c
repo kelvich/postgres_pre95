@@ -462,7 +462,7 @@ pg_plan(query_string, typev, nargs, parsetreeP, dest)
     if (ShowParserStats)
 	ResetUsage();
     
-    parser(query_string, parsetree_list);
+    parser(query_string, parsetree_list, typev, nargs);
     
     if (ShowParserStats) {
 	fprintf(stderr, "! Parser Stats:\n");
