@@ -61,6 +61,7 @@
 #include "rlock.h"
 #include "sdir.h"
 #include "skey.h"
+#include "tqual.h"
 
 /* ----------------------------------------------------------------
  *	B-Tree constants
