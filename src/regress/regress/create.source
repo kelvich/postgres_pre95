@@ -180,7 +180,7 @@ define function reverse_c16 ( language = "c",
 /* untrusted functions */
 define function ufp0 ( language = "c",
 		       returntype = int4 )
-       arg is (int4)
+       arg is ( )
        as "_CWD_/obj/ufp1.o"
 \g
 replace pg_proc ( proistrusted = "f"::bool,
@@ -342,8 +342,7 @@ define operator <% ( arg1 = point,
 		     arg2 = circle,
 		     procedure = pt_in_circle,
 		     associativity = left,
-		     commutator = >=%,
-		     restrict = int4eq )
+		     commutator = >=% )
 \g
 
 /*
@@ -373,16 +372,20 @@ define view toyemp ( emp.name,
  */
 /* all functions defined */
 define aggregate newavg (sfunc1 = int4pl,
+			 basetype = int4,
+			 stype1 = int4,
 			 sfunc2 = int4inc,
+			 stype2 = int4,
 			 finalfunc = int4div,
 			 initcond1 = "0",
 			 initcond2 = "0")
 \g
 /* sfunc1 (value-dependent) only */
-define aggregate newsum (sfunc1 = int4pl, initcond1 = "0")
+define aggregate newsum (sfunc1 = int4pl, basetype = int4, 
+			 stype1 = int4, initcond1 = "0")
 \g
 /* sfunc2 (value-independent) only */
-define aggregate newcnt (sfunc2 = int4inc, initcond2 = "0")
+define aggregate newcnt (sfunc2 = int4inc, stype2 = int4, initcond2 = "0")
 \g
 
 vacuum
