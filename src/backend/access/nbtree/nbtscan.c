@@ -83,7 +83,9 @@ _bt_dropscan(scan)
     else
 	last->btsl_next = chk->btsl_next;
 
+#ifdef PERFECT_MEM
     pfree (chk);
+#endif /* PERFECT_MEM */
 }
 
 void
