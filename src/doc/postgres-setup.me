@@ -165,7 +165,7 @@ format) or a \*(PG tar file.
 The previous version of \*(PG came with pre-compiled binaries for
 the SPARC and Ultrix platforms, however this release is a source
 distribution only.  The source code is available in tar format over
-the internet via anonymous ftp from the site s2k-ftp.CS.Berkeley.EDU.
+the Internet via anonymous ftp from the site s2k-ftp.CS.Berkeley.EDU.
 Look in the directory \f(CWpub/postgres/postgres-v4r2\fP.  The 
 compressed tar file containing the complete source distribution 
 is named \f(CWpostgres-v4r2.tar.Z\fP.
@@ -225,7 +225,7 @@ and build the system from scratch.  To run the compiled programs
 your kernel may need to be configured to
 support the shared memory and semaphore operations required by
 the code.  Assuming you have run \*(PG in the past, your machine may already
-be properly configured to run.  
+be properly configured.  
 .\" ----------------
 .\"    Preparation
 .\" ----------------
@@ -518,11 +518,12 @@ writable by root, it will be necessary to temporarily
 become root to install \f(CWbmake\fP. If you don't have root
 privilege you can change where \f(CWbmake\fP is installed by changing
 the value of the TOOLSBINDIR and TOOLSLIBDIR options 
-in \f(CWsrc/Makefile.global\fP, otherwise you will need to su(1) to root.
+in \f(CWsrc/Makefile.global\fP, otherwise you will need to 
+\f(CWsu\fP(1) to root.
 Next make sure that the \f(CWmake\fP program in your
 PATH environment variable is the system-provided \f(CWmake\fP (usually
 \f(CW/bin/make\fP) and \fBNOT\fP GNU \f(CWmake\fP (many users have
-noted problems getting GNU \f(CWmake\fP to work).
+reported problems getting old versions of GNU \f(CWmake\fP to work).
 .lp
 \f(CWCd\fP into \f(CWsrc/tools/bmake\fP and type
 .(l
@@ -535,7 +536,7 @@ including the \*(PG-related Makefile templates.  If all went well you
 will now be able to use the new make program by typing \f(CWbmake\fP,
 assuming you have \f(CW/usr/local/bin\fP in your shell path.  You may
 have to type \f(CWrehash\fP if you run \f(CWcsh\fP.
-.sh 3 "On Ultrix only, building and installing libdl"
+.sh 3 "On Ultrix only: building and installing libdl"
 .lp
 This version of \*(PG uses the \f(CWdlopen(3)\fP interface to 
 implement dynamic function loading.  Since there is no such 
@@ -553,10 +554,11 @@ simply \f(CWcd\fP into \f(CWsrc/tools/libdl\fP and type
 % \fBbmake all install\fP
 .)l
 This will build and install the \f(CWlibdl.a\fP library into
-TOOLSLIBDIR (/usr/local/lib by default).  If your linker/loader
+TOOLSLIBDIR (this is \f(CW/usr/local/lib\fP by default).
+If your linker/loader
 doesn't search here by default (it usually does), you may have to 
 \f(CWranlib(1)\fP on it.
-.sh 3 "On AIX only, installing mkldexport"
+.sh 3 "On AIX only: installing mkldexport"
 .lp
 \f(CWCd\fP into \f(CWsrc/tools/mkldexport\fP and type
 .(l
@@ -616,7 +618,7 @@ command:
 .)l
 If that completes successfully, congratulations.  
 .lp
-Now, to make the system operational you must run the postmaster.
+Now, to make the system operational you must run the \f(CWpostmaster\fP.
 The section after \*(lqTesting\*(rq discusses this.
 .\" ----------------
 .\"    Testing
@@ -625,15 +627,24 @@ The section after \*(lqTesting\*(rq discusses this.
 .lp
 We suggest you run the regression tests to make sure the release
 was installed successfully.  
-Also, you need to have the postmaster
+Also, you need to have the \f(CWpostmaster\fP
 running to run the test, so type the following:
 .(l
+% \fBTZ=GMT0\fP
+% \fBexport TZ\fP
 % \fBpostmaster &\fP
 .)l
-.lp
-if you haven't already.
+if you use \f(CWsh\fP or \f(CWksh\fP, or
+.(l
+% \fBsetenv TZ GMT0\fP
+% \fBpostmaster &\fP
+.)l
+if you use \f(CWcsh\fP.  The bit about 
+.q TZ
+is just to make sure that your regression output will be comparable to ours;
+you don't have to do this every time you start the \f(CWpostmaster\fP.
 Next, create a new user using the \f(CWcreateuser\fP command
-(see the reference manual).  \fBDo not\fP run the regression test
+(see the Reference Manual).  \fBDo not\fP run the regression test
 script as user \*(lqpostgres\*(rq!
 .lp
 Change directories to \f(CWsrc/regress/regress\fP.
@@ -684,25 +695,21 @@ the backend server.
 Users are expected to use the terminal monitor for direct access
 to the database.
 The terminal monitor
-sends commands to the postmaster which forwards commands to a backend.
+sends commands to the \f(CWpostmaster\fP which 
+forwards commands to a backend.
 .sh 2 "The \*(PG Postmaster"
 .lp
-The postmaster is a process which manages communication between the
+The \f(CWpostmaster\fP is a process which manages communication between the
 a front-end program such as the terminal monitor and a \*(PG backend.
-Without a running postmaster,
+Without a running \f(CWpostmaster\fP,
 the front-end program will not be able to connect to a backend.
-In general, the postmaster must be running for you (or others) to
-run any of the normal \*(PG commands.  Always start the postmaster when
+In general, the \f(CWpostmaster\fP must be running for you (or others) to
+run any of the normal \*(PG commands.  Always start the \f(CWpostmaster\fP when
 logged in as the special \*(lqpostgres\*(rq user, otherwise the system will
 not be able to access the database files. To start it, type
 .(l
 % \fBpostmaster &\fP
 .)l
-Now you
-can leave the postmaster running if you wish to keep the
-database system accessible.  In general, when the postmaster
-is running, the system is running.  When it is not running,
-none of the frontend programs will work.
 .sp
 .sh 2 "The \*(PG Terminal Monitor"
 .lp
@@ -787,7 +794,7 @@ Okay, this worked, too.  Now we'll quit.
 .lp
 The \*(PG backend is the process which does all the \*(lqreal\*(rq
 work.
-This process is started by the postmaster when the postmaster
+This process is started by the \f(CWpostmaster\fP when it
 receives a connection from a terminal monitor,
 so you should not normally need to start up the backend yourself.
 Should you wish to
@@ -802,12 +809,13 @@ If you run a backend in this manner,
 you will be talking to the backend parser directly.
 We recommend using the terminal monitor; if you are using \*(PG as a
 multiuser system, running the backend can result in locking failures
-and corrupt databases, as the Postmaster handles shared resources such
-as semaphores and shared memory.  In general, never do this if there
-is a postmaster running.
-In addition, returned tuples are displayed more usefully
+and corrupt databases, as the \f(CWpostmaster\fP handles shared resources such
+as semaphores and shared memory.  In short: never do this if there
+is a \f(CWpostmaster\fP running.
+In addition, when using the terminal monitor, 
+returned tuples are displayed more usefully
 and input is buffered better.  
-The backend is used interactively primarily during debugging.
+The backend should only be used interactively during debugging.
 .sh 2 "\*(PG Support Programs"
 .lp
 Included in \*(PG are a handful of support programs.
@@ -1026,8 +1034,9 @@ uunet!ucbvax!postgres!postgres
 .ft
 .)l
 and all mail sent to this address will be 
-will be routed to the mailing list membership.  This list is
-distributed to over 500 sites around the world, so please do 
+will be routed to the mailing list membership.  As of the time of
+this release, this mailing list was being
+distributed to over 650 sites around the world, so please do 
 .b NOT
 send administrative requests to this address.
 If you have any problems with the mailing list, send mail to
