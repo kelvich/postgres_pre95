@@ -201,7 +201,7 @@ InteractiveBackend(inBuf)
  *
  *  If the input is a fastpath function call (case 'F') then
  *  the function call is processed in HandleFunctionRequest().
- *  (now called from main())
+ *  (now called from PostgresMain())
  * ----------------
  */
 
@@ -448,7 +448,7 @@ pg_eval( query_string )
  */
 
 /* --------------------------------
- *	signal handler routines used in main()
+ *	signal handler routines used in PostgresMain()
  *
  *	handle_warn() is used to catch kill(getpid(),1) which
  *	occurs when elog(WARN) is called.
@@ -470,11 +470,11 @@ die()
 }
 
 /* --------------------------------
- *	main
+ *	PostgresMain
  * --------------------------------
  */
 
-main(argc, argv)
+PostgresMain(argc, argv)
     int	argc;
     char	*argv[];
 {
