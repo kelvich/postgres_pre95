@@ -1642,7 +1642,7 @@ a_expr:
 		if ($2 == LispNil)
 		    $$ = temp;
 		else
-		    $$ = make_array_ref(temp, LISPVALUE_INTEGER($2));
+		    $$ = make_array_ref(temp, $2);
 	   }
 	| AexprConst		
 	| spec  { Typecast_ok = false; }
