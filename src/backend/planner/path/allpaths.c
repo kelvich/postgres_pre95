@@ -63,18 +63,12 @@ find_paths(rels,nest_level,sortkeys)
 	} 
 	else {
 	    LispValue x;
-	    Rel rel;
 	    /* 
 	     * this means that joins or sorts are required.
 	     * set selectivities of clauses that have not been set
-	     * by an index.  also set sizes and widths of relations.
+	     * by an index.
 	     */
 	    set_rest_relselec(rels);
-	    foreach(x, rels) {
-		rel = (Rel)CAR(x);
-		set_size(rel, compute_rel_size(rel));
-		set_width(rel, compute_rel_width(rel));
-	    }
 	    if(levels_left <= 1) {
 		return(rels); 
 	      } 
@@ -143,6 +137,11 @@ find_rel_paths(rels,level,sortkeys)
 	   */
 	  prune_rel_path(rel, (Path)last_element(get_pathlist(rel))); 
 
+       }
+     foreach(temp, rels) {
+	 rel = (Rel)CAR(temp);
+	 set_size(rel, compute_rel_size(rel));
+	 set_width(rel, compute_rel_width(rel));
        }
      return(rels);
 
