@@ -22,6 +22,7 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 #include "utils/log.h"
 #include "tmp/name.h"
+#include "tmp/stringinfo.h"
 
 /*
  * 	Global declaration for LispNil.
@@ -32,8 +33,6 @@ RcsId("$Header$");
 
 LispValue	LispNil = (LispValue) NULL;
 extern bool _equalLispValue();
-extern void lispDisplayFp();
-extern void lispDisplay();
 
 /* ----------------
  *	_copy function extern declarations
@@ -137,7 +136,7 @@ lispAtom(atomName)
 
 	newobj->type = PGLISP_ATOM;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplayFp;
+	newobj->outFunc = _outLispValue;
 	newobj->copyFunc = _copyLispSymbol;
 	newobj->val.name = (char *)keyword;
 	newobj->cdr = LispNil;
@@ -155,7 +154,7 @@ lispDottedPair()
 
 	newobj->type = PGLISP_DTPR;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplayFp;
+	newobj->outFunc = _outLispValue;
 	newobj->copyFunc = _copyLispList;
 	newobj->val.car = LispNil;
 	newobj->cdr = LispNil;
@@ -174,7 +173,7 @@ lispFloat(floatValue)
 
 	newobj->type = PGLISP_FLOAT;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplayFp;
+	newobj->outFunc = _outLispValue;
 	newobj->copyFunc = _copyLispFloat;
 	newobj->val.flonum = floatValue;
 	newobj->cdr = LispNil;
@@ -193,7 +192,7 @@ lispInteger(integerValue)
 
 	newobj->type = PGLISP_INT;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplayFp;
+	newobj->outFunc = _outLispValue;
 	newobj->copyFunc = _copyLispInt;
 	newobj->val.fixnum = integerValue;
 	newobj->cdr = LispNil;
@@ -214,7 +213,7 @@ lispName(string)
 
     newobj->type = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
-    newobj->printFunc = lispDisplayFp;
+    newobj->outFunc = _outLispValue;
     newobj->copyFunc = _copyLispStr;
     newobj->cdr = LispNil;
 
@@ -246,7 +245,7 @@ lispString(string)
 
     newobj->type = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
-    newobj->printFunc = lispDisplayFp;
+    newobj->outFunc = _outLispValue;
     newobj->copyFunc = _copyLispStr;
     newobj->cdr = LispNil;
 
@@ -272,7 +271,7 @@ lispVectori(nBytes)
 	
 	newobj->type = PGLISP_VECI;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplayFp;
+	newobj->outFunc = _outLispValue;
 	newobj->copyFunc = _copyLispVector;
 	newobj->val.veci = (struct vectori *)
 		palloc((unsigned) (sizeof(struct vectori) + nBytes));
@@ -295,88 +294,6 @@ quote(lispObject)
 {
     elog(WARN,"calling quote which is being phased out");
     return(lispObject);
-}
-
-/*
- *	lispDisplayFp
- *
- *	Print a PGLISP tree depth-first.
- */
-#define length_of(byte_array)	(sizeof(byte_array) / sizeof((byte_array)[0]))
-
-void 
-lispDisplayFp(fp, lispObject,iscdr)
-	FILE 		*fp;
-	LispValue	lispObject;
-        int             iscdr;
-{
-	register	i;
-
-	if (lispObject == LispNil) {
-		fprintf(fp, "nil ");
-		return;
-	}
-	switch(lispObject->type) {
-	case PGLISP_ATOM:
-	  for (i=0; i < 85  ; i++ )
-	    if (ScanKeywords[i].value == (int)(lispObject->val.name) )
-	      fprintf (fp, "%s ",ScanKeywords[i].name);
-		break;
-	case PGLISP_DTPR:
-		if(!iscdr)
-			fprintf(fp, "(");
-		lispDisplayFp(fp, CAR(lispObject),0);
-		if(CDR(lispObject)!=LispNil) {
-			if(CDR(lispObject)->type != PGLISP_DTPR)
-				fprintf(fp, " . ");
-			lispDisplayFp(fp, CDR(lispObject),1);
-		}
-		if(!iscdr)
-			fprintf(fp, ")");
-		break;
-	case PGLISP_FLOAT:
-		fprintf(fp, "%g ", lispObject->val.flonum);
-		break;
-	case PGLISP_INT:
-		fprintf(fp, "%d ", lispObject->val.fixnum);
-		break;
-	case PGLISP_STR:
-		fprintf(fp, "\"%s\" ", lispObject->val.str);
-		break;
-	case PGLISP_VECI:
-		fprintf(fp, "#<%d:", lispObject->val.veci->size);
-		for (i = 0; i < lispObject->val.veci->size; ++i)
-			fprintf(fp, " %d", lispObject->val.veci->data[i]);
-		fprintf(fp, " >");
-		break;
-	default:
-		(* ((Node)lispObject)->printFunc)(fp, lispObject);
-		/*fprintf(fp, "\nUnknown LISP type : internal error\n");*/
-		break;
-	}
-}
-
-/*
- *	lispDisplay
- *
- * 	Print a PGLISP tree depth-first in stdout
- */
-void
-lispDisplay(lispObject,iscdr)
-	LispValue	lispObject;
-        int             iscdr;
-{
-    lispDisplayFp(stdout, lispObject, iscdr);
-    fflush(stdout);
-}
-
-int
-crap(lispObject)
-	LispValue	lispObject;
-{
-    lispDisplayFp(stdout, lispObject, 0);
-    fflush(stdout);
-	return(0);
 }
 
 /* ===================== LISP INDEPENDENT ==================== */
@@ -1070,3 +987,168 @@ same (foo,bar)
   return(false);
 	
 }	  
+
+/*---------------------------------------------------------------------
+ *	lispDisplayFp
+ *
+ *	Print a PGLISP tree depth-first.
+ *---------------------------------------------------------------------
+ */
+
+void 
+lispDisplayFp(fp, lispObject)
+FILE 		*fp;
+LispValue	lispObject;
+{
+    char *s;
+
+    s = lispOut(lispObject);
+    fprintf(fp, "%s", s);
+    pfree(s);
+}
+
+/*------------------------------------------------------------------
+ *	lispDisplay
+ *
+ * 	Print a PGLISP tree depth-first in stdout
+ *------------------------------------------------------------------
+ */
+void
+lispDisplay(lispObject)
+LispValue	lispObject;
+{
+    lispDisplayFp(stdout, lispObject);
+    fflush(stdout);
+}
+
+/*--------------------------------------------------------------------------
+ * lispOut
+ *
+ * Given a lisp structure, create a string with its visula representation.
+ *
+ * Keep Postgres memory clean! Don't forget to 'pfree' the string when
+ * you are done with it!
+ *--------------------------------------------------------------------------
+ */
+char *
+lispOut(lispObject)
+    LispValue	lispObject;
+{
+    StringInfo str;
+    char *s;
+
+    str = makeStringInfo();
+    _outLispValue(str, lispObject);
+    s = str->data;
+
+    /*
+     * free the StringInfoData, but not the string itself...
+     */
+    pfree(str);
+
+    return(s);
+}
+
+/*--------------------------------------------------------------------------
+ * _outLispValue
+ *
+ * Given a lisp structure, create a string with its visual representation.
+ * In fact, we do not create a string, but a 'StringInfo'.
+ * If you want to get back just the string, use 'lispOut'.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+void
+_outLispValue(str, lispObject)
+StringInfo str;
+LispValue	lispObject;
+{
+
+    register int i;
+    register LispValue t;
+    register int done;
+    char buf[500];
+    char *buf2;
+
+
+    if (lispObject == LispNil) {
+	appendStringInfo(str, "nil ");
+	return;
+    }
+
+    switch(lispObject->type) {
+	case PGLISP_ATOM:
+	    buf2 = AtomValueGetString((int)(lispObject->val.name));
+	    sprintf (buf, "%s ", buf2);
+	    appendStringInfo(str, buf);
+	    break;
+	case PGLISP_DTPR:
+	    appendStringInfo(str, "(");
+	    /*
+	     * This object can be the beginning of a list of objects,
+	     * or a single dotted pair (e.g. "(1 . 2)").
+	     * In the first case its CDR will be either NIL or
+	     * another dotted pair.
+	     * In the second case it won't!
+	     */
+	    done = 0;
+	    t = lispObject;
+	    while (!done) {
+		/*
+		 * first, print the CAR
+		 */
+		_outLispValue(str, CAR(t));
+		/*
+		 * Now check the CDR & decide what to do...
+		 */
+		if (null(CDR(t))) {
+		    /*
+		     * End of list
+		     */
+		    done = 1;
+		} else if (CDR(t)->type == PGLISP_DTPR) {
+		    /*
+		     * there is at least another element in the list
+		     */
+		    t = CDR(t);
+		} else {
+		    /*
+		     * this is a dotted pair
+		     * print its CDR too and get out of here!
+		     */
+		    appendStringInfo(str, " . ");
+		    _outLispValue(str, CDR(t));
+		    done = 1;
+		}
+	    } /*while*/
+	    appendStringInfo(str, ")");
+	    break;
+	case PGLISP_FLOAT:
+	    sprintf(buf, "%g ", lispObject->val.flonum);
+	    appendStringInfo(str, buf);
+	    break;
+	case PGLISP_INT:
+	    sprintf(buf, "%d ", lispObject->val.fixnum);
+	    appendStringInfo(str, buf);
+	    break;
+	case PGLISP_STR:
+	    sprintf(buf, "\"%s\" ", lispObject->val.str);
+	    appendStringInfo(str, buf);
+	    break;
+	case PGLISP_VECI:
+	    sprintf(buf, "#<%d:", lispObject->val.veci->size);
+	    appendStringInfo(str, buf);
+	    for (i = 0; i < lispObject->val.veci->size; ++i) {
+		sprintf(buf, " %d", lispObject->val.veci->data[i]);
+		appendStringInfo(str, buf);
+	    }
+	    sprintf(buf, " >");
+	    appendStringInfo(str, buf);
+	    break;
+	default:
+	    (* ((Node)lispObject)->outFunc)(str, lispObject);
+	    break;
+    }
+
+}
