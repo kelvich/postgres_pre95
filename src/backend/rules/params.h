@@ -10,6 +10,7 @@
 #define ParamsIncluded	1	/* Include this file only once */
 
 #include "tmp/postgres.h"
+#include "access/attnum.h"
 
 /* ----------------------------------------------------------------
  *
@@ -26,7 +27,9 @@
  *              The number is contained in the `parmid' field.
  *
  * PARAM_NEW:   Used in PRS2 rule, similar to PARAM_NAMED.
- *              The `paramname' refers to the "NEW" tuple
+ *              The `paramname' & `paramid' refer to the "NEW" tuple
+ *		`paramname' is the attribute name and `paramid' its
+ *		attribute number.
  *              
  * PARAM_OLD:   Same as PARAM_NEW, but in this case we refer to
  *		the "OLD" tuple.
@@ -52,6 +55,7 @@
  *      name   : the parameter name (valid if kind == PARAM_NAMED,
  *               PARAM_NEW or PARAM_OLD)
  *      id     : the parameter id (valid if kind == PARAM_NUM)
+ *		 or the attrno (if kind == PARAM_NEW or PARAM_OLD)
  *      type   : PG_TYPE OID of the value
  *      length : length in bytes of the value
  *      isnull : true if & only if the value is null (if true then
@@ -67,13 +71,14 @@
  */
 
 typedef struct ParamListInfoData {
-    int		kind;
-    Name	name;
-    int32	id;
-    ObjectId	type;
-    Size	length;
-    bool	isnull;
-    Datum	value;
+    int			kind;
+    Name		name;
+    AttributeNumber	id;
+    ObjectId		type;
+    Size		length;
+    bool		isnull;
+    bool		byval;
+    Datum		value;
 } ParamListInfoData;
 
 typedef ParamListInfoData *ParamListInfo;
