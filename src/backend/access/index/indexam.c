@@ -207,11 +207,15 @@ index_insert(relation, indexTuple, offsetOutP)
      *
      *  As far as I'm concerned all this result shit is needlessly c
      *  omplicated and should be eliminated.  -cim 1/19/91
+     *
+     *  mao concurs.  regardless of how we feel here, however, it is
+     *  important to free memory we don't intend to return to anyone.
+     *  2/28/91
      * ----------------
      */
     returnResult = (GeneralInsertIndexResult) palloc(sizeof *returnResult);
     returnResult->pointerData = specificResult->pointerData;
-    
+
     if (PointerIsValid(offsetOutP))
 	*offsetOutP = specificResult->offset;
     
