@@ -242,20 +242,43 @@ ProcessUtility(command, args, commandString)
 	
 	{
 	    int	len;
-		
 	    len = length(args);
 	    
 	    /*
 	     * skip unused "RELATION" or "ATTRIBUTE" tag
-		 */
+	     */
 	    args = CDR(args);
-	    if (len == 3) {	/* relation */
-		renamerel(CString(CAR(args)), CString(CADR(args)));
-		} else {	/* attribute */
-		    renamerel(CString(CAR(args)), CString(CADR(args)),
-			      CString(CADDR(args)));
-		}
+	    
+	    /* ----------------
+	     *	XXX using len == 3 to tell the difference
+	     *	    between "rename rel to newrel" and
+	     *	    "rename att in rel to newatt" will not
+	     *	    work soon because "rename type/operator/rule"
+	     *	    stuff is being added. - cim 10/24/90
+	     * ----------------
+	     */
+	    if (len == 3) {
+		/* ----------------
+		 *	rename relation
+		 *
+		 *	Note: we also rename the "type" tuple
+		 *	corresponding to the relation.
+		 * ----------------
+		 */
+		renamerel(CString(CAR(args)), 	 /* old name */
+			  CString(CADR(args)));	 /* new name */
+		TypeRename(CString(CAR(args)),	 /* old name */
+			   CString(CADR(args))); /* new name */
+	    } else {
+		/* ----------------
+		 *	rename attribute
+		 * ----------------
+		 */
+		renameatt(CString(CAR(args)), 	 /* relname */
+			  CString(CADR(args)), 	 /* old att name */
+			  CString(CADDR(args))); /* new att name */
 	    }
+	}
 	break;
 	
 	/*
