@@ -23,7 +23,7 @@ files during installation.
 They are not intended for use by humans,
 and you do not need to understand their contents in order
 to use \*(PP.
-These files are copied to .../files/local1_template1.bki
+These files are copied to .../files/local1.bki
 and .../files/global1.bki during system installation.
 .lp
 All new user databases will be created by copying the template
@@ -139,9 +139,8 @@ Destroy the class named
 .ul
 classname.
 .sp
-\&define index <index-name> on <class-name> using <amname>
-.br
-\0\0\0with ( name_1 collection_1 { , name_2 collection_2 ,  ... } )
+define index <index-name> on <class-name> using <amname>
+( <opclass> <attr> | function({attr}) )
 .sp
 Create an index named
 .ul
