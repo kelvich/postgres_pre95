@@ -357,7 +357,7 @@ ExecEvalVar(variable, econtext, isNull)
 		ExecCopyTupType(ExecSlotDescriptor(slot), tup->t_natts);
 	ExecSetSlotDescriptor((Pointer)tempSlot, td);
 
-	ExecStoreTuple(tup, (Pointer)tempSlot, InvalidBuffer, true);
+	ExecStoreTuple((Pointer)tup, (Pointer)tempSlot, InvalidBuffer, true);
 	return (Datum) tempSlot;
     }
 
@@ -623,7 +623,7 @@ GetAttributeByName(slot, attname, isNull)
     if (isNull == (Boolean *)NULL)
 	elog(WARN, "GetAttributeByName: a NULL isNull flag was passed");
     
-    if (TupIsNull(slot))
+    if (TupIsNull((Pointer)slot))
     {
     	*isNull = true;
 	return;
