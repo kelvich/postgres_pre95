@@ -13,7 +13,8 @@ RcsId("$Header$");
 #include "excid.h"
 #include "mnodes.h"
 #include "oset.h"
-#include "tags.h"	/* for classTag(Foo) */
+#include "pinit.h"	/* for BypassEnable */
+#include "tags.h"	/* for classTag */
 #include "tnodes.h"
 
 #include "mcxt.h"
@@ -23,7 +24,9 @@ extern void bcopy();	/* XXX use header */
 /*
  * Global State
  */
-static bool MemoryContextEnabled = false;
+static Count MemoryContextEnableCount = 0;
+#define MemoryContextEnabled	(MemoryContextEnableCount > 0)
+
 static OrderedSetData	ActiveGlobalMemorySetData;	/* uninitialized */
 #define ActiveGlobalMemorySet	(&ActiveGlobalMemorySetData)
 
@@ -176,8 +179,16 @@ void
 EnableMemoryContext(on)
 	bool	on;
 {
+	static bool	processing = false;
+
+	AssertState(!processing);
 	AssertArg(BoolIsValid(on));
-	AssertState(on != MemoryContextEnabled);
+
+	if (BypassEnable(&MemoryContextEnableCount, on)) {
+		return;
+	}
+
+	processing = true;
 
 	if (on) {	/* initialize */
 		/* initialize TopGlobalMemoryData.setData */
@@ -222,7 +233,7 @@ EnableMemoryContext(on)
 		AllocSetReset(&TopGlobalMemoryData.setData);
 	}
 
-	MemoryContextEnabled = on;
+	processing = false;
 }
 
 Pointer
