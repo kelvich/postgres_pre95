@@ -24,6 +24,7 @@
 #include "internal.h"
 #include "relation.h"
 #include "plannodes.h"
+#include "log.h"
 
 /*    
  *    	---------- GLOBAL VARIABLES
@@ -49,20 +50,25 @@ bool _query_is_archival_;       /*   archival query flag */
 
 /* (defmacro with_saved_globals (&rest,body)  XXX fix me */
 
-LispValue 
-with_saved_globals (body)
-     LispValue (* body)();
+void
+save_globals ()
 {
-	LispValue global_save;
 /*
-	global_save = list (lispInteger(_query_result_relation_),
-				      lispInteger(_query_command_type_),
-				      lispInteger(_query_max_level_),
-				      _query_range_table_,
-				      _query_relation_list_,
-				      _query_is_archival_);
-*/
-	LispValue body_result = (* body)();
+  LispValue 	qrr = _query_result_relation_;
+  LispValue	qtt = lispInteger(_query_command_type_);
+  LispValue	qml = lispInteger(_query_max_level_);
+  LispValue 	qrt = _query_range_table_;
+  LispValue	qrl = _query_relation_list_;
+  LispValue	qia = lispInteger(_query_is_archival_);
+  LispValue 	foo;
+
+  /* saved_global_list = nappend1(saved_global_list,foo); */
+}
+
+void
+restore_globals()
+{
+/*
 	_query_result_relation_ = nth (0,global_save);
 	_query_command_type_ = CInteger(nth (1,global_save));
 	_query_max_level_ = CInteger(nth (2,global_save));
@@ -71,6 +77,7 @@ with_saved_globals (body)
 	_query_is_archival_ = (bool) CInteger(nth (5,global_save));
 
 	return(body_result);
+*/
 }
 
 void
@@ -157,5 +164,59 @@ set_joinlist(foo,bar)
      TL foo;
      List bar;
 {
-    CADR(foo) = bar;
+    CDR(foo) = bar;
+}
+
+Var
+get_expr (foo)
+     TLE foo;
+{
+    Assert(!null(foo));
+    Assert(!null(CDR(foo)));
+    /* Assert(IsA(foo,LispValue)); */
+    return((Var)CADR(foo));
+}
+
+Resdom
+get_resdom (foo)
+     TLE foo;
+{
+    /* Assert(IsA(foo,LispValue)); */
+    return((Resdom)CAR(foo));
+}
+
+TLE
+get_entry(foo)
+     TL foo;
+{
+    /* Assert(IsA(foo,LispValue)); */
+
+    return(CAR(foo));
+}
+void
+set_entry(node,foo)
+     TL node;
+     TLE foo;
+{
+    CAR(node) = foo;
+}
+
+List
+get_joinlist(foo)
+     TL foo;
+{
+    /* Assert(IsA(foo,LispValue)); */
+    elog(WARN,"not sure about get_joinlist");
+    return (CDR(foo));
+}
+
+void
+init_planner()
+{
+    _query_result_relation_ = LispNil;
+    _query_command_type_ = 0;
+    _query_max_level_ = 1;
+    _query_range_table_ = LispNil;
+    _query_relation_list_ = LispNil;
+    _query_is_archival_ = false;
 }

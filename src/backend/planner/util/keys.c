@@ -154,7 +154,7 @@ samekeys (keys1,keys2)
 
      for(key1=keys1,key2=keys2 ; key1 != LispNil && key2 !=LispNil ; 
 	 key1 = CDR(key1), key2=CDR(key2)) 
-	  if ( ! member( CAR(key1),key2))
+	  if ( ! member( CAR(key1),CAR(key2)))
 	    allmember = false;
 
      if ( (length (keys2) >= length (keys1)) && allmember)
@@ -189,7 +189,7 @@ collect_index_pathkeys (index_keys,tlist)
 
      foreach(index_key,index_keys) {
 	  Expr mvar;
-	  mvar = matching_tlvar (index_key,tlist,equal_indexkey_var);
+	  mvar = matching_tlvar (CAR(index_key),tlist,equal_indexkey_var);
 	  if ( mvar ) 
 	    retval = nconc(retval,lispCons (lispCons (mvar,LispNil),
 					    LispNil));
@@ -218,7 +218,7 @@ match_sortkeys_pathkeys (relid,sortkeys,pathkeys)
      bool every_val = true;
 
      every2 (sortkey,sortkeys, pathkey,pathkeys) {
-	  if ( ! equal_sortkey_pathkey (relid,sortkey,pathkey)) 
+	  if ( ! equal_sortkey_pathkey (relid,CAR(sortkey),CAR(pathkey)))
 	    every_val = false;
      }
 
@@ -248,8 +248,8 @@ equal_sortkey_pathkey (relid,sortkey,pathkey)
      bool retval = false;
 
      foreach(subkey,pathkey) {
-	  if (equal (relid,get_varno (subkey)) &&
-	      equal_indexkey_var (sortkey,subkey))
+	  if (equal (relid,get_varno (CAR(subkey))) &&
+	      equal_indexkey_var (sortkey,CAR(subkey)))
 	    retval = true;
      }
      return(retval);

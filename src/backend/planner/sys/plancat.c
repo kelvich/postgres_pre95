@@ -65,7 +65,7 @@ relation_info (relid)
 	} else
 		elog(WARN, "RelationCatalogInformation: Relation %d not found",
 		     relationObjectId);
-	for(i=3; i>0 ; --i) 
+	for(i=2; i>=0 ; --i) 
 	    retval = lispCons(lispInteger(rel_info[i]),retval);
 	return(retval);
 

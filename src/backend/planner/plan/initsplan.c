@@ -126,12 +126,12 @@ initialize_qualification (clauses)
      LispValue clause = LispNil;
 
      foreach (clause, clauses) {
-	  if(IsA(clause,Func))
-	    initialize_qualification (get_funcargs (clause));
+	 if(consp(clause) && IsA(CAR(clause),Func))
+	    initialize_qualification (get_funcargs (CAR(clause)));
 	  else 
-	    if (IsA(clause,Oper))
-	      initialize_qualification (get_opargs (clause));
-	  add_clause_to_rels (clause);
+	    if (consp(clause) && IsA(CAR(clause),Oper))
+	      initialize_qualification (get_opargs (CAR(clause)));
+	  add_clause_to_rels (CAR(clause));
      }
 }  /* function end   */
 
@@ -216,11 +216,11 @@ add_join_clause_info_to_rels (clauseinfo,join_relids)
      foreach (join_relid, join_relids) {
 	  /* XXX - let form, maybe incorrect */
 	 JInfo joininfo = 
-	   find_joininfo_node (get_rel (join_relid),
-			       remove (join_relid,join_relids));
-	  set_clauseinfo (joininfo,
+	   find_joininfo_node (get_rel (CAR(join_relid)),
+			       remove (CAR(join_relid),join_relids));
+	  set_jinfoclauseinfo (joininfo,
 			   cons (clauseinfo,
-				 get_clauseinfo (joininfo)));
+				 get_jinfoclauseinfo (joininfo)));
 
      }
 } /* function end  */
@@ -249,22 +249,28 @@ void
 add_vars_to_rels (vars,join_relids)
      List vars,join_relids ;
 {
-     LispValue var = LispNil;
-     foreach (var, vars) {
-	  Rel rel = get_rel (lispInteger(get_varno (var)));
-	  LispValue  tlistentry = tlistentry_member (var,get_targetlist (rel));
-	  LispValue other_join_relids = remove (get_varno (var),
-						join_relids);
-	  if(null (tlistentry))
-	    /*   add a new entry */
-	    add_tl_element (rel,var,other_join_relids);
-	  else 
-	    if (get_joinlist (tlistentry)) {
-		 set_joinlist (tlistentry,
-				/*   modify an existing entry */
-				LispUnion (get_joinlist(tlistentry),
-				       other_join_relids));
-	    } 
+    LispValue var = LispNil;
+    LispValue temp;
+    Rel rel = (Rel)NULL;
+    LispValue tlistentry = LispNil;
+    LispValue other_join_relids = LispNil;
+    
+    foreach (temp, vars) {
+	var = CAR(temp);
+	rel = get_rel (lispInteger(get_varno (var)));
+	tlistentry = tlistentry_member (var,get_targetlist (rel));
+	other_join_relids = remove (get_varno (var),
+				    join_relids);
+	if(null (tlistentry))
+	  /*   add a new entry */
+	  add_tl_element (rel,var,other_join_relids);
+	else 
+	  if (get_joinlist (tlistentry)) {
+	      set_joinlist (tlistentry,
+			    /*   modify an existing entry */
+			    LispUnion (get_joinlist(tlistentry),
+					other_join_relids));
+	  } 
      }
 } /* function end   */
 

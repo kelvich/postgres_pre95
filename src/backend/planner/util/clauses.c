@@ -36,6 +36,8 @@
 #include "c.h"
 #include "clauses.h"
 #include "pg_lisp.h"
+#include "parse.h"
+#include "log.h"
 
 extern LispValue clause_head();
 
@@ -54,11 +56,11 @@ LispValue
 clause_head (clause)
      LispValue clause ;
 {
-	if ( consp (clause) ) {
-		return(CAR (clause));
-	} else {
-		return(LispNil);
-	} 
+    if ( consp (clause) ) {
+	return(CAR (clause));
+    } else {
+	return(LispNil);
+    } 
 }
 
 /*  .. clause-args, fix-indxqual-references
@@ -70,14 +72,15 @@ clause_type (clause)
     LispValue clauseand = lispInteger(AND);
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
-     
+    
+    elog(WARN, "calls member");
     if ( consp (clause) ) {
 	LispValue type = clause_head (clause);
 	if ( member (type,lispCons(clauseand,
 				   lispCons(clauseor,
 					    lispCons(clausenot,
 						     LispNil)))) ||
-		     IsA (type,Func) || IsA (type,Oper)) 
+	    IsA (type,Func) || IsA (type,Oper)) 
 	  return(type);
     } else
       return(LispNil);
@@ -93,6 +96,7 @@ clause_args (clause)
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
 
+    elog(WARN,"clause_args, uses member");
     if ( consp (clause) ) {
 	LispValue type = clause_type (clause);
 	if ( member (type,lispCons(clauseand,
@@ -113,6 +117,8 @@ make_clause (type,rest,args)
     LispValue clauseand = lispInteger(AND);
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
+
+    elog(WARN,"make_clause, uses member");
 
     if ( member (type,lispCons(clauseand,
 			       lispCons(clauseor,
@@ -157,7 +163,8 @@ bool
 is_opclause (clause)
      LispValue clause ;
 {
-     return((bool)IsA (clause_head (clause),Oper));
+    if (clause_head(clause))
+      return((bool)IsA (clause_head (clause),Oper));
 }
 
 /*    
@@ -263,7 +270,8 @@ bool
 is_funcclause (clause)
      LispValue clause ;
 {
-     return((bool)IsA (clause_head (clause),Func));
+    if (clause_head(clause))
+      return((bool)IsA (clause_head (clause),Func));
 }
 
 /*    
@@ -345,7 +353,9 @@ bool
 or_clause (clause)
      LispValue clause ;
 {
-     return(equal ("OR",clause_head (clause)));
+    if (consp (clause))
+      return(bool) ( equal(lispInteger(OR),clause_head(clause)));
+   /*  return(equal ("OR",clause_head (clause))); */
 }
 
 /*    
@@ -363,7 +373,7 @@ LispValue
 make_orclause (orclauses)
      LispValue orclauses ;
 {
-     return(lispCons ("OR",orclauses));
+    return(lispCons (lispInteger(OR),orclauses));
 }
 
 /*    
@@ -384,7 +394,8 @@ LispValue
 get_orclauseargs (orclause)
      LispValue orclause ;
 {
-     return(CDR (orclause));
+    if ( consp (orclause))
+      return(CDR (orclause));
 }
 
 /*    	-------- NOT clause macros
@@ -407,7 +418,8 @@ bool
 not_clause (clause)
      LispValue clause ;
 {
-     return(equal ("NOT",clause_head (clause)));
+    if (consp (clause))
+      return(bool) ( equal(lispInteger(NOT),clause_head(clause)));
 }
 
 /*    
@@ -425,7 +437,7 @@ LispValue
 make_notclause (notclause)
 LispValue notclause ;
 {
-     return(lispCons (lispString("NOT"),
+     return(lispCons (lispInteger(NOT),
 		      lispCons(notclause,LispNil))); 
 }
 
@@ -466,7 +478,8 @@ bool
 and_clause (clause)
      LispValue clause ;
 {
-     return(equal ("AND",clause_head (clause)));
+    if (consp (clause))
+      return(bool) ( equal(lispInteger(AND),clause_head(clause)));
 }
 
 /*    		 
@@ -483,7 +496,7 @@ LispValue
 make_andclause (andclauses)
      LispValue andclauses ;
 {
-     return(lispCons ("AND",andclauses));
+     return(lispCons (lispInteger(AND),andclauses));
 }
 
 /*    

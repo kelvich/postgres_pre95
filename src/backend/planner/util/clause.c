@@ -54,18 +54,18 @@ extern bool is_clause();
 
 /*  .. query_planner
  */
-LispValue 
+bool
 lambda1 (qual)
      LispValue qual ;
 {
-	null (pull_var_clause (qual));
+    return(null (pull_var_clause (qual)));
 }
 
 LispValue
 pull_constant_clauses (quals)
      LispValue quals ;
 {
-	collect ( lambda1,quals);
+    return(collect ( lambda1,quals));
 }
 
 /*    
@@ -95,7 +95,7 @@ LispValue
 pull_relation_level_clauses (quals)
      LispValue quals ;
 {
-	collect (lambda2,quals);
+    return(collect (lambda2,quals));
 }
 
 /*    
@@ -117,20 +117,25 @@ pull_relation_level_clauses (quals)
 
 LispValue
 clause_relids_vars (clause)
-LispValue clause ;
+     LispValue clause ;
 {
-	LispValue vars = pull_var_clause (clause);
-	LispValue retval;
-	LispValue var_list,varno_list;
+    LispValue vars = pull_var_clause (clause);
+    LispValue retval = LispNil;
+    LispValue var_list,varno_list;
+    LispValue tvarlist = LispNil;
+    LispValue i;
 
-	varno_list = nreverse (remove_duplicates 
-				 (mapcar ( get_varno,vars)));
-	var_list = nreverse (remove_duplicates (vars, 
-						/*test*/ var_equal));
-	retval = lispCons (varno_list,
-			   lispCons(var_list,LispNil));
-		   
-	return(retval);
+    foreach (i,vars) 
+      tvarlist = nappend1(tvarlist,
+			  lispInteger(get_varno(CAR(i))));
+
+    varno_list = nreverse (remove_duplicates (tvarlist,equal));
+
+    var_list = nreverse (remove_duplicates (vars, var_equal));
+    retval = lispCons (varno_list,
+		       lispCons(var_list,LispNil));
+    
+    return(retval);
 }
 
 /*    
@@ -404,7 +409,7 @@ fix_opids (clauses)
 {
 	LispValue clause;
 	for (clause = clauses ; clause != LispNil ; clause = CDR(clause) ) 
-	  fix_opid(clause);
+	  fix_opid(CAR(clause));
 	return(clauses);
 }
 
@@ -540,4 +545,27 @@ get_relsatts (clause)
 					      (_SELEC_VALUE_UNKNOWN_),
 					      LispNil))));
 	}
+}
+
+bool
+is_clause(clause)
+     LispValue clause;
+{
+    if (consp (clause)) {
+	LispValue oper = clause_head(clause);
+
+	if (IsA(oper,LispInt)) 
+	  if (CInteger(oper) == AND ||
+	      CInteger(oper) == OR ||
+	      CInteger(oper) == NOT )
+	    return(true);
+
+	if (IsA(oper,Oper) || 
+	    IsA(oper,Func) )
+	  return(true);
+	
+    }
+    
+    return(false);
+
 }

@@ -45,19 +45,18 @@ pull_var_clause (clause)
 		LispValue result = LispNil;
 		/* mapcan */
 		foreach (temp,get_orclauseargs(clause) )
-		  retval = nconc(retval, pull_var_clause(temp));
+		  retval = nconc(retval, pull_var_clause(CAR(temp)));
 	} else if (is_funcclause (clause)) {
 		LispValue temp;
 		/* mapcan */
 		foreach(temp,get_funcargs(clause)) 
-		  retval = nconc (retval,pull_var_clause(temp));
+		  retval = nconc (retval,pull_var_clause(CAR(temp)));
 	} else if (not_clause (clause))
 	  retval = pull_var_clause (get_notclausearg (clause));
 	else if (is_clause (clause)) 
 	  retval = nconc (pull_var_clause (get_leftop (clause)),
 			  pull_var_clause (get_rightop (clause)));
-	else 
-	  return (LispNil);
+	return (retval);
 }
 
 /*    

@@ -17,6 +17,8 @@
 #include "parse.h"
 #include "indexnode.h"
 #include "plannodes.h"
+#include "relation.h"
+#include "relation.a.h"
 
 extern LispValue index_info(); /* XXX - #include "cfi.h" 
 				  when M.Yatabe finishes planner/sys */
@@ -35,7 +37,7 @@ extern LispValue index_info(); /* XXX - #include "cfi.h"
 
 LispValue
 find_relation_indices (rel)
-     LispValue rel ;
+     Rel rel ;
 {
     /*    XXX Cheap temporary hack: 
 	  if the relation is the result relation, */
@@ -45,7 +47,10 @@ find_relation_indices (rel)
 	(_query_command_type_ != RETRIEVE )) {
 	return (LispNil);
     } else if (get_indexed (rel)) {
-	find_secondary_index (0,get_relid (rel));
+	Relid temp = (Relid) get_relids(rel);
+
+	if (IsA(temp,LispInt))
+	    find_secondary_index (0,CInteger(temp));
     } else {
 	return (LispNil);
     }

@@ -60,17 +60,16 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      int currentlevel;
      int maxlevel ;
 {
-     /* XXX - prog form, maybe incorrect */
      LispValue constant_qual = LispNil;
      LispValue sortkeys = LispNil;
      LispValue flattened_tlist = LispNil;
      List 	level_tlist = LispNil;
-     Plan	subplan;
-     List	subtlist;
-     Plan 	restplan;
+     Plan	subplan = (Plan)NULL;
+     List	subtlist = LispNil;
+     Plan 	restplan = (Plan)NULL;
      List	resttlist = LispNil;
      List	relation_level_clauses = LispNil;
-     Plan 	plan;
+     Plan 	plan = (Plan)NULL;
 
      extern Plan subplanner();
      
@@ -281,7 +280,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 					    level,
 					    sortkeys);
      if (_query_relation_list_)
-       final_relation = CAR (_query_relation_list_);
+       final_relation = (Rel)CAR (_query_relation_list_);
      else
        final_relation = (Rel)LispNil;
      

@@ -106,7 +106,7 @@ rule_insert_catalog ()
 List
 index_info (not_first,relid)
      bool not_first;
-     ObjectId relid ;
+     int  relid ;
 {
     int indexinfo[32];
     int i;

@@ -190,14 +190,6 @@ planner (parse)
     else 
  *   -XXX hack to make retrieve x= 1 work  */
 
-    printf ("\nroot is ");
-    lispDisplay (root,0);
-    printf ("\ntlist is ");
-    lispDisplay (tlist,0);
-    printf ("\nqual is ");
-    lispDisplay (qual,0);
-    printf("\n");
-
     return(init_query_planner (root,tlist,qual));
 
     
@@ -222,10 +214,8 @@ init_query_planner (root,tlist,qual)
 {
      LispValue primary_qual;
      LispValue existential_qual;
+     Plan exist_plan;
 
-     lispDisplay(CAR(root),0);
-     printf("\n");
-     fflush(stdout);
      _query_max_level_ = root_numlevels (root);
      _query_command_type_ = (int) root_command_type (root);
      _query_result_relation_ = root_result_relation (root);
@@ -263,17 +253,22 @@ init_query_planner (root,tlist,qual)
 	 Plan existential_plan;
 
 	 /* with saved globals */
+	 save_globals();
+
 	 _query_command_type_ = RETRIEVE;
 	 existential_plan = query_planner(temp,LispNil,existential_qual,1,
 					  _query_max_level_);
      
-	 return((Plan) (make_existential (existential_plan,
-					  query_planner (_query_command_type_,
-							 tlist,primary_qual,
-							 1,
-							 _query_max_level_))));
-     }
-     
+	 exist_plan = make_existential (existential_plan,
+					query_planner (_query_command_type_,
+						       tlist,primary_qual,
+						       1,
+						       _query_max_level_));
+
+	 restore_globals();
+	 return(exist_plan);
+}
+
  }  /* function end  */
 
 /* 
@@ -288,8 +283,13 @@ Existential
 make_existential(left,right)
      Plan left,right;
 {
+    extern void PrintExistential();
+    extern bool EqualExistential();
+
     Existential node = CreateNode(Existential);
-    
+
+    node->equalFunc = EqualExistential;
+    node->printFunc = PrintExistential;
     set_lefttree(node,left);
     set_righttree(node,right);
     return(node);

@@ -28,17 +28,11 @@
 #include "relation.h"
 #include "setrefs.h"
 #include "lsyscache.h"
+#include "execnodes.h"
 
 /* "Print out the total cost at each query processing operator"  */
 #define _watch_costs_  LispNil
 
-#define INDEXSCAN  20
-#define SEQSCAN    21
-#define NESTLOOP   22
-#define HASHJOIN   23
-#define MERGESORT  24
-/* #define SORT       25    */
-#define HASH       26
 
 /*
 extern LispValue create_scan_node();
@@ -53,6 +47,7 @@ extern LispValue switch_outer();
 extern LispValue set_temp_tlist_operators();
 extern LispValue make_temp();
 */
+extern SeqScan make_seqscan();
 
 /*    	================
  *    	GENERIC ROUTINES
@@ -87,17 +82,17 @@ create_plan (best_path,origtlist)
      List origtlist ;
 {
      List tlist = get_actual_tlist (get_targetlist (get_parent (best_path)));
-     Plan plan_node;
-     Plan sorted_plan_node;
+     Plan plan_node = (Plan)NULL;
+     Plan sorted_plan_node = (Plan)NULL;
 
      switch (get_pathtype (best_path)) {
-	case INDEXSCAN : 
-	case SEQSCAN :
+	case T_IndexScan : 
+	case T_SeqScan :
 	  plan_node = (Plan)create_scan_node (best_path,tlist);
 	  break;
-	case HASHJOIN :
-	case MERGESORT : 
-	case NESTLOOP :
+	case T_HashJoin :
+	case T_MergeSort : 
+	case T_NestLoop:
 	  plan_node = (Plan)create_join_node (best_path,origtlist,tlist);
 	  break;
 	default: /* do nothing */
@@ -126,7 +121,7 @@ create_plan (best_path,origtlist)
        } 
 
      if (sorted_plan_node) {
-	  set_state (sorted_plan_node,get_cost (get_sortpath (best_path)));
+	  set_state (sorted_plan_node,get_path_cost (get_sortpath (best_path)));
 	  if ( _watch_costs_) {
 	       printf("SORTED PLAN COST =");
 	       lispDisplay(get_state (sorted_plan_node),0);
@@ -165,12 +160,12 @@ create_scan_node (best_path,tlist)
 					 (get_parent (best_path))));
      switch (get_pathtype (best_path)) {
 
-	case SEQSCAN : 
+	case T_SeqScan : 
 	  return((Scan)create_seqscan_node (best_path,tlist,scan_clauses));
 	  break;
 
-	case INDEXSCAN : 
-	  return((Scan)create_indexscan_node (best_path,tlist,scan_clauses));
+	case T_IndexScan:
+	  ((Scan)create_indexscan_node (best_path,tlist,scan_clauses));
 	  break;
 	  
 	  default :
@@ -218,18 +213,18 @@ create_join_node (best_path,origtlist,tlist)
      
      switch (get_pathtype (best_path)) {
 	 
-       case MERGESORT : 
+       case T_MergeSort : 
 	 retval = (Join)create_mergejoin_node (best_path,
 					       tlist,clauses,
 					       outer_node,outer_tlist,
 					       inner_node,inner_tlist);
 	 break;
-       case HASHJOIN : 
+       case T_HashJoin : 
 	 retval = (Join)create_hashjoin_node (best_path,tlist,
 					      clauses,outer_node,outer_tlist,
 					      inner_node,inner_tlist);
 	 break;
-       case NESTLOOP : 
+       case T_NestLoop : 
 	 retval = (Join)create_nestloop_node (best_path,tlist,
 					      clauses,outer_node,outer_tlist,
 					      inner_node,inner_tlist);
@@ -259,15 +254,25 @@ create_join_node (best_path,origtlist,tlist)
 
 SeqScan
 create_seqscan_node (best_path,tlist,scan_clauses)
-     LispValue best_path,tlist,scan_clauses ;
+     Path best_path;
+     List tlist;
+     LispValue scan_clauses ;
 {
-     /* XXX - let form, maybe incorrect */
-    SeqScan scan_node = MakeSeqScan (tlist,
-				     scan_clauses,
-				     get_relid (get_parent (best_path)),
-				     LispNil);
+    SeqScan scan_node = (SeqScan)NULL;
+    Index scan_relid = -1;
+    LispValue temp;
+
+    temp = get_relids (get_parent (best_path));
+    if (null(temp))
+      elog(WARN,"scanrelid is empty");
+    else
+      scan_relid = (Index)CInteger(CAR(temp));
+    scan_node = make_seqscan (tlist,
+			      scan_clauses,
+			      scan_relid,
+			      LispNil);
     
-    set_state (scan_node,get_cost (best_path));
+    set_state (scan_node,get_path_cost (best_path));
     
     if ( _watch_costs_) {
 	printf("BASE SEQSCAN COST = ");
@@ -311,7 +316,7 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 	  LispValue temp = LispNil;
 	
 	  foreach (temp,get_orclauseargs(index_clause)) 
-	    indxqual = nappend1(indxqual,lispCons (temp,LispNil));
+	    indxqual = nappend1(indxqual,lispCons (CAR(temp),LispNil));
      } 
      else {
 	  lispCons(get_actual_clauses (get_indexqual (best_path)),LispNil);
@@ -327,11 +332,11 @@ create_indexscan_node (best_path,tlist,scan_clauses)
      fixed_indxqual = fix_indxqual_references (indxqual,best_path);
      scan_node = MakeIndexScan (tlist,
 				qpqual,
-				get_relid (get_parent (best_path)),
+				get_relids (get_parent (best_path)),
 				get_indexid (best_path),
 				fixed_indxqual);
      
-     set_state (scan_node,get_cost (best_path));
+     set_state (scan_node,get_path_cost (best_path));
 
      if ( _watch_costs_) {
 	  printf ("BASE INDEXSCAN COST = ");
@@ -349,7 +354,7 @@ fix_indxqual_references (clause,index_path)
      LispValue clause,index_path ;
 {
      if(IsA (clause,Var) && 
-	equal(get_relid(get_parent(index_path)),
+	equal(get_relids (get_parent(index_path)),
 	      get_varno (clause))) {
 	  set_varattno (clause,
 			position (get_varattno (clause),
@@ -367,7 +372,7 @@ fix_indxqual_references (clause,index_path)
 	     * 	 (make_opclause (replace_opid (get_op clause))
 	     */
 	    return (make_opclause (get_op (clause),
-				   make_var (get_relid 
+				   make_var (get_relids
 					     (get_parent (index_path)),
 					     1, /* func indices have one key */
 					     get_functype 
@@ -460,7 +465,7 @@ create_nestloop_node (best_path,tlist,clauses,
 			       outer_node,
 			       inner_node);
 
-    set_state (join_node,get_cost (best_path));
+    set_state (join_node,get_path_cost (best_path));
 
     if ( _watch_costs_) {
 	printf ("NESTLOOP COST = ");
@@ -554,7 +559,7 @@ create_mergejoin_node (best_path,tlist,clauses,
 				opcode,
 				outer_node,
 				inner_node);
-     set_state (join_node,get_cost (best_path));
+     set_state (join_node,get_path_cost (best_path));
      if ( _watch_costs_) {
 	  printf ("MERGEJOIN COST = ");
 	  lispDisplay (get_state (join_node));
@@ -647,7 +652,7 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
 					     (best_path),
 					     outer_hashop,
 					     outer_node,
-					     HASH);
+					     T_HashJoin);
 	 set_state (hashed_outer_node,get_state (outer_node));
 	  outer_node = (Node)hashed_outer_node;
      }
@@ -657,7 +662,7 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
 						   (best_path),
 						   inner_hashop,
 						   inner_node,
-						   HASH);
+						   T_HashJoin);
 	  set_state (hashed_inner_node,get_state (inner_node));
 	  inner_node = (Node)hashed_inner_node;
      }
@@ -667,7 +672,7 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
 				opcode,
 				outer_node,
 				inner_node);
-     set_state (join_node,get_cost (best_path));
+     set_state (join_node,get_path_cost (best_path));
      if ( _watch_costs_) {
 	  printf ("HASHJOIN COST = ");
 	  lispDisplay (get_state (join_node));
@@ -724,7 +729,7 @@ make_temp (tlist,keys,operators,plan_node,temptype)
 						length (keys)));
 	 break;
 	 
-       case HASH : 
+       case T_HashJoin : 
 	 retval = (Temp)MakeSeqScan(tlist,
 				 LispNil,
 				     _TEMP_RELATION_ID_,
@@ -790,3 +795,29 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
      }
      return(tlist);
 } /* function end  */
+
+SeqScan
+make_seqscan(qptlist,qpqual,scanrelid,lefttree)
+     List qptlist;
+     List qpqual;
+     Index scanrelid;
+     Plan lefttree;
+{
+    extern void PrintSeqScan(); 
+    extern bool EqualSeqScan(); 
+    
+    SeqScan node = New_Node(SeqScan);
+    
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qptargetlist (node, qptlist);
+    set_qpqual (node , qpqual);
+    set_lefttree (node, lefttree);
+    set_righttree (node , (Plan) NULL);
+    set_scanrelid (node , scanrelid);
+    
+    node->printFunc = PrintSeqScan; 
+    node->equalFunc = EqualSeqScan; 
+    return(node);
+}

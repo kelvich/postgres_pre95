@@ -50,8 +50,8 @@ bool
 path_is_cheaper (path1,path2)
      Path path1,path2 ;
 {
-    Cost cost1 = get_cost (path1);
-    Cost cost2 = get_cost (path2);
+    Cost cost1 = get_path_cost (path1);
+    Cost cost2 = get_path_cost (path2);
 
     return((bool)(cost1 < cost2));
 }
@@ -98,12 +98,15 @@ set_cheapest (parent_rel,pathlist)
      Rel parent_rel;
      List pathlist ;
 {
-     Path path,cheapest_so_far;
+     List temp_path;
+     Path cheapest_so_far;
 
      cheapest_so_far = CreateNode(Path);
-     set_cost(cheapest_so_far,9999999.999); /* XXX - what is the max cost ? */
+     set_path_cost(cheapest_so_far,
+		   9999999.999); /* XXX - what is the max cost ? */
 
-     foreach ((LispValue)path,pathlist) {
+     foreach (temp_path,pathlist) {
+	 Path path = (Path)CAR(temp_path);
 	 cheapest_so_far = cheaper_path(path,cheapest_so_far);
      }
 
@@ -130,14 +133,16 @@ set_cheapest (parent_rel,pathlist)
  */
 LispValue
 add_pathlist (parent_rel,unique_paths,new_paths)
-LispValue parent_rel,unique_paths,new_paths ;
+     Rel parent_rel;
+     List unique_paths,new_paths ;
 {
      LispValue new_path;
      foreach (new_path, new_paths) {
-	  LispValue old_path = better_path (new_path,unique_paths);
+	  LispValue old_path = better_path (CAR(new_path),unique_paths);
 	  if /*when */ ( old_path) {
-	       set_parent (new_path,parent_rel);
-	       unique_paths = cons (new_path,remove (old_path,unique_paths));
+	       set_parent (CAR(new_path),parent_rel);
+	       unique_paths = lispCons (CAR(new_path),
+					remove (old_path,unique_paths));
 	  }
      }
      return(unique_paths);
@@ -160,33 +165,40 @@ LispValue parent_rel,unique_paths,new_paths ;
 
 /*  .. add_pathlist    */
 
-static bool
-lambda1(path,new_path)
-     Path path,new_path;
-{
-     return (bool)(equal_path_path_ordering (get_ordering (new_path),
-				      get_ordering(path)) &&
-	     samekeys (get_keys (new_path),get_keys (path)));
-}
-
 LispValue
 better_path (new_path,unique_paths)
      Path new_path;
      List unique_paths ;
 {
-     /* declare (special (new_path)); */
      Path old_path;
+     Path path;
+     LispValue temp = LispNil;
      LispValue retval = LispNil;
 
-     old_path = (Path)find_if (lambda1,unique_paths);
+     /* XXX - added the following two lines which weren't int
+	the lisp planner, but otherwise, doesn't seem to work
+	for the case where new_path is 'nil */
 
+     if (null(new_path))
+       return(LispNil);
+
+     old_path = (Path)LispNil;
+     foreach (temp,unique_paths) {
+	 path = (Path) CAR(temp);
+	 if ((equal_path_path_ordering (get_p_ordering (new_path),
+					get_p_ordering(path)) &&
+	      samekeys (get_keys (new_path),get_keys (path)))) {
+	     old_path = path;
+	     break;
+	 }
+     }
      if(null (old_path)) {
-	  retval = LispTrue;
+	 retval = LispTrue;
      } 
      else if (path_is_cheaper (new_path,old_path)) {
-	  retval = (LispValue)old_path;
+	 retval = (LispValue)old_path;
      } 
-
+     
 }
 
 
@@ -208,15 +220,30 @@ better_path (new_path,unique_paths)
  */
 Path
 create_seqscan_path (rel)
-     LispValue rel ;
+     Rel rel ;
 {
-     Path pathnode = CreateNode(Path);
+    extern void PrintPath();
+    extern bool EqualPath();
+    LispValue relid;
 
-     /* set_pathtype (pathnode,SEQ_SCAN); */
-     set_parent (pathnode,rel);
-     set_cost (pathnode,cost_seqscan (get_relid (rel),
-				      get_pages (rel),get_tuples (rel)));
-     return(pathnode);
+    Path pathnode = CreateNode(Path);
+
+    pathnode->equalFunc = EqualPath;
+    pathnode->printFunc = PrintPath;
+    set_pathtype (pathnode,T_SeqScan); 
+    set_parent (pathnode,rel);
+    set_path_cost (pathnode,0.0);
+    set_p_ordering (pathnode,LispNil);
+    set_sortpath (pathnode,(SortKey)NULL);
+    set_keys (pathnode,LispNil);
+
+    relid = get_relids(rel);
+    if (!null(relid))
+      relid = CAR(relid);
+
+    set_path_cost (pathnode,cost_seqscan (relid,
+					  get_pages (rel),get_tuples (rel)));
+    return(pathnode);
 }
 
 /*    
@@ -244,8 +271,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 {
      IndexPath pathnode = CreateNode(IndexPath);
 
-     /* set_pathtype (pathnode,INDEX_SCAN);*/
-
+     set_pathtype (pathnode,T_IndexScan);
      set_parent (pathnode,rel);
      set_indexid (pathnode,get_indexid (index));
      set_ordering (pathnode,get_ordering (index));
@@ -273,7 +299,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 		restrict the result at all, they simply order it,
 		so compute the scan cost 
 		accordingly -- use a selectivity of 1.0. */
-	  set_cost (pathnode,cost_index (nth (0,get_indexid (index)),
+	  set_path_cost (pathnode,cost_index (nth (0,get_indexid (index)),
 					 get_pages (index),0.000000,
 					 get_pages (rel),get_tuples (rel),
 					 get_pages (index),get_tuples(index)));
@@ -298,7 +324,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 		  (1 / length (restriction_clauses)));
 
 	  set_indexqual (pathnode,restriction_clauses);
-	  set_cost (pathnode,cost_index (nth (0,get_indexid (index)),
+	  set_path_cost (pathnode,cost_index (nth (0,get_indexid (index)),
 					 floor (nth (0,pagesel)),
 					 nth (1,pagesel),get_pages (rel),
 					 get_tuples (rel),get_pages (index),
@@ -339,7 +365,7 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
 {
      Path pathnode = CreateNode(Path);
      
-     /* set_pathtype(pathnode,NEST_LOOP); */
+     set_pathtype(pathnode,T_NestLoop);
      set_parent (pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
      set_innerjoinpath (pathnode,inner_path);
@@ -348,8 +374,8 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      if /*when */ ( keys) {
 	  set_ordering (pathnode,get_ordering (outer_path));
      }
-     set_cost (pathnode,cost_nestloop (get_cost (outer_path),
-				       get_cost (inner_path),
+     set_path_cost (pathnode,cost_nestloop (get_path_cost (outer_path),
+				       get_path_cost (inner_path),
 				       get_size (outer_rel)));
      return(pathnode);
 }
@@ -397,8 +423,8 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      set_mergeclauses (pathnode,mergeclauses);
      set_outersortkeys (pathnode,outersortkeys);
      set_innersortkeys (pathnode,innersortkeys);
-     set_cost (pathnode,cost_mergesort (get_cost (outer_path),
-					get_cost (inner_path),
+     set_path_cost (pathnode,cost_mergesort (get_path_cost (outer_path),
+					get_path_cost (inner_path),
 					outersortkeys,innersortkeys,
 					outersize,innersize,outerwidth,
 					innerwidth));
@@ -439,7 +465,7 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 {
      HashPath pathnode = CreateNode(HashPath);
 
-     /* set_pathtype (pathnode,T_HashJoin); */
+     set_pathtype (pathnode,T_HashJoin); 
      set_parent (pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
      set_innerjoinpath (pathnode,inner_path);
@@ -449,8 +475,8 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
      set_hashclauses (pathnode,hashclauses);
      set_outerhashkeys (pathnode,outerkeys);
      set_innerhashkeys (pathnode,innerkeys);
-     set_cost (pathnode,cost_hashjoin (get_cost (outer_path),
-				       get_cost (inner_path),outerkeys,
+     set_path_cost (pathnode,cost_hashjoin (get_path_cost (outer_path),
+				       get_path_cost (inner_path),outerkeys,
 				       innerkeys,outersize,innersize,
 				       outerwidth,innerwidth));
      return(pathnode);

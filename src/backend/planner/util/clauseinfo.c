@@ -62,11 +62,15 @@ LispValue
 get_actual_clauses (clauseinfo_list)
      LispValue clauseinfo_list ;
 {
-     LispValue temp;
-     LispValue result;
-     foreach(temp,clauseinfo_list) {
-	  result = nappend1(result,get_clause(temp));
-     }
+  LispValue temp = LispNil;
+  LispValue result = LispNil;
+  CInfo clause = (CInfo)NULL;
+
+  foreach(temp,clauseinfo_list) {
+    clause = (CInfo)CAR(temp);
+    result = nappend1(result,get_clause(clause));
+  }
+  return(result);
 }
 
 /*    

@@ -42,7 +42,7 @@ preprocess_qualification (qual,tlist)
   LispValue cnf_qual = cnfify (qual);
   LispValue existential_qual = 
     update_clauses (lispCons (lispInteger(_query_result_relation_),
-			  update_relations (tlist)),
+			      update_relations (tlist)),
 		    cnf_qual,_query_command_type_);
   if ( existential_qual ) 
     return (lispCons (set_difference (cnf_qual,existential_qual),
@@ -74,7 +74,7 @@ preprocess_qualification (qual,tlist)
  *    	Convert a qualification to conjunctive normal form by applying
  *    	successive normalizations.
  *    
- *    	Returns the modified qualification.
+ *    	Returns the modified qualification with an extra level of nesting.
  *    
  */
 
@@ -84,8 +84,14 @@ LispValue
 cnfify (qual)
      LispValue qual ;
 {
+    if (qual)
+      return(lispCons(qual,LispNil));
+    else
+      return(qual);
+/* XXX - remove the above line, when we want to test things
+   with cnf
+
     if ( consp (qual) ) {
-	/* XXX - let form, maybe incorrect */
 	LispValue newqual = LispNil;
 	newqual = find_nots (pull_args (qual));
 	newqual = normalize (pull_args (newqual));
@@ -99,6 +105,7 @@ cnfify (qual)
 							 LispNil))));
     }
     return (LispNil);
+*/
 } /*  function end   */
 
 /*    

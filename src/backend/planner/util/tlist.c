@@ -35,6 +35,7 @@ static char *rcsid = "$Header$";
 #include "var.h"
 #include "tlist.h"
 #include "clauses.h"
+#include "log.h"
 
 /* XXX - find these references */
 extern LispValue copy_seq_tree();
@@ -59,24 +60,21 @@ static TLE flatten_tlistentry();
  */
 
 LispValue
-tlistentry_member (var,targetlist,var_equal)
+tlistentry_member (var,targetlist)
      Var var;
      List targetlist;
-     bool (*var_equal)();
 {
+    extern bool var_equal();
     extern LispValue lambda1();
-	if ( var) 
-	  return ( find(var,targetlist,var_equal,lambda1));
+    if ( var) {
+	LispValue temp = LispNil;
+	foreach (temp,targetlist) {
+	    if ( var_equal(var, get_expr(get_entry(CAR(temp)))))
+	      return(CAR(temp));
+	}
+    }
+    return (LispNil);
 }
-
-/* called by tlistentry-member */
-static
-LispValue lambda1 (x)
-     LispValue x ;
-{
-	get_expr (get_entry (x));
-}
-
 
 /*    
  * matching_tlvar
@@ -93,16 +91,14 @@ LispValue lambda1 (x)
  */
 
 Expr
-matching_tlvar (var,targetlist,test)
+matching_tlvar (var,targetlist)
      Var var;
      List targetlist;
-     bool (*test)();
 {
-	LispValue tlentry;
-
-	tlentry = tlistentry_member (var,targetlist,test);
-	if ( tlentry ) 
-		return((Expr)get_expr (get_entry (tlentry)) );
+    LispValue tlentry;
+    tlentry = tlistentry_member (var,targetlist);
+    if ( tlentry ) 
+      return((Expr)get_expr (get_entry (tlentry)) );
 }
 
 /*    
@@ -122,7 +118,9 @@ matching_tlvar (var,targetlist,test)
  */
 LispValue
 add_tl_element (rel,var,joinlist)
-     LispValue rel,var,joinlist ;
+     Rel rel;
+     Var var;
+     List joinlist ;
 {
     Expr oldvar;
     
@@ -176,14 +174,14 @@ create_tl_element (var,resdomno,joinlist)
 {
 	TL tlelement;
 	tlelement = lispList();
-/*
+
 	set_entry (tlelement,
 		   MakeTLE (MakeResdom (resdomno, get_vartype (var),
 					get_typlen (get_vartype (var)),
 					  LispNil,0,LispNil),
 			    var));
 	set_joinlist (tlelement,joinlist);
-*/
+
 	return(tlelement);
 }
 
@@ -200,13 +198,21 @@ LispValue
 get_actual_tlist (tlist)
      LispValue tlist ;
 {
-	LispValue element;
-	LispValue result;
+    LispValue element = LispNil;
+    LispValue result = LispNil;
+    
+    if (null(tlist)) {
+	elog(NOTICE,"calling get_actual_tlist with empty tlist");
+	return(LispNil);
+    }
+    /* XXX - it is unclear to me what exactly get_entry 
+       should be doing, as it is unclear to me the exact
+       relationship between "TL" "TLE" and joinlists */
 
-	for (element = tlist; element != LispNil; element = CDR(element) )
-	  result = nappend1 (result, get_entry (element));
-
-	return(result);
+    foreach(element,tlist)
+      result = nappend1 (result, get_entry (CAR(element)));
+    
+    return(result);
 }
 
 /*    	---------- GENERAL target list routines ----------
@@ -264,18 +270,20 @@ tlist_member (var,tlist,dots,key,test)
 
 /*  .. flatten-tlistentry, replace-resultvar-refs
  */
-static 
-LispValue lambda2(x)
-     LispValue x ;
-{
-	get_varid (get_expr (x));
-}
 
 LispValue
-match_varid (varid,tlist,key)
-     LispValue varid,tlist,key ;
+match_varid (varid,tlist)
+     LispValue varid,tlist;
 {
-	return( find (varid,tlist,key, lambda2));
+    LispValue i;
+    TLE entry = (TLE)NULL;
+
+    foreach (i,tlist) {
+	entry = CAR(i);
+	if (equal(get_varid(get_expr(entry)),varid))
+	  return(entry);
+    }
+    return (LispNil);
 }
 
 
@@ -301,8 +309,8 @@ new_unsorted_tlist (targetlist)
 	List x = NULL;
 
 	foreach (x, new_targetlist) {
-		set_reskey (get_resdom (x),0);
-		set_reskeyop (get_resdom (x),LispNil);
+		set_reskey (get_resdom (CAR(x)),0);
+		set_reskeyop (get_resdom (CAR(x)),LispNil);
 	}
 }
 
@@ -319,14 +327,14 @@ LispValue
 targetlist_resdom_numbers (targetlist)
      LispValue targetlist ;
 {
-	LispValue element;
-	LispValue result;
-	
-	for(element = targetlist; element != LispNil; element = CDR(element)) 
-	  result = nappend1 (result, 
-			     lispInteger(get_resno (get_resdom (element))));
-
-	return (result);
+    LispValue element;
+    LispValue result;
+    
+    for(element = targetlist; element != LispNil; element = CDR(element)) 
+      result = nappend1 (result, 
+			 lispInteger(get_resno (get_resdom (CAR(element)))));
+    
+    return (result);
 }
 
 /*    
@@ -353,8 +361,8 @@ copy_vars (target,source)
     
     for ( src = source, dest = target; src != LispNil &&
 	 dest != LispNil; src = CDR(src), dest = CDR(dest)) {
-	LispValue temp = MakeTLE(get_resdom(dest),
-				 get_expr(src));
+	LispValue temp = MakeTLE(get_resdom(CAR(dest)),
+				 get_expr(CAR(src)));
 	result = nappend1(result,temp);
     }
     return(result);
@@ -426,14 +434,16 @@ LispValue
 flatten_tlist_vars (full_tlist,flat_tlist)
      LispValue full_tlist,flat_tlist ;
 {
-	LispValue x = LispNil;
-	LispValue result = LispNil;
+    LispValue x = LispNil;
+    LispValue result = LispNil;
+    
+    foreach(x,full_tlist)
+      result = nappend1(result,
+			MakeTLE (get_resdom (CAR(x)),
+				 flatten_tlistentry ( get_expr (CAR(x)),
+						     flat_tlist)));
 
-	foreach(x,full_tlist)
-		result = nappend1(result,
-				  MakeTLE (get_resdom (x),
-					  flatten_tlistentry (get_expr (x),
-							      flat_tlist)));
+    return(result);
 }
 
 /*    
@@ -456,31 +466,31 @@ static TLE
 flatten_tlistentry (tlistentry,flat_tlist)
      TLE tlistentry,flat_tlist ;
 {
-	if(null (tlistentry)) {
-		return((TLE)NULL);
-	} 
-	else if (IsA (tlistentry,Var)) {
-		return((TLE)get_expr (match_varid (get_varid (tlistentry),
-					     flat_tlist)));
-	} 
-	else if (single_node (tlistentry)) {
-		return(tlistentry);
-	} 
-	else if (is_funcclause (tlistentry)) {
-		LispValue temp_result = LispNil;
-		LispValue elt = LispNil;
-
-		foreach(elt,get_funcargs(tlistentry)) 
-		  temp_result = nappend1(temp_result,
-				    flatten_tlistentry(elt,flat_tlist));
-
-		return((TLE)make_funcclause (get_function (tlistentry),
+    if(null (tlistentry)) {
+	return((TLE)NULL);
+    } 
+    else if (IsA (tlistentry,Var)) {
+	return((TLE)get_expr (match_varid (get_varid (tlistentry),
+					   flat_tlist)));
+    } 
+    else if (single_node (tlistentry)) {
+	return(tlistentry);
+    } 
+    else if (is_funcclause (tlistentry)) {
+	LispValue temp_result = LispNil;
+	LispValue elt = LispNil;
+	
+	foreach(elt,get_funcargs(tlistentry)) 
+	  temp_result = nappend1(temp_result,
+				 flatten_tlistentry(CAR(elt),flat_tlist));
+	
+	return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
-	} else {
-		return((TLE)make_clause (get_op (tlistentry),
-			     flatten_tlistentry (get_leftop (tlistentry),
-						 flat_tlist),
-			     flatten_tlistentry (get_rightop (tlistentry),
-						 flat_tlist)));
-	}
+    } else {
+	return((TLE)make_clause (get_op (tlistentry),
+				 flatten_tlistentry (get_leftop (tlistentry),
+						     flat_tlist),
+				 flatten_tlistentry (get_rightop (tlistentry),
+						     flat_tlist)));
+    }
 }
