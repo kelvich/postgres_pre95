@@ -179,6 +179,8 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem)
 	_bt_relbuf(rel, buf, BT_WRITE);
     }
 
+    _bt_dump(rel);
+
     /* by here, the new tuple is inserted */
     res = (InsertIndexResult) palloc(sizeof(InsertIndexResultData));
     ItemPointerSet(&(res->pointerData), 0, itup_blkno, 0, itup_off);
@@ -232,8 +234,8 @@ _bt_split(rel, buf)
      *  we should treat the line pointers beginning at zero as user data.
      */
 
-    nleft = 1;
-    nright = 0;
+    nleft = 2;
+    nright = 1;
     if ((ropaque->btpo_next = oopaque->btpo_next) != P_NONE) {
 	start = 1;
 	itemid = PageGetItemId(origpage, 0);
@@ -269,7 +271,7 @@ _bt_split(rel, buf)
     itemid = PageGetItemId(rightpage, 0);
     itemsz = ItemIdGetLength(itemid);
     item = (BTItem) PageGetItem(rightpage, itemid);
-    PageAddItem(leftpage, item, itemsz, 0, LP_USED);
+    PageAddItem(leftpage, item, itemsz, 1, LP_USED);
 
     /*
      *  By here, the original data page has been split into two new halves,
@@ -349,7 +351,7 @@ _bt_newroot(rel, lbuf, rbuf)
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, lbkno, 0, 1);
 
     /* insert the left page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 0, LP_USED);
+    PageAddItem(rootpage, new_item, itemsz, 1, LP_USED);
 
     itemid = PageGetItemId(rpage, 1);
     itemsz = ItemIdGetLength(itemid);
@@ -364,7 +366,7 @@ _bt_newroot(rel, lbuf, rbuf)
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, rbkno, 0, 1);
 
     /* insert the right page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 0, LP_USED);
+    PageAddItem(rootpage, new_item, itemsz, 2, LP_USED);
 
     /*
      *  New root page is correct.  Now update the metadata page.
@@ -399,7 +401,7 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem)
     OffsetIndex itup_off;
     Page page;
 
-    itup_off = _bt_binsrch(rel, buf, keysz, itup_scankey, BT_INSERTION);
+    itup_off = _bt_binsrch(rel, buf, keysz, itup_scankey, BT_INSERTION) + 1;
     page = BufferGetPage(buf, 0);
 
     PageAddItem(page, btitem, itemsize, itup_off, LP_USED);
