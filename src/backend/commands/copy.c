@@ -1,30 +1,3 @@
-
-/*
- * 
- * POSTGRES Data Base Management System
- * 
- * Copyright (c) 1988 Regents of the University of California
- * 
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for educational, research, and non-profit purposes and
- * without fee is hereby granted, provided that the above copyright
- * notice appear in all copies and that both that copyright notice and
- * this permission notice appear in supporting documentation, and that
- * the name of the University of California not be used in advertising
- * or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Permission to incorporate this
- * software into commercial products can be obtained from the Campus
- * Software Office, 295 Evans Hall, University of California, Berkeley,
- * Ca., 94720 provided only that the the requestor give the University
- * of California a free licence to any derived software for educational
- * and research purposes.  The University of California makes no
- * representations about the suitability of this software for any
- * purpose.  It is provided "as is" without express or implied warranty.
- * 
- */
-
-
-
 /*
  * copy.c --
  *	the POSTGRES copy command
@@ -127,7 +100,7 @@ createdomains(va_alist)
 	char			domdelim;	/* not necessarily the delim */
 	AttributeNumber		attnum;
 	HeapTuple		typtup;
-	struct type		*tp;
+	TypeTupleForm		tp;
 
 	va_start(pvar);
 	relname = va_arg(pvar, char *);
@@ -230,7 +203,7 @@ createdomains(va_alist)
 			elog(WARN, "createdomains: Unknown type %s", domtype);
 			return((Domain) NULL);
 		}
-		doms[i].domlen = ((struct type *) GETSTRUCT(typtup))->typlen;
+		doms[i].domlen = ((TypeTupleForm) GETSTRUCT(typtup))->typlen;
 		if (createdomainsIsCharType((Name) domtype))
 			DomainSetExternal(&doms[i]);
 
@@ -267,7 +240,7 @@ createdomains(va_alist)
 			     rdatt->data[attnum]->atttypid);
 			return((Domain) NULL);
 		}
-		tp = (struct type *) GETSTRUCT(typtup);
+		tp = (TypeTupleForm) GETSTRUCT(typtup);
 		doms[i].typoutput = tp->typoutput;
 		doms[i].typinput = tp->typinput;
 		if (doms[i].domlen == 0)
@@ -1083,13 +1056,10 @@ copyAlloc(p, plen, more)
 
 	if (PointerIsValid(p)) {
 		newlen = *plen + Max(more, BUFSIZ);
-		tmpp = malloc(newlen);	/* XXX realloc() doesn't work!!! */
-		bcopy(p, tmpp, (int) *plen);
-		free(p);
-		p = tmpp;
+		p = repalloc(p,newlen);
 	} else {
 		newlen = Max(more, BUFSIZ);
-		p = malloc(newlen);
+		p = palloc(newlen);
 	}
 	if (!PointerIsValid(p)) {
 		elog(WARN, "copyAlloc: malloc() failure");
