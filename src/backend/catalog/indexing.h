@@ -14,6 +14,7 @@
 #define Num_pg_attr_indices	2
 #define Num_pg_proc_indices	2
 #define Num_pg_type_indices	2
+#define Num_pg_name_indices	2
 
 
 /*
@@ -25,10 +26,13 @@ extern Name ProcedureNameIndex;
 extern Name ProcedureOidIndex;
 extern Name TypeNameIndex;
 extern Name TypeOidIndex;
+extern Name NamingNameIndex;
+extern Name NamingParentIndex;
 
 extern char *Name_pg_attr_indices[];
 extern char *Name_pg_proc_indices[];
 extern char *Name_pg_type_indices[];
+extern char *Name_pg_name_indices[];
 
 /*
  * Functions for each index to perform the necessary scan on a cache miss.
@@ -41,6 +45,7 @@ HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName));
 
 HeapTuple TypeOidIndexScan  ARGS((Relation heapRelation, ObjectId typeId));
 HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
+HeapTuple NamingNameIndexScan ARGS((Relation heapRelation, ObjectId parentid, char *filename));
 
 /*
  * What follows are lines processed by genbki.sh to create the statements
@@ -55,6 +60,8 @@ DEFINE_INDEX(pg_procidind on pg_proc using btree (oid oid_ops));
 DEFINE_INDEX(pg_procnameind on pg_proc using btree (proname char16_ops));
 DEFINE_INDEX(pg_typeidind on pg_type using btree (oid oid_ops));
 DEFINE_INDEX(pg_typenameind on pg_type using btree (typname char16_ops));
+DEFINE_INDEX(pg_namingind on pg_naming using btree (mkoidchar16(parentid, filename) oidchar16_ops));
+DEFINE_INDEX(pg_namparind on pg_naming using btree (parentid oid_ops));
 
 
 /* indexing.c prototypes */
