@@ -74,7 +74,10 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 #ifdef USEPARGS
     ObjectId		procedureObjectId;
 #endif
-    
+    ObjectId relid;
+    List t;
+    ObjectId toid;
+
     /* ----------------
      *	sanity checks
      * ----------------
@@ -120,11 +123,20 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 		 returnTypeName);
     }
 
+    /* don't allow functions of complex types that have the same name as
+       existing attributes of the type */
+    if (parameterCount == 1 && 
+	(toid = TypeGet((Name)(CString(CAR(argList))), &defined)) &&
+	defined &&
+	(relid = typeid_get_relid(toid)) != 0 &&
+	get_attnum(relid, procedureName) != InvalidAttributeNumber)
+      elog(WARN, "method %s already an attribute of type %s",
+	   procedureName, CString(CAR(argList)));
+
     parameterCount = 0;
     oid_string[0] = '\0';
     foreach (x, argList) {
-	List t = CAR(x);
-	ObjectId toid;
+	t = CAR(x);
 
 	if (parameterCount == 8)
 	    elog(WARN, "Procedures cannot take more than 8 arguments");
