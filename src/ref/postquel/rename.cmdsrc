@@ -4,18 +4,18 @@
 .XA 2 Rename
 .uh NAME
 .lp
-rename \*- rename a relation or an attribute in a relation
+rename \*- rename a class or an attribute in a class
 .uh SYNOPSIS
 .lp
 .b rename
-relname1
+classname1
 .b to
-relname2
+classname2
 .br
 .b rename
 attname1
 .b in
-relname
+classname
 .b to
 attname2
 .uh DESCRIPTION
@@ -23,15 +23,15 @@ attname2
 The
 .b rename
 command
-causes the name of a relation or attribute
+causes the name of a class or attribute
 to change
-without changing any of the data contained in the affected relation.
-Thus, the relation or attribute will remain of the same type
+without changing any of the data contained in the affected class.
+Thus, the class or attribute will remain of the same type
 and size after this command is executed.
 .lp
 .uh EXAMPLE
 .lp
-/* change the emp relation to personnel */
+/* change the emp class to personnel */
 
 rename emp to personnel
 .lp
@@ -41,7 +41,7 @@ rename sports in emp to hobbies
 .uh BUGS
 .lp
 Execution of historical queries
-using relations and attributes
+using classes and attributes
 whose names have changed will
 produce incorrect results in many situations.
 .lp

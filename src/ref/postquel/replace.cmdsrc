@@ -4,12 +4,12 @@
 .XA 2 Replace
 .uh NAME
 .lp
-replace \*- replace values of domains in a relation
+replace \*- replace values of attributes in a class
 .uh SYNOPSIS
 .lp
 .b replace [\c
 .b * ]
-tuple_variable
+instance_variable
 .b (
 att_name1
 .b =
@@ -32,12 +32,12 @@ qual ]
 .lp
 .b Replace
 changes the values of
-the domains specified in the 
+the attributes specified in the 
 target_list 
-for all tuples which
+for all instances which
 satisfy the qualification,
 .i qual .
-Only domains which are to be modified need appear in the
+Only attributes which are to be modified need appear in the
 target_list.
 .sp
 The * indicates a transitive closure and \*(PP will run
