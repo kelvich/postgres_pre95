@@ -718,8 +718,8 @@ ExecHashOverflowInsert(hashtable, bucket, heapTuple)
      *	see if we run out of overflow space
      * ----------------
      */
-    newend = (RelativeAddr)LONGALIGN(hashtable->overflownext + sizeof(*otuple))
-	     + heapTuple->t_len ;
+    newend = (RelativeAddr)LONGALIGN(hashtable->overflownext + sizeof(*otuple)
+	     + heapTuple->t_len);
     if (newend > hashtable->bottom) {
 #ifdef sequent
 	elog(WARN, "hash table out of memory.");
