@@ -46,12 +46,15 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	unsigned	len;
 	ItemId		itemId;
 	Item		item;
+	RuleLock	lock;
 
 	Assert(RelationIsValid(relation));
 	Assert(HeapTupleIsValid(tuple));
 
 	numberOfBlocks = RelationGetNumberOfBlocks(relation);
 	Assert(IndexIsInBounds(blockIndex, numberOfBlocks));
+
+	lock = tuple->t_lock.l_lock;
 
 	buffer = RelationGetBuffer(relation, blockIndex, L_UP);
 	if (!BufferIsValid(buffer)) {
@@ -75,9 +78,9 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 
 	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid, blockIndex,
 		1 + offsetIndex);
+	ItemPointerSetInvalid(&LintCast(HeapTuple, item)->t_lock.l_ltid);
 
-	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer,
-		tuple->t_lock.l_lock);
+	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer, lock);
 
 	if (BufferPut(buffer, L_UN | L_EX | L_WRITE) < 0) {
 		elog(WARN, "amputunique: failed BufferPut(L_UN | L_WRITE)");
