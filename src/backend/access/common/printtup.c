@@ -76,6 +76,27 @@ typtoout(type)
     return(InvalidObjectId);
 }
 
+ObjectId
+gettypelem(type)
+    ObjectId	type;
+
+{
+    HeapTuple	typeTuple;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+	return((ObjectId)
+	       ((TypeTupleForm) GETSTRUCT(typeTuple))->typelem);
+
+    elog(WARN, "typtoout: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
+}
+
 /* ----------------
  *	printtup
  * ----------------
@@ -125,7 +146,7 @@ printtup(tuple, typeinfo)
 	typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
 	
 	if (!isnull && ObjectIdIsValid(typoutput)) {
-	    outputstr = fmgr(typoutput, attr);
+	    outputstr = fmgr(typoutput, attr, gettypelem(typeinfo[i]->atttypid));
 	    pq_putint(strlen(outputstr)+4, 4);
 	    pq_putnchar(outputstr, strlen(outputstr));
 	    pfree(outputstr);
@@ -190,7 +211,7 @@ debugtup(tuple, typeinfo)
 	typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
 	
 	if (!isnull && ObjectIdIsValid(typoutput)) {
-	    value = fmgr(typoutput, attr);
+	    value = fmgr(typoutput, attr, gettypelem(typeinfo[i]->atttypid));
 	    printatt((unsigned) i+1, typeinfo[i], value);
 	    pfree(value);
 	}
