@@ -12,13 +12,17 @@
 #include "io.h"
 #include "utils/palloc.h"
 #include "parse_query.h"
+#include "catalog/pg_aggregate.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
 #include "parser/parse.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
-#include "catalog/syscache.h"
-
+ 
 RcsId("$Header$");
 
 LispValue parsetree;
@@ -419,6 +423,37 @@ ParseFunc ( funcname , fargs )
 			   lispCons ( funcnode , fargs )));
 	    
 }
+
+List
+ParseAgg(aggname, query, tlist)
+    char *aggname;
+    List query;
+    List tlist;
+{
+    int fintype;
+    OID AggId = (OID)0;
+    List list = LispNil;
+    extern List MakeList();
+    char *keyword = "aggregate";
+    HeapTuple theAggTuple;
+
+    if(!query)
+	elog(WARN,"aggregate %s called without arguments", aggname);
+    theAggTuple = SearchSysCacheTuple(AGGNAME, aggname, 0, 0, 0); 
+    AggId = (theAggTuple ? theAggTuple->t_oid : (OID)0);
+
+    fintype = (ObjectId)SearchSysCacheGetAttribute(AGGNAME,
+		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0);
+
+    if(AggId != (OID)0 && fintype != 0 ) {
+       list = MakeList(lispInteger(fintype),lispName(keyword),lispName(aggname),
+							query,tlist,-1);
+    } else
+	elog(WARN, "aggregate %s does not exist", aggname);
+
+    return (list);
+}
+
 
 /*
  * RemoveUnusedRangeTableEntries
