@@ -544,8 +544,8 @@ void
 set_join_tlist_references (join)
      Join join ;
 {
-    Plan 	outer = get_lefttree (join);
-    Plan	inner = get_righttree (join);
+    Plan 	outer = (Plan)get_lefttree (join);
+    Plan	inner = (Plan)get_righttree (join);
     List 	new_join_targetlist = LispNil;
     TLE		temp = (TLE)NULL;
     LispValue  	entry = LispNil;
@@ -587,7 +587,7 @@ set_tempscan_tlist_references (tempscan)
      SeqScan tempscan ;
 {
 
-     Plan temp = get_lefttree (tempscan);
+     Plan temp = (Plan)get_lefttree (tempscan);
      set_qptargetlist (tempscan,
 		       tlist_temp_references(get_tempid(temp),
 					     get_qptargetlist (tempscan)));
@@ -614,7 +614,7 @@ void
 set_temp_tlist_references (temp)
      Temp temp ;
 {
-     Plan source = get_lefttree (temp);
+     Plan source = (Plan)get_lefttree (temp);
 
      if (!null(source)) {
 	 set_tlist_references (source);
@@ -685,14 +685,14 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 	clause = CAR(t_clause);
 	if(IsA (get_rightop (clause),Var) &&    /*   inner var on right */
 	   equal (inner_relid,get_varno (get_rightop (clause)))) {
-	       temp = make_opclause (replace_opid (get_op (clause)),
-				   replace_clause_joinvar_refs 
-				   (get_leftop (clause),
-				    outer_tlist,
-				    LispNil),
-				   get_rightop (clause));
-	       t_list = nappend1(t_list,temp);
-	   } 
+	    temp = make_opclause (replace_opid (get_op (clause)),
+				  replace_clause_joinvar_refs 
+				  (get_leftop (clause),
+				   outer_tlist,
+				   LispNil),
+				  get_rightop (clause));
+	    t_list = nappend1(t_list,temp);
+	} 
 	else {   /*   inner var on left */
 	    temp = make_opclause (replace_opid (get_op (clause)),
 				get_leftop (clause),
