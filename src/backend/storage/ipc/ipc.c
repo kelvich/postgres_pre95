@@ -12,11 +12,21 @@
 
 #ifndef	_IPC_
 #define _IPC_
+#ifndef sequent
 #include <sys/ipc.h>
+#else
+#include "/usr/att/usr/include/sys/ipc.h"
+#endif
 #endif
 
+#ifndef sequent
 #include <sys/sem.h>
 #include <sys/shm.h>
+#else
+#include "/usr/att/usr/include/sys/sem.h"
+#include "/usr/att/usr/include/sys/shm.h"
+#endif
+
 #include <errno.h>
 
 #include "ipci.h"		/* for PrivateIPCKey XXX */
