@@ -12,14 +12,6 @@ RcsId("$Header$");
 
 #include "utils/palloc.h"
 
-char *PG_username;
-
-char *
-pg_username()
-{
-    return(PG_username);
-}
-
 	    /* ========== USER I/O ROUTINES ========== */
 
 
