@@ -525,7 +525,7 @@ AddMaterialNode(plan)
     material = MakeMaterial(NULL);
     targetlist = get_qptargetlist(plan);
     set_qptargetlist((Plan) material, targetlist);
-    set_lefttree((Plan)material, (Plan) plan);
+    set_lefttree((Plan)material, (PlanPtr) plan);
     return (Plan) material;
 }
  
@@ -554,7 +554,7 @@ AddSortNode(plan, op)
 	set_reskeyop(resdom, (OperatorTupleForm) op);
     }
     set_qptargetlist((Plan)sort, targetlist);
-    set_lefttree((Plan)sort, (Plan) plan);
+    set_lefttree((Plan)sort, (PlanPtr) plan);
     set_tempid((Temp) sort, -1);
     set_keycount((Temp) sort, 1);
     return (Plan) sort;
@@ -579,6 +579,6 @@ AddUniqueNode(plan)
     unique = MakeUnique(NULL);
     targetlist = get_qptargetlist(plan);
     set_qptargetlist((Plan) unique, targetlist);
-    set_lefttree((Plan) unique, (Plan) plan);
+    set_lefttree((Plan) unique, (PlanPtr) plan);
     return (Plan) unique;
 }
