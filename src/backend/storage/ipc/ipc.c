@@ -673,6 +673,9 @@ void
 CreateAndInitSLockMemory(key)
 IPCKey key;
 {
+    LockId id;
+    SLock *slckP;
+
     SLockMemoryId = IpcMemoryCreate(key,
 				    sizeof(SLock*) + 
 				    sizeof(int) +
@@ -681,7 +684,16 @@ IPCKey key;
 				    0700);
     AttachSLockMemory();
     *FreeSLockPP = NULL;
-    *UnusedSLockIP = 3;  /* 0, 1, 2 are reserved */
+    *UnusedSLockIP = FIRSTFREELOCKID;
+    for (id=0; id<FIRSTFREELOCKID; id++) {
+	slckP = &(SLockArray[id]);
+	S_INIT_LOCK(&(slckP->locklock));
+	slckP->flag = NOLOCK;
+	slckP->nshlocks = 0;
+	S_INIT_LOCK(&(slckP->shlock));
+	S_INIT_LOCK(&(slckP->exlock));
+	slckP->next = NULL;
+      }
     return;
 }
 
