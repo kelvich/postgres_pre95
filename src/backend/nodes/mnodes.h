@@ -1,8 +1,13 @@
 /*
- * mnodes.h --
+ *   FILE
+ *	mnodes.h
+ *
+ *   DESCRIPTION
  *	POSTGRES memory context node definitions.
  *
- * Identification:
+ *   NOTES
+ *
+ *   IDENTIFICATION
  *	$Header$
  */
 
@@ -41,71 +46,44 @@
  */
 
 typedef struct MemoryContextMethodsData {
-	Pointer	(*alloc)();
-/* BAD PROTOTYPE DELETED -- glass */
-/*		ARGS((classObj(MemoryContext) context, uint32 length));*/
-	void	(*free_p)(); /* need to use free as a #define, so can't use free */
-/* BAD PROTOTYPE DELETED -- glass */
-/*		ARGS((classObj(MemoryContext) context, Pointer pointer));*/
-	Pointer	(*realloc)();
-/* BAD PROTOTYPE DELETED -- glass */
-/*	    ARGS((
-			classObj(MemoryContext) context,
-			Pointer pointer,
-			uint32 length
-		));*/
-	String	(*getName)();
-/* BAD PROTOTYPE DELETED -- glass */
-/*   ARGS((classObj(MemoryContext) context)); */
-#if	0
-/*
- * Do these make sense as general methods?  Probably not, but I am not
- * sure, yet. -hirohama
- */
-	void	(*reset) ARGS((classObj(MemoryContext) context));
-	void	(*destroy) ARGS((classObj(MemoryContext) context));
-#endif
-	void	(*dump)();
-/* BAD PROTOTYPE DELETED -- glass */	
-	    /* ARGS((classObj(MemoryContext) context));*/
-} MemoryContextMethodsData;
+	Pointer	(*alloc)();	/* part of typedef */
+/* need to use free as a #define, so can't use free */
+	void	(*free_p)();	/* part of typedef */
+	Pointer	(*realloc)();	/* part of typedef */
+	String	(*getName)();	/* part of typedef */
+	void	(*dump)();	/* part of typedef */
+} MemoryContextMethodsData;	/* part of typedef */
 
 typedef MemoryContextMethodsData	*MemoryContextMethods;
-
-
 
 class (MemoryContext) public (Node) {
 #define MemoryContextDefs \
 	inherits0(Node); \
 	MemoryContextMethods	method
-/* private: */
+  /* private: */
 	MemoryContextDefs;
-/* protected: */
+  /* protected: */
+  /* public: */
+};
 #define LispNodeIncrementRef(_node_)	(((LispNode)_node_)->refCount += 1)
 #define LispNodeDecrementRef(_node_)	(((LispNode)_node_)->refCount -= 1)
 #define LispNodeGetRefCount(_node_)	(((LispNode)_node_)->refCount)
-#define LispNodeSetRefCount(_node_,_cnt_)	\
-	(LispNodeGetRefCount(_node_) = _cnt_)
-/* public: */
-	/* XXX fill me in */
-};
+#define LispNodeSetRefCount(_node_,_cnt_) (LispNodeGetRefCount(_node_) = _cnt_)
 
 class (GlobalMemory) public (MemoryContext) {
 	inherits1(MemoryContext);
 	AllocSetData	setData;	/* set of allocated items */
 	String		name;
 	OrderedElemData	elemData;	/* member of set of GlobalMemory */
-	/* XXX fill me in */
 };
 
 class (PortalMemoryContext) public (MemoryContext) {
 #define PortalMemoryContextDefs \
 	inherits1(MemoryContext)
-/* private: */
+  /* private: */
 	PortalMemoryContextDefs;
-/* protected: */
-/* public: */
-	/* XXX fill me in */
+  /* protected: */
+  /* public: */
 };
 
 class (PortalVariableMemory) public (PortalMemoryContext) {
@@ -123,7 +101,6 @@ class (PortalHeapMemory) public (PortalMemoryContext) {
  * MemoryContextIsValid --
  *	True iff memory context is valid.
  */
-#define MemoryContextIsValid(context) \
-    ((bool) IsA(context,MemoryContext))
+#define MemoryContextIsValid(context) ((bool) IsA(context,MemoryContext))
 
 #endif	/* !defined(MNodesIncluded) */
