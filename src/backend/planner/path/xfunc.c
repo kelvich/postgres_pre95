@@ -341,7 +341,7 @@ double xfunc_expense(clause)
 ** Note: in Stonebraker's SIGMOD '91 paper, he uses a more complicated metric
 ** than the one here.  We can ignore the expected number of tuples for
 ** our calculations; we just need the per-tuple expense.  But he also
-** propose components to take into account the costs of accessing disk and
+** proposes components to take into account the costs of accessing disk and
 ** archive.  We didn't adopt that scheme here; eventually the vacuum
 ** cleaner should be able to tell us what percentage of bytes to find on
 ** which storage level, and that should be multiplied in appropriately
@@ -431,7 +431,15 @@ LispValue args;
 	 */
 	 return(cost +  
 		proc->propercall_cpu + 
-		proc->properbyte_cpu * proc->probyte_pct/100.00 * width);
+		proc->properbyte_cpu * proc->probyte_pct/100.00 * width
+	     /* 
+                   * Pct_of_obj_in_mem
+		DISK_COST * proc->probyte_pct/100.00 * width
+		   * Pct_of_obj_on_disk +
+		ARCH_COST * proc->probyte_pct/100.00 * width
+		   * Pct_of_obj_on_arch 
+	     */
+		);
      }
 }
 
@@ -502,11 +510,17 @@ int xfunc_width(clause)
 	      retval = xfunc_tuple_width(rd);
 	      heap_close(rd);
 	  }
-	 else 
+	 else if (get_param_tlist((Param)clause) != LispNil)
 	  {
+	      /* Param node projects a complex type */
 	      Assert(length(get_param_tlist((Param)clause)) == 1); /* sanity */
 	      retval = 
 		xfunc_width(get_expr((TLE)CAR(get_param_tlist((Param)clause))));
+	  }
+	 else
+	  {
+	      /* Param node returns a base type */
+	      retval = tlen(get_id_type(get_paramtype((Param)clause)));
 	  }
 	 goto exit;	 
      }
