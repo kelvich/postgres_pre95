@@ -54,7 +54,7 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 	 * XXX This may be especially true for Assert(), etc.
 	 */
 
-	TraceDump();	/* dump the trace stack */
+	/* TraceDump();	/* dump the trace stack */
 
 	/* XXX FIXME: detail is lost */
 	ExcRaise(exceptionP, (ExcDetail)0, (ExcData)NULL, conditionName);
