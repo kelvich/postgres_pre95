@@ -107,7 +107,7 @@ typedef struct hashctl {
 #define BUCKET_ALLOC_INCR	(30)
 
 /* hash_search operations */
-typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE } HASHACTION;
+typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE, HASH_FIND_SAVE, HASH_REMOVE_SAVED } HASHACTION;
 
 /* entry points */
 HTAB *hash_create ARGS((int nelem , HASHCTL *info , int flags ));
