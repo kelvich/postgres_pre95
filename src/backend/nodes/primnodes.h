@@ -205,6 +205,10 @@ class (Oper) public (Expr) {
  *	constvalue - the constant's value
  *	constisnull - whether the constant is null 
  *		(if true, the other fields are undefined)
+ *	constbyval - whether the information in constvalue
+ *		if passed by value.  If true, then all the information
+ *		is stored in the datum. If false, then the datum
+ *		contains a pointer to the information.
  */
 
 class (Const) public (Expr) {
@@ -214,6 +218,7 @@ class (Const) public (Expr) {
 	Size			constlen;
 	Datum			constvalue;
 	bool			constisnull;
+	bool			constbyval;
  /* public: */
 };
 
