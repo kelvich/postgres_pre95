@@ -588,7 +588,22 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 				     -2 );
 		    break;
 		case RETRIEVE:
-		    elog(NOTICE,"on <update> do retrieve not supported");
+		    HandleVarNodes ( rule_tlist , user_parsetree,
+				     offset_trigger, -2 );
+		    /* 
+		     * reset the result relation
+		     * to point to the right one,
+		     * if there was a "result relation" in the
+		     * first place (ie, this was a retrieve into !)
+		     */
+		    if ( root_result_relation(rule_root)) {
+			root_result_relation(rule_root) =
+			  lispInteger(CInteger(root_result_relation(rule_root))
+				      - 2 );
+		    }
+		    HandleVarNodes ( rule_qual, user_parsetree, 
+				     offset_trigger,
+				     -2 );
 		    break;
 		case DELETE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
