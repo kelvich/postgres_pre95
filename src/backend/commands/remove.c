@@ -63,9 +63,9 @@ RemoveOperator(operatorName, typeName1, typeName2)
 			return;
 		}
 	}
-	operatorKey[0].argument.name.value = operatorName;
-	operatorKey[1].argument.objectId.value = typeId1;
-	operatorKey[2].argument.objectId.value = typeId2;
+	operatorKey[0].argument = NameGetDatum(operatorName);
+	operatorKey[1].argument = ObjectIdGetDatum(typeId1);
+	operatorKey[2].argument = ObjectIdGetDatum(typeId2);
 
 	relation = RelationNameOpenHeapRelation(OperatorRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 3,
@@ -213,7 +213,7 @@ RemoveType(typeName)
 
 	Assert(NameIsValid(typeName));
 	
-	typeKey[0].argument.name.value = typeName;
+	typeKey[0].argument = NameGetDatum(typeName);
 	relation = RelationNameOpenHeapRelation(TypeRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
@@ -270,7 +270,7 @@ RemoveFunction(functionName)
 	
 	Assert(NameIsValid(functionName));
 
-	functionKey[0].argument.name.value = functionName;
+	functionKey[0].argument = NameGetDatum(functionName);
 	relation = RelationNameOpenHeapRelation(ProcedureRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1,
 		(ScanKey)functionKey);
@@ -297,8 +297,8 @@ RemoveFunction(functionName)
 	typeKey[0].flags = 0;
 	typeKey[0].attributeNumber = 1; /* place an entry in anum.h if ever used */
 	typeKey[0].procedure = ObjectIdEqualRegProcedure;
-	typeKey[0].argument.objectId.value = oid;
-	functionKey[0].argument.name.value = functionName;
+	typeKey[0].argument = ObjectIdGetDatum(oid);
+	functionKey[0].argument = NameGetDatum(functionName);
 	relation = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
