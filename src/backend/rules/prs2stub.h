@@ -91,7 +91,7 @@
  *	of a stub record. A qualification can be arbitrary general
  *	tree consinsting of the boolean operators AND, OR & NOT,
  *	which can have one or more operands. Each operand can
- *	either be another complex tree ("Prs2ComplexQualData")
+ *	either be another complex tree ("Prs2ComplexStubQualData")
  *	or a leaf node ("Prs2SimpleQualData").
  *	The struct holding the information for every node
  *	of the tree has the attribute "qualType" which
@@ -112,41 +112,20 @@
  * Prs2SimpleStubQualData: this struct contains information about one
  *	of the "simple qualifications" mentioned before.
  *	These have the format:
- *	<attributeNumber> <operator> <Constant>
+ *	<left_operand> <operator> <right_operand>
  *	Where <operator> must return a boolean value.
- *	In order to test the qualification, we extract
- *	(using amgetattr) the value of the tuple's attribute
- *	specified by <attributeNumber> and pass to the operator
- *	this value and the <Constant> as arguments.
- *	This structure has the following fields:
- *	attrNo: the attribute Number
- *	operator: the oid of the operator.
- *	constType: the (oid of the) type of the constant.
- *	constLength: the length of the constant.
- *		NOTE: this is 'Size' which is an unsigned long int.
- *		This in theory might cause some problems, because
- *		this fielf can have the value of -1 to indicate
- *		a variable length type.
- *		However things seem to work ok as it is....
- *		The correct fix would be to change Size so that
- *		it is a signed number...
- *	constData: an array of `constLength' bytes, holding the
- *		value of the constant.
- *		NOTE: there might be alignment problems here...
- *		However these bytes are guaranteed to start
- *		at word boundaries (because they have been
- *		allocated using 'palloc()').
+ *	The left & right operands can only be Param or Const
+ * 	nodes.
+ *	NOTE: operator is the oid of the registered procedure (i.e. the
+ *	'opid' field of an Oper node) and NOT the operator oid!
  */
 
 typedef uint16 Prs2StubId;
 
 typedef struct Prs2SimpleStubQualData {
-    AttributeNumber attrNo;
     ObjectId operator;
-    ObjectId constType;
-    bool constByVal;
-    Size constLength;
-    Datum constData;
+    Node left;
+    Node right;
 } Prs2SimpleStubQualData;
 
 typedef struct Prs2ComplexStubQualData {
