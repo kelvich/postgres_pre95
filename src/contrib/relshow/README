@@ -1,0 +1,48 @@
+$Header$
+
+There are two sections to this file:
+	- David Hughes's original README file.
+	- Comments added by people in the POSTGRES group.
+
+----------------------------------------------------------------------------
+David Hughes's original README file
+----------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+  README for relshow	 David J. Hughes (bambi@Bond.edu.au)  Jan-1993
+------------------------------------------------------------------------------
+
+relshow will display structure information for a Postgres database.  It can 
+be used in 3 ways  :-
+
+	"relshow"			list known databases
+	"relshow <DBname>"		list relations in database <DBname>
+	"relshow <DBname> <RelName>"	list fields in relation
+
+To clarify the output, it will not show the "catalog" relations (i.e.  pg_*)
+in the database.  You may still specifiy such a relation if you wish to
+check out the structure (eg. relshow postgres pg_attribute).  It also
+only shows the "user defined" fields within a relation (which is
+probably what you want to see anyway).  Therefore, if you define a
+relation with 3 fields, it will show those 3 fields (not the internal
+postgres fields that are also contained in each relation).
+
+To compile relshow, use
+
+	cc -I../../lib/H -o relshow relshow.c ../../../YourObjDir/libpq.a
+
+
+There are some routines in relshow.c that are extracted from a database
+interface library I wrote for an application I'm developing.  They may
+be of use to you in your work (or maybe not).  They just simplify data
+retrieval and present the data in a readily usable manner.
+
+Comments etc. sent to bambi@Bond.edu.au are most welcome.
+
+----------------------------------------------------------------------------
+POSTGRES group comments
+----------------------------------------------------------------------------
+
+Tiny little app, seems to work ok on the platforms I tried.
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 07/26/93
