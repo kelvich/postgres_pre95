@@ -146,6 +146,7 @@ class (Node) {
 #define fast_is_funcclause(_clause_) (ExactNodeType(CAR((LispValue) _clause_),Func))
 #define fast_not_clause(_clause_) (CInteger(CAR((LispValue) _clause_)) == NOT)
 #define fast_or_clause(_clause_) (CInteger(CAR((LispValue) _clause_)) == OR)
+#define fast_and_clause(_clause_) (CInteger(CAR((LispValue) _clause_)) == AND)
 
 /*
  * NodeTagIsValid --
