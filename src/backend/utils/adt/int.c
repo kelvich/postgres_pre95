@@ -129,7 +129,7 @@ int44in(input_string)
     register int i = 0;
 
     i = sscanf(input_string,
-	       "%ld, %ld, %ld, %ld",
+	       "%d, %d, %d, %d",
 	       &foo[0],
 	       &foo[1],
 	       &foo[2],
