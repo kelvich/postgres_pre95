@@ -4,25 +4,15 @@
 .XA 1 "Page Structure"
 .uh NAME
 .sp
-.in .5i
 \&.../data/... \*- database file default page format
 .uh DESCRIPTION
-.sp
-.in .5i
-.fi
+.lp
 This section provides an overview of the page format used
 by POSTGRES relations.
 Diagram 1 shows how pages in both normal POSTGRES relations and
 POSTGRES index relations (eg., a B-tree index) are structured.
 User-defined access methods need not use this page format.
-.(z
-.so ./files/page.tr
-.ce
-\fBDiagram 1:  Sample Page Layout\fP
-.)z
-.in .5i
-.fi
-.sp
+.lp
 In the following explanation, a
 .q byte
 is assumed
@@ -45,7 +35,14 @@ Specifying the
 .q -r
 flag will cause the relations to be
 treated as heap relations and for more information to be displayed.
-.sp
+.in -0.5i
+.(b
+.so ./file/page.tr
+.ce
+\fBDiagram 1:  Sample Page Layout\fP
+.)b
+.in +0.5i
+.lp
 The first 8 bytes of each page consists of a page header
 .r ( \c
 .b PageHeaderData ).
@@ -70,7 +67,7 @@ frames in the buffer pool may be subdivided into equal sized pages
 on a frame by frame basis within a relation.
 The internal fragmentation information is used
 to aid in determining when page reorganization should occur.
-.sp
+.lp
 Following the page header are
 item identifiers
 .r ( \c
@@ -86,7 +83,7 @@ and an index of an item identifier.
 An item identifier contains a byte-offset to the start of
 an item, its length in bytes, and a set of attribute bits
 which affect its interpretation.
-.sp
+.lp
 The items, themselves, are stored in space allocated backwards
 from the end of unallocated space.
 Usually, the items are not interpreted.
