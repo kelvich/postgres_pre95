@@ -17,6 +17,7 @@
 #include "access/heapam.h"
 #include "access/relscan.h"
 #include "access/tupdesc.h"
+#include "access/xact.h"
 #include "catalog/pg_naming.h"
 #include "catalog/pg_lobj.h"
 #include "storage/itemptr.h"
@@ -26,6 +27,7 @@
 #include "utils/rel.h"
 #include "utils/large_object.h"
 #include "utils/log.h"
+#include "lib/heap.h"
 #include "nodes/pg_lisp.h"
 
 /* a little omniscience is a dangerous thing */
@@ -79,6 +81,8 @@ int flags;
     ObjectId classObjectId[1];
     NameData objname;
     NameData indname;
+    NameData attname;
+    NameData typname;
 
     /* parse flags */
     smgr = flags & INV_SMGRMASK;
@@ -100,20 +104,27 @@ int flags;
 	newobj = NewLargeObject(&(objname.data[0]), CLASS_FILE);
 
         /* enter cookie into table */
-        LOputOIDandLargeObjDesc(file_oid, Inversion, newobj);
+        LOputOIDandLargeObjDesc(file_oid, Inversion, (struct varlena *)newobj);
     }
 
     /* this is pretty painful...  want a tuple descriptor */
     tupdesc = CreateTemplateTupleDesc(2);
-    (void) TupleDescInitEntry(tupdesc, 1, "olastbyte", "int4", 0);
-    (void) TupleDescInitEntry(tupdesc, 2, "odata", "bytea", 0);
+    strcpy((char *) &(attname.data[0]), "olastbyte");
+    strcpy((char *) &(typname.data[0]), "int4");
+    (void) TupleDescInitEntry((TupleDesc) tupdesc, (AttributeNumber) 1,
+			      &attname, &typname, 0);
+    strcpy((char *) &(attname.data[0]), "odata");
+    strcpy((char *) &(typname.data[0]), "bytea");
+    (void) TupleDescInitEntry((TupleDesc) tupdesc, (AttributeNumber) 2,
+			      &attname, &typname, 0);
 
     /*
      *  First create the table to hold the inversion large object.  It
      *  will be located on whatever storage manager the user requested.
      */
 
-    (void) heap_create(&objname, archchar, 2, smgr, tupdesc);
+    (void) heap_create(&(objname.data[0]), (int) archchar, 2, smgr,
+		       (struct attribute **) tupdesc);
 
     pfree(tupdesc);
 
@@ -192,7 +203,7 @@ inv_open(object, flags)
      */
 
     object->lo_ptr.object_relname[3] = 'x';
-    indrel = index_openr(object->lo_ptr.object_relname);
+    indrel = index_openr((Name) object->lo_ptr.object_relname);
 
     if (!RelationIsValid(indrel))
 	return ((LargeObjectDesc *) NULL);
