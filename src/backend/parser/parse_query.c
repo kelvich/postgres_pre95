@@ -839,3 +839,78 @@ char *attrName;
     return(result);
 		    
 }
+
+/*--------------------------------------------------------------------
+ * FindVarNodes
+ *
+ * Find all the Var nodes of a parse tree
+ *
+ * NOTE #1: duplicates are not removed
+ * NOTE #2: we do not make copies of the Var nodes.
+ *
+ *--------------------------------------------------------------------
+ */
+LispValue
+FindVarNodes(list)
+LispValue list;
+{
+    List i, t;
+    List result;
+    List tempResult;
+
+    result = LispNil;
+
+    foreach (i , list) {
+	List temp = CAR(i);
+	if ( temp && IsA (temp,Var) ) {
+	    result = lispCons(temp, result);
+	} 
+	if (  temp && temp->type == PGLISP_DTPR ) {
+	   tempResult = FindVarNodes(temp);
+	   /*
+	    * I shoud have used 'append1' but it has a bug!
+	    */
+	   foreach(t, tempResult)
+	       result = lispCons(CAR(t), result); 
+	}
+    }
+
+    return(result);
+}
+
+/*--------------------------------------------------------------------
+ *
+ * IsPlanUsingNewOrCurrent
+ *
+ * used to find if a plan references the 'NEW' or 'CURRENT'
+ * relations.
+ *--------------------------------------------------------------------
+ */
+
+void
+IsPlanUsingNewOrCurrent(parsetree, currentUsed, newUsed)
+List parsetree;
+bool *currentUsed;
+bool *newUsed;
+{
+    List varnodes;
+    List i;
+    Var v;
+
+    /*
+     * first find the varnodes referenced in this parsetree
+     */
+    varnodes = FindVarNodes(parsetree);
+
+    *currentUsed = false;
+    *newUsed = false;
+
+    foreach(i, varnodes) {
+	v = (Var) CAR(i);
+	if (get_varno(v) == 1)
+	    *currentUsed = true;
+	if (get_varno(v) == 2)
+	    *newUsed = true;
+    }
+}
+
