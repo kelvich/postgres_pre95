@@ -1,9 +1,15 @@
-/*
- * hashjoin.h --
- *	internal structures for hash table and buckets
+/* ----------------------------------------------------------------
+ *   FILE
+ *     	hashjoin.h
+ *
+ *   DESCRIPTION
+ *     	internal structures for hash table and buckets
+ *
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#ifndef	HashJoinIncluded		/* Include this file only once */
+#ifndef	HashJoinIncluded	/* Include this file only once */
 #define HashJoinIncluded	1
 
 /*
@@ -18,6 +24,10 @@
 #include "ipc.h"
 #endif
 
+/* ----------------------------------------------------------------
+ *		hash-join hash table structures
+ * ----------------------------------------------------------------
+ */
 typedef struct HashTableData {
 	int		nbuckets;
 	int		bucketsize;
@@ -26,12 +36,14 @@ typedef struct HashTableData {
 	char		*bottom;
 	char		*overflownext;
 } HashTableData;  /* real hash table follows here */
+
 typedef HashTableData	*HashJoinTable;
 
 typedef struct OverflowTupleData {
 	HeapTuple tuple;
 	struct OverflowTupleData *next;
 } OverflowTupleData;   /* real tuple follows here */
+
 typedef OverflowTupleData *OverflowTuple;
 
 typedef struct HashBucketData {
@@ -40,8 +52,13 @@ typedef struct HashBucketData {
 	OverflowTuple	firstotuple;
 	OverflowTuple	lastotuple;
 } HashBucketData;  /* real bucket follows here */
+
 typedef HashBucketData	*HashBucket;
 
+/* ----------------------------------------------------------------
+ *			extern declarations
+ * ----------------------------------------------------------------
+ */
 extern
 List
 ExecHashJoin ARGS((
