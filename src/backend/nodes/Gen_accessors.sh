@@ -12,7 +12,7 @@ CB=/usr/bin/cb
 CPP=/lib/cpp
 EGREP=/usr/bin/egrep
 RM=/bin/rm
-SED=/bin/sed
+SED=/usr/bin/sed.old
 SEDTMP=/tmp/sedtmp.$$
 SED2=/tmp/sed2.$$
 CTMP1=/tmp/ctmp1.$$
@@ -23,13 +23,14 @@ SRC=$1
 ####
 $CAT > $SEDTMP << 'EOF'
 /\/\*/,/\*\//D
+/[ 	][ 	]*/s// /g
 /^class/ {
 	i\
 #undef XXXXXX
 	s/class (\([A-Za-z_][A-Za-z0-9_]*\)).*/#define XXXXXX \1/
 }
-s/^[ 	]*\([A-Za-z_][A-Za-z0-9_]*\)[ 	][ 	]*\([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\2,\1)/
-s/^[ 	]*\([A-Za-z_][A-Za-z0-9_ ]*\)[	][	]*\(\*\)\([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\3,\1 \2)/
+s/^ \([A-Za-z_][A-Za-z0-9_]*\) \([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\2,\1)/
+s/^ \([A-Za-z_][A-Za-z0-9_ ]*\) \(\*\)\([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\3,\1 \2)/
 EOF
 
 $CAT > $SED2 << 'EOF'
