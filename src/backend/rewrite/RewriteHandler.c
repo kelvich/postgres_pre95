@@ -408,10 +408,14 @@ MatchRetrieveLocks ( rulelocks , parse_subtree , varno )
 
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
-	if ( ThisLockWasTriggered ( varno,
-				   oneLock->attributeNumber,
-				    parse_subtree ))
-	  real_locks = lispCons ( oneLock , real_locks );
+	if ( oneLock->lockType == LockTypeRetrieveAction ||
+	     oneLock->lockType == LockTypeRetrieveWrite ||
+	     oneLock->lockType == LockTypeRetrieveRelation ) {
+	    if ( ThisLockWasTriggered ( varno,
+				       oneLock->attributeNumber,
+				       parse_subtree ))
+	      real_locks = lispCons ( oneLock , real_locks );
+	}
     }
 
     return ( real_locks );
@@ -699,12 +703,11 @@ MatchUpdateLocks ( command , rulelocks )
 
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
-
-	PrintRuleLock ( oneLock );
-#ifdef NOTYET
-	  real_locks = lispCons ( oneLock , real_locks );
-#endif
-    }
+	if ( oneLock->lockType == LockTypeReplaceAction ||
+	     oneLock->lockType == LockTypeAppendAction )  {
+	    real_locks = lispCons ( oneLock , real_locks );
+	} /* if lock is suitable */
+    } /* for all locks */
 
     return ( real_locks );
 
@@ -895,7 +898,7 @@ QueryRewrite ( parsetree )
 		 * user query since no qualifying
 		 * "instead" clauses were found
 		 */
-		output_parselist = parsetree;
+		output_parselist = lispCons ( parsetree, LispNil );
 	    }
 	    if ( additional_queries != NULL )
 	      foreach ( additional_query, additional_queries ) {
