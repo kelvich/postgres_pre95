@@ -322,7 +322,7 @@ that was created.
 .lp
 Run \f(CWtar\fP with the following options
 .(l
-% \fBtar xvf\fP \fI<tape-device>\fP
+% \fBtar xvfp\fP \fI<tape-device>\fP
 .)l
 .sp
 where \fI<tape-device>\fP is the name for your tape device, i.e.,
@@ -350,7 +350,7 @@ A larger file should now be in the \*(PG home directory, and the
 .lp
 Extract \*(PG from the tar file using the following command:
 .(l
-% \fBtar xvf postgres-v4r2.tar\fP
+% \fBtar xvfp postgres-v4r2.tar\fP
 .)l
 .lp
 Lots of file names and such should appear on the screen.
@@ -515,7 +515,8 @@ set the variable POSTGRESLOGIN to the name of that user.
 We told you about this above, but in case you missed it, you will 
 have to install \f(CWbsdinst\fP from \f(CWsrc/tools/bsdinst\fP
 if you don't have it installed already.  You can just copy the 
-shell script into some convenient place (probably \f(CW/usr/local/bin\fP).
+shell script \f(CWbsdinst.sh\fP into some convenient place (probably 
+\f(CW/usr/local/bin\fP) as \f(CWbsdinst\fP.
 .sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
 .lp
 Because the \f(CWbmake\fP program is normally installed into
@@ -640,12 +641,12 @@ running to run the test, so type the following:
 % \fBexport TZ\fP
 % \fBpostmaster &\fP
 .)l
-if you use \f(CWsh\fP or \f(CWksh\fP, or
+if you use \f(CWsh\fP or \f(CWksh\fP.  If you use \f(CWcsh\fP, type
 .(l
 % \fBsetenv TZ GMT0\fP
 % \fBpostmaster &\fP
 .)l
-if you use \f(CWcsh\fP.  The bit about 
+instead.  The bit about 
 .q TZ
 is just to make sure that your regression output will be comparable to ours;
 you don't have to do this every time you start the \f(CWpostmaster\fP.
@@ -657,10 +658,17 @@ Change directories to \f(CWsrc/regress/regress\fP.
 .(l
 % \fBcd src/regress/regress\fP
 .)l
-Type the following
-command to run the test:
+Make sure that the \f(CWobj\fP subdirectory is writable by the
+.q postgres
+user, as some of the tests involve the
+.q postgres
+user copying data into that directory.  (We ship it that way,
+but if you left the
+.q p
+flag off of your \f(CWtar\fP command, it will be set according to
+your umask.)  Type the following command to run the test:
 .(l
-% \fBbmake runtest\fP
+% \fBbmake clean all runtest\fP
 .)l
 .lp
 This will run a whole slew of regression tests and might take a long
@@ -677,8 +685,7 @@ There will be many differences corresponding to
 the timestamp lines and occasional lines where object id numbers (OIDs)
 are different.  The \f(CWcheckdiff\fP program attempts to
 weed out these innocuous differences.
-If
-you see any differences not corresponding to timestamps or OIDs,
+If you see any differences not corresponding to timestamps or OIDs,
 there may be a problem.  Have your local \*(PG expert take a look
 at it.
 .sp
@@ -1042,7 +1049,7 @@ uunet!ucbvax!postgres!postgres
 and all mail sent to this address will be 
 will be routed to the mailing list membership.  As of the time of
 this release, this mailing list was being
-distributed to over 650 sites around the world, so please do 
+distributed to over 600 sites around the world, so please do 
 .b NOT
 send administrative requests to this address.
 If you have any problems with the mailing list, send mail to
