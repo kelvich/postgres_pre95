@@ -1476,8 +1476,8 @@ opt_var_defs:
   */
 
 b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info 
-
- /*				     XXX - check that it is boolean */
+				     XXX - check that it is boolean */
+ /*
 array_attribute:
 	  attr
 		{
