@@ -164,6 +164,7 @@ HeapTuple
 prs2GetOneTupleFromViewRules ARGS((
     RelationRuleInfo	scanStateRuleInfo,
     Prs2EStateInfo	prs2EStateInfo,
+    Relation		relation,		   
     Relation		explainRel
 ));
 

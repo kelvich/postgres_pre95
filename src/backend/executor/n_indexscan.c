@@ -25,46 +25,10 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "tcop/slaves.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "access/ftup.h"
-#include "parser/parsetree.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "catalog/catname.h"
-#include "catalog/pg_index.h"
-#include "catalog/pg_proc.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
-#include "parser/parse.h"	/* for RETRIEVE */
-#include "tcop/slaves.h"
 
 /* ----------------
  *	Misc stuff to move to executor.h soon -cim 6/5/90
@@ -92,10 +56,11 @@
  *           ExecOpenIndices
  ****/
 void
-ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
+ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP, fInfoP)
     IndexTupleForm	indexTuple;
     int			*numAttsOutP;
     AttributeNumberPtr	*attsOutP;
+    FuncIndexInfoPtr	fInfoP;
 {
     int			i;
     int 		numKeys;
@@ -111,7 +76,13 @@ ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
     }
     
     /* ----------------
-     *	first count the number of keys..
+     * set the procid for a possible functional index.
+     * ----------------
+     */
+    FIsetProcOid(fInfoP, indexTuple->indproc);
+
+    /* ----------------
+     *	count the number of keys..
      * ----------------
      */
     numKeys = 0;
@@ -120,9 +91,20 @@ ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
     
     /* ----------------
      *	place number keys in callers return area
+     *  or the number of arguments for a functional index.
+     *
+     *  If we have a functional index then the number of 
+     *  attributes defined in the index must 1 (the function's 
+     *  single return value).
      * ----------------
      */
-    (*numAttsOutP) = numKeys;
+    if (FIgetProcOid(fInfoP) != InvalidObjectId) {
+	FIsetnArgs(fInfoP, numKeys);
+	(*numAttsOutP) = 1;
+    }
+    else
+	(*numAttsOutP) = numKeys;
+
     if (numKeys < 1) {
 	elog(DEBUG, "ExecGetIndexKeyInfo: %s",
 	     "all index key attribute numbers are zero!");
@@ -148,7 +130,7 @@ ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
      */
     (*attsOutP) = attKeys;
 }
- 
+
 /* ----------------------------------------------------------------
  *	ExecOpenIndices
  *
@@ -187,13 +169,16 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     List		oidList;
     List		nkeyList;
     List		keyList;
+    List		fiList;
     List		indexoid;
     List		numkeys;
     List		indexkeys;
+    List		indexfuncs;
     int			len;
     
     RelationPtr		relationDescs;
     IndexInfoPtr	indexInfoArray;
+    FuncIndexInfoPtr	fInfoP;
     int		   	numKeyAtts;
     AttributeNumberPtr 	indexKeyAtts;
     int			i;
@@ -226,6 +211,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     oidList =  LispNil;
     nkeyList = LispNil;
     keyList =  LispNil;
+    fiList =   LispNil;
     
     while(tuple = amgetnext(indexSd, 		/* scan desc */
 			    false,		/* scan backward flag */
@@ -243,12 +229,19 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	indexOid = indexStruct->indexrelid;
 	
 	/* ----------------
+	 * allocate space for functional index information.
+	 * ----------------
+	 */
+	fInfoP = (FuncIndexInfoPtr)palloc( sizeof(*fInfoP) );
+
+	/* ----------------
 	 *  next get the index key information from the tuple
 	 * ----------------
 	 */
 	ExecGetIndexKeyInfo(indexStruct,
 			    &numKeyAtts,
-			    &indexKeyAtts);
+			    &indexKeyAtts,
+			    fInfoP);
 	
 	/* ----------------
 	 *  save the index information into lists
@@ -257,6 +250,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	oidList =  lispCons(lispInteger(indexOid), oidList);
 	nkeyList = lispCons(lispInteger(numKeyAtts), nkeyList);
 	keyList =  lispCons(indexKeyAtts, keyList);
+	fiList =   lispCons((LispValue)fInfoP, fiList);
     }
     
     /* ----------------
@@ -291,7 +285,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	    palloc(len * sizeof(IndexInfo));
 	
 	for (i=0; i<len; i++)
-	    indexInfoArray[i] = MakeIndexInfo();
+	    indexInfoArray[i] = MakeIndexInfo(0,NULL);
 	
 	/* ----------------
 	 *   attempt to open each of the indices.  If we succeed,
@@ -334,6 +328,11 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	    set_ii_KeyAttributeNumbers(indexInfoArray[i++], indexKeyAtts);
 	}
 	
+	i = 0;
+	foreach (indexfuncs, fiList) {
+	    FuncIndexInfoPtr fiP = (FuncIndexInfoPtr)CAR(indexfuncs);
+	    set_ii_FuncIndexInfo(indexInfoArray[i++], fiP);
+	}
 	/* ----------------
 	 *   store the index info array into relation info
 	 * ----------------
@@ -406,6 +405,7 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
     
     int			numberOfAttributes;
     AttributeNumberPtr  keyAttributeNumbers;
+    FuncIndexInfoPtr	fInfoP;
     
     /* ----------------
      *	get information from index info structure
@@ -413,6 +413,7 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
      */
     numberOfAttributes =  get_ii_NumKeyAttributes(indexInfo);
     keyAttributeNumbers = get_ii_KeyAttributeNumbers(indexInfo);
+    fInfoP =              get_ii_FuncIndexInfo(indexInfo);
     
     /* ----------------
      *	datum and null are arrays in which we collect the index attributes
@@ -442,7 +443,8 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
 		   heapDescriptor,	/* heap tuple's descriptor */
 		   InvalidBuffer,	/* buffer associated with heap tuple */
 		   datum,		/* return: array of attributes */
-		   nulls);		/* return: array of char's */
+		   nulls,		/* return: array of char's */
+		   fInfoP);		/* functional index information */
     
     indexTuple = FormIndexTuple(numberOfAttributes,
 				indexDescriptor,
@@ -601,18 +603,17 @@ IndexNext(node)
      *	extract necessary information from index scan node
      * ----------------
      */
-    estate =     	(EState) get_state(node);
+    estate =     	(EState) get_state((Plan) node);
     direction =  	get_es_direction(estate);
-    
-    scanstate =  	get_scanstate(node);
+    scanstate =  	get_scanstate((Scan) node);
     indexstate = 	get_indxstate(node);
     indexPtr =   	get_iss_IndexPtr(indexstate);
     scanDescs = 	get_iss_ScanDescs(indexstate);
     scandesc =  	scanDescs[ indexPtr ];
-    heapRelation =	get_css_currentRelation(scanstate);
+    heapRelation =	get_css_currentRelation((CommonScanState) scanstate);
     
     slot = (TupleTableSlot)
-	get_css_ScanTupleSlot(scanstate);
+	get_css_ScanTupleSlot((CommonScanState) scanstate);
     
     /* ----------------
      *	ok, now that we have what we need, fetch an index tuple.
@@ -651,8 +652,8 @@ IndexNext(node)
 	     *  were not created with palloc() and so should not be pfree()'d.
 	     * ----------------
 	     */
-	    ExecStoreTuple(tuple,	  /* tuple to store */
-			   slot, 	  /* slot to store in */
+	    ExecStoreTuple((Pointer) tuple,	  /* tuple to store */
+			   (Pointer) slot, 	  /* slot to store in */
 			   buffer, 	  /* buffer associated with tuple  */
 			   false);   	  /* don't pfree */
 	    
@@ -665,7 +666,7 @@ IndexNext(node)
 	 * ----------------
 	 */
 	return (TupleTableSlot)
-	    ExecClearTuple(slot);
+	    ExecClearTuple((Pointer) slot);
     }
 }
 
@@ -703,7 +704,7 @@ ExecIndexScan(node)
      *	use IndexNext as access method
      * ----------------
      */
-    returnTuple = ExecScan((Plan) node, IndexNext);
+    returnTuple = ExecScan((Scan) node, IndexNext);
     return
 	returnTuple;
 }	
@@ -737,7 +738,7 @@ ExecIndexReScan(node)
      *	get information from the node..
      * ----------------
      */
-    estate =     (EState) get_state(node);
+    estate =     (EState) get_state((Plan) node);
     direction =  get_es_direction(estate);
     
     indexstate = get_indxstate(node);
@@ -795,7 +796,7 @@ ExecEndIndexScan(node)
     AttributeNumberPtr	scanAtts;
     RelationRuleInfo	ruleInfo;
 
-    scanstate =  get_scanstate(node);
+    scanstate =  get_scanstate((Scan) node);
     indexstate = get_indxstate(node);
     
     /* ----------------
@@ -804,16 +805,18 @@ ExecEndIndexScan(node)
      */
     numIndices = get_iss_NumIndices(indexstate);
     scanKeys =   get_iss_ScanKeys(indexstate);
-    scanAtts =	 get_cs_ScanAttributes(scanstate);
+    scanAtts =	 get_cs_ScanAttributes((CommonState) scanstate);
     
     /* ----------------
      * Restore the relation level rule stubs.
      * ----------------
      */
-    ruleInfo = get_css_ruleInfo(scanstate);
+    ruleInfo = get_css_ruleInfo((CommonScanState)scanstate);
     if (ruleInfo != NULL && ruleInfo->relationStubsHaveChanged) {
 	ObjectId reloid;
-	reloid = RelationGetRelationId(get_css_currentRelation(scanstate));
+	reloid =
+	    RelationGetRelationId(
+			  get_css_currentRelation((CommonScanState)scanstate));
         prs2ReplaceRelationStub(reloid, ruleInfo->relationStubs);
     }
 
@@ -826,7 +829,7 @@ ExecEndIndexScan(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(scanstate);
+    ExecFreeProjectionInfo((CommonState)scanstate);
     ExecFreeScanAttributes(scanAtts);
     
     /* ----------------
@@ -848,9 +851,12 @@ ExecEndIndexScan(node)
      *	clear out tuple table slots
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(scanstate));    
-    ExecClearTuple(get_css_ScanTupleSlot(scanstate));    
-    ExecClearTuple(get_css_RawTupleSlot(scanstate));    
+    ExecClearTuple((Pointer)
+		   get_cs_ResultTupleSlot((CommonState)scanstate));    
+    ExecClearTuple((Pointer)
+		   get_css_ScanTupleSlot((CommonScanState)scanstate));    
+    ExecClearTuple((Pointer)
+		   get_css_RawTupleSlot((CommonScanState)scanstate));    
 }
  
 /* ----------------------------------------------------------------
@@ -1073,13 +1079,12 @@ ExecInitIndexScan(node, estate, parent)
     ParamListInfo       paraminfo;
     ExprContext	        econtext;
     int			baseid;
-    void                partition_indexscan();
     
     /* ----------------
      *	assign execution state to node
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node, estate);
     
     /* --------------------------------
      *  Part 1)  initialize scan state
@@ -1087,8 +1092,8 @@ ExecInitIndexScan(node, estate, parent)
      *	create new ScanState for node
      * --------------------------------
      */
-    scanstate = MakeScanState();
-    set_scanstate(node, scanstate);
+    scanstate = MakeScanState(false, 0);
+    set_scanstate((Scan) node, scanstate);
     
     /* ----------------
      *	assign node's base_id .. we don't use AssignNodeBaseid() because
@@ -1097,34 +1102,34 @@ ExecInitIndexScan(node, estate, parent)
      * ----------------
      */
     baseid = get_es_BaseId(estate);
-    set_base_id(scanstate, baseid);
+    set_base_id((BaseNode) scanstate, baseid);
     
     /* ----------------
      *  create expression context for node
      * ----------------
      */
-    ExecAssignExprContext(estate, scanstate);
+    ExecAssignExprContext(estate, (CommonState) scanstate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, scanstate);
-    ExecInitScanTupleSlot(estate, scanstate);
-    ExecInitRawTupleSlot(estate, scanstate);
+    ExecInitResultTupleSlot(estate, (CommonState) scanstate);
+    ExecInitScanTupleSlot(estate, (CommonScanState)scanstate);
+    ExecInitRawTupleSlot(estate, (CommonScanState)scanstate);
   
     /* ----------------
      * 	initialize projection info.  result type comes from scan desc
      *  below..
      * ----------------
      */
-    ExecAssignProjectionInfo(node, scanstate);
+    ExecAssignProjectionInfo((Plan) node, (CommonState)scanstate);
 
     /* ----------------
      *	initialize scanAttributes (used by rule manager)
      * ----------------
      */
-    ExecInitScanAttributes(node);
+    ExecInitScanAttributes((Plan) node);
     
     /* --------------------------------
      *  Part 2)  initialize index scan state
@@ -1132,14 +1137,14 @@ ExecInitIndexScan(node, estate, parent)
      *	create new IndexScanState for node
      * --------------------------------
      */
-    indexstate = MakeIndexScanState();
+    indexstate = MakeIndexScanState(0, 0, NULL, NULL, NULL, NULL, NULL);
     set_indxstate(node, indexstate);
     
     /* ----------------
      *	assign base id to index scan state also
      * ----------------
      */
-    set_base_id(indexstate, baseid);
+    set_base_id((BaseNode) indexstate, baseid);
     baseid++;
     set_es_BaseId(estate, baseid);
     
@@ -1147,7 +1152,7 @@ ExecInitIndexScan(node, estate, parent)
      *	assign debugging hooks
      * ----------------
      */
-    ExecAssignDebugHooks(node, indexstate);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) indexstate);
             
     /* ----------------
      *	get the index node information
@@ -1261,7 +1266,7 @@ ExecInitIndexScan(node, estate, parent)
 		 *  attribute to use for our scan key.
 		 * ----------------
 		 */
-		varattno = 	get_varattno(leftop);
+		varattno = 	get_varattno((Var) leftop);
 		scanvar = 	LEFT_OP;
 	    } else if (ExactNodeType(leftop,Const)) {
 		/* ----------------
@@ -1270,7 +1275,20 @@ ExecInitIndexScan(node, estate, parent)
 		 * ----------------
 		 */
 		run_keys[ j ] = NO_OP;
-		scanvalue = get_constvalue(leftop);
+		scanvalue = get_constvalue((Const) leftop);
+	    } else if (consp(leftop) && 
+		       ExactNodeType(CAR((List)leftop),Func) &&
+		       var_is_rel(CADR((List)leftop))) {
+		/* ----------------
+		 *  if the leftop is a func node then it means
+		 *  it identifies the value to place in our scan key.
+		 *  Since functional indices have only one attribute
+		 *  the attno must always be set to 1.
+		 * ----------------
+		 */
+		varattno = 	1;
+		scanvar = 	LEFT_OP;
+
 	    } else {
 		/* ----------------
 		 *  otherwise, the leftop contains information usable
@@ -1305,7 +1323,7 @@ ExecInitIndexScan(node, estate, parent)
 		 *  attribute to use for our scan key.
 		 * ----------------
 		 */
-		varattno = 	get_varattno(rightop);
+		varattno = 	get_varattno((Var) rightop);
 		scanvar = 	RIGHT_OP;
 		
 	    } else if (ExactNodeType(rightop,Const)) {
@@ -1315,7 +1333,25 @@ ExecInitIndexScan(node, estate, parent)
 		 * ----------------
 		 */
 		run_keys[ j ] = NO_OP;
-		scanvalue = get_constvalue(rightop);
+		scanvalue = get_constvalue((Const) rightop);
+
+	    } else if (consp(rightop) &&
+		       ExactNodeType(CAR((List)rightop),Func) &&
+		       var_is_rel(CADR((List)rightop))) {
+		/* ----------------
+		 *  if the rightop is a func node then it means
+		 *  it identifies the value to place in our scan key.
+		 *  Since functional indices have only one attribute
+		 *  the attno must always be set to 1.
+		 * ----------------
+		 */
+		if (scanvar == LEFT_OP)
+		    elog(WARN, "ExecInitIndexScan: %s",
+			 "both left and right ops are rel-vars");
+
+		varattno = 	1;
+		scanvar = 	RIGHT_OP;
+
 	    } else {
 		/* ----------------
 		 *  otherwise, the leftop contains information usable
@@ -1343,9 +1379,10 @@ ExecInitIndexScan(node, estate, parent)
 	     */
 	    ExecSetSkeys(j,		/* index into scan_keys array */
 			 scan_keys,	/* array in which to plug scan key */
-			 varattno,	/* attribute number to scan */
-			 opid,		/* reg proc to use */
-			 scanvalue);	/* constant */
+			 (AttributeNumber) varattno,
+			 /* attribute number to scan */
+			 (RegProcedure) opid,		/* reg proc to use */
+			 (Datum) scanvalue);	/* constant */
 	}
 	
 	/* ----------------
@@ -1372,7 +1409,7 @@ ExecInitIndexScan(node, estate, parent)
      * ----------------
      */
     if (have_runtime_keys)
-	set_iss_RuntimeKeyInfo(indexstate, runtimeKeyInfo);
+	set_iss_RuntimeKeyInfo(indexstate, (Pointer) runtimeKeyInfo);
     else {
 	set_iss_RuntimeKeyInfo(indexstate, NULL);
 	for (i=0; i < numIndices; i++) {
@@ -1399,26 +1436,26 @@ ExecInitIndexScan(node, estate, parent)
      *	open the base relation
      * ----------------
      */
-    relid =   get_scanrelid(node);
+    relid =   get_scanrelid((Scan) node);
     rtentry = rt_fetch(relid, rangeTable);
     reloid =  CInteger(rt_relid(rtentry));
     timeQual = (TimeQual) CInteger(rt_time(rtentry));
     
     ExecOpenScanR(reloid,	      /* relation */
 		  0,		      /* nkeys */
-		  NULL,		      /* scan key */
+		  (ScanKey) NULL,     /* scan key */
 		  0,		      /* is index */
 		  direction,          /* scan direction */
 		  timeQual,	      /* time qual */
 		  &currentRelation,   /* return: rel desc */
-		  &currentScanDesc);  /* return: scan desc */
+		  (Pointer *) &currentScanDesc);  /* return: scan desc */
     
-    set_css_currentRelation(scanstate, currentRelation);
-    set_css_currentScanDesc(scanstate, currentScanDesc);
+    set_css_currentRelation((CommonScanState) scanstate, currentRelation);
+    set_css_currentScanDesc((CommonScanState)scanstate, currentScanDesc);
     /*
      * intialize scan state rule info
      */
-    set_css_ruleInfo(scanstate,
+    set_css_ruleInfo((CommonScanState)scanstate,
 		prs2MakeRelationRuleInfo(currentRelation, RETRIEVE));
 
 
@@ -1434,8 +1471,9 @@ ExecInitIndexScan(node, estate, parent)
      *	get the scan type from the relation descriptor.
      * ----------------
      */
-    ExecAssignScanType(scanstate, &currentRelation->rd_att);
-    ExecAssignResultTypeFromTL(node, scanstate);
+    ExecAssignScanType((CommonScanState)scanstate,
+		       &currentRelation->rd_att); /* bug -- glass */
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState)scanstate);
 	
     /* ----------------
      *	index scans don't have subtrees..
@@ -1463,7 +1501,8 @@ ExecInitIndexScan(node, estate, parent)
 			  direction,		  /* scan direction */
 			  timeQual, 		  /* time qual */
 			  &(relationDescs[ i ]),  /* return: rel desc */
-			  &(scanDescs[ i ]));	  /* return: scan desc */
+			  (Pointer *) &(scanDescs[ i ]));
+	                                          /* return: scan desc */
 	}
     }
     

@@ -19,21 +19,9 @@
  */
 
 #include <sys/file.h>
-#include "tmp/postgres.h"
-
-#include "access/itup.h"
 #include "utils/relcache.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/plannodes.h"
-#include "nodes/execnodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.a.h"
-#include "nodes/primnodes.h"
-#include "executor/execdefs.h"
-#include "executor/externs.h"
 #include "tcop/slaves.h"
+#include "executor/executor.h"
 
 
 /* ----------------------------------------------------------------
@@ -66,7 +54,7 @@ ScanTemps node;
     TupleTableSlot	slot;
     Buffer		buffer;
     
-    estate = (EState) get_state(node);
+    estate = (EState) get_state((Plan)node);
     scantempState = get_scantempState(node);
     whichplan = get_st_whichplan(scantempState);
     nplans = get_st_nplans(scantempState);
@@ -75,7 +63,7 @@ ScanTemps node;
     elog(DEBUG, "ScanTemps: total %d plans, current plan %d", nplans,whichplan);
 #endif
     
-    currentScanDesc = get_css_currentScanDesc(scantempState);
+    currentScanDesc = get_css_currentScanDesc((CommonScanState) scantempState);
     heapTuple = amgetnext(currentScanDesc,
 			  (dir == EXEC_BKWD),
 			  NULL);
@@ -88,7 +76,7 @@ ScanTemps node;
 	elog(DEBUG, "ScanTemps: changing to plan %d", whichplan);
 #endif
 	amendscan(currentScanDesc);
-	tempreldesc = get_css_currentRelation(scantempState);
+	tempreldesc = get_css_currentRelation((CommonScanState) scantempState);
 	amclose(tempreldesc);
 	
 	/* 
@@ -102,7 +90,8 @@ ScanTemps node;
 	 * is invalid in the current process.
 	 */
         tempreldesc->rd_fd = FileNameOpenFile(
-				  relpath(&(tempreldesc->rd_rel->relname)),
+				  (char *) relpath((char *)
+					  &(tempreldesc->rd_rel->relname)),
                                   O_RDWR, 0666);
 	
 	RelationRegisterTempRel(tempreldesc);
@@ -116,8 +105,9 @@ ScanTemps node;
 	
 	currentScanDesc->rs_parallel_ok = true;
 
-        set_css_currentRelation(scantempState, tempreldesc);
-        set_css_currentScanDesc(scantempState, currentScanDesc);
+        set_css_currentRelation((CommonScanState) scantempState, tempreldesc);
+        set_css_currentScanDesc((CommonScanState) scantempState,
+				currentScanDesc);
 	set_st_whichplan(scantempState, whichplan);
 	
         heapTuple = amgetnext(currentScanDesc,
@@ -135,21 +125,21 @@ ScanTemps node;
     bcopy(heapTuple, retHeapTuple, heapTuple->t_len);
 
     slot = (TupleTableSlot)
-	get_css_ScanTupleSlot(scantempState);
+	get_css_ScanTupleSlot((CommonScanState) scantempState);
     
-    ExecStoreTuple(heapTuple,	/* tuple */
-		   slot,	/* destination slot */
-		   buffer,	/* buffer for this tuple */
-		   false);	/* don't use pfree on tuple */
+    ExecStoreTuple((Pointer) heapTuple,	/* tuple */
+		   (Pointer) slot,	/* destination slot */
+		   buffer,	        /* buffer for this tuple */
+		   false);	        /* don't use pfree on tuple */
 
     slot = (TupleTableSlot)
-	get_cs_ResultTupleSlot(scantempState);
+	get_cs_ResultTupleSlot((CommonState) scantempState);
     
     return (TupleTableSlot)
-	ExecStoreTuple(retHeapTuple,   	/* tuple to store */
-		       slot,   		/* slot to store in */
-		       InvalidBuffer,   /* tuple has no buffer */
-		       true); 		/* free the return heap tuple */
+	ExecStoreTuple((Pointer) retHeapTuple, /* tuple to store */
+		       (Pointer) slot,         /* slot to store in */
+		       InvalidBuffer,          /* tuple has no buffer */
+		       true); 		       /* free the return heap tuple */
 }
 
 /* ------------------------------------------------------------------
@@ -173,24 +163,24 @@ ExecInitScanTemps(node, estate, parent)
     ScanDirection	dir;
     List		tempRelDescs;
 
-    set_state(node, estate);
+    set_state((Plan) node, estate);
 
-    scantempstate = MakeScanTempState();
+    scantempstate = MakeScanTempState(0,0);
     set_scantempState(node, scantempstate);
 
     /* ----------------
      *	initialize tuple slots
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, scantempstate);
-    ExecInitScanTupleSlot(estate, scantempstate);
+    ExecInitResultTupleSlot(estate, (CommonState) scantempstate);
+    ExecInitScanTupleSlot(estate, (CommonScanState) scantempstate);
     
     /* ----------------
      * 	initialize tuple type and projection info
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, scantempstate);
-    ExecAssignProjectionInfo(node, scantempstate);
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState) scantempstate);
+    ExecAssignProjectionInfo((Plan) node, (CommonState) scantempstate);
     
     /* ----------------
      *	XXX comment me
@@ -199,7 +189,7 @@ ExecInitScanTemps(node, estate, parent)
     tempRelDescs = get_temprelDescs(node);
     tempreldesc = (Relation)CAR(tempRelDescs);
     tempreldesc->rd_fd =
-	FileNameOpenFile(relpath(&(tempreldesc->rd_rel->relname)),
+	FileNameOpenFile((char *) relpath(&(tempreldesc->rd_rel->relname)),
 			 O_RDWR, 0666);
     
     RelationRegisterTempRel(tempreldesc);
@@ -221,8 +211,8 @@ ExecInitScanTemps(node, estate, parent)
      *	XXX comment me
      * ----------------
      */
-    set_css_currentRelation(scantempstate, tempreldesc);
-    set_css_currentScanDesc(scantempstate, currentScanDesc);
+    set_css_currentRelation((CommonScanState) scantempstate, tempreldesc);
+    set_css_currentScanDesc((CommonScanState) scantempstate, currentScanDesc);
     set_st_whichplan(scantempstate, 0);
     set_st_nplans(scantempstate, length(tempRelDescs));
 
@@ -251,8 +241,8 @@ ScanTemps node;
 
     state = get_scantempState(node);
     tempRelDescs = get_temprelDescs(node);
-    relation = get_css_currentRelation(state);
-    scanDesc = get_css_currentScanDesc(state);
+    relation = get_css_currentRelation((CommonScanState) state);
+    scanDesc = get_css_currentScanDesc((CommonScanState) state);
     
     if (scanDesc != NULL)
 	amendscan(scanDesc);

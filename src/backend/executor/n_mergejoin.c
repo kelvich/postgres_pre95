@@ -72,37 +72,9 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *	MarkInnerTuple and RestoreInnerTuple macros
@@ -129,12 +101,12 @@
 #define MarkInnerTuple(innerTupleSlot, mergestate) \
 { \
     bool	   shouldFree; \
-    shouldFree = ExecSetSlotPolicy(innerTupleSlot, false); \
-    ExecStoreTuple(ExecFetchTuple(innerTupleSlot), \
-		   get_mj_MarkedTupleSlot(mergestate), \
-		   ExecSlotBuffer(innerTupleSlot), \
+    shouldFree = ExecSetSlotPolicy((Pointer) innerTupleSlot, false); \
+    ExecStoreTuple(ExecFetchTuple((Pointer)innerTupleSlot), \
+		   (Pointer) get_mj_MarkedTupleSlot(mergestate), \
+		   ExecSlotBuffer((Pointer) innerTupleSlot), \
 		   shouldFree); \
-    ExecIncrSlotBufferRefcnt(innerTupleSlot); \
+    ExecIncrSlotBufferRefcnt((Pointer) innerTupleSlot); \
 }
 
 #define RestoreInnerTuple(innerTupleSlot, markedTupleSlot) \
@@ -364,10 +336,12 @@ ExecMergeTupleDumpInner(econtext)
 
     printf("==== inner tuple ====\n");
     innerSlot = get_ecxt_innertuple(econtext);
-    if (TupIsNull(innerSlot))
+    if (TupIsNull((Pointer) innerSlot))
 	printf("(nil)\n");
     else
-	debugtup(ExecFetchTuple(innerSlot), ExecSlotDescriptor(innerSlot));
+	debugtup((HeapTuple) ExecFetchTuple((Pointer) innerSlot),
+		 (struct attribute **)
+		 ExecSlotDescriptor((Pointer)innerSlot)); /* bug -- glass */
 }
  
 void
@@ -378,10 +352,12 @@ ExecMergeTupleDumpOuter(econtext)
 
     printf("==== outer tuple ====\n");
     outerSlot = get_ecxt_outertuple(econtext);
-    if (TupIsNull(outerSlot))
+    if (TupIsNull((Pointer) outerSlot))
 	printf("(nil)\n");
     else
-	debugtup(ExecFetchTuple(outerSlot), ExecSlotDescriptor(outerSlot));
+	debugtup((HeapTuple) ExecFetchTuple((Pointer)
+				outerSlot),
+		 (struct attribute **) ExecSlotDescriptor((Pointer) outerSlot));
 }
  
 void
@@ -394,10 +370,11 @@ ExecMergeTupleDumpMarked(econtext, mergestate)
     printf("==== marked tuple ====\n");
     markedSlot = get_mj_MarkedTupleSlot(mergestate);
 
-    if (TupIsNull(markedSlot))
+    if (TupIsNull((Pointer)markedSlot))
 	printf("(nil)\n");
     else
-	debugtup(ExecFetchTuple(markedSlot), ExecSlotDescriptor(markedSlot));
+	debugtup((HeapTuple)ExecFetchTuple((Pointer)markedSlot),
+		 (struct attribute **)ExecSlotDescriptor((Pointer)markedSlot));
 }
  
 void
@@ -503,13 +480,13 @@ ExecMergeJoin(node)
      * ----------------
      */
     mergestate =   get_mergestate(node);
-    estate = (EState) get_state(node);
+    estate = (EState) get_state((Plan) node);
     direction =    get_es_direction(estate);
-    innerPlan =    get_innerPlan(node);
-    outerPlan =    get_outerPlan(node);
-    econtext =     get_cs_ExprContext(mergestate);
+    innerPlan =    get_innerPlan((Plan) node);
+    outerPlan =    get_outerPlan((Plan) node);
+    econtext =     get_cs_ExprContext((CommonState) mergestate);
     mergeclauses = get_mergeclauses(node);
-    qual = 	   get_qpqual(node);
+    qual = 	   get_qpqual((Plan) node);
     
     if (direction == EXEC_FRWD) {
 	outerSkipQual = get_mj_OSortopI(mergestate);
@@ -549,13 +526,13 @@ ExecMergeJoin(node)
 	     * ----------------
 	     */
 	    innerTupleSlot = ExecProcNode(innerPlan);
-	    if (TupIsNull(innerTupleSlot)) {
+	    if (TupIsNull((Pointer)innerTupleSlot)) {
 		MJ_printf("ExecMergeJoin: **** inner tuple is nil ****\n");
 		return NULL;
 	    }
 	    
 	    outerTupleSlot = ExecProcNode(outerPlan);
-	    if (TupIsNull(outerTupleSlot)) {
+	    if (TupIsNull((Pointer)outerTupleSlot)) {
 		MJ_printf("ExecMergeJoin: **** outer tuple is nil ****\n");
 		return NULL;
 	    }
@@ -573,7 +550,7 @@ ExecMergeJoin(node)
 	     *      -jeff 10 july 1991
 	     * ----------------
 	     */
-	    ExecClearTuple(get_mj_MarkedTupleSlot(mergestate));
+	    ExecClearTuple((Pointer)get_mj_MarkedTupleSlot(mergestate));
 	    SetSlotTupleDescriptor(get_mj_MarkedTupleSlot(mergestate), 
 			SlotTupleDescriptor(innerTupleSlot));
 	    
@@ -646,7 +623,7 @@ ExecMergeJoin(node)
 		
 		MJ_printf("ExecMergeJoin: **** returning tuple ****\n");
 		
-		projInfo = get_cs_ProjInfo(mergestate);
+		projInfo = get_cs_ProjInfo((CommonState) mergestate);
 		
 		return
 		    ExecProject(projInfo);
@@ -670,7 +647,7 @@ ExecMergeJoin(node)
 	    MJ_DEBUG_PROC_NODE(innerTupleSlot);
 	    set_ecxt_innertuple(econtext, innerTupleSlot);
 	    
-	    if (TupIsNull(innerTupleSlot))
+	    if (TupIsNull((Pointer) innerTupleSlot))
 		set_mj_JoinState(mergestate, EXEC_MJ_NEXTOUTER);
 	    else
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINTEST);
@@ -703,7 +680,7 @@ ExecMergeJoin(node)
 	     *  we are done with the join
 	     * ----------------
 	     */
-            if (TupIsNull(outerTupleSlot)) {
+            if (TupIsNull((Pointer) outerTupleSlot)) {
 		MJ_printf("ExecMergeJoin: **** outer tuple is nil ****\n");
 		return NULL;
 	    }
@@ -769,7 +746,8 @@ ExecMergeJoin(node)
 		 */
 		set_ecxt_innertuple(econtext, innerTupleSlot);
 
-		RestoreInnerTuple(innerTupleSlot, markedTupleSlot);
+		RestoreInnerTuple((Pointer) innerTupleSlot,(Pointer)
+				  markedTupleSlot);
 		
 		ExecRestrPos(innerPlan);
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINTEST);
@@ -790,7 +768,7 @@ ExecMergeJoin(node)
 		 *  larger than our inner tuples.  
 		 * ----------------
 		 */
-		if (TupIsNull(innerTupleSlot)) {
+		if (TupIsNull((Pointer) innerTupleSlot)) {
 		    MJ_printf("ExecMergeJoin: **** wierd case 1 ****\n");
 		    return NULL;
 		}
@@ -870,7 +848,7 @@ ExecMergeJoin(node)
 		 *  we are done with the join
 		 * ----------------
 		 */
-		if (TupIsNull(outerTupleSlot)) {
+		if (TupIsNull((Pointer) outerTupleSlot)) {
 		    MJ_printf("ExecMergeJoin: **** outerTuple is nil ****\n");
 		    return NULL;
                 }
@@ -970,9 +948,9 @@ ExecMergeJoin(node)
 		 *  and advance to the next outer tuple
 		 * ----------------
 		 */
-		if (TupIsNull(innerTupleSlot)) {
+		if (TupIsNull((Pointer) innerTupleSlot)) {
 		    markedTupleSlot = get_mj_MarkedTupleSlot(mergestate);
-		    if (TupIsNull(markedTupleSlot)) {
+		    if (TupIsNull((Pointer) markedTupleSlot)) {
 			/* ----------------
 			 *  this is an interesting case.. all our
 			 *  inner tuples are smaller then our outer
@@ -1078,13 +1056,13 @@ ExecInitMergeJoin(node, estate, parent)
      *	get the range table and direction from it
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node, estate);
     
     /* ----------------
      *	create new merge state for node
      * ----------------
      */
-    mergestate = MakeMergeJoinState();
+    mergestate = MakeMergeJoinState(LispNil, LispNil, 0, NULL);
     set_mergestate(node, mergestate);
     
     /* ----------------
@@ -1095,16 +1073,16 @@ ExecInitMergeJoin(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, mergestate, parent);
-    ExecAssignDebugHooks(node, mergestate);
-    ExecAssignExprContext(estate, mergestate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) mergestate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) mergestate);
+    ExecAssignExprContext(estate, (CommonState) mergestate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, mergestate);
-    ExecInitMarkedTupleSlot(estate, mergestate);
+    ExecInitResultTupleSlot(estate, (CommonState) mergestate);
+    ExecInitMarkedTupleSlot(estate,  mergestate);
     
     /* ----------------
      *	get merge sort operators.
@@ -1155,15 +1133,15 @@ ExecInitMergeJoin(node, estate, parent)
      *	initialize subplans
      * ----------------
      */
-    ExecInitNode((Plan) get_outerPlan(node), estate, node);
-    ExecInitNode((Plan) get_innerPlan(node), estate, node);
+    ExecInitNode((Plan) get_outerPlan((Plan) node), estate, (Plan) node);
+    ExecInitNode((Plan) get_innerPlan((Plan) node), estate, (Plan) node);
         
     /* ----------------
      * 	initialize tuple type and projection info
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, mergestate);
-    ExecAssignProjectionInfo(node, mergestate);
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState)mergestate);
+    ExecAssignProjectionInfo((Plan) node, (CommonState)mergestate);
     
     /* ----------------
      *	initialization successful
@@ -1211,14 +1189,14 @@ ExecEndMergeJoin(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(mergestate);
+    ExecFreeProjectionInfo((CommonState)mergestate);
     
     /* ----------------
      *	shut down the subplans
      * ----------------
      */
-    ExecEndNode((Plan) get_innerPlan(node));
-    ExecEndNode((Plan) get_outerPlan(node));
+    ExecEndNode((Plan) get_innerPlan((Plan) node));
+    ExecEndNode((Plan) get_outerPlan((Plan) node));
 
     /* ----------------
      *	clean out the tuple table so that we don't try and
@@ -1226,8 +1204,8 @@ ExecEndMergeJoin(node)
      *  this file.
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(mergestate));
-    ExecClearTuple(get_mj_MarkedTupleSlot(mergestate));
+    ExecClearTuple((Pointer) get_cs_ResultTupleSlot((CommonState)mergestate));
+    ExecClearTuple((Pointer) get_mj_MarkedTupleSlot(mergestate));
     
     MJ1_printf("ExecEndMergeJoin: %s\n",
 	       "node processing ended");

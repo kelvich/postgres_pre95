@@ -21,38 +21,10 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "tcop/slaves.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-#include "executor/externs.h"
-#include "parser/parse.h"	/* for RETRIEVE */
-#include "tcop/slaves.h"
 
 /* ----------------------------------------------------------------
  *   			Scan Support
@@ -83,9 +55,9 @@ SeqNext(node)
      *	get information from the estate and scan state
      * ----------------
      */
-    estate =        (EState) get_state(node);
-    scanstate =     get_scanstate(node);
-    scandesc =      get_css_currentScanDesc(scanstate);
+    estate =        (EState) get_state((Plan)node);
+    scanstate =     get_scanstate((Scan) node);
+    scandesc =      get_css_currentScanDesc((CommonScanState)scanstate);
     direction =     get_es_direction(estate);
 
     /* ----------------
@@ -105,11 +77,11 @@ SeqNext(node)
      * ----------------
      */
     slot = (TupleTableSlot)
-	get_css_ScanTupleSlot(scanstate);
+	get_css_ScanTupleSlot((CommonScanState) scanstate);
 
     slot = (TupleTableSlot)
-	ExecStoreTuple(tuple,  /* tuple to store */
-		       slot,   /* slot to store in */
+	ExecStoreTuple((Pointer) tuple,  /* tuple to store */
+		       (Pointer) slot,   /* slot to store in */
 		       buffer, /* buffer associated with this tuple */
 		       false); /* don't pfree this pointer */
     
@@ -122,7 +94,7 @@ SeqNext(node)
      *  table slot.  --mar 20 91
      * ----------------
      */
-    ExecIncrSlotBufferRefcnt(slot);
+    ExecIncrSlotBufferRefcnt((Pointer) slot);
 
     return slot;
 }
@@ -178,7 +150,7 @@ ExecSeqScan(node)
      *	get information from node
      * ----------------
      */
-    scanstate =     get_scanstate(node);
+    scanstate =     get_scanstate((Scan) node);
     procOuterFlag = get_ss_ProcOuterFlag(scanstate);
     
    /* ----------------
@@ -187,11 +159,11 @@ ExecSeqScan(node)
     * ----------------
     */
     if (procOuterFlag) {
-	outerPlan = get_outerPlan(node);
+	outerPlan = get_outerPlan((Plan) node);
 	slot = ExecProcNode(outerPlan);
     } else {
-	slot = ExecScan((Plan) node,
-			SeqNext); 	/* SeqNext is a function */
+	slot = ExecScan((Scan) node,
+			(Pointer) SeqNext); 	/* SeqNext is a function */
     }
     
     DEBUG_ExecSeqScan_2;
@@ -235,7 +207,7 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	 * the scan state...
 	 * ----------------
 	 */
-	relid =   		get_scanrelid(node);
+	relid =   		get_scanrelid((Scan) node);
 	rangeTable = 		get_es_range_table(estate);
 	rtentry = 		rt_fetch(relid, rangeTable);
 	reloid =  		CInteger(rt_relid(rtentry));
@@ -245,15 +217,15 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	
 	ExecOpenScanR(reloid,		  /* relation */
 		      0,		  /* nkeys */
-		      NULL,		  /* scan key */
+		      NULL,	          /* scan key */
 		      0,		  /* is index */
 		      direction,          /* scan direction */
 		      timeQual, 	  /* time qual */
 		      &currentRelation,   /* return: rel desc */
-		      &currentScanDesc);  /* return: scan desc */
+		      (Pointer *) &currentScanDesc);  /* return: scan desc */
 	
-	set_css_currentRelation(scanstate, currentRelation);
-	set_css_currentScanDesc(scanstate, currentScanDesc);
+	set_css_currentRelation((CommonScanState) scanstate, currentRelation);
+	set_css_currentScanDesc((CommonScanState) scanstate, currentScanDesc);
 	
 	/* ----------------
 	 *   Initialize rule info for this scan node
@@ -266,15 +238,16 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	 *	    relation's scan state.  -cim 3/17/91
 	 * ----------------
 	 */
-	set_css_ruleInfo(scanstate,
+	set_css_ruleInfo((CommonScanState)scanstate,
 	    prs2MakeRelationRuleInfo(currentRelation, RETRIEVE));
 	
 	if (resultRelationInfo != NULL &&
 	    relid == get_ri_RangeTableIndex(resultRelationInfo)) {
-	    set_es_result_rel_scanstate(estate, scanstate);
+	    set_es_result_rel_scanstate(estate, (Pointer) scanstate);
 	}
 	    
-	ExecAssignScanType(scanstate, &currentRelation->rd_att);
+	ExecAssignScanType((CommonScanState) scanstate,
+			   &currentRelation->rd_att);
 	
 	set_ss_ProcOuterFlag(scanstate, false);
     } else {
@@ -286,12 +259,12 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	 */
 	ExecInitNode(outerPlan, estate, node);
 	
-	set_scanrelid(node, 0);
-	set_css_currentRelation(scanstate, NULL);
-	set_css_currentScanDesc(scanstate, NULL);
-	set_css_ruleInfo(scanstate, NULL);
-	ExecAssignScanType(scanstate, NULL);
-	set_ss_ProcOuterFlag(scanstate, true);
+	set_scanrelid((Scan) node, 0);
+	set_css_currentRelation((CommonScanState) scanstate, NULL);
+	set_css_currentScanDesc((CommonScanState) scanstate, NULL);
+	set_css_ruleInfo((CommonScanState)scanstate, NULL);
+	ExecAssignScanType((CommonScanState)scanstate, NULL);
+	set_ss_ProcOuterFlag((ScanState)scanstate, true);
 
 	reloid = InvalidObjectId;
     }
@@ -336,14 +309,14 @@ ExecInitSeqScan(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node,  estate);
     
     /* ----------------
      *   create new ScanState for node
      * ----------------
      */
-    scanstate = MakeScanState();
-    set_scanstate(node, scanstate);
+    scanstate = MakeScanState(0, 0);
+    set_scanstate((Scan) node, scanstate);
     
     /* ----------------
      *  Miscellanious initialization
@@ -353,17 +326,17 @@ ExecInitSeqScan(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, scanstate, parent);
-    ExecAssignDebugHooks(node, scanstate);
-    ExecAssignExprContext(estate, scanstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) scanstate, parent);
+    ExecAssignDebugHooks(node, (BaseNode) scanstate);
+    ExecAssignExprContext(estate, (CommonState) scanstate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, scanstate);
-    ExecInitScanTupleSlot(estate, scanstate);
-    ExecInitRawTupleSlot(estate, scanstate);
+    ExecInitResultTupleSlot(estate, (CommonState) scanstate);
+    ExecInitScanTupleSlot(estate, (CommonScanState) scanstate);
+    ExecInitRawTupleSlot(estate,  (CommonScanState) scanstate);
     
     /* ----------------
      *	initialize scanrelid
@@ -372,7 +345,7 @@ ExecInitSeqScan(node, estate, parent)
     {
 	Index relid;
 
-	relid = get_scanrelid(node);
+	relid = get_scanrelid((Scan) node);
 	set_ss_OldRelId(scanstate, relid);
     }
     
@@ -380,8 +353,8 @@ ExecInitSeqScan(node, estate, parent)
      * 	initialize tuple type
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, scanstate);
-    ExecAssignProjectionInfo(node, scanstate);
+    ExecAssignResultTypeFromTL(node, (CommonState) scanstate);
+    ExecAssignProjectionInfo(node, (CommonState) scanstate);
     
     /* ----------------
      *	initialize scanAttributes (used by rule_manager)
@@ -400,7 +373,7 @@ ExecInitSeqScan(node, estate, parent)
 			      scanstate,
 			      outerPlan);
 
-    scandesc = get_css_currentScanDesc(scanstate);
+    scandesc = get_css_currentScanDesc((CommonScanState) scanstate);
     if (get_parallel(node)) {
 	scandesc->rs_parallel_ok = true;
 	SlaveLocalInfoD.heapscandesc = scandesc;
@@ -444,17 +417,19 @@ ExecEndSeqScan(node)
      *	get information from node
      * ----------------
      */
-    scanstate = get_scanstate(node);
-    scanAtts =	get_cs_ScanAttributes(scanstate);
+    scanstate = get_scanstate((Scan) node);
+    scanAtts =	get_cs_ScanAttributes((CommonState) scanstate);
 
     /* ----------------
      * Restore the relation level rule stubs.
      * ----------------
      */    
-    ruleInfo = get_css_ruleInfo(scanstate);
+    ruleInfo = get_css_ruleInfo((CommonScanState)scanstate);
     if (ruleInfo != NULL && ruleInfo->relationStubsHaveChanged) {
 	ObjectId reloid;
-	reloid = RelationGetRelationId(get_css_currentRelation(scanstate));
+	reloid =
+	    RelationGetRelationId(
+			  get_css_currentRelation((CommonScanState)scanstate));
 	prs2ReplaceRelationStub(reloid, ruleInfo->relationStubs);
     }
 
@@ -467,29 +442,32 @@ ExecEndSeqScan(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(scanstate);
+    ExecFreeProjectionInfo((CommonState) scanstate);
     ExecFreeScanAttributes(scanAtts);
     
     /* ----------------
      * close scan relation
      * ----------------
      */
-    ExecCloseR(node);
+    ExecCloseR((Plan) node);
     
     /* ----------------
      * clean up outer subtree (does nothing if there is no outerPlan)
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
+    outerPlan = get_outerPlan((Plan) node);
     ExecEndNode(outerPlan);
   
     /* ----------------
      *	clean out the tuple table
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(scanstate));
-    ExecClearTuple(get_css_ScanTupleSlot(scanstate));
-    ExecClearTuple(get_css_RawTupleSlot(scanstate));
+    ExecClearTuple((Pointer)
+		   get_cs_ResultTupleSlot((CommonState) scanstate));
+    ExecClearTuple((Pointer)
+		   get_css_ScanTupleSlot((CommonScanState)scanstate));
+    ExecClearTuple((Pointer)
+		   get_css_RawTupleSlot((CommonScanState)scanstate));
 }
  
 /* ----------------------------------------------------------------
@@ -516,7 +494,7 @@ ExecSeqReScan(node)
     HeapScanDesc  sdesc;
     ScanDirection direction;
     
-    scanstate = get_scanstate(node);
+    scanstate = get_scanstate((Scan) node);
     estate =    (EState) get_state(node);
     
     if (get_ss_ProcOuterFlag(scanstate) == false) {
@@ -525,11 +503,11 @@ ExecSeqReScan(node)
 	 *   we are scanning a relation so we use ExecReScanR()
 	 * ----------------
 	 */
-	rdesc = 	get_css_currentRelation(scanstate);
-	sdesc = 	get_css_currentScanDesc(scanstate);
+	rdesc = 	get_css_currentRelation((CommonScanState) scanstate);
+	sdesc = 	get_css_currentScanDesc((CommonScanState) scanstate);
 	direction = 	get_es_direction(estate);
 	sdesc = 	ExecReScanR(rdesc, sdesc, direction, 0, NULL);
-	set_css_currentScanDesc(scanstate, sdesc);
+	set_css_currentScanDesc((CommonScanState) scanstate, sdesc);
     } else {
 	/* ----------------
 	 *   if ProcOuterFlag is true then we are scanning
@@ -559,7 +537,7 @@ ExecSeqMarkPos(node)
     bool	 procOuterFlag;
     HeapScanDesc sdesc;
     
-    scanstate =     get_scanstate(node);
+    scanstate =     get_scanstate((Scan) node);
     procOuterFlag = get_ss_ProcOuterFlag(scanstate);
     
     /* ----------------
@@ -582,7 +560,7 @@ ExecSeqMarkPos(node)
      *      they will never return positions for all I know -cim 10/16/89
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(scanstate);
+    sdesc = get_css_currentScanDesc((CommonScanState) scanstate);
     ammarkpos(sdesc);
     
     return LispNil;
@@ -606,7 +584,7 @@ ExecSeqRestrPos(node)
     bool	 procOuterFlag;
     HeapScanDesc sdesc;
     
-    scanstate = get_scanstate(node);
+    scanstate = get_scanstate((Scan) node);
     procOuterFlag = get_ss_ProcOuterFlag(scanstate);
     
     /* ----------------
@@ -625,6 +603,6 @@ ExecSeqRestrPos(node)
      *  position using the access methods..
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(scanstate);
+    sdesc = get_css_currentScanDesc((CommonScanState) scanstate);
     amrestrpos(sdesc);
 }

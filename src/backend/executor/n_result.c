@@ -35,37 +35,10 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *   	ExecResult(node)
@@ -128,7 +101,7 @@ ExecResult(node)
      *	get the expression context
      * ----------------
      */
-    econtext = get_cs_ExprContext(resstate);
+    econtext = get_cs_ExprContext((CommonState) resstate);
     
     /* ----------------
      *   check tautological qualifications like (2 > 1)
@@ -174,15 +147,15 @@ ExecResult(node)
 	 *    get next outer tuple if necessary.
 	 * ----------------
 	 */
-	outerPlan = (Plan) get_outerPlan(node);
+	outerPlan = (Plan) get_outerPlan((Plan) node);
 	
 	if (outerPlan != NULL) {
 	    outerTupleSlot = ExecProcNode(outerPlan);
 	    
-	    if (TupIsNull(outerTupleSlot))
+	    if (TupIsNull((Pointer) outerTupleSlot))
 		return NULL;
 	    
-	    set_cs_OuterTupleSlot(resstate, outerTupleSlot);
+	    set_cs_OuterTupleSlot((CommonState) resstate, outerTupleSlot);
 	}
 	
 	/* ----------------
@@ -191,9 +164,9 @@ ExecResult(node)
 	 */
 	qual =	        get_resrellevelqual(node);
 	resstate =      get_resstate(node);
-	outerPlan =     (Plan) get_outerPlan(node);
+	outerPlan =     (Plan) get_outerPlan((Plan) node);
 	
-	outerTupleSlot = get_cs_OuterTupleSlot(resstate);
+	outerTupleSlot = get_cs_OuterTupleSlot((CommonState)resstate);
 	
 	/* ----------------
 	 *   fill in the information in the expression context
@@ -227,7 +200,7 @@ ExecResult(node)
 	     */
 	    ProjectionInfo projInfo;
 
-	    projInfo = get_cs_ProjInfo(resstate);
+	    projInfo = get_cs_ProjInfo((CommonState)resstate);
 	    return
 		ExecProject(projInfo);
 	}
@@ -264,14 +237,14 @@ ExecInitResult(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state(node, estate);
+    set_state( node, estate);
     
     /* ----------------
      *	create new ResultState for node
      * ----------------
      */
-    resstate = MakeResultState();
-    set_resstate(node, resstate);
+    resstate = MakeResultState(0);
+    set_resstate((Result) node, resstate);
         
     /* ----------------
      *  Miscellanious initialization
@@ -281,15 +254,15 @@ ExecInitResult(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, resstate, parent);
-    ExecAssignDebugHooks(node, resstate);
-    ExecAssignExprContext(estate, resstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) resstate, parent);
+    ExecAssignDebugHooks( node, (BaseNode) resstate);
+    ExecAssignExprContext(estate, (CommonState) resstate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, resstate);
+    ExecInitResultTupleSlot(estate, (CommonState) resstate);
          
     /* ----------------
      *	then initialize children
@@ -302,8 +275,8 @@ ExecInitResult(node, estate, parent)
      * 	initialize tuple type and projection info
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, resstate);
-    ExecAssignProjectionInfo(node, resstate);
+    ExecAssignResultTypeFromTL(node, (CommonState)resstate);
+    ExecAssignProjectionInfo(node, (CommonState) resstate);
 
     /* ----------------
      *	set "are we done yet" to false
@@ -341,18 +314,18 @@ ExecEndResult(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(resstate);
+    ExecFreeProjectionInfo((CommonState)resstate);
     
     /* ----------------
      *	shut down subplans
      * ----------------
      */
-    ExecEndNode((Plan) get_outerPlan(node));
-    ExecEndNode((Plan) get_innerPlan(node));
+    ExecEndNode((Plan) get_outerPlan((Plan)node));
+    ExecEndNode((Plan) get_innerPlan((Plan)node));
 
     /* ----------------
      *	clean out the tuple table
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(resstate));
+    ExecClearTuple((Pointer)get_cs_ResultTupleSlot((CommonState)resstate));
 }

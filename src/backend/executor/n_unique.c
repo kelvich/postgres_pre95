@@ -18,37 +18,12 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
+#include "planner/clauses.h"
 
  RcsId("$Header$");
 
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *   	ExecIdenticalTuples
@@ -77,8 +52,8 @@ ExecIdenticalTuples(t1, t2)
     char 	*d2;
     int 	len;
     
-    h1 = (HeapTuple) ExecFetchTuple(t1);
-    h2 = (HeapTuple) ExecFetchTuple(t2);
+    h1 = (HeapTuple) ExecFetchTuple((Pointer) t1);
+    h2 = (HeapTuple) ExecFetchTuple((Pointer) t2);
     
     /* ----------------
      *	if tuples aren't the same length then they are 
@@ -134,8 +109,8 @@ ExecUnique(node)
      * ----------------
      */
     uniquestate =   	get_uniquestate(node);
-    outerPlan =     	get_outerPlan(node);
-    resultTupleSlot =   get_cs_ResultTupleSlot(uniquestate);
+    outerPlan =     	get_outerPlan((Plan) node);
+    resultTupleSlot =   get_cs_ResultTupleSlot((CommonState) uniquestate);
     
     /* ----------------
      *	now loop, returning only non-duplicate tuples.
@@ -149,7 +124,7 @@ ExecUnique(node)
 	 * ----------------
 	 */
 	slot = ExecProcNode(outerPlan);
-	if (TupIsNull(slot))
+	if (TupIsNull((Pointer) slot))
 	    return NULL;
 	
 	/* ----------------
@@ -159,7 +134,7 @@ ExecUnique(node)
 	 *   the next time we get here.  
 	 * ----------------
 	 */
-	if (TupIsNull(resultTupleSlot))
+	if (TupIsNull((Pointer) resultTupleSlot))
 	    break;
 	
 	/* ----------------
@@ -168,7 +143,7 @@ ExecUnique(node)
 	 *   another new tuple from the subplan.
 	 * ----------------
 	 */
-	if (! ExecIdenticalTuples(slot, resultTupleSlot))
+	if (! ExecIdenticalTuples((List) slot, (List) resultTupleSlot))
 	    break;
     }
     
@@ -178,14 +153,14 @@ ExecUnique(node)
      *  for the slot's buffer.
      * ----------------
      */
-    shouldFree = ExecSetSlotPolicy(slot, false); 
+    shouldFree = ExecSetSlotPolicy((Pointer) slot, false); 
     
-    ExecStoreTuple(ExecFetchTuple(slot),
-		   resultTupleSlot,
-		   ExecSlotBuffer(slot),
+    ExecStoreTuple(ExecFetchTuple((Pointer) slot),
+		   (Pointer) resultTupleSlot,
+		   ExecSlotBuffer((Pointer) slot),
 		   shouldFree);
     
-    ExecIncrSlotBufferRefcnt(resultTupleSlot);
+    ExecIncrSlotBufferRefcnt((Pointer) resultTupleSlot);
     
     return
 	slot;
@@ -214,13 +189,13 @@ ExecInitUnique(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node,  estate);
     
     /* ----------------
      *	create new UniqueState for node
      * ----------------
      */
-    uniquestate = MakeUniqueState();
+    uniquestate = MakeUniqueState(0);
     set_uniquestate(node, uniquestate);
     
     /* ----------------
@@ -233,24 +208,24 @@ ExecInitUnique(node, estate, parent)
      *  they never call ExecQual or ExecTargetList.
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, uniquestate, parent);
-    ExecAssignDebugHooks(node, uniquestate);
-    ExecInitResultTupleSlot(estate, uniquestate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) uniquestate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) uniquestate);
+    ExecInitResultTupleSlot(estate, (CommonState) uniquestate);
     
     /* ----------------
      *	then initialize outer plan
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
-    ExecInitNode(outerPlan, estate, node);
+    outerPlan = get_outerPlan((Plan) node);
+    ExecInitNode(outerPlan, estate, (Plan) node);
     
     /* ----------------
      *	unique nodes do no projections, so initialize
      *  projection info for this node appropriately
      * ----------------
      */
-    ExecAssignResultTypeFromOuterPlan(node, uniquestate);
-    set_cs_ProjInfo(uniquestate, NULL);
+    ExecAssignResultTypeFromOuterPlan((Plan) node, (CommonState) uniquestate);
+    set_cs_ProjInfo((CommonState) uniquestate, NULL);
        
     /* ----------------
      *	all done.
@@ -277,6 +252,7 @@ ExecEndUnique(node)
     UniqueState	    uniquestate;
     
     uniquestate = get_uniquestate(node);
-    ExecEndNode((Plan) get_outerPlan(node));
-    ExecClearTuple(get_cs_ResultTupleSlot(uniquestate));
+    ExecEndNode((Plan) get_outerPlan((Plan) node));
+    ExecClearTuple((Pointer)
+		   get_cs_ResultTupleSlot((CommonState) uniquestate));
 } 

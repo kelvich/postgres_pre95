@@ -17,37 +17,9 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *   	ExecMaterial
@@ -91,7 +63,7 @@ ExecMaterial(node)
      * ----------------
      */
     matstate =   	get_matstate(node);
-    estate =      	(EState) get_state(node);
+    estate =      	(EState) get_state((Plan) node);
     dir =   	  	get_es_direction(estate);
     
     /* ----------------
@@ -121,7 +93,7 @@ ExecMaterial(node)
 	    return NULL;
 	}
 	
-	currentRelation = get_css_currentRelation(matstate);
+	currentRelation = get_css_currentRelation((CommonScanState)matstate);
 	if (currentRelation == NULL) {
 	    elog(DEBUG, "ExecMaterial: current relation is NULL! aborting...");
 	    return NULL;
@@ -132,11 +104,11 @@ ExecMaterial(node)
 	 *   insert them in the temporary relation
 	 * ----------------
 	 */
-	outerNode =     get_outerPlan(node);
+	outerNode =     get_outerPlan((Plan) node);
 	for (;;) {
 	    slot = ExecProcNode(outerNode);
 	    
-	    heapTuple = (HeapTuple) ExecFetchTuple(slot);
+	    heapTuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
 	    if (heapTuple == NULL)
 		break;
 	    
@@ -144,7 +116,7 @@ ExecMaterial(node)
 		     heapTuple,		/* heap tuple to insert */
 		     0);		/* return: offset */
 	    
-	    ExecClearTuple(slot);
+	    ExecClearTuple((Pointer) slot);
 	}
 	currentRelation = tempRelation;
 	
@@ -164,10 +136,11 @@ ExecMaterial(node)
 				      NowTimeQual,        /* time qual */
 				      0, 		  /* num scan keys */
 				      NULL); 		  /* scan keys */
-	set_css_currentRelation(matstate, currentRelation);
-	set_css_currentScanDesc(matstate, currentScanDesc);
+	set_css_currentRelation((CommonScanState)matstate, currentRelation);
+	set_css_currentScanDesc((CommonScanState)matstate, currentScanDesc);
 	
-	ExecAssignScanType(matstate, &currentRelation->rd_att);
+	ExecAssignScanType((CommonScanState)matstate,
+			   &currentRelation->rd_att);
 	
 	/* ----------------
 	 *  finally set the sorted flag to true
@@ -181,7 +154,7 @@ ExecMaterial(node)
      *  we preform a simple scan on it with amgetnext()..
      * ----------------
      */
-    currentScanDesc = get_css_currentScanDesc(matstate);
+    currentScanDesc = get_css_currentScanDesc((CommonScanState)matstate);
     
     heapTuple = amgetnext(currentScanDesc, 	/* scan desc */
 			  (dir == EXEC_BKWD), 	/* bkwd flag */
@@ -194,11 +167,11 @@ ExecMaterial(node)
      * ----------------
      */
     slot = (TupleTableSlot)
-	get_css_ScanTupleSlot(matstate);
+	get_css_ScanTupleSlot((CommonScanState)matstate);
 
     return (TupleTableSlot)
-	ExecStoreTuple(heapTuple,  /* tuple to store */
-		       slot,   	   /* slot to store in */
+	ExecStoreTuple((Pointer) heapTuple,  /* tuple to store */
+		       (Pointer) slot,      /* slot to store in */
 		       buffer,	   /* buffer for this tuple */
 		       false);     /* don't pfree this pointer */
     
@@ -213,7 +186,7 @@ ExecMaterial(node)
  ****/
 List	/* initialization status */
 ExecInitMaterial(node, estate, parent)
-    Sort 	node;
+    Material 	node;
     EState 	estate;
     Plan	parent;
 {
@@ -228,13 +201,13 @@ ExecInitMaterial(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node, estate);
     
     /* ----------------
      * create state structure
      * ----------------
      */
-    matstate = MakeMaterialState();
+    matstate = MakeMaterialState(false, NULL);
     set_matstate(node, matstate);
     
     /* ----------------
@@ -248,16 +221,16 @@ ExecInitMaterial(node, estate, parent)
      *  they never call ExecQual or ExecTargetList.
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, matstate, parent);
-    ExecAssignDebugHooks(node, matstate);
-    ExecInitScanTupleSlot(estate, matstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) matstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) matstate);
+    ExecInitScanTupleSlot(estate, (CommonScanState)matstate);
     
     /* ----------------
      * initializes child nodes
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
-    ExecInitNode(outerPlan, estate, node);
+    outerPlan = get_outerPlan((Plan) node);
+    ExecInitNode(outerPlan, estate, (Plan) node);
     
     /* ----------------
      *	initialize matstate information
@@ -270,14 +243,14 @@ ExecInitMaterial(node, estate, parent)
      *  info because this node doesn't do projections.
      * ----------------
      */
-    ExecAssignScanTypeFromOuterPlan(node, matstate);
-    set_cs_ProjInfo(matstate, NULL);
+    ExecAssignScanTypeFromOuterPlan((Plan) node, (CommonState)matstate);
+    set_cs_ProjInfo((CommonState)matstate, NULL);
     
     /* ----------------
      *	get type information needed for ExecCreatR
      * ----------------
      */
-    tupType = ExecGetScanType(matstate);
+    tupType = ExecGetScanType((CommonScanState)matstate);
 
     /* ----------------
      *	ExecCreatR wants it's third argument to be an object id of
@@ -292,6 +265,7 @@ ExecInitMaterial(node, estate, parent)
      *	create the temporary relation
      * ----------------
      */
+    len = length(get_qptargetlist((Plan) node));
     tempDesc = 	ExecCreatR(len, tupType, -1);
     
     /* ----------------
@@ -299,7 +273,7 @@ ExecInitMaterial(node, estate, parent)
      * ----------------
      */
     set_mat_TempRelation(matstate, tempDesc);
-    set_css_currentRelation(matstate, tempDesc);
+    set_css_currentRelation((CommonScanState)matstate, tempDesc);
     
     /* ----------------
      *  return relation oid of temporary relation in a list
@@ -344,7 +318,8 @@ ExecEndMaterial(node)
      *  but it doesn't yet -cim 1/25/90
      * ----------------
      */
-    if (FileNameUnlink(relpath(&(tempRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink((char *) relpath((char *)
+					&(tempRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndMaterial: unlink: %m");
     amclose(tempRelation);
     
@@ -358,14 +333,14 @@ ExecEndMaterial(node)
      *	shut down the subplan
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
+    outerPlan = get_outerPlan((Plan) node);
     ExecEndNode(outerPlan);
     
     /* ----------------
      *	clean out the tuple table
      * ----------------
      */
-    ExecClearTuple(get_css_ScanTupleSlot(matstate));
+    ExecClearTuple((Pointer) get_css_ScanTupleSlot((CommonScanState)matstate));
 } 
  
 /* ----------------------------------------------------------------
@@ -396,7 +371,7 @@ ExecMaterialMarkPos(node)
      *      they will never return positions for all I know -cim 10/16/89
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(matstate);
+    sdesc = get_css_currentScanDesc((CommonScanState)matstate);
     ammarkpos(sdesc);
     
     return LispNil;
@@ -428,7 +403,7 @@ ExecMaterialRestrPos(node)
      *	restore the scan to the previously marked position
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(matstate);
+    sdesc = get_css_currentScanDesc((CommonScanState)matstate);
     amrestrpos(sdesc);
 }
  

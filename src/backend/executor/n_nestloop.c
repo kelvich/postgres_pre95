@@ -18,37 +18,9 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *   	ExecNestLoop(node)
@@ -113,22 +85,22 @@ ExecNestLoop(node)
     ENL1_printf("getting info from node");
     
     nlstate =    get_nlstate(node);
-    qual =       get_qpqual(node);
-    outerPlan =  get_outerPlan(node);
-    innerPlan =  get_innerPlan(node);
-    ruleInfo =   (JoinRuleInfo) get_ruleinfo(node);
+    qual =       get_qpqual((Plan) node);
+    outerPlan =  get_outerPlan((Plan) node);
+    innerPlan =  get_innerPlan((Plan) node);
+    ruleInfo =   (JoinRuleInfo) get_ruleinfo((Join) node);
     
     /* ----------------
      *	initialize expression context
      * ----------------
      */
-    econtext = get_cs_ExprContext(nlstate);
+    econtext = get_cs_ExprContext((CommonState)nlstate);
     
     /* ----------------
      *	get the current outer tuple
      * ----------------
      */
-    outerTupleSlot = get_cs_OuterTupleSlot(nlstate);
+    outerTupleSlot = get_cs_OuterTupleSlot((CommonState)nlstate);
     set_ecxt_outertuple(econtext, outerTupleSlot);
     
     /* ----------------
@@ -151,7 +123,7 @@ ExecNestLoop(node)
 	 *  restore our previously saved scan position.
 	 * ----------------
 	 */
-	if (! TupIsNull(outerTupleSlot)) {	    
+	if (! TupIsNull((Pointer) outerTupleSlot)) {	    
 	    ENL1_printf("have outer tuple, restoring outer plan");
 	    ExecRestrPos(outerPlan);
 	} else {
@@ -181,7 +153,7 @@ ExecNestLoop(node)
 	    innerTupleSlot = ExecProcNode(innerPlan);
 	    set_ecxt_innertuple(econtext, innerTupleSlot);
 	    
-	    if (TupIsNull(innerTupleSlot)) {				
+	    if (TupIsNull((Pointer) innerTupleSlot)) {
 		ENL1_printf("no inner tuple, need new outer tuple");
 		needNewOuterTuple = true;
 	    }
@@ -213,7 +185,7 @@ ExecNestLoop(node)
 	     *  is complete..
 	     * ----------------
 	     */
-	    if (TupIsNull(outerTupleSlot)) {
+	    if (TupIsNull((Pointer) outerTupleSlot)) {
 		ENL1_printf("no outer tuple, ending join");
 		return NULL;
 	    }
@@ -227,7 +199,7 @@ ExecNestLoop(node)
 	    ENL1_printf("saving new outer tuple information");
 	    ExecMarkPos(outerPlan);
 	    set_nl_PortalFlag(nlstate, true);
-	    set_cs_OuterTupleSlot(nlstate, outerTupleSlot);
+	    set_cs_OuterTupleSlot((CommonState)nlstate, outerTupleSlot);
 	    
 	    /* ----------------
 	     *	now rescan the inner plan and get a new inner tuple
@@ -254,7 +226,7 @@ ExecNestLoop(node)
 	     */
 	    if (ExecIsIndexScan(innerPlan)) {
 		ENL1_printf("recalculating inner scan keys");
-		ExecUpdateIndexScanKeys(innerPlan, econtext);
+		ExecUpdateIndexScanKeys((IndexScan) innerPlan, econtext);
 	    }
 	    
 	    ENL1_printf("rescanning inner plan");
@@ -283,15 +255,18 @@ ExecNestLoop(node)
 		    elog(WARN,"Rule stub code: inner plan not a scan");
 		}
 		
-		outerHeapTuple = (HeapTuple) ExecFetchTuple(outerTupleSlot);
-		buf = ExecSlotBuffer(outerTupleSlot);
+		outerHeapTuple = (HeapTuple) ExecFetchTuple((Pointer)
+							    outerTupleSlot);
+		buf = ExecSlotBuffer((Pointer)outerTupleSlot);
 
 		/*
 		 * add a rule stub in the inner relation.
 		 */
-		scanState = 		get_scanstate(innerPlan);
-		relRuleInfo =	 	get_css_ruleInfo(scanState);
-		innerRelation = 	get_css_currentRelation(scanState);
+		scanState = 		get_scanstate((Scan) innerPlan);
+		relRuleInfo =
+		    get_css_ruleInfo((CommonScanState) scanState);
+		innerRelation =
+		    get_css_currentRelation((CommonScanState)scanState);
 
 		/*
 		 * get tuple descs for the rule manager.  XXX why can't
@@ -311,7 +286,7 @@ ExecNestLoop(node)
 		
 		prs2AddOneStub(relRuleInfo->relationStubs, oneStub);
 		relRuleInfo->relationStubsHaveChanged = true;
-		set_css_ruleInfo(scanState, relRuleInfo);
+		set_css_ruleInfo((CommonScanState)scanState, relRuleInfo);
 		
 		/*
 		 * also store this stub to the 'ruleInfo'
@@ -329,7 +304,7 @@ ExecNestLoop(node)
 	    innerTupleSlot = ExecProcNode(innerPlan);
 	    set_ecxt_innertuple(econtext, innerTupleSlot);
 	    
-	    if (TupIsNull(innerTupleSlot)) {
+	    if (TupIsNull((Pointer) innerTupleSlot)) {
 		ENL1_printf("couldn't get inner tuple - need new outer tuple");
 	    } else {
 		ENL1_printf("got inner and outer tuples");
@@ -365,16 +340,17 @@ ExecNestLoop(node)
 	    if (!ExecIsSeqScan(innerPlan) && !ExecIsIndexScan(innerPlan)) {
 		elog(WARN,"Rule stub code: inner plan not a scan");
 	    }
-	    scanState = 	get_scanstate(innerPlan);
-	    innerRelation = 	get_css_currentRelation(scanState);
+	    scanState = 	get_scanstate((Scan) innerPlan);
+	    innerRelation = 	get_css_currentRelation((CommonScanState)
+							scanState);
 	    oneStub = 		get_jri_stub(ruleInfo);
 	    scanTupleSlot = 	(TupleTableSlot)
-		get_css_ScanTupleSlot(scanState);
+		get_css_ScanTupleSlot((CommonScanState)scanState);
 	    
 	    innerHeapTuple = (HeapTuple)
-		ExecFetchTuple(scanTupleSlot);
+		ExecFetchTuple((Pointer)scanTupleSlot);
 	    
-	    buf = ExecSlotBuffer(scanTupleSlot);
+	    buf = ExecSlotBuffer((Pointer) scanTupleSlot);
 	    
 	    if (prs2AddLocksAndReplaceTuple(innerHeapTuple,
 					    buf,
@@ -398,7 +374,7 @@ ExecNestLoop(node)
 	    
 	    ENL1_printf("qualification succeeded, projecting tuple");
 	    
-	    projInfo = get_cs_ProjInfo(nlstate);
+	    projInfo = get_cs_ProjInfo((CommonState)nlstate);
 	    return
 		ExecProject(projInfo);
 	} 
@@ -444,13 +420,13 @@ ExecInitNestLoop(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node, estate);
     
     /* ----------------
      *    create new nest loop state
      * ----------------
      */
-    nlstate = MakeNestLoopState();
+    nlstate = MakeNestLoopState(false);
     set_nlstate(node, nlstate);
         
     /* ----------------
@@ -461,36 +437,36 @@ ExecInitNestLoop(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, nlstate, parent);
-    ExecAssignDebugHooks(node, nlstate);
-    ExecAssignExprContext(estate, nlstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) nlstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode)nlstate);
+    ExecAssignExprContext(estate, (CommonState)nlstate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, nlstate);
+    ExecInitResultTupleSlot(estate, (CommonState)nlstate);
          
     /* ----------------
      *    now initialize children
      * ----------------
      */
-    ExecInitNode(get_outerPlan(node), estate, node);
-    ExecInitNode(get_innerPlan(node), estate, node);
+    ExecInitNode(get_outerPlan((Plan)node), estate, (Plan)node);
+    ExecInitNode(get_innerPlan((Plan)node), estate, (Plan) node);
     set_nl_PortalFlag(nlstate, true);
         
     /* ----------------
      * 	initialize tuple type and projection info
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, nlstate);
-    ExecAssignProjectionInfo(node, nlstate);
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState)nlstate);
+    ExecAssignProjectionInfo((Plan) node, (CommonState) nlstate);
     
     /* ----------------
      *  finally, wipe the current outer tuple clean.
      * ----------------
      */
-    set_cs_OuterTupleSlot(nlstate, LispNil);
+    set_cs_OuterTupleSlot((CommonState)nlstate, NULL);
     
     NL1_printf("ExecInitNestLoop: %s\n",
 	       "node initialized");
@@ -531,20 +507,20 @@ ExecEndNestLoop(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(nlstate);
+    ExecFreeProjectionInfo((CommonState)nlstate);
 
     /* ----------------
      *	close down subplans
      * ----------------
      */
-    ExecEndNode(get_outerPlan(node));
-    ExecEndNode(get_innerPlan(node));
+    ExecEndNode(get_outerPlan((Plan) node));
+    ExecEndNode(get_innerPlan((Plan) node));
 
     /* ----------------
      *	clean out the tuple table 
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(nlstate));
+    ExecClearTuple((Pointer) get_cs_ResultTupleSlot((CommonState)nlstate));
     
     NL1_printf("ExecEndNestLoop: %s\n",
 	       "node processing ended");

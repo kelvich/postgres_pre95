@@ -68,6 +68,8 @@
 
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "tcop/dest.h"
+#include "storage/smgr.h"
 
 /* ----------------
  * .h files made from running pgdecs over generated .c files in obj/lib/C
@@ -77,41 +79,14 @@
 #include "nodes/plannodes.a.h"
 #include "nodes/execnodes.a.h"
 
+#include "executor/execshmem.h"
 #include "executor/execmisc.h"
 /* 
  *	public executor functions
  *
  *	XXX reorganize me.
  */
-#include "executor/aggregate.h"
-#include "executor/x_append.h"
-#include "executor/x_debug.h"
-#include "executor/x_endnode.h"
-#include "executor/x_eutils.h"
-#include "executor/x_execam.h"
-#include "executor/x_execfmgr.h"
-#include "executor/x_execinit.h"
-#include "executor/x_execmain.h"
-#include "executor/x_execmmgr.h"
-#include "executor/x_execstats.h"
-#include "executor/x_exist.h"
-#include "executor/hashjoin.h"
-#include "executor/x_indexscan.h"
-#include "executor/x_initnode.h"
-#include "executor/x_material.h"
-#include "executor/x_mergejoin.h"
-#include "executor/x_nestloop.h"
-#include "executor/x_parallel.h"
-#include "executor/x_procnode.h"
-#include "executor/x_qual.h"
-#include "executor/recursive.h"
-#include "executor/x_result.h"
-#include "executor/x_scan.h"
-#include "executor/x_seqscan.h"
-#include "executor/x_sort.h"
-#include "executor/x_tuples.h"
-#include "executor/x_unique.h"
-#include "executor/x_xdebug.h"
+#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *	the end

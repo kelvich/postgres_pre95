@@ -16,38 +16,10 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *    	FormSortKeys(node)
@@ -69,7 +41,7 @@ FormSortKeys(sortnode)
     List    		targetList;
     List   		tl;
     int			keycount;
-    List    		resdom;
+    Resdom    		resdom;
     AttributeNumber 	resno;
     Index   		reskey;
     OperatorTupleForm	reskeyop;
@@ -78,8 +50,8 @@ FormSortKeys(sortnode)
      *	get information from the node
      * ----------------
      */
-    targetList = get_qptargetlist(sortnode);
-    keycount =   get_keycount(sortnode);
+    targetList = get_qptargetlist((Plan)sortnode);
+    keycount =   get_keycount((Temp)sortnode);
     
     /* ----------------
      *	first allocate space for scan keys
@@ -94,7 +66,7 @@ FormSortKeys(sortnode)
      * ----------------
      */
     foreach(tl, targetList) {
-	resdom =  tl_resdom(CAR(tl));
+	resdom =  (Resdom) tl_resdom(CAR(tl));
 	resno =   get_resno(resdom);
 	reskey =  get_reskey(resdom);
 	reskeyop = get_reskeyop(resdom);
@@ -102,9 +74,9 @@ FormSortKeys(sortnode)
 	if (reskey > 0) {
 	    ExecSetSkeys(reskey - 1,
 			 sortkeys,
-			 resno,
-			 reskeyop,
-			 0);
+			 (AttributeNumber) resno,
+			 (RegProcedure) reskeyop,
+			 (Datum) 0);
 	}
     }
     
@@ -156,7 +128,7 @@ ExecSort(node)
 	       "entering routine");
     
     sortstate =   get_sortstate(node);
-    estate =      (EState) get_state(node);
+    estate =      (EState) get_state((Plan) node);
     dir =   	  get_es_direction(estate);
     
     /* ----------------
@@ -188,7 +160,7 @@ ExecSort(node)
 	    return NULL;
 	}
 	
-	currentRelation = get_css_currentRelation(sortstate);
+	currentRelation = get_css_currentRelation((CommonScanState)sortstate);
 	if (currentRelation == NULL) {
 	    elog(DEBUG, "ExecSort: current relation is NULL! aborting...");
 	    return NULL;
@@ -199,23 +171,23 @@ ExecSort(node)
 	 *   insert them in the temporary relation
 	 * ----------------
 	 */
-	outerNode =     get_outerPlan(node);
+	outerNode =     get_outerPlan((Plan) node);
 	SO1_printf("ExecSort: %s\n",
 		   "inserting tuples into tempRelation");
 	
 	for (;;) {
 	    slot = ExecProcNode(outerNode);
 
-	    if (TupIsNull(slot))
+	    if (TupIsNull((Pointer) slot))
 		break;
 	    
-	    heapTuple = (HeapTuple) ExecFetchTuple(slot);
+	    heapTuple = (HeapTuple) ExecFetchTuple((Pointer)slot);
 	    
 	    aminsert(tempRelation, 	/* relation desc */
 		     heapTuple,		/* heap tuple to insert */
 		     0);		/* return: offset */
 	    
-	    ExecClearTuple(slot);
+	    ExecClearTuple((Pointer) slot);
 	}
    
 	/* ----------------
@@ -227,7 +199,7 @@ ExecSort(node)
 	 *   -cim 1/25/90
 	 * ----------------
 	 */
-	keycount = get_keycount(node);
+	keycount = get_keycount((Temp) node);
 	sortkeys = get_sort_Keys(sortstate);
 	SO1_printf("ExecSort: %s\n",
 		   "calling psort");
@@ -259,17 +231,17 @@ ExecSort(node)
 				      0, 		  /* num scan keys */
 				      NULL); 		  /* scan keys */
 	
-	set_css_currentRelation(sortstate, currentRelation);
-	set_css_currentScanDesc(sortstate, currentScanDesc);
+	set_css_currentRelation((CommonScanState) sortstate, currentRelation);
+	set_css_currentScanDesc((CommonScanState)  sortstate, currentScanDesc);
 	    
 	/* ----------------
 	 *  make sure the tuple descriptor is up to date
 	 * ----------------
 	 */
 	slot = (TupleTableSlot)
-	    get_css_ScanTupleSlot(sortstate);
+	    get_css_ScanTupleSlot((CommonScanState) sortstate);
     
-	ExecSetSlotDescriptor(slot, &currentRelation->rd_att);
+	ExecSetSlotDescriptor((Pointer) slot, &currentRelation->rd_att);
 	
 	/* ----------------
 	 *  finally set the sorted flag to true
@@ -279,7 +251,7 @@ ExecSort(node)
     }
     else {
 	slot = (TupleTableSlot)
-	    get_css_ScanTupleSlot(sortstate);
+	    get_css_ScanTupleSlot((CommonScanState) sortstate);
     }
     
     SO1_printf("ExecSort: %s\n",
@@ -290,15 +262,15 @@ ExecSort(node)
      *  we preform a simple scan on it with amgetnext()..
      * ----------------
      */
-    currentScanDesc = get_css_currentScanDesc(sortstate);
+    currentScanDesc = get_css_currentScanDesc((CommonScanState) sortstate);
     
     heapTuple = amgetnext(currentScanDesc, 	/* scan desc */
 			  (dir == EXEC_BKWD), 	/* bkwd flag */
 			  &buffer); 		/* return: buffer */
 
     return (TupleTableSlot)
-	ExecStoreTuple(heapTuple,   	/* tuple to store */
-		       slot,   		/* slot to store in */
+	ExecStoreTuple((Pointer) heapTuple,   	/* tuple to store */
+		       (Pointer) slot,   	/* slot to store in */
 		       buffer,		/* this tuple's buffer */
 		       false); 		/* don't free stuff from amgetnext */
 }
@@ -340,13 +312,13 @@ ExecInitSort(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan)node, estate);
     
     /* ----------------
      * create state structure
      * ----------------
      */
-    sortstate = MakeSortState();
+    sortstate = MakeSortState(0,NULL, NULL);
     set_sortstate(node, sortstate);
     
     /* ----------------
@@ -359,8 +331,8 @@ ExecInitSort(node, estate, parent)
      *  they never call ExecQual or ExecTargetList.
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, sortstate, parent);
-    ExecAssignDebugHooks(node, sortstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) sortstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) sortstate);
     
     /* ----------------
      *	tuple table initialization
@@ -369,14 +341,14 @@ ExecInitSort(node, estate, parent)
      *  relation.
      * ----------------
      */
-    ExecInitScanTupleSlot(estate, sortstate);
+    ExecInitScanTupleSlot(estate, (CommonScanState) sortstate);
     
     /* ----------------
      * initializes child nodes
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
-    ExecInitNode(outerPlan, estate, node);
+    outerPlan = get_outerPlan((Plan) node);
+    ExecInitNode(outerPlan, estate, (Plan) node);
     
     /* ----------------
      *	initialize sortstate information
@@ -391,14 +363,14 @@ ExecInitSort(node, estate, parent)
      *  info because this node doesn't do projections.
      * ----------------
      */
-    ExecAssignScanTypeFromOuterPlan(node, sortstate);
-    set_cs_ProjInfo(sortstate, NULL);
+    ExecAssignScanTypeFromOuterPlan((Plan) node, (CommonState)sortstate);
+    set_cs_ProjInfo((CommonState) sortstate, NULL);
     
     /* ----------------
      *	get type information needed for ExecCreatR
      * ----------------
      */
-    tupType = ExecGetScanType(sortstate);
+    tupType = ExecGetScanType((CommonScanState) sortstate);
     
     /* ----------------
      *	ExecCreatR wants it's third argument to be an object id of
@@ -409,14 +381,14 @@ ExecInitSort(node, estate, parent)
      *  (currently this is the only case we support -cim 10/16/89)
      * ----------------
      */
-    tempOid = 	get_tempid(node);
+    tempOid = 	get_tempid((Temp) node);
     sortOid =	-1;
     
     /* ----------------
      *	create the temporary relations
      * ----------------
      */
-    len = 		length(get_qptargetlist(node));
+    len = 		length(get_qptargetlist((Plan) node));
     tempDesc = 		ExecCreatR(len, tupType, tempOid);
     sortedDesc = 	ExecCreatR(len, tupType, sortOid);
     
@@ -425,7 +397,7 @@ ExecInitSort(node, estate, parent)
      * ----------------
      */
     set_sort_TempRelation(sortstate, tempDesc);
-    set_css_currentRelation(sortstate, sortedDesc);
+    set_css_currentRelation((CommonScanState) sortstate, sortedDesc);
     SO1_printf("ExecInitSort: %s\n",
 	       "sort node initialized");
     
@@ -467,7 +439,7 @@ ExecEndSort(node)
     
     sortstate =      get_sortstate(node);
     tempRelation =   get_sort_TempRelation(sortstate);
-    sortedRelation = get_css_currentRelation(sortstate);
+    sortedRelation = get_css_currentRelation((CommonScanState) sortstate);
     
     /* ----------------
      *	the temporary relations are not cataloged so
@@ -484,9 +456,11 @@ ExecEndSort(node)
      */
     ReleaseTmpRelBuffers(tempRelation);
     ReleaseTmpRelBuffers(sortedRelation);
-    if (FileNameUnlink(relpath(&(tempRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink((char *)
+	relpath((char *) &(tempRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndSort: unlink: %m");
-    if (FileNameUnlink(relpath(&(sortedRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink((char *) relpath((char *)
+			       &(sortedRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndSort: unlink: %m");
     
     amclose(tempRelation);
@@ -502,14 +476,15 @@ ExecEndSort(node)
      *	shut down the subplan
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
+    outerPlan = get_outerPlan((Plan) node);
     ExecEndNode(outerPlan);
 
     /* ----------------
      *	clean out the tuple table
      * ----------------
      */
-    ExecClearTuple(get_css_ScanTupleSlot(sortstate));
+    ExecClearTuple((Pointer)
+		   get_css_ScanTupleSlot((CommonScanState) sortstate));
         
     SO1_printf("ExecEndSort: %s\n",
 	       "sort node shutdown");
@@ -533,7 +508,7 @@ ExecSortMarkPos(node)
      *	if we haven't sorted yet, just return LispNil.
      * ----------------
      */
-    sortstate =     get_sortstate(node);
+    sortstate =     get_sortstate((Sort) node);
     if (get_sort_Flag(sortstate) == false)
 	return LispNil;
     
@@ -543,7 +518,7 @@ ExecSortMarkPos(node)
      *      they will never return positions for all I know -cim 10/16/89
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(sortstate);
+    sdesc = get_css_currentScanDesc((CommonScanState) sortstate);
     ammarkpos(sdesc);
     return LispNil;
 }
@@ -566,7 +541,7 @@ ExecSortRestrPos(node)
      *	if we haven't sorted yet, just return.
      * ----------------
      */
-    sortstate =  get_sortstate(node);
+    sortstate =  get_sortstate((Sort) node);
     if (get_sort_Flag(sortstate) == false)
 	return;
     
@@ -574,6 +549,6 @@ ExecSortRestrPos(node)
      *	restore the scan to the previously marked position
      * ----------------
      */
-    sdesc = get_css_currentScanDesc(sortstate);
+    sdesc = get_css_currentScanDesc((CommonScanState) sortstate);
     amrestrpos(sdesc);
 }
