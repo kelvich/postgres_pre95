@@ -166,20 +166,20 @@ ProcessUtility(command, args, commandString)
 	    String	beforeString = NULL;	/* absolute time string */
 	    String	afterString = NULL;	/* relative time string */
 	    
-	    tags = CADR(args);
+	    tags = CAR(CADR(args));
 	    switch (length(tags)) {
 	      case 1:
 		break;
 	      case 2:
-		if (CInteger(CAR(CAR(tags))) == BEFORE) {
-		    beforeString = CString(CADR(CAR(tags)));
+		if (CInteger(CAR(tags)) == BEFORE) {
+		    beforeString = CString(CADR(tags));
 		} else {
-		    afterString = CString(CADR(CAR(tags)));
+		    afterString = CString(CADR(tags));
 		}
 		break;
 	      case 3:
-		beforeString = CString(CADR(CAR(tags)));
-		afterString = CString(CADR(CADR(tags)));
+		beforeString = CString(CADR(tags));
+		afterString = CString(CADR(tags));
 		break;
 	    }
 	    RelationPurge(CString(CAR(args)), beforeString, afterString);
