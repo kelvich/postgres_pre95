@@ -116,6 +116,7 @@ DATA(insert OID = 601 (  lseg      6 32  48 f b t \054 0 600 lseg_in lseg_out ls
 DATA(insert OID = 602 (  path      6 -1  -1 f b t \054 0 600 path_in path_out path_in path_out - ));
 DATA(insert OID = 603 (  box       6 32 100 f b t \073 0 600 box_in box_out box_in box_out - ));
 DATA(insert OID = 604 (  polygon   6 -1 100 f b t \054 0 600 poly_in poly_out poly_in poly_out - ));
+DATA(insert OID = 605 (  filename  6 64 -1 f b t \054 0 18 filename_in filename_out filename_in filename_out - ));
 DATA(insert OID = 700 (  float4    6  4  12 f b t \054 0   0 float4in float4out float4in float4out - ));
 DATA(insert OID = 701 (  float8    6  8  24 f b t \054 0   0 float8in float8out float8in float8out - ));
 DATA(insert OID = 702 (  abstime   6  4  20 t b t \054 0   0 abstimein abstimeout abstimein abstimeout - ));
@@ -149,6 +150,8 @@ DATA(insert OID = 1022 (  _float8    6 -1  -1 f b t \054 0 701 array_in array_ou
 DATA(insert OID = 1023 (  _abstime   6 -1  -1 f b t \054 0 702 array_in array_out array_in array_out - ));
 DATA(insert OID = 1024 (  _reltime   6 -1  -1 f b t \054 0 703 array_in array_out array_in array_out - ));
 DATA(insert OID = 1025 (  _tinterval 6 -1  -1 f b t \054 0 704 array_in array_out array_in array_out - ));
+DATA(insert OID = 1026 (  _filename 6 -1  -1 f b t \054 0 605 array_in array_out array_in array_out - ));
+DATA(insert OID = 1027 (  _polygon 6 -1  -1 f b t \054 0 604 array_in array_out array_in array_out - ));
 
 /* ----------------
  *	old definition of TypeTupleForm
