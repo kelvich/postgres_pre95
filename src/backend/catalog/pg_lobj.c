@@ -36,9 +36,9 @@
 
 #include <stdio.h>
 #include "catalog/syscache.h"
+#include "utils/large_object.h"
 #include "catalog/pg_lobj.h"
 #include "utils/rel.h"
-#include "utils/large_object.h"
 #include "access/heapam.h"
 
 int LOputOIDandLargeObjDesc(objOID, desc)
