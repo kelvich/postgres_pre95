@@ -60,20 +60,20 @@ typedef FormData_pg_type	*Form_pg_type;
  */
 #define Name_pg_type			"pg_type"
 #define Natts_pg_type			14
-#define Anum_pg_tupe_typname		1
-#define Anum_pg_tupe_typowner		2
-#define Anum_pg_tupe_typlen		3
-#define Anum_pg_tupe_typprtlen		4
-#define Anum_pg_tupe_typbyval		5
-#define Anum_pg_tupe_typtype		6
-#define Anum_pg_tupe_typisdefined	7
-#define Anum_pg_tupe_typrelid		8
-#define Anum_pg_tupe_typelem		9
-#define Anum_pg_tupe_typinput		10
-#define Anum_pg_tupe_typoutput		11
-#define Anum_pg_tupe_typreceive		12
-#define Anum_pg_tupe_typsend		13
-#define Anum_pg_tupe_typdefault		14
+#define Anum_pg_type_typname		1
+#define Anum_pg_type_typowner		2
+#define Anum_pg_type_typlen		3
+#define Anum_pg_type_typprtlen		4
+#define Anum_pg_type_typbyval		5
+#define Anum_pg_type_typtype		6
+#define Anum_pg_type_typisdefined	7
+#define Anum_pg_type_typrelid		8
+#define Anum_pg_type_typelem		9
+#define Anum_pg_type_typinput		10
+#define Anum_pg_type_typoutput		11
+#define Anum_pg_type_typreceive		12
+#define Anum_pg_type_typsend		13
+#define Anum_pg_type_typdefault		14
 
 /* ----------------
  *	initial contents of pg_type
@@ -175,13 +175,13 @@ struct	type {
  * ----------------
  */    
 #define	TypeNameAttributeNumber \
-    Anum_pg_tupe_typname
+    Anum_pg_type_typname
 #define TypeLengthAttributeNumber \
-    Anum_pg_tupe_typlen
+    Anum_pg_type_typlen
 #define	TypeIsDefinedAttributeNumber \
-    Anum_pg_tupe_typisdefined
+    Anum_pg_type_typisdefined
 #define	TypeDefaultAttributeNumber \
-    Anum_pg_tupe_typdefault
+    Anum_pg_type_typdefault
 
 #define TypeRelationNumberOfAttributes \
     Natts_pg_type
