@@ -26,6 +26,7 @@ ${PROG}: STOP_THE_MAKEFILE
 
 LDADD+= ${LIBPQ}
 PROG= iportal
+SRCS= iportal.c
 
 .include <postgres.prog.mk>
 
