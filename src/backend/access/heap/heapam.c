@@ -224,19 +224,16 @@ int dir;
 bool parallel_ok;
 {
     int skip;
+    int nextpage;
 
     if (!ParallelExecutorEnabled() || !parallel_ok)
 	return((dir<0)?page-1:page+1);
-    if (SlaveLocalInfoD.paradjpending)
-	if (page >= SlaveLocalInfoD.paradjpage) {
-	    SLAVE2_elog(DEBUG, "slave %d adjusting page skip to %d", 
-			MyPid, SlaveLocalInfoD.newparallel);
-	    SlaveLocalInfoD.nparallel = SlaveLocalInfoD.newparallel;
-	    SlaveLocalInfoD.paradjpending = false;
-	    return(SlaveLocalInfoD.paradjpage + SlaveInfoP[MyPid].groupPid);
-	  }
-    skip = SlaveLocalInfoD.nparallel;
-    return((dir<0)?page-skip:page+skip);
+    nextpage = paradj_nextpage(page, dir);
+    if (nextpage == NULLPAGE) {
+        skip = SlaveLocalInfoD.nparallel;
+        nextpage = (dir<0)?page-skip:page+skip;
+      }
+    return nextpage;
 }
 
 /* ----------------
