@@ -34,6 +34,7 @@ RcsId("$Header$");
 #include "storage/itemptr.h"
 
 #include "utils/memutils.h"
+#include "utils/palloc.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 

@@ -31,6 +31,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 
 #include "storage/buf.h"
+#include "storage/bufpage.h"
 #include "storage/itemid.h"
 #include "storage/page.h"
 #include "utils/rel.h"

@@ -46,17 +46,8 @@ RcsId("$Header$");
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
-/*
- * OperatorRelationFillScanKeyEntry --
- *	Fills the scan key entry for an OPERATOR object.
- */
-extern
-void
-OperatorRelationFillScanKeyEntry ARGS((
-	Relation	operatorRelation,
-	ObjectId	operatorObjectId,
-	ScanKeyEntry	entry
-));
+static bool StrategyTermEvaluate ARGS((StrategyTerm term, StrategyMap map, Datum left, Datum right));
+static void OperatorRelationFillScanKeyEntry ARGS((Relation operatorRelation, ObjectId operatorObjectId, ScanKeyEntry entry));
 
 /* ----------------------------------------------------------------
  *	           misc strategy support routines
@@ -231,6 +222,7 @@ StrategyTermEvaluate(term, map, left, right)
     Datum		right;
 {
     Index		index;
+    long		tmpres;
     bool		result;
     StrategyOperator	operator;
     ScanKeyEntry	entry;
@@ -244,22 +236,22 @@ StrategyTermEvaluate(term, map, left, right)
 
 	switch (operator->flags ^ entry->flags) {
 	case 0x0:
-	    result = (bool) FMGR_PTR2(entry->func, entry->procedure,
+	    tmpres = (long) FMGR_PTR2(entry->func, entry->procedure,
 				      left, right);
 	    break;
 	    
 	case NegateResult:
-	    result = (bool) !FMGR_PTR2(entry->func, entry->procedure,
+	    tmpres = (long) !FMGR_PTR2(entry->func, entry->procedure,
 				       left, right);
 	    break;
 	    
 	case CommuteArguments:
-	    result = (bool) FMGR_PTR2(entry->func, entry->procedure,
+	    tmpres = (long) FMGR_PTR2(entry->func, entry->procedure,
 				      right, left);
 	    break;
 	    
 	case NegateResult | CommuteArguments:
-	    result = (bool) !FMGR_PTR2(entry->func, entry->procedure,
+	    tmpres = (long) !FMGR_PTR2(entry->func, entry->procedure,
 				       right, left);
 	    break;
 
@@ -268,6 +260,7 @@ StrategyTermEvaluate(term, map, left, right)
 		 operator->flags ^ entry->flags);
 	}
 
+	result = tmpres;
 	if (!result)
 	    return result;
     }
@@ -504,7 +497,7 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
 
     entry->flags = 0;
     entry->procedure = ((OperatorTupleForm) HeapTupleGetForm(tuple))->oprcode;
-	fmgr_info(entry->procedure, &entry->func, &entry->nargs);
+	fmgr_info(entry->procedure, (func_ptr *) &entry->func, &entry->nargs);
 
     if (! RegProcedureIsValid(entry->procedure)) {
 	elog(WARN,

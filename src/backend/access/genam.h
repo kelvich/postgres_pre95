@@ -20,103 +20,28 @@
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "access/sdir.h"
+#include "access/funcindex.h"
 
 /* ----------------
  *	generalized index_ interface routines
  * ----------------
  */
-extern
-Relation
-index_open ARGS((
-	ObjectId	relation
-));
+extern Relation index_open ARGS((ObjectId relationId));
+extern Relation index_openr ARGS((Name relationName));
+extern void index_close ARGS((Relation relation));
+extern GeneralInsertIndexResult index_insert ARGS((Relation relation, IndexTuple indexTuple, double *offsetOutP));
+extern void index_delete ARGS((Relation relation, ItemPointer indexItem));
+extern IndexScanDesc index_beginscan ARGS((Relation relation, Boolean scanFromEnd, uint16 numberOfKeys, ScanKey key));
+extern void index_rescan ARGS((IndexScanDesc scan, bool scanFromEnd, ScanKey key));
+extern void index_endscan ARGS((IndexScanDesc scan));
+extern void index_markpos ARGS((IndexScanDesc scan));
+extern void index_restrpos ARGS((IndexScanDesc scan));
+extern RetrieveIndexResult index_getnext ARGS((IndexScanDesc scan, ScanDirection direction));
+extern RegProcedure index_getprocid ARGS((Relation irel, AttributeNumber attnum, uint16 procnum));
+extern void InsertIndexTuple ARGS((Relation heapRelation, Relation indexRelation, AttributeNumber numberOfAttributes, AttributeNumber attributeNumber[], HeapTuple heapTuple, IndexStrategy indexStrategy, uint16 parameterCount, Datum parameter[]));
+extern HeapTuple GetHeapTuple ARGS((GeneralRetrieveIndexResult result, Relation heaprel, Buffer buffer));
+extern Datum GetIndexValue ARGS((HeapTuple tuple, TupleDescriptor hTupDesc, AttributeOffset attOff, AttributeNumber attrNums[], FuncIndexInfo *fInfo, Boolean *attNull, Buffer buffer));
 
-extern
-Relation
-index_openr ARGS((
-	Name		relationName
-));
-
-extern
-void
-index_close ARGS((
-	Relation	relation
-));
-
-extern
-GeneralInsertIndexResult
-index_insert ARGS((
-	Relation	relation,
-	IndexTuple	indexTuple,
-	double		*offsetOutP	/* XXX unused */
-));
-
-extern
-void
-index_delete ARGS((
-	Relation	relation,
-	ItemPointer	indexItem
-));
-
-extern
-IndexScanDesc
-index_beginscan ARGS((
-	Relation	relation,
-	Boolean		scanFromEnd,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
-
-extern
-void
-index_rescan ARGS((
-	IndexScanDesc	scan,
-	bool		scanFromEnd,
-	ScanKey		key
-));
-
-extern
-void
-index_endscan ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-void
-index_markpos ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-void
-index_restrpos ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-RetrieveIndexResult
-index_getnext ARGS((
-	IndexScanDesc	scan,
-	ScanDirection	direction
-));
-
-extern
-RegProcedure
-index_getrprocid ARGS((
-	Relation	irel,
-	AttributeNumber	attnum,
-	uint16		procnum
-));
-
-extern
-IndexTuple
-index_formtuple ARGS((
-    AttributeNumber	numberOfAttributes,
-    TupleDescriptor	tupleDescriptor,
-    Datum		value[],
-    char		nulls[]
-));		      
-		      
 /* ----------------
  *	Predefined routines.  Comment from genam.c:
  *
@@ -132,85 +57,36 @@ index_formtuple ARGS((
 /*
  * RelationGetIndexScan --
  *	General access method initialize index scan routine.
- */
-extern
-IndexScanDesc
-RelationGetIndexScan ARGS((
-	Relation	relation,
-	Boolean		scanFromEnd,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
-/*
  * IndexScanRestart --
  *	General access method restart index scan routine.
- */
-extern
-void
-IndexScanRestart ARGS((
-	IndexScanDesc	scan,
-	bool		scanFromEnd,
-	ScanKey		key
-));
-
-/*
  * IndexScanEnd --
  *	General access method end index scan routine.
- */
-extern
-void
-IndexScanEnd ARGS((
-	IndexScanDesc	scan
-));
-
-/*
  * IndexScanMarkPosition --
  *	General access method mark index scan position routine.
- */
-extern
-void
-IndexScanMarkPosition ARGS((
-	IndexScanDesc	scan
-));
-
-/*
  * IndexScanRestorePosition --
  *	General access method restore index scan position routine.
- */
-extern
-void
-IndexScanRestorePosition ARGS((
-	IndexScanDesc	scan
-));
-
-/*
  * IndexScanGetRetrieveIndexResult --
  *	General access method low-level get index tuple routine.
- *
  * Note:
  *	Assumes scan is valid.
  *	This routine is likely to be useful only to the vacuum demon.
- */
-extern
-RetrieveIndexResult
-IndexScanGetRetrieveIndexResult ARGS((
-	IndexScanDesc	scan,
-	ScanDirection	direction
-));
-
-/*
  * IndexScanGetGeneralRetrieveIndexResult --
  *	General access method general get index tuple routine.
- *
  * Note:
  *	Assumes scan is valid.
  */
-extern
-GeneralRetrieveIndexResult
-IndexScanGetGeneralRetrieveIndexResult ARGS((
-	IndexScanDesc	scan,
-	ScanDirection	direction
-));
+extern IndexScanDesc RelationGetIndexScan ARGS((Relation relation, Boolean scanFromEnd, uint16 numberOfKeys, ScanKey key));
+extern void IndexScanRestart ARGS((IndexScanDesc scan, bool scanFromEnd, ScanKey key));
+extern void IndexScanEnd ARGS((IndexScanDesc scan));
+extern void IndexScanMarkPosition ARGS((IndexScanDesc scan));
+extern void IndexScanRestorePosition ARGS((IndexScanDesc scan));
+extern RetrieveIndexResult IndexScanGetRetrieveIndexResult ARGS((IndexScanDesc scan, ScanDirection direction));
+extern GeneralRetrieveIndexResult IndexScanGetGeneralRetrieveIndexResult ARGS((IndexScanDesc scan, ScanDirection direction));
+
+/* indextuple.h (not found in itup.h) */
+extern IndexTuple index_formtuple();
+extern char *fastgetiattr();
+extern AttributeValue index_getsysattr();
 
 /* ----------------
  *	support macros for old index access method interface

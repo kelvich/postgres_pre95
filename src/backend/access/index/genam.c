@@ -53,6 +53,7 @@ RcsId("$Header$");
 
 #include "storage/form.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 
 #include "catalog/catname.h"

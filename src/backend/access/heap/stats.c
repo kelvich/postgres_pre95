@@ -28,6 +28,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 
 #include "utils/memutils.h"
+#include "utils/palloc.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 

@@ -119,9 +119,15 @@ extern int		heap_attisnull();
 extern int		heap_sysattrlen();
 extern bool		heap_sysattrbyval();
 extern HeapTuple	heap_addheader();
+extern HeapTuple	heap_copysimple();
 extern HeapTuple	heap_copytuple();
+extern void		heap_deformtuple();
 extern HeapTuple	heap_formtuple();
 extern HeapTuple	heap_modifytuple();
+
+extern char		*fastgetattr();
+extern Size		ComputeDataSize();
+extern void		DataFill();
 
 /* ----------------
  *	misc

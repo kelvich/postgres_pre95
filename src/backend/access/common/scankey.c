@@ -19,6 +19,8 @@
 #include "access/attnum.h"
 #include "access/skey.h"
 
+#include "fmgr.h"
+
 RcsId("$Header$");
 
 /*

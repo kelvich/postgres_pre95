@@ -29,6 +29,7 @@
 #include "tmp/c.h"
 #include "access/ibit.h"
 #include "access/itup.h"
+#include "access/heapam.h"
 #include "access/tupdesc.h"
 #include "access/attval.h"
 #include "access/tupmacs.h"

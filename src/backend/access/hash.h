@@ -1,9 +1,20 @@
-/*
- *  hash.h -- header file for postgres hash access method implementation 
- *  modeled after Margo Seltzer's hash implementation for unix. 
+/* ----------------------------------------------------------------
+ *   FILE
+ *	hash.h
  *
+ *   DESCRIPTION
+ *	header file for postgres hash access method implementation 
+ *
+ *   NOTES
+ *	modeled after Margo Seltzer's hash implementation for unix. 
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
+#ifndef hashIncluded		/* include this file only once */
+#define hashIncluded	1
 
 /* 
  * An overflow page is a spare page allocated for storing data whose 
@@ -221,50 +232,70 @@ typedef HashItemData      *HashItem;
 #define HASHPROC	1
 
 /* public routines */
-char			*hashgettuple();
-InsertIndexResult	hashinsert();
+
+extern void hashbuild();
+extern InsertIndexResult hashinsert();
+extern char *hashgettuple();
+extern char *hashbeginscan();
+extern void hashrescan();
+extern void hashendscan();
+extern void hashmarkpos();
+extern void hashrestrpos();
+extern void hashdelete();
 
 /* private routines */
-InsertIndexResult	_hash_doinsert();
-InsertIndexResult	_hash_insertonpg();
-OffsetIndex		_hash_pgaddtup();
-ScanKey			_hash_mkscankey();
-void			_hash_search();
-void			_hash_relbuf();
-Buffer			_hash_getbuf();
-void			_hash_wrtbuf();
-void			_hash_wrtnorelbuf();
-RetrieveIndexResult	_hash_first();
-RetrieveIndexResult	_hash_next();
-bool			_hash_step();
-StrategyNumber		_hash_getstrat();
-bool			_hash_invokestrat();
-HashItem	       	_hash_formitem();
-void			_hash_regscan();
-void			_hash_dropscan();
-void			_hash_adjscans();
-void			_hash_scandel();
-bool			_hash_scantouched();
-Buffer			_hash_addovflpage();
-OverflowPageAddress	_hash_getovfladdr();
-void			_hash_expandtable();
-uint32			_hash_firstfreebit();
-Buffer			_hash_freeovflpage();
-int32			_hash_initbitmap();
-Page			_hash_chgbufaccess();
-void			_hash_splitpage();
-void			_hash_squeezebucket();
 
+/* hashinsert.c */
+extern InsertIndexResult _hash_doinsert();
+extern InsertIndexResult _hash_insertonpg();
+extern OffsetIndex _hash_pgaddtup();
 
+/* hashovfl.c */
+extern Buffer _hash_addovflpage();
+extern OverflowPageAddress _hash_getovfladdr();
+extern uint32 _hash_firstfreebit();
+extern Buffer _hash_freeovflpage();
+extern int32 _hash_initbitmap();
+extern void _hash_squeezebucket();
 
+/* hashpage.c */
+extern int _hash_metapinit();
+extern int _hash_checkmeta();
+extern Buffer _hash_getbuf();
+extern void _hash_relbuf();
+extern void _hash_wrtbuf();
+extern void _hash_wrtnorelbuf();
+extern Page _hash_chgbufaccess();
+extern int _hash_pageinit();
+extern int _hash_setpagelock();
+extern int _hash_unsetpagelock();
+extern void _hash_pagedel();
+extern void _hash_expandtable();
+extern void _hash_splitpage();
 
+/* hashscan.c */
+extern void _hash_regscan();
+extern void _hash_dropscan();
+extern void _hash_adjscans();
+extern void _hash_scandel();
+extern bool _hash_scantouched();
 
+/* hashsearch.c */
+extern void _hash_search();
+extern RetrieveIndexResult _hash_next();
+extern RetrieveIndexResult _hash_first();
+extern bool _hash_step();
 
+/* hashstrat.c */
+extern StrategyNumber _hash_getstrat();
+extern bool _hash_invokestrat();
 
+/* hashutil.c */
+extern ScanKey _hash_mkscankey();
+extern void _hash_freeskey();
+extern bool _hash_checkqual();
+extern HashItem _hash_formitem();
+extern Bucket _hash_call();
+extern uint32 _hash_log2();
 
-
-
-
-
-
-
+#endif /* hashIncluded */

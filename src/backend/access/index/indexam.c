@@ -76,7 +76,9 @@ RcsId("$Header$");
 
 #include "storage/form.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
+#include "utils/relcache.h"
 
 #include "catalog/catname.h"
 #include "catalog/pg_attribute.h"
@@ -84,6 +86,8 @@ RcsId("$Header$");
 #include "catalog/pg_proc.h"
 
 #include "lib/index.h"
+
+#include "fmgr.h"
 
 /* ----------------
  *   undefine macros we aren't going to use that would otherwise
@@ -532,7 +536,7 @@ GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
 	}
 	returnVal = (Datum)fmgr_array_args(FIgetProcOid(fInfo),
 					   FIgetnArgs(fInfo),
-					   attData,
+					   (char **) attData,
 					   &isNull);
 	pfree(attData);
 	*attNull = FALSE;

@@ -33,11 +33,14 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "storage/buf.h"
 #include "utils/memutils.h"
+#include "utils/palloc.h"
 #include "fmgr.h"
 #include "utils/log.h"
 
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
+
+#include "tmp/libpq.h"
 
 /* ----------------------------------------------------------------
  *	printtup / debugtup support
@@ -54,7 +57,7 @@ typtoout(type)
     HeapTuple	typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-				    (char *) type,
+				    (char *) (long) type,
 				    (char *) NULL,
 				    (char *) NULL,
 				    (char *) NULL);
@@ -76,7 +79,7 @@ gettypelem(type)
     HeapTuple	typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-				    (char *) type,
+				    (char *) (long) type,
 				    (char *) NULL,
 				    (char *) NULL,
 				    (char *) NULL);
