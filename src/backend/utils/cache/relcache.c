@@ -1011,7 +1011,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	
 	RelationCacheDelete(relation);
 	
-	FileClose(RelationGetSystemPort(relation));
+	FileInvalidate(RelationGetSystemPort(relation));
 	
 	i = relation->rd_rel->relnatts - 1;
 	p = &relation->rd_att.data[i];
