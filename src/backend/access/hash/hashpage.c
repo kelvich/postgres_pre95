@@ -566,7 +566,7 @@ _hash_splitpage(rel, metabuf, obucket, nbucket)
 
 	    if (PageGetFreeSpace(npage) < itemsz) {
 
-		ovflbuf = _hash_addovflpage(rel, metabuf, nbuf);
+		ovflbuf = _hash_addovflpage(rel, &metabuf, nbuf);
 		_hash_wrtbuf(rel, nbuf);
 		nbuf = ovflbuf;
 		npage = BufferGetPage(nbuf, 0);
