@@ -17,8 +17,10 @@
  *	PQparray 	- Return the portal buffer given a portal name
  *	PQrulep 	- Return 1 if an asynchronized portal
  *	PQntuples 	- Return the number of tuples in a portal buffer
+ *	PQninstances	-   same as PQntuples using object terminology
  *	PQngroups 	- Return the number of tuple groups in a portal buffer
  *	PQntuplesGroup 	- Return the number of tuples in a tuple group
+ *	PQninstancesGroup  - same as PQntuplesGroup using object terminology
  *	PQnfieldsGroup 	- Return the number of fields in a tuple group
  *	PQfnumberGroup 	- Return field number given (group index, field name)
  *	PQfnameGroup 	- Return field name given (group index, field index)
@@ -191,6 +193,13 @@ PQntuples(portal)
     return (portal->no_tuples);
 }
 
+int
+PQninstances(portal)
+    PortalBuffer *portal;
+{
+    return PQntuples(portal);
+}
+
 /* --------------------------------
  *	PQngroups - Return the number of tuple groups in a portal buffer
  * --------------------------------
@@ -214,6 +223,15 @@ PQntuplesGroup(portal, group_index)
 {
     return
 	pbuf_findGroup(portal, group_index)->no_tuples;
+}
+
+int
+PQninstancesGroup(portal, group_index)
+    PortalBuffer *portal;
+    int 	 group_index;
+{
+    return
+	PQntuplesGroup(portal, group_index);
 }
 
 /* --------------------------------

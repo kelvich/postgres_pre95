@@ -28,7 +28,10 @@ static NameData	ProcedureRelationNameData = { "pg_proc" };
 static NameData	Prs2RuleRelationNameData = { "pg_prs2rule" };
 static NameData	Prs2PlansRelationNameData = { "pg_prs2plans" };
 static NameData	Prs2StubRelationNameData = { "pg_prs2stub" };
-static NameData	RelationRelationNameData = { "pg_relation" };
+
+/* pg_relation is now called pg_class -cim 2/26/90 */
+static NameData	RelationRelationNameData = { "pg_class" };
+
 static NameData RewriteRelationNameData = { "pg_rewrite" };
 static NameData	ServerRelationNameData = { "pg_server" };
 static NameData	StatisticRelationNameData = { "pg_statistic" };

@@ -7,6 +7,10 @@
  *	along with the relation's initial contents.
  *
  *   NOTES
+ *	``pg_relation'' is being replaced by ``pg_class''.  currently
+ *	we are only changing the name in the catalogs but someday the
+ *	code will be changed too. -cim 2/26/90
+ *
  *	the genbki.sh script reads this file and generates .bki
  *	information from the DATA() statements.
  *
@@ -28,8 +32,19 @@
 /* ----------------
  *	pg_relation definition.  cpp turns this into
  *	typedef struct FormData_pg_relation
+ *
+ *	Note: the #if 0, #endif around the BKI_BEGIN.. END block
+ *	      below keeps cpp from seeing what is meant for the
+ *	      genbki script: pg_relation is now called pg_class, but
+ *	      only in the catalogs -cim 2/26/90
  * ----------------
  */
+#if 0
+BKI_BEGIN
+#define pg_relation pg_class    
+BKI_END    
+#endif    
+    
 CATALOG(pg_relation) BOOTSTRAP {
      char16 	relname;
      oid 	relowner;
@@ -58,7 +73,9 @@ typedef FormData_pg_relation	*Form_pg_relation;
  *	compiler constants for pg_relation
  * ----------------
  */
-#define Name_pg_relation		"pg_relation"
+/* pg_relation is now called pg_class -cim 2/26/90 */
+#define Name_pg_relation		"pg_class"
+
 #define Natts_pg_relation		14
 #define Anum_pg_relation_relname	1
 #define Anum_pg_relation_relowner	2
@@ -87,7 +104,10 @@ DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 - - ));
 DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 - - ));
 DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 - - ));
 DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 12 - - ));
-DATA(insert OID =  83 (  pg_relation       6 0 0 0 0 0 f f r n 14 - - ));
+    
+/* pg_relation is now called pg_class -cim 2/26/90 */
+DATA(insert OID =  83 (  pg_class          6 0 0 0 0 0 f f r n 14 - - ));
+    
 DATA(insert OID =  80 (  pg_magic          6 0 0 0 0 0 f t r n 2 - - ));
 DATA(insert OID =  89 (  pg_defaults       6 0 0 0 0 0 f t r n 2 - - ));
 DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 - - ));

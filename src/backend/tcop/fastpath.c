@@ -8,6 +8,9 @@
  *   INTERFACE ROUTINES
  *	
  *   NOTES
+ *	this protocol was hacked up quickly - should decide this
+ *	and then synchronize code in lib/libpq/{fe,be}-pqexec.c 
+ *
  *	error condition may be asserted by fmgr code and
  *   	an "elog" propagated to the frontend independent of the
  *   	code in this module
@@ -44,18 +47,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 
-/* ----------------
- *	fastpath #defines
- * ----------------
- */
-#define FUNCTION_BY_NAME (-1)
-#define MAX_FUNC_NAME_LENGTH 80
-#define VAR_LENGTH_RESULT (-1)
-#define VAR_LENGTH_ARG (-5)
-#define MAX_STRING_LENGTH 100
-#define PORTAL_RESULT (-2)
-#define PASS_BY_REF (1)
-#define PASS_BY_VALUE (0)
+#include "tmp/fastpath.h"
 
 /* ----------------
  *	external_to_internal
@@ -91,7 +83,10 @@ SendFunctionResult ( fid, retval, rettype )
 {
     char *retdata;
 
+#if 0    
     printf("Sending results %d, %d, %d",fid,retval,rettype);
+#endif    
+    
     pq_putnchar("V",1);
     pq_putint(fid,4);
     
@@ -192,9 +187,9 @@ HandleFunctionRequest()
     xactid = pq_getint(4);
     fid = pq_getint(4);
 
-    /* StartTransactionCommand(); */
-
-    if ( fid == FUNCTION_BY_NAME ) { 
+    /* XXX FUNCTION_BY_NAME is unsupported by PQfn() in fe-pqexec.c -cim */
+    
+    if ( fid == FUNCTION_BY_NAME ) { 	
 	HeapTuple	tuple;
 
 	pq_getstr(function_name, MAX_FUNC_NAME_LENGTH);
@@ -209,24 +204,19 @@ HandleFunctionRequest()
     rettype = pq_getint(4);
     nargs = pq_getint(4);
 
+    /* copy arguments into arg[] */
+    
     for (i = 0 ; i < nargs ; i++ ) {
-
 	arg_length[i] = pq_getint(4);
-
+	
 	if (arg_length[i] == VAR_LENGTH_ARG ) {
-	  char *data = palloc(MAX_STRING_LENGTH);
-
-	  pq_getstr(data,MAX_STRING_LENGTH);
-	  arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
-
+	    char *data = palloc(MAX_STRING_LENGTH);
+	    pq_getstr(data,MAX_STRING_LENGTH);
+	    arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
 	} else if (arg_length[i] > 4)  {
-
 	    elog(WARN,"arg_length of %dth argument too long",i);
-
 	} else {
-
 	    arg[i] = pq_getint ( arg_length[i]);
-
 	}
     }
 
@@ -238,15 +228,15 @@ HandleFunctionRequest()
 	pq_putint(0,4);
     }
 
+#if 0    
     printf("\n arguments are %d %d %d \n",fid,arg[0],arg[1]);
     printf("rettype = %d\n",rettype);
-
+#endif 
+    
     retval = fmgr (fid, arg[0],arg[1],arg[2],arg[3],
 		   arg[4],arg[5],arg[6],arg[7] );
 
-    if (rettype != PORTAL_RESULT ) {
-      SendFunctionResult ( fid, retval, rettype );
-    }
+    if (rettype != PORTAL_RESULT)
+	SendFunctionResult ( fid, retval, rettype );
 
-    /* CommitTransactionCommand(); */
 }
