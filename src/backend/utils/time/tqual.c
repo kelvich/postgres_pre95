@@ -630,8 +630,6 @@ HeapTupleSatisfiesNow(tuple)
     curtime = GetCurrentTransactionStartTime();
 
     if (AbsoluteTimeIsAfter(tuple->t_tmin, curtime)) {
-	elog(NOTICE, "cur xact start %ld tup commit %ld", curtime,
-		     tuple->t_tmin);
 	return (false);
     }
 
