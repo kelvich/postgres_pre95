@@ -297,4 +297,6 @@ extern struct varlena * byteaSetBit();
 
 extern char *pg_username();
 
+extern int32 pqtest();
+
 #endif !BuiltinsIncluded
