@@ -64,6 +64,9 @@
 #include "execnodes.h"
 #include "parsetree.h"
 
+#include "prs2.h"
+#include "prs2stub.h"
+
 /* ----------------
  * .h files made from running pgdecs over generated .c files in obj/lib/C
  * ----------------
