@@ -149,7 +149,7 @@ retrieve (argtype = t1.typname, o.oprname, t0.typname, p.proname,
 	  ltype=t1.typname, rtype=t2.typname)
 	from p in pg_proc, t0 in pg_type, t1 in pg_type,
 	     t2 in pg_type, o in pg_operator
-	where p.prorettype = t0.oid and o.oprcode = p.oid
+	where p.prorettype = t0.oid and RegprocToOid(o.oprcode) = p.oid
 	      and p.pronargs = 2
 	      and o.oprleft = t1.oid and o.oprright = t2.oid
 .)b
