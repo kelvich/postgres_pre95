@@ -327,7 +327,7 @@ inv_seek(obj_desc, offset, whence)
     int offset;
     int whence;
 {
-    int ret;
+    int ret, oldOffset;
     Datum d;
     ScanKeyEntryData skey[1];
 
@@ -335,17 +335,40 @@ inv_seek(obj_desc, offset, whence)
     Assert(PointerIsValid(obj_desc->object));
     Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
 
+                               /* B.L.  9/1/93 */
+    if (whence == SEEK_CUR) {
+        offset += obj_desc->ofs.i_fs.offset;  /* calculate absolute position */
+        return (inv_seek(obj_desc, offset, SEEK_SET));
+    }
+
+                               /* B.L.   9/1/93 */
+                              /* if you seek past the end (offset > 0) I have
+                                 no clue what happens  :-(  */
+    if (whence == SEEK_END) {
+        /* need read lock for getsize */
+        if (!(obj_desc->ofs.i_fs.flags & IFS_RDLOCK)) {
+            RelationSetLockForRead(obj_desc->ofs.i_fs.heap_r);
+            obj_desc->ofs.i_fs.flags |= IFS_RDLOCK;
+        }
+        offset += _inv_getsize(obj_desc->ofs.i_fs.heap_r,
+                               obj_desc->ofs.i_fs.hdesc,
+                               obj_desc->ofs.i_fs.index_r );
+        return (inv_seek(obj_desc, offset, SEEK_SET));
+    }
+
     /*
      *  Whenever we do a seek, we turn off the EOF flag bit to force
      *  ourselves to check for real on the next read.
      */
 
     obj_desc->ofs.i_fs.flags &= ~IFS_ATEOF;
+    oldOffset = obj_desc->ofs.i_fs.offset;
     obj_desc->ofs.i_fs.offset = offset;
 
     /* try to avoid doing any work, if we can manage it */
     if (offset >= obj_desc->ofs.i_fs.lowbyte
 	&& offset <= obj_desc->ofs.i_fs.highbyte
+        && oldOffset <= obj_desc->ofs.i_fs.highbyte
 	&& obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
 	 return (offset);
 
