@@ -186,6 +186,7 @@ extern int     NTupleReplaced;
 extern int     NTupleAppended;
 extern int     NTupleDeleted;
 extern int     NIndexTupleProcessed;
+extern int     NIndexTupleInserted;
 
 #define IncrRetrieved()		NTupleRetrieved++
 #define	IncrAppended()		NTupleAppended++
@@ -194,6 +195,7 @@ extern int     NIndexTupleProcessed;
 #define	IncrInserted()		NTupleInserted++
 #define IncrProcessed()		NTupleProcessed++
 #define IncrIndexProcessed()	NIndexTupleProcessed++
+#define IncrIndexInserted()	NIndexTupleInserted++
 #else
 #define IncrRetrieved()
 #define	IncrAppended()
@@ -202,6 +204,7 @@ extern int     NIndexTupleProcessed;
 #define	IncrInserted()
 #define IncrProcessed()
 #define IncrIndexProcessed()
+#define IncrIndexInserted()
 #endif EXEC_TUPLECOUNT
 
 /* ----------------
