@@ -35,6 +35,8 @@ CATALOG(pg_prs2rule) {
     char 	prs2eventtype;
     oid 	prs2eventrel;
     int2 	prs2eventattr;
+    float	necessary;
+    float	sufficient;
     text 	prs2text;	/* VARIABLE LENGTH FIELD */
 } FormData_pg_prs2rule;
 
