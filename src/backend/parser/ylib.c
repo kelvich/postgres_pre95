@@ -552,7 +552,7 @@ ParseFunc ( funcname , fargs )
 	       */
 
 	      CAR(i) = (LispValue)
-		MakeVar(vnum, 0, relid,
+		MakeVar(vnum, 0, toid,
 			lispCons(lispInteger(vnum),
 				 lispCons(lispInteger(0),LispNil)),
 			0 /* varslot */);
