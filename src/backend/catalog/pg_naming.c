@@ -223,29 +223,41 @@ oid DeleteNameTuple(parentID,name)
 /*
  * fname should always be an absolute path, e.g. starting with '/'.
  */
+/*
+ * hartzell --- Sat May  1 16:13:58 1993
+ * fixed so that it doesn't stuff null's into fname.
+ */
 oid LOcreatOID(fname,mode)
      char *fname;
      int mode; /* ignored */
 {
+    char *filename;
+    int filename_len;
+    oid return_oid;
     char *tailname;
     oid basedirOID;
     /*void to_basename ARGS((char*,char*,char*));*/
     char *root = "/";
 
 /*    to_basename(fname,basename,tailname);*/
-    tailname = rindex(fname,'/');
+    filename_len = strlen(fname);
+    filename = (char *)palloc(filename_len + 1);
+    bcopy(fname, filename, filename_len);
+    filename[filename_len] = '\0';
+    tailname = rindex(filename,'/');
     Assert(tailname != NULL);
     *tailname = '\0';
     tailname++;
-    if (fname[0] == '\0') {
+    if (filename[0] == '\0') {
 	basedirOID = FilenameToOID(root);
     } else {
-	basedirOID = FilenameToOID(fname);
+	basedirOID = FilenameToOID(filename);
     }
     if (basedirOID == InvalidObjectId) {
 #if NAMINGDB
-	elog(NOTICE,"LOcreat: %s doesn't exist",fname[0]?fname:root);
+	elog(NOTICE,"LOcreat: %s doesn't exist",filename[0]?filename:root);
 #endif
+	pfree(filename);
 	return InvalidObjectId; /* directories don't exist */
     } else {
 	HeapTuple namingTuple;
@@ -258,8 +270,11 @@ oid LOcreatOID(fname,mode)
 	if (namingTuple == NULL) {
 	    /* create a tuple, insert it into heap. return oid.
 	     */
-	    return CreateNewNameTuple(basedirOID,tailname);
+	    return_oid = CreateNewNameTuple(basedirOID,tailname);
+	    pfree(filename);
+	    return (return_oid);
 	} else {
+   	    pfree(filename);
 	    return InvalidObjectId;		/* file already exists */
 	}
     }
