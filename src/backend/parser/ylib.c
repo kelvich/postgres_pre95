@@ -178,22 +178,32 @@ parser_typecast ( expr, typename )
     Type tp = type(CString(typename));
     int32 len = tlen(tp);
     char *cp = NULL;
-    char *const_string = palloc(256);
+
+    char *const_string; 
+	bool string_palloced = false;
     
     switch ( CInteger(CAR(expr)) ) {
       case 23: /* int4 */
+	  const_string = palloc(256);
+	  string_palloced = true;
 	sprintf(const_string,"%d",
 		get_constvalue(CDR(expr)));
 	break;
       case 19: /* char16 */
+	  const_string = palloc(256);
+	  string_palloced = true;
 	sprintf(const_string,"%s",
 		get_constvalue(CDR(expr)));
 	break;
       case 18: /* char */
+	  const_string = palloc(256);
+	  string_palloced = true;
 	sprintf(const_string,"%c",
 		get_constvalue(CDR(expr)));
 	break;
       case 701:/* float8 */
+	  const_string = palloc(256);
+	  string_palloced = true;
 	sprintf(const_string,"%f",
 		get_constvalue(CDR(expr)));
 	break;
@@ -201,6 +211,7 @@ parser_typecast ( expr, typename )
 	const_string = 
 	  DatumGetPointer(
 			  get_constvalue(CDR(expr)) );
+	  const_string = (char *) textout(const_string);
 	break;
       default:
 	elog(WARN,"unknown type%d ",
@@ -240,9 +251,8 @@ parser_typecast ( expr, typename )
       printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
       len,cp);
       */
+	if (string_palloced) pfree(const_string);
     return (lispCons  ( lispInteger (typeid(tp)) , adt ));
-    
-    
 }
 
 char *
