@@ -17,7 +17,8 @@ allows a user to specify the historical retention properties of a relation.
 The date specified is an absolute time such as 
 Jan 1 1987, and
 \*(PP will discard tuples whose validity expired before the indicated time.
-Purge with no
+.b Purge 
+with no
 .i after
 clause is equivalent to
 .q "purge before now."
