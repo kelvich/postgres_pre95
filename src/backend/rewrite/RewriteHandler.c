@@ -619,18 +619,23 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    List rule_root = parse_root(rule_action);
 	    List rule_rt = root_rangetable(rule_root);
 	    int rule_command = root_command_type(rule_root);
+	    List ev_qual = CAR(action_info);
 	
 	    offset_trigger = length(rule_rt) - 2 + current_varno;
 	
 	    switch(rule_command) {
 		case REPLACE:
 		case APPEND:
+		case DELETE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
 				     offset_trigger, -2 , user_command);
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    HandleVarNodes ( rule_qual, user_parsetree,
+				     offset_trigger,
+				     -2 , user_command);
+		    HandleVarNodes ( ev_qual, user_parsetree,
 				     offset_trigger,
 				     -2 , user_command);
 		    break;
@@ -652,16 +657,6 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 				     offset_trigger,
 				     -2 , user_command);
 		    break;
-		case DELETE:
-		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 , user_command);
-		    root_result_relation(rule_root) =
-			lispInteger ( CInteger(root_result_relation(rule_root))
-				      - 2 );
-		    HandleVarNodes ( rule_qual, user_parsetree,
-				     offset_trigger,
-				     -2 , user_command);
-		    break;
 		default:
 		    elog(DEBUG,"unsupported action");
 	    }
@@ -669,6 +664,10 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    AddQualifications(rule_action,
 			     parse_qualification(user_parsetree),
 			     length(rule_rt) -2 );
+	    AddQualifications(rule_action,
+			     ev_qual,
+			     0);
+			     /* length(rule_rt) -2 ); */
 
 	    FixRangeTable ( rule_root, user_rt );
 
