@@ -612,6 +612,15 @@ List	planlist;
 
 bool _exec_collect_stats_ = false;
 
+/*
+ * XXX mao speaking:
+ *
+ *	i assume that this routine is used by some planner wizard to
+ *	collect actual plan execution costs, and that it's not run
+ *	during ordinary postgres processing.  the planner shouldn't
+ *	be executing queries directly, right?
+ */
+
 List
 setRealPlanStats(parsetree, planlist)
 List	parsetree;
@@ -637,7 +646,8 @@ List	planlist;
 	    resetPlanStats(nlplan);
 	    p_plan(nlplan);
 	    ResetUsage();
-	    ProcessQuery(parsetree, nlplan, None);
+	    ProcessQuery(parsetree, nlplan, (char *) NULL, (ObjectId *) NULL,
+			 0, None);
 	    ShowUsage();
 	    plangroup = nLispRemove(plangroup, (LispValue)nlplan);
 	    setPlanGroupStats(nlplan, plangroup);

@@ -60,7 +60,7 @@ createdb(dbname)
     sprintf(buf, "append pg_database (datname = \"%s\"::char16, \
                   datdba = \"%d\"::oid, datpath = \"%s\"::text)",
 		  dbname, user_id, dbname);
-    pg_eval(buf);
+    pg_eval(buf, (char *) NULL, (ObjectId *) NULL, 0);
 }
 
 destroydb(dbname)
@@ -100,7 +100,7 @@ destroydb(dbname)
     /* remove the pg_database tuple */
     sprintf(buf, "delete pg_database where pg_database.oid = \"%d\"::oid",
 		  db_id);
-    pg_eval(buf);
+    pg_eval(buf, (char *) NULL, (ObjectId *) NULL, 0);
 
     /* drop pages for this database that are in the shared buffer cache */
     DropBuffers(db_id);

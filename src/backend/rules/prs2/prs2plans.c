@@ -492,6 +492,9 @@ LispValue actionPlan;
 			    plan,
 			    LispNil,
 			    LispNil,
+			    LispNil,
+			    LispNil,
+			    lispInteger(0),
 			    None);
 
     return(queryDescriptor);

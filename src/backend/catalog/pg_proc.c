@@ -34,6 +34,7 @@
 #include "catalog/pg_protos.h"
 #include "catalog/indexing.h"
 #include "parser/parse.h"  /* temporary */
+#include "tcop/dest.h"
 
 /* ----------------------------------------------------------------
  *	ProcedureDefine
@@ -45,7 +46,7 @@
 void
 ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 		canCache, byte_pct, perbyte_cpu, 
-		percall_cpu, outin_ratio, argList)
+		percall_cpu, outin_ratio, argList, dest)
      Name 		procedureName;
      Name 		returnTypeName;	
      Name 		languageName;
@@ -55,6 +56,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
      int32              perbyte_cpu, percall_cpu,
                         outin_ratio;
      List		argList;
+     CommandDest	dest;
 {
     register		i;
     Relation 		rdesc;
@@ -66,6 +68,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
     ObjectId 		languageObjectId;
     ObjectId		typeObjectId;
     List x;
+    ObjectId		typev[8];
     static char oid_string[64];
     static char temp[8];
 #ifdef USEPARGS
@@ -83,9 +86,6 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
     Assert(PointerIsValid(probin));
 
     parameterCount = length(argList);
-
-    if (parameterCount > 8)	/* until oid10 */
-	elog(WARN, "A function may have only 8 arguments"); 
 
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
@@ -119,23 +119,42 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 	    elog(WARN, "ProcedureDefine: could not create type '%s'",
 		 returnTypeName);
     }
+
+    parameterCount = 0;
     oid_string[0] = '\0';
     foreach (x, argList) {
 	List t = CAR(x);
 	ObjectId toid;
-	
-	
-	if (!strcmp(CString(t), "RELATION")) {
+
+	if (parameterCount == 8)
+	    elog(WARN, "Procedures cannot take more than 8 arguments");
+
+	if (strcmp(CString(t), "RELATION") == 0)
 	    toid = RELATION;
-	}
-	else toid = TypeGet((Name)(CString(t)), &defined);
+	else
+	    toid = TypeGet((Name)(CString(t)), &defined);
+
 	if (!ObjectIdIsValid(toid)) {
 	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
 		 CString(t));
 	}
+
+	typev[parameterCount++] = toid;
+
 	sprintf(temp, "%ld ", toid);
 	strcat(oid_string, temp);
     }
+
+    /*
+     *  If this is a postquel procedure, we parse it here in order to
+     *  be sure that it contains no syntax errors.  We should store
+     *  the plan in an Inversion file for use later, but for now, we
+     *  just store the procedure's text in the prosrc attribute.
+     */
+
+    if (strncmp(languageName, "postquel", 16) == 0)
+	(void) pg_plan(prosrc, typev, parameterCount, (LispValue *) NULL,
+		       dest);
 
     for (i = 0; i < ProcedureRelationNumberOfAttributes; ++i) {
 	nulls[i] = ' ';

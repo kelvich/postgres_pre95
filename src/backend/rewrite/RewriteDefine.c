@@ -127,7 +127,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 
     /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
 
-    pg_eval(rulebuf);
+    pg_eval(rulebuf, (char *) NULL, (ObjectId *) NULL, 0);
 
     /* elog(NOTICE,"RuleOID is : %d\n", LastOidProcessed ); */
 

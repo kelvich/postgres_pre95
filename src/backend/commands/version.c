@@ -79,7 +79,7 @@ eval_as_new_xact ( query )
    * StartTransactionCommand();
    */
   CommandCounterIncrement();
-  pg_eval(query);
+  pg_eval(query, (char *) NULL, (ObjectId *) NULL, 0);
 }
 
 void
@@ -159,7 +159,7 @@ VersionCreate (vname, bname)
    */
   sprintf(query_buf, "retrieve into %s ( %s.all) where 1 =2", vname,bname);
 
-  pg_eval (query_buf);  
+  pg_eval (query_buf, (char *) NULL, (ObjectId *) NULL, 0);  
 
   /* 
    * Creating the ``v_added'' relation 

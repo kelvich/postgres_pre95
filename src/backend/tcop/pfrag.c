@@ -1022,7 +1022,10 @@ CommandDest	destination;
 	    * create query descriptor for the fragment
 	    * ---------------
 	    */
-	   fragQueryDesc = CreateQueryDesc(parsetree, plan, dest);
+	   fragQueryDesc = CreateQueryDesc(parsetree, plan,
+					   (char *) NULL,
+					   (ObjectId *) NULL,
+					   0, dest);
 
 	   /* ---------------
 	    * assign a process group to work on the fragment

@@ -34,6 +34,8 @@ RcsId("$Header$");
 #include "commands/defrem.h"
 #include "planner/xfunc.h"
 
+#include "tcop/dest.h"
+
 /* ----------------
  *	external functions
  * ----------------
@@ -64,8 +66,9 @@ FetchDefault ARGS((
  * --------------------------------
  */
 void
-DefineFunction(nameargsexe)
+DefineFunction(nameargsexe, dest)
     LispValue	nameargsexe;
+    CommandDest dest;
 {
     Name	name = (Name) CString(CAR(CAR(nameargsexe)));
     LispValue   parameters = CDR(CAR(nameargsexe));
@@ -94,7 +97,7 @@ DefineFunction(nameargsexe)
     languageName = DefineEntryGetString(entry);
     /* lowercase-ise the language */
     for (c = languageName; *c != '\0'; c++)
-      *c = (isupper(*c) ? tolower(*c) : *c);
+      *c = tolower(*c);
 
     if (!strcmp(languageName, "postquel") && !strcmp(languageName, "c"))
       elog(WARN, "DefineFunction: Specified language not supported");	
@@ -217,7 +220,8 @@ DefineFunction(nameargsexe)
 		    canCache,
 		    byte_pct, perbyte_cpu, percall_cpu, 
 		    outin_ratio,
-		    argList);
+		    argList,
+		    dest);
 }
 
 /*
@@ -261,8 +265,9 @@ DefinePFunction(pname,parameters, query_tree)
       elog(WARN, "DefineFunction: arg type = ?");
    relname = CString(reln);
   sprintf(query_buf, "addattr (%s = SET ) to %s", pname, relname); 
-  /*  printf( "Query is : %s\n", query_buf); */
-  pg_eval(query_buf); 
+
+  pg_eval(query_buf, (char *) NULL, (ObjectId *) NULL, 0); 
+
   /*
    * Now we have to define the appropriate rule for the Postquel
    * function(procedure).
@@ -291,45 +296,6 @@ DefinePFunction(pname,parameters, query_tree)
 #endif
 }
 
-
-/*   NO LONGER USED.  -- JMH, 6/25/92 */
-void DefineRealPFunction(args)
-     List args;
-{
-    static Name lang = (Name) "postquel";
-    Name funcname              = (Name) CString(nth(0, args));
-    List args_list             =  nth(1, args);
-    Name return_type_name      = (Name) CString(CAR(nth(2, args)));
-    List parsetree             =  nth(3, args);
-    List qd;
-    List plan;
-    List newargs = LispNil;
-    List i;
-    AssertArg(NameIsValid(funcname));
-    AssertArg(listp(args_list));
-    AssertArg(NameIsValid(return_type_name));
-    AssertArg(listp(parsetree));
-
-
-    foreach (i, args_list) {	/* flatten def_list */
-	List t = CAR(CAR(i));
-
-	if (!lispStringp(t))	/* parser also does this....-- glass */
-	    elog(WARN, "DefinePFunction: arg type = ?");
-	newargs = nappend1(newargs, t);
-    }
-
-   /* simple type checking should be done here at least for retrieves*/
-    init_planner();
-    plan = (List) planner(parsetree);
-    qd = lispCons(parsetree, lispCons(plan, LispNil));
-    ProcedureDefine(funcname,
-		    return_type_name,
-		    lang,
-		    PlanToString(qd), /* query descriptor */
-		    "-",
-		    true,newargs);
-}
 
 /* --------------------------------
  *	DefineOperator

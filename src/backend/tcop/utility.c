@@ -339,7 +339,7 @@ ProcessUtility(command, args, commandString, dest)
 	    break;
 
         case FUNCTION:
-	    DefineFunction(CDR(args));      /* everything */
+	    DefineFunction(CDR(args), dest);   /* everything */
 	    break;
 
         case RULE:

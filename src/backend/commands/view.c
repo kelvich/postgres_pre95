@@ -146,7 +146,7 @@ DefineVirtualRelation2 ( relname , tlist )
 	
     } else
 	elog ( WARN, "attempted to define virtual relation with no attrs");
-    pg_eval(querybuf);
+    pg_eval(querybuf, (char *) NULL, (ObjectId *) NULL, 0);
 }    
 -------------------------------------------------------------------------
 #endif BOGUS

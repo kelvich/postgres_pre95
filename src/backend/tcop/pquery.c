@@ -65,12 +65,16 @@ RcsId("$Header$");
  * ----------------------------------------------------------------
  */
 List
-MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
+MakeQueryDesc(operation, parsetree, plantree, state, feature,
+	      arglist, typelist, nargs, dest)
     List  	operation;
     List  	parsetree;
     Plan  	plantree;
     List  	state;
     List  	feature;
+    List	arglist;
+    List	typelist;
+    LispValue	nargs;
     CommandDest dest;
 {
     return
@@ -80,6 +84,9 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
 		 state, 	    /* state */
 		 feature, 	    /* feature */
 		 lispInteger((int)dest), /* output dest */
+		 arglist,	    /* arg list to query */
+		 typelist,	    /* types of args */
+		 nargs,		    /* number of arguments */
 		 -1);
 
 }
@@ -89,16 +96,33 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
  * ----------------------------------------------------------------
  */
 List
-CreateQueryDesc(parsetree, plantree, dest)
+CreateQueryDesc(parsetree, plantree, argv, typev, nargs, dest)
     List 	parsetree;
     Plan 	plantree;
+    char	*argv;
+    ObjectId	*typev;
+    int		nargs;
     CommandDest dest;
 {
+    List arglist;
+    List typelist;
+    int i;
+
+    arglist = typelist = LispNil;
+
+    for (i = 0; i < nargs; i++) {
+	arglist = nappend1(arglist, *argv++);
+	typelist = nappend1(typelist, lispInteger(*typev++));
+    }
+
     return MakeQueryDesc(CAR(CDR(CAR(parsetree))), 	/* operation */
 			 parsetree,			/* parse tree */
 			 plantree,			/* plan */
 			 LispNil,			/* state */
 			 LispNil,			/* feature */
+			 arglist,			/* args to query */
+			 typelist,			/* arg types */
+			 lispInteger(nargs),		/* # of args */
 			 dest);				/* output dest */
 }
 
@@ -238,7 +262,8 @@ ProcessPortal(portalName, portalType, parseTree, plan, state, attinfo, dest)
     portal = BlankPortalAssignName(portalName);
 
     PortalSetQuery(portal,
-		   CreateQueryDesc(parseTree, plan, dest),
+		   CreateQueryDesc(parseTree, plan, (char *) NULL,
+				   (ObjectId *) NULL, 0, dest),
 		   state,
 		   PortalCleanup);
 
@@ -339,7 +364,7 @@ ProcessQueryDesc(queryDesc)
     }
 
     /* ----------------
-     *	when preforming a retrieve into, we override the normal
+     *	when performing a retrieve into, we override the normal
      *  communication destination during the processing of the
      *  the query.  This only affects the tuple-output function
      *  - the correct destination will still see BeginCommand()
@@ -348,7 +373,7 @@ ProcessQueryDesc(queryDesc)
      */
     if (isRetrieveIntoRelation)
     	QdSetDest(queryDesc, (int) None);
-    
+
     /* ----------------
      *	create a default executor state.. 
      * ----------------
@@ -451,16 +476,19 @@ ProcessQueryDesc(queryDesc)
  */
 
 void
-ProcessQuery(parsertree, plan, dest)
+ProcessQuery(parsertree, plan, argv, typev, nargs, dest)
     List        parsertree;
     Plan        plan;
+    char	*argv;
+    ObjectId	*typev;
+    int		nargs;
     CommandDest dest;
 {
     List queryDesc;
     extern int	testFlag;
 
     if (testFlag) dest = None;
-    queryDesc = CreateQueryDesc(parsertree, plan, dest);
+    queryDesc = CreateQueryDesc(parsertree, plan, argv, typev, nargs, dest);
     ProcessQueryDesc(queryDesc);
 }
 
@@ -484,6 +512,13 @@ ParallelProcessQueries(parsetree_list, plan_list, dest)
     List	parsetree;
     Plan	plan;
     
+    /*
+     *  haven't tried to integrate the argv, typev, nargs changes to
+     *  ProcessQuery() into this code, because i don't understand this
+     *  code.  need to get this right before we run this routine.
+     */
+    elog(WARN, "hey wei, you need to talk to mao.");
+
     plist = plan_list;
     fragmentList = LispNil;
     foreach (x, parsetree_list) {

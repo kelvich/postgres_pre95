@@ -432,25 +432,12 @@ char ReadCommand(inBuf)
 extern int _exec_repeat_;
 GlobalMemory ParserPlannerContext;
 
-/*
- * pg_eval now officially takes one argument.
- */
-
-void
-pg_eval(query_string)
-
-String query_string;
-
-{
-    extern CommandDest whereToSendOutput;
-	extern void pg_eval_dest();
-
-    pg_eval_dest(query_string, whereToSendOutput);
-}
-
-void
-pg_eval_dest(query_string, dest)
+List
+pg_plan(query_string, typev, nargs, parsetreeP, dest)
     String	query_string;	/* string to execute */
+    ObjectId	*typev;		/* argument types */
+    int		nargs;		/* number of arguments */
+    LispValue	*parsetreeP;	/* pointer to the parse trees */
     CommandDest dest;		/* where results should go */
 {
     LispValue parsetree_list = lispList();
@@ -469,7 +456,7 @@ pg_eval_dest(query_string, dest)
       }
 
     /* ----------------
-     *	(1) parse the request string into a set of plans
+     *	(1) parse the request string into a list of parse trees
      * ----------------
      */
     if (ShowParserStats)
@@ -493,47 +480,33 @@ pg_eval_dest(query_string, dest)
 
 	ValidateParse(parsetree);
 
-	/* ----------------
-	 *	if it is a utility, no need to rewrite
-	 * ----------------
-	 */
+	/* don't rewrite utilites */
 	if (atom(CAR(parsetree))) {
 	    new_list = nappend1(new_list,parsetree);
 	    continue;
 	}
 	
-	/* ----------------
-	 *	display parse strings
-	 * ----------------
-	 */
 	if ( DebugPrintParse == true ) {
 	    printf("\ninput string is %s\n",query_string);
 	    printf("\n---- \tparser outputs :\n");
 	    lispDisplay(parsetree);
 	    printf("\n");
 	}
-        /* ---
-         * This crap here because the notify statement 
+
+        /*
+         * This crap is here because the notify statement 
 	 * has to look like a query to work as a rule action.
 	 */
+
 	 if (NOTIFY == LISPVALUE_INTEGER(CAR(CDR(CAR(parsetree))))) {
 	   new_list = nappend1(new_list,CDR(CAR(parsetree)));
 	   continue;
 	 }
 	
-	/* ----------------
-	 *   rewrite queries (retrieve, append, delete, replace)
-	 * ----------------
-	 */
-	
+	/* rewrite queries (retrieve, append, delete, replace) */
 	if (EnableRewrite ) {
 	    rewritten = QueryRewrite ( parsetree );
 	    if (rewritten != LispNil) {
-#ifdef OLD_LIST_MUNGING
-		CAR(i) =  CAR(rewritten);
-		CDR(last(rewritten)) = CDR(i);
-		CDR(i) = CDR(rewritten);           
-#endif OLD_LIST_MUNGING
 		new_list = append(new_list, rewritten);
 	    }
 	    continue;
@@ -542,7 +515,7 @@ pg_eval_dest(query_string, dest)
 	    new_list = nappend1(new_list, parsetree);
 	}
 
-    } /* foreach parsetree in the list */
+    }
 
     parsetree_list = new_list;
 
@@ -603,6 +576,116 @@ pg_eval_dest(query_string, dest)
 	int 	  which_util;
 	LispValue parsetree = CAR(i);
 
+	/*
+	 *  For each query that isn't a utility invocation,
+	 *  generate a plan.
+	 */
+
+	if (!atom(CAR(parsetree))) {
+
+	    if (IsAbortedTransactionBlockState()) {
+		/* ----------------
+		 *   the EndCommand() stuff is to tell the frontend
+		 *   that the command ended. -cim 6/1/90
+		 * ----------------
+		 */
+		char *tag = "*ABORT STATE*";
+		EndCommand(tag, dest);
+	    
+		elog(NOTICE, "(transaction aborted): %s",
+		     "queries ignored until END");
+	    
+		return;
+	    }
+
+	    if (! Quiet)
+		puts("\tinit_planner()..");
+
+	    init_planner();
+	    
+	    if (ShowPlannerStats) ResetUsage();
+	    plan = planner(parsetree);
+	    if (ShowPlannerStats) {
+		fprintf(stderr, "! Planner Stats:\n");
+		ShowUsage();
+	    }
+	    plan_list = nappend1(plan_list, (LispValue)plan);
+	}
+    }
+
+    if (testFlag)
+       MemoryContextSwitchTo(oldcontext);
+
+    if (parsetreeP != (LispValue *) NULL)
+	*parsetreeP = parsetree_list;
+
+    return (plan_list);
+}
+
+void
+pg_eval(query_string, argv, typev, nargs)
+    String query_string;
+    char *argv;
+    ObjectId *typev;
+    int nargs;
+{
+    extern CommandDest whereToSendOutput;
+    extern void pg_eval_dest();
+
+    pg_eval_dest(query_string, argv, typev, nargs, whereToSendOutput);
+}
+
+void
+pg_eval_dest(query_string, argv, typev, nargs, dest)
+    String	query_string;	/* string to execute */
+    char	*argv;		/* arguments */
+    ObjectId	*typev;		/* argument types */
+    int		nargs;		/* number of arguments */
+    CommandDest dest;		/* where results should go */
+{
+    LispValue parsetree_list;
+    List plan_list;
+    Plan plan;
+    List parsetree;
+    int j;
+    int which_util;
+
+    /* plan the queries */
+    plan_list = pg_plan(query_string, typev, nargs, &parsetree_list, dest);
+
+    if (ParallelExecutorEnabled()) {
+
+	/*
+	 *  XXX:  ParallelProcessQueries needs to be rewritten to handle
+	 *  utility invocations.  Until then, THIS IS BROKEN!!!
+	 */
+
+	elog(WARN, "hey wei, you need to talk to mao.");
+
+	/* -----------------
+	 *  execute the plans in plan_list in parallel
+	 * -----------------
+	 */
+	if (ShowExecutorStats)
+	    ResetUsage();
+	ParallelProcessQueries(parsetree_list, plan_list, dest);
+	if (ShowExecutorStats) {
+	    fprintf(stderr, "! Executor Stats:\n");
+	    ShowUsage();
+	}
+	return;
+    }
+
+    /* ------------------
+     *  parallel executor is not enabled, execute the plans in plan_list
+     *  one after another
+     * ------------------
+     */
+
+    while (parsetree_list != LispNil) {
+	parsetree = CAR(parsetree_list);
+	parsetree_list = CDR(parsetree_list);
+
 	if (atom(CAR(parsetree))) {
 	    /* ----------------
 	     *   process utility functions (create, destroy, etc..)
@@ -631,183 +714,87 @@ pg_eval_dest(query_string, dest)
 	    if (which_util == VACUUM)
 		return;
 	} else {
+	    plan = (Plan) CAR(plan_list);
+	    plan_list = CDR(plan_list);
+
 	    /* ----------------
-	     *   process queries (retrieve, append, delete, replace)
-	     *
-	     *	 Note: first check the abort state to avoid doing
-	     *   unnecessary work if we are in an aborted transaction
-	     *   block.
+	     *	print plan if debugging
 	     * ----------------
 	     */
-	    if (IsAbortedTransactionBlockState()) {
+	    if ( DebugPrintPlan == true ) {
+		printf("\nPlan is :\n");
+		lispDisplay((LispValue)plan);
+		printf("\n");
+	    }
+
+	    if (testFlag && IsA(plan,Choose)) {
 		/* ----------------
-		 *   the EndCommand() stuff is to tell the frontend
-		 *   that the command ended. -cim 6/1/90
+		 *	 this is my experiment stuff, will be taken away soon.
+		 *   ignore it. -- Wei
 		 * ----------------
 		 */
-		char *tag = "*ABORT STATE*";
-		EndCommand(tag, dest);
-	    
-		elog(NOTICE, "(transaction aborted): %s",
-		     "queries ignored until END");
-	    
-		return;
-	    }
+		Plan 	  p;
+		List 	  planlist;
+		LispValue x;
+		List 	  setRealPlanStats();
+		List 	  pruneHashJoinPlans();
 
-	    /* ----------------
-	     *	initialize the planner
-	     * ----------------
-	     */
-	    if (! Quiet)
-		puts("\tinit_planner()..");
-	    init_planner();
-	    
-	    /* ----------------
-	     *   generate the plan
-	     * ----------------
-	     */
-	    if (ShowPlannerStats) ResetUsage();
-	    plan = planner(parsetree);
-	    if (ShowPlannerStats) {
-		fprintf(stderr, "! Planner Stats:\n");
-		ShowUsage();
-	    }
-	    plan_list = nappend1(plan_list, (LispValue)plan);
-	  }
-      }
-
-    if (testFlag)
-       MemoryContextSwitchTo(oldcontext);
-
-    /* ----------------
-     *	(4) execute plans in plan_list sequentially or in parallel
-     * ----------------
-     */
-    if (ParallelExecutorEnabled()) {
-	/* -----------------
-	 *  execute the plans in plan_list in parallel
-	 * -----------------
-	 */
-	if (ShowExecutorStats)
-	    ResetUsage();
-	ParallelProcessQueries(parsetree_list, plan_list, dest);
-	if (ShowExecutorStats) {
-	    fprintf(stderr, "! Executor Stats:\n");
-	    ShowUsage();
-	}
-	return;
-      }
-	
-    /* ------------------
-     *  parallel executor is not enabled, execute the plans in plan_list
-     *  one after another
-     * ------------------
-     */
-    x = parsetree_list;
-    foreach (i, plan_list) {
-	plan = (Plan)CAR(i);
-	parsetree = CAR(x);
-	x = CDR(x);
-
-	/* ----------------
-	 *	print plan if debugging
-	 * ----------------
-	 */
-	if ( DebugPrintPlan == true ) {
-	    printf("\nPlan is :\n");
-	    lispDisplay((LispValue)plan);
-	    printf("\n");
-	}
-
-#if 0	    
-	/* ----------------
-	 *	expand nested dots for attributes of type "set".
-	 *  i.e. "retrieve (x.y.z) where a.b.c > x.w" where x.y and
-	 *  a.b are sets might produce a simple join:
-	 *
-	 *		Join				   Join
-	 *		/  \	    this turns		 /      \
-	 *	     Scan   Scan    into ---->	     Join        Join
-	 *      "x.y"   "a.b"		     /  \	 /  \
-	 *					  Scan  Proc  Scan  Proc
-	 *					  "x"  "x.y"   "a"  "a.b"
-	 *
-	 *  after this is done, the executor can process the procedures
-	 *  stored in x.y and a.b and decide how to do the query
-	 *  dynamically. -cim 6/7/91
-	 * ----------------
-	 */
-	ReplaceNestedDots(parsetree, &plan);
-#endif	    
-	    
-	if (testFlag && IsA(plan,Choose)) {
-	    /* ----------------
-	     *	 this is my experiment stuff, will be taken away soon.
-	     *   ignore it. -- Wei
-	     * ----------------
-	     */
-	    Plan 	  p;
-	    List 	  planlist;
-	    LispValue x;
-	    List 	  setRealPlanStats();
-	    List 	  pruneHashJoinPlans();
-
-	    planlist = get_chooseplanlist((Choose)plan);
-	    planlist = setRealPlanStats(parsetree, planlist);
-	    planlist = pruneHashJoinPlans(planlist);
-	    
-	    foreach (x, planlist) {
-		char s[10];
-		p = (Plan) CAR(x);
-		p_plan(p);
-		if (confirmExecute) {
-		    printf("execute (y/n/q)? ");
-		    scanf("%s", s);
-		    if (s[0] == 'n') continue;
-		    if (s[0] == 'q') break;
-		}
-		BufferPoolBlowaway();
+		planlist = get_chooseplanlist((Choose)plan);
+		planlist = setRealPlanStats(parsetree, planlist);
+		planlist = pruneHashJoinPlans(planlist);
 		
-		CommitTransactionCommand();
-		StartTransactionCommand();
-		
-		ResetUsage();
-		ProcessQuery(parsetree, p, dest);
-		ShowUsage();
-	    }
-	     GlobalMemoryDestroy(ParserPlannerContext);
-	} else {
-	    /* ----------------
-	     *   execute the plan
-	     *
-	     *   Note: _exec_repeat_ defaults to 1 but may be changed
-	     *	   by a DEBUG command.   If you set this to a large
-	     *	   number N, run a single query, and then set it
-	     *	   back to 1 and run N queries, you can get an idea
-	     *	   of how much time is being spent in the parser and
-	     *	   planner b/c in the first case this overhead only
-	     *	   happens once.  -cim 6/9/91
-	     * ----------------
-	     */
-	    if (ShowExecutorStats)
-		ResetUsage();
-	    
-	    for (j = 0; j < _exec_repeat_; j++) {
-		if (! Quiet) {
-		    time(&tim);
-		    printf("\tProcessQuery() at %s\n", ctime(&tim));
+		foreach (x, planlist) {
+		    char s[10];
+		    p = (Plan) CAR(x);
+		    p_plan(p);
+		    if (confirmExecute) {
+			printf("execute (y/n/q)? ");
+			scanf("%s", s);
+			if (s[0] == 'n') continue;
+			if (s[0] == 'q') break;
+		    }
+		    BufferPoolBlowaway();
+		    
+		    CommitTransactionCommand();
+		    StartTransactionCommand();
+		    
+		    ResetUsage();
+		    ProcessQuery(parsetree, p, argv, typev, nargs, dest);
+		    ShowUsage();
 		}
-		ProcessQuery(parsetree, plan, dest);
-	    }
-	    
-	    if (ShowExecutorStats) {
-		fprintf(stderr, "! Executor Stats:\n");
-		ShowUsage();
+		 GlobalMemoryDestroy(ParserPlannerContext);
+	    } else {
+		/* ----------------
+		 *   execute the plan
+		 *
+		 *   Note: _exec_repeat_ defaults to 1 but may be changed
+		 *	   by a DEBUG command.   If you set this to a large
+		 *	   number N, run a single query, and then set it
+		 *	   back to 1 and run N queries, you can get an idea
+		 *	   of how much time is being spent in the parser and
+		 *	   planner b/c in the first case this overhead only
+		 *	   happens once.  -cim 6/9/91
+		 * ----------------
+		 */
+		if (ShowExecutorStats)
+		    ResetUsage();
+		
+		for (j = 0; j < _exec_repeat_; j++) {
+		    if (! Quiet) {
+			time(&tim);
+			printf("\tProcessQuery() at %s\n", ctime(&tim));
+		    }
+		    ProcessQuery(parsetree, plan, argv, typev, nargs, dest);
+		}
+		
+		if (ShowExecutorStats) {
+		    fprintf(stderr, "! Executor Stats:\n");
+		    ShowUsage();
+		}
 	    }
 	}
-      } /* foreach plan in plan_list */
-
-} /* pg_eval */
+    }
+}
     
 /* ----------------------------------------------------------------
  *			postgres main loop
@@ -1439,7 +1426,7 @@ PostgresMain(argc, argv)
 		if (ShowStats)
 		    ResetUsage();
 
-		pg_eval(parser_input);
+		pg_eval(parser_input, (char *) NULL, (ObjectId *) NULL, 0);
 
 		if (ShowStats)
 		    ShowUsage();
