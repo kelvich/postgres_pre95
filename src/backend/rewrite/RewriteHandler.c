@@ -1,8 +1,9 @@
+
+
 /* ----------------------------------------------------------------
  * $Header$
  * ----------------------------------------------------------------
  */
-
 /****************************************************/
 
 #include "tmp/postgres.h"
@@ -268,7 +269,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	char *result_relname =  NULL;
 	List result_rte = NULL;
 	List saved_parsetree = NULL;
-	List saved_tl, saved_qual;
+	List saved_tl, saved_qual, saved_rt;
 	List ev_qual = NULL;
 
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
@@ -334,6 +335,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		saved_parsetree = lispCopy ( original_user_parsetree );
 		saved_qual = parse_qualification(saved_parsetree);
 		saved_tl = parse_targetlist(saved_parsetree);
+		saved_rt = root_rangetable(parse_root(saved_parsetree));
 		foreach ( k , rule_tlist ) {
 		    List tlist_entry = CAR(k);
 		    Resdom tlist_resdom = (Resdom)CAR(tlist_entry);
@@ -371,9 +373,11 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 
 		    /*
 		     * add the rule's range table to the user's range
-		     * table...
+		     * table and to the "saved" range table...
 		     */
 		    CDR(last(user_rt)) =
+		      CDR(CDR(rule_rangetable));
+		    CDR(last(saved_rt)) =
 		      CDR(CDR(rule_rangetable));
 
 		    /* LP says : no need to clean up redundant rt_entries
