@@ -73,6 +73,7 @@ typedef struct PallocDebugData {
     SLNode 	Link;
 } PallocDebugData;
 
+
 SLList PallocDebugList;
 
 bool   PallocRecord;
@@ -85,7 +86,7 @@ set_palloc_debug(noisy, record)
 {
     PallocNoisy = noisy;
     PallocRecord = record;
-    SLNewList(&PallocDebugList);
+    SLNewList(&PallocDebugList, offsetof(PallocDebugData, Link));
 }
 
 Pointer
@@ -99,8 +100,14 @@ palloc_record(file, line, size, context)
     PallocDebugData *d;
 
     p = (Pointer) palloc(size);
-    d = (PallocDebugData *) palloc(sizeof(PallocDebugData));
-    SLNewNode(&(d->Link));
+    
+    /* ----------------
+     *	note: we have to use malloc/free for the administrative
+     *        information because this has to work correctly when the
+     *	      memory context stuff is not enabled.
+     * ----------------
+     */
+    d = (PallocDebugData *) malloc(sizeof(PallocDebugData));
     
     d->pointer = p;
     d->size    = size;
@@ -108,6 +115,7 @@ palloc_record(file, line, size, context)
     d->file    = file;
     d->context = context;
     
+    SLNewNode(&(d->Link));
     SLAddTail(&PallocDebugList, &(d->Link));
     return p;
 }
@@ -136,9 +144,9 @@ pfree_remove(file, line, pointer)
      *  found the pointer so we can free the administrative info.
      * ----------------
      */
-    if (d != NULL)
-	pfree(d);
-    else
+    if (d != NULL) {
+	free(d); /* can't use pfree, see palloc_record -cim  */
+    } else
 	elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
 	     line, file, pointer, "** not on list **");
     
@@ -168,6 +176,9 @@ dump_palloc_list(caller, verbose)
     PallocDebugData *d;
     int 	    i;
     Size 	    total;
+
+    if (! PallocRecord)
+	return;
     
     d = (PallocDebugData *) SLGetHead(&PallocDebugList);
     i = 0;
