@@ -23,39 +23,39 @@
  */
 
 #include <strings.h>
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "log.h"
-#include "skey.h"
+#include "access/attnum.h"
+#include "access/ftup.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"
 
-#include "attnum.h"
-#include "buf.h"
-#include "catname.h"
-#include "copy.h"
-#include "excid.h"
-#include "executor.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
-#include "globals.h"	/* for IsUnderPostmaster */
-#include "itemptr.h"
-#include "heapam.h"
-#include "htup.h"
-#include "mcxt.h"
-#include "name.h"	/* for NameIsEqual */
-#include "pg_lisp.h"
-#include "palloc.h"
-#include "portal.h"
-#include "rel.h"
-#include "relscan.h"
-#include "syscache.h"
-#include "tqual.h"
+#include "commands/command.h"
+#include "commands/copy.h"
+#include "executor/execdefs.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
+#include "nodes/pg_lisp.h"
+#include "storage/buf.h"
+#include "storage/itemptr.h"
+#include "tmp/globals.h"	/* for IsUnderPostmaster */
+#include "tmp/name.h"		/* for NameIsEqual */
+#include "tmp/portal.h"
+#include "utils/excid.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "utils/palloc.h"
+#include "utils/rel.h"
 
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
-
-#include "command.h"
 
 /* ----------------
  * 	PortalExecutorHeapMemory stuff
