@@ -1148,7 +1148,6 @@ SHM_QUEUE	*lockQueue;
     }
     else
     {
-      printf("lock %x: WAKEUP, nholding %d\n",lock,lock->nHolding);
       /* --------------------
        * Wake the first waiting process and grant him the lock if it
        * doesn't conflict.  The woken process must record the lock
