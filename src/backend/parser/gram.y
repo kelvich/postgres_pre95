@@ -179,6 +179,7 @@ stmt :
 	| ProcedureStmt
 	| PurgeStmt			
 	| RemoveOperatorStmt
+	| RemoveFunctionStmt
 	| RemoveStmt
 	| RenameStmt
 	| OptimizableStmt	
@@ -478,6 +479,8 @@ def_name:  Id | Op
 opt_def_args:	/* Because "define procedure .." */
 	  ARG IS '(' def_name_list ')'
 		{ $$ = lispCons (KW(arg), $4); }
+        | ARG IS '(' ')'
+                { $$ = lispCons (KW(arg), LispNil); }
 	| /*EMPTY*/
 		{ NULLTREE }
 	;
@@ -717,9 +720,9 @@ after_clause:	AFTER date		{ $$ = MakeList ( KW(after),$2,-1 ); }
 	Remove:
 
 	remove function <funcname>
-		(REMOVE FUNCTION "funcname")
+		(REMOVE FUNCTION "funcname" (arg1, arg2, ...))
 	remove operator <opname>
-		(REMOVE OPERATOR ("opname" leftoperand_typ rightoperand_typ))
+		(REMOVE OPERATOR "opname" (leftoperand_typ rightoperand_typ))
 	remove type <typename>
 		(REMOVE TYPE "typename")
 	remove rewrite rule <rulename>
@@ -737,7 +740,7 @@ RemoveStmt:
 	;
 
 remove_type:
-	  Function | Aggregate | Type | Index | RuleType | VIEW ;
+	  Aggregate | Type | Index | RuleType | VIEW ;
 
 RuleType:
 	 newruleTag RULE
@@ -748,7 +751,28 @@ RuleType:
 			 */
 			$$ = CAR($1);
 		}
-	;  
+	; 
+
+RemoveFunctionStmt:
+          REMOVE Function name '(' func_argtypes ')'
+                {
+		    $$  = lispCons($3, $5);
+		    $$  = lispCons($2, lispCons($$, LispNil));
+		    $$  = lispCons( KW(remove) , $$);
+	        }
+          ;
+
+func_argtypes:
+          name_list
+                {
+		    $$  = lispCons(lispInteger(length($1)), $1);
+	        }
+        | /*EMPTY*/
+                {
+		    $$  = lispCons(lispInteger(0), LispNil);
+	        }
+          ;
+
 RemoveOperatorStmt:
 	  REMOVE Operator Op '(' remove_operator ')'
 		{
