@@ -1233,6 +1233,7 @@ heap_addheader(natts, structlen, structure)
     len += structlen;
     tp = (char *) palloc(len);
     tup = (HeapTuple) tp;
+    bzero(tup, len);
 
     tup->t_len = (short) len;			/* XXX */
     tp += tup->t_hoff = hoff;
