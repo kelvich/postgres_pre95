@@ -10,7 +10,10 @@
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
 #include "storage/plm.h"
+#include "storage/spin.h"
 #include "utils/log.h"
+
+#define USE_SINVAL
 
 RcsId("$Header$");
 
@@ -30,10 +33,7 @@ extern SISeg		*shmInvalBuffer;/* the shared buffer segment, set by*/
 extern BackendId	MyBackendId;
 extern BackendTag	MyBackendTag;
 
-extern LockTableId  SILockTableId;  /*identifies the lock table	    	*/
-extern LRelId  	    SIRelId;	    /* identification of the buffer 	*/
-extern ObjectId		SIDummyOid;
-extern TransactionId	SIXid;	    /* identification of the buffer */
+SPINLOCK		SInvalLock = (SPINLOCK) NULL;
 
 /****************************************************************************/
 /*  CreateSharedInvalidationState(key)   Create a buffer segment    	    */
@@ -50,7 +50,8 @@ CreateSharedInvalidationState(key)
     SISyncKill(IPCKeyGetSIBufferMemorySemaphoreKey(key));
     SISyncInit(IPCKeyGetSIBufferMemorySemaphoreKey(key));
     */
-    
+
+    /* SInvalLock gets set in spin.c, during spinlock init */
     status = SISegmentInit(true, IPCKeyGetSIBufferMemoryBlock(key));
     
     if (status == -1) {
@@ -72,11 +73,7 @@ AttachSharedInvalidationState(key)
           CreateSharedInvalidationState(key);
           return;
         }
-    /* attach the semaphores and segment    	    	*/
-    /* REMOVED
-    SISyncInit(IPCKeyGetSIBufferMemorySemaphoreKey(key));
-    */
-
+    /* SInvalLock gets set in spin.c, during spinlock init */
     status = SISegmentInit(false, IPCKeyGetSIBufferMemoryBlock(key));
     
     if (status == -1) {
@@ -120,13 +117,6 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
  *	hashIndex= object id contained in (possibly) cached relation descriptor
  *	pointer= null
  */
-/*Assert(IndexIsValid(hashIndex) && IndexIsInBounds(hashIndex, NCCBUCK));*/
-/*Assert(ItemPointerIsValid(pointer));*/
-
-#ifdef	INVALIDDEBUG
-	elog(DEBUG, "RegisterSharedInvalid(%d, %d, 0x%x) called", cacheId,
-		hashIndex, pointer);
-#endif
 
     newInvalid = new(SharedInvalidData);
     if (!PointerIsValid(newInvalid)) {
@@ -135,43 +125,28 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     newInvalid->cacheId = cacheId;
     newInvalid->hashIndex = hashIndex;
 
-	if (ItemPointerIsValid(pointer)) {
-		ItemPointerCopy(pointer, &newInvalid->pointerData);
-	} else {
-		ItemPointerSetInvalid(&newInvalid->pointerData);
-	}
+    if (ItemPointerIsValid(pointer)) {
+	ItemPointerCopy(pointer, &newInvalid->pointerData);
+    } else {
+	ItemPointerSetInvalid(&newInvalid->pointerData);
+    }
    
-    /* try to write to the buffer */
-    /* WRITE LOCK buffer */
-    status = LMLock(SILockTableId, LockWait, &SIRelId, &SIDummyOid, &SIDummyOid,
-    	    	SIXid, MultiLevelLockRequest_WriteRelation);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "RegisterSharedInvalid: Could not lock buffer segment");
-    }	    	    
+    SpinAcquire(SInvalLock);
     if (!SISetDataEntry(shmInvalBuffer, *newInvalid)) {
     	/* buffer full */
     	/* release a message, mark process cache states to be invalid */
     	SISetProcStateInvalid(shmInvalBuffer);
+
     	if (!SIDelDataEntry(shmInvalBuffer)) {
-    	    /* inconsistent buffer state */
-    	    /* Attention: BUFFER IS WRITE LOCKED while exiting !!!!!! XXX   */
-    	    /*	    	  This should really NOT happen	    	    */ 
+    	    /* inconsistent buffer state -- shd never happen */
+	    SpinRelease(SInvalLock);
     	    elog(FATAL, "RegisterSharedInvalid: inconsistent buffer state");
     	}
-#ifdef	EBUG
-    	elog(NOTICE, "RegisterSharedInvalid: buffer segment full, message removed; causes state resets.");
-#endif
+
     	/* write again */
     	(void) SISetDataEntry(shmInvalBuffer, *newInvalid);
     }
-#ifdef TEST
-    PRT(cacheId); /* just for debuging */
-#endif
-    /* release WRITE LOCK from buffer */
-    status = LMLockReleaseAll(SILockTableId, SIXid);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "RegisterSharedInvalid: Could not unlock buffer segment");
-    }	    	    
+    SpinRelease(SInvalLock);
 #endif USE_SINVAL
 }
 /****************************************************************************/
@@ -189,34 +164,11 @@ InvalidateSharedInvalid(invalFunction, resetFunction)
     SharedInvalid   temporaryInvalid;
     int	    	    status;
     
-    /* READ LOCK buffer */
-    status = LMLock(SILockTableId, LockWait, &SIRelId, &SIDummyOid, &SIDummyOid,
-    	    	    SIXid, MultiLevelLockRequest_ReadRelation);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "InvalidateSharedInvalid: Could not lock buffer segment");
-    }
-    
+    SpinAcquire(SInvalLock);
     SIReadEntryData(shmInvalBuffer, MyBackendId, 
     	    	    invalFunction, resetFunction);  
     	    	     
-    /* UNLOCK buffer */
-    status = LMLockReleaseAll(SILockTableId, SIXid);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "InvalidateSharedInvalid: Could not unlock buffer segment");
-    }
-    
-    /* WRITE LOCK buffer */
-    status = LMLock(SILockTableId, LockWait, &SIRelId, &SIDummyOid, &SIDummyOid,
-    	    	SIXid, MultiLevelLockRequest_WriteRelation);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "RegisterSharedInvalid: Could not lock buffer segment");
-    }
-    
     SIDelExpiredDataEntries(shmInvalBuffer);
-    /*UNLOCK buffer */
-    status = LMLockReleaseAll(SILockTableId, SIXid);
-    if (status == L_ERROR) {
-    	    elog(FATAL, "InvalidateSharedInvalid: Could not unlock buffer segment");
-    }
+    SpinRelease(SInvalLock);
 #endif USE_SINVAL
 }

@@ -52,6 +52,7 @@ IPCKey key;
   extern SPINLOCK BufMgrLock;
   extern SPINLOCK LockMgrLock;
   extern SPINLOCK ProcStructLock;
+  extern SPINLOCK SInvalLock;
 
 #ifdef SONY_JUKEBOX
   extern SPINLOCK SJCacheLock;
@@ -67,6 +68,7 @@ IPCKey key;
   BufMgrLock = (SPINLOCK) BUFMGRLOCKID;
   LockMgrLock = (SPINLOCK) LOCKMGRLOCKID;
   ProcStructLock = (SPINLOCK) PROCSTRUCTLOCKID;
+  SInvalLock = (SPINLOCK) SINVALLOCKID;
 
 #ifdef SONY_JUKEBOX
   SJCacheLock = (SPINLOCK) SJCACHELOCKID;
@@ -205,6 +207,7 @@ IPCKey key;
   extern SPINLOCK BufMgrLock;
   extern SPINLOCK LockMgrLock;
   extern SPINLOCK ProcStructLock;
+  extern SPINLOCK SInvalLock;
 
 #ifdef SONY_JUKEBOX
   extern SPINLOCK SJCacheLock;
@@ -230,6 +233,7 @@ IPCKey key;
   BufMgrLock = (SPINLOCK) BUFMGRLOCKID;
   LockMgrLock = (SPINLOCK) LOCKMGRLOCKID;
   ProcStructLock = (SPINLOCK) PROCSTRUCTLOCKID;
+  SInvalLock = (SPINLOCK) SINVALLOCKID;
 
 #ifdef SONY_JUKEBOX
   SJCacheLock = (SPINLOCK) SJCACHELOCKID;
