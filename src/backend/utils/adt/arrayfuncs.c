@@ -1299,7 +1299,6 @@ ArrayType *array;
 struct varlena *indx_str, *dataPtr;
 {
     int len, i;
-    struct varlena *v;
     int indx[MAXDIM];
     char *retval, *s, *comma, *r;
     bool isNull;
@@ -1320,7 +1319,6 @@ struct varlena *indx_str, *dataPtr;
             elog(WARN, "array dimensions must be non-negative");
     }
     retval = array_set(array, i, indx, dataPtr, &isNull);
-    pfree(v);
     return(retval);
 }
 

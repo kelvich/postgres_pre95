@@ -91,7 +91,7 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
      *  return the proper code.
      * ----------------
      */
-    if (rettype == 0)		/* void retval */
+    if (retval == (char *) NULL)	/* void retval */
 	return "0";
 	
     if (result_is_int) {

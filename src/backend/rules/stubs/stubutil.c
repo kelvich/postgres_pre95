@@ -150,7 +150,7 @@ Prs2OneStub newStub;
 	 * this record already exists.
 	 * Increment its counter and return
 	 */
-	oldStubs->stubRecords[i]->counter += 1;
+	oldStubs->stubRecords[indx]->counter += 1;
 	return;
     }
     /*
@@ -208,7 +208,7 @@ Prs2OneStub oldStub;
      * So, this record already existed.
      * Decrement its counter.
      */
-    s = oldStubs->stubRecords[i];
+    s = oldStubs->stubRecords[indx];
     (s->counter)--;
 
     /*
