@@ -7,15 +7,9 @@
 #ifndef _PROC_H_
 #define _PROC_H_
 
-#include "storage/shmem.h"
 #include "storage/ipci.h"
 #include "storage/lock.h"
 #include <sys/sem.h>
-
-typedef struct procQueue {
-  SHM_QUEUE	links;
-  int		size;
-} PROC_QUEUE;
 
 
 typedef struct {
@@ -52,6 +46,7 @@ typedef struct proc {
 				 * by this proc
 				 */
 
+  LOCK *            waitLock;	/* Lock we're sleeping on */
   int               token;	/* info for proc wakeup routines */	
   SHM_QUEUE	lockQueue;	/* locks associated with current transaction */
 } PROC;
