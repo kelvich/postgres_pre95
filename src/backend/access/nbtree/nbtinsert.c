@@ -21,23 +21,23 @@
 RcsId("$Header$");
 
 
-InsertIndexResult _bt_doinsert (Relation rel, BTItem btitem);
-InsertIndexResult _bt_insertonpg (Relation rel, Buffer buf, BTStack stack,
+InsertIndexResult _bt_doinsert ARGS((Relation rel, BTItem btitem));
+InsertIndexResult _bt_insertonpg ARGS((Relation rel, Buffer buf, BTStack stack,
                                   int keysz, ScanKey scankey, BTItem btitem,
-				  BTItem afteritem);
-Buffer _bt_split (Relation rel, Buffer buf);
-OffsetIndex _bt_findsplitloc (Relation rel, Page page, OffsetIndex start,
-                              OffsetIndex maxoff, Size llimit);
-void _bt_newroot (Relation rel, Buffer lbuf, Buffer rbuf);
-OffsetIndex _bt_pgaddtup (Relation rel, Buffer buf, int keysz,
+				  BTItem afteritem));
+Buffer _bt_split ARGS((Relation rel, Buffer buf));
+OffsetIndex _bt_findsplitloc ARGS((Relation rel, Page page, OffsetIndex start,
+                              OffsetIndex maxoff, Size llimit));
+void _bt_newroot ARGS((Relation rel, Buffer lbuf, Buffer rbuf));
+OffsetIndex _bt_pgaddtup ARGS((Relation rel, Buffer buf, int keysz,
                           ScanKey itup_scankey, Size itemsize, BTItem btitem,
-			  BTItem afteritem);
-bool _bt_goesonpg (Relation rel, Buffer buf, Size keysz, ScanKey scankey,
-                   BTItem afteritem);
-bool _bt_itemcmp (Relation rel, Size keysz, BTItem item1, BTItem item2,
-                  StrategyNumber strat);
-void _bt_updateitem (Relation rel, Size keysz, Buffer buf, OID bti_oid,
-                     BTItem newItem);
+			  BTItem afteritem));
+bool _bt_goesonpg ARGS((Relation rel, Buffer buf, Size keysz, ScanKey scankey,
+                   BTItem afteritem));
+bool _bt_itemcmp ARGS((Relation rel, Size keysz, BTItem item1, BTItem item2,
+                  StrategyNumber strat));
+void _bt_updateitem ARGS((Relation rel, Size keysz, Buffer buf, OID bti_oid,
+                     BTItem newItem));
 
 /*
  *  _bt_doinsert() -- Handle insertion of a single btitem in the tree.
@@ -48,7 +48,9 @@ void _bt_updateitem (Relation rel, Size keysz, Buffer buf, OID bti_oid,
  */
 
 InsertIndexResult
-_bt_doinsert(Relation rel, BTItem btitem)
+_bt_doinsert(rel, btitem)
+    Relation rel;
+    BTItem btitem;
 {
     ScanKey itup_scankey;
     IndexTuple itup;
@@ -124,8 +126,14 @@ _bt_doinsert(Relation rel, BTItem btitem)
  */
 
 InsertIndexResult
-_bt_insertonpg(Relation rel, Buffer buf, BTStack stack, int keysz,
-               ScanKey scankey, BTItem btitem, BTItem afteritem)
+_bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
+    Relation rel;
+    Buffer buf;
+    BTStack stack;
+    int keysz;
+    ScanKey scankey;
+    BTItem btitem;
+    BTItem afteritem;
 {
     InsertIndexResult res;
     Page page;
@@ -276,7 +284,9 @@ _bt_insertonpg(Relation rel, Buffer buf, BTStack stack, int keysz,
  */
 
 Buffer
-_bt_split(Relation rel, Buffer buf)
+_bt_split(rel, buf)
+    Relation rel;
+    Buffer buf;
 {
     Buffer rbuf;
     Page origpage;
@@ -439,8 +449,12 @@ _bt_split(Relation rel, Buffer buf)
  */
 
 OffsetIndex
-_bt_findsplitloc(Relation rel, Page page, OffsetIndex start, OffsetIndex maxoff,
-                 Size llimit)
+_bt_findsplitloc(rel, page, start, maxoff, llimit)
+    Relation rel;
+    Page page;
+    OffsetIndex start;
+    OffsetIndex maxoff;
+    Size llimit;
 {
     OffsetIndex i;
     OffsetIndex saferight;
@@ -528,7 +542,10 @@ _bt_findsplitloc(Relation rel, Page page, OffsetIndex start, OffsetIndex maxoff,
  */
 
 void
-_bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf)
+_bt_newroot(rel, lbuf, rbuf)
+    Relation rel;
+    Buffer lbuf;
+    Buffer rbuf;
 {
     Buffer rootbuf;
     Page lpage, rpage, rootpage;
@@ -600,8 +617,14 @@ _bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf)
  */
 
 OffsetIndex
-_bt_pgaddtup(Relation rel, Buffer buf, int keysz, ScanKey itup_scankey,
-             Size itemsize, BTItem btitem, BTItem afteritem)
+_bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
+    Relation rel;
+    Buffer buf;
+    int keysz;
+    ScanKey itup_scankey;
+    Size itemsize;
+    BTItem btitem;
+    BTItem afteritem;
 {
     OffsetIndex itup_off, maxoff;
     OffsetIndex first;
@@ -657,8 +680,12 @@ _bt_pgaddtup(Relation rel, Buffer buf, int keysz, ScanKey itup_scankey,
  */
 
 bool
-_bt_goesonpg(Relation rel, Buffer buf, Size keysz, ScanKey scankey,
-             BTItem afteritem)
+_bt_goesonpg(rel, buf, keysz, scankey, afteritem)
+    Relation rel;
+    Buffer buf;
+    Size keysz;
+    ScanKey scankey;
+    BTItem afteritem;
 {
     Page page;
     ItemId hikey;
@@ -729,8 +756,12 @@ _bt_goesonpg(Relation rel, Buffer buf, Size keysz, ScanKey scankey,
  */
 
 bool
-_bt_itemcmp(Relation rel, Size keysz, BTItem item1, BTItem item2,
-            StrategyNumber strat)
+_bt_itemcmp(rel, keysz, item1, item2, strat)
+    Relation rel;
+    Size keysz;
+    BTItem item1;
+    BTItem item2;
+    StrategyNumber strat;
 {
     TupleDescriptor tupDes;
     IndexTuple indexTuple1, indexTuple2;
@@ -763,8 +794,12 @@ _bt_itemcmp(Relation rel, Size keysz, BTItem item1, BTItem item2,
  */
 
 void
-_bt_updateitem(Relation rel, Size keysz, Buffer buf, OID bti_oid,
-               BTItem newItem)
+_bt_updateitem(rel, keysz, buf, bti_oid, newItem)
+    Relation rel;
+    Size keysz;
+    Buffer buf;
+    OID bti_oid;
+    BTItem newItem;
 {
     Page page;
     OffsetIndex maxoff;

@@ -55,26 +55,27 @@ extern bool	BuildingBtree;
 
 #define USELOCKING	(!BuildingBtree && !IsInitProcessingMode())
 
-void _bt_metapinit (Relation rel);
-void _bt_checkmeta (Relation rel);
-Buffer _bt_getroot (Relation rel, int access);
-Buffer _bt_getbuf (Relation rel, BlockNumber blkno, int access);
-void _bt_relbuf (Relation rel, Buffer buf, int access);
-void _bt_wrtbuf (Relation rel, Buffer buf);
-void _bt_wrtnorelbuf (Relation rel, Buffer buf);
-void _bt_pageinit (Page page);
-void _bt_metaproot (Relation rel, BlockNumber rootbknum);
-Buffer _bt_getstackbuf (Relation rel, BTStack stack, int access);
-void _bt_setpagelock (Relation rel, BlockNumber blkno, int access);
-void _bt_unsetpagelock (Relation rel, BlockNumber blkno, int access);
-void _bt_pagedel (Relation rel, ItemPointer tid);
+void _bt_metapinit ARGS((Relation rel));
+void _bt_checkmeta ARGS((Relation rel));
+Buffer _bt_getroot ARGS((Relation rel, int access));
+Buffer _bt_getbuf ARGS((Relation rel, BlockNumber blkno, int access));
+void _bt_relbuf ARGS((Relation rel, Buffer buf, int access));
+void _bt_wrtbuf ARGS((Relation rel, Buffer buf));
+void _bt_wrtnorelbuf ARGS((Relation rel, Buffer buf));
+void _bt_pageinit ARGS((Page page));
+void _bt_metaproot ARGS((Relation rel, BlockNumber rootbknum));
+Buffer _bt_getstackbuf ARGS((Relation rel, BTStack stack, int access));
+void _bt_setpagelock ARGS((Relation rel, BlockNumber blkno, int access));
+void _bt_unsetpagelock ARGS((Relation rel, BlockNumber blkno, int access));
+void _bt_pagedel ARGS((Relation rel, ItemPointer tid));
 
 /*
  *  _bt_metapinit() -- Initialize the metadata page of a btree.
  */
 
 void
-_bt_metapinit(Relation rel)
+_bt_metapinit(rel)
+    Relation rel;
 {
     Buffer buf;
     Page pg;
@@ -113,7 +114,8 @@ _bt_metapinit(Relation rel)
  */
 
 void
-_bt_checkmeta(Relation rel)
+_bt_checkmeta(rel)
+    Relation rel;
 {
     Buffer metabuf;
     BTMetaPageData *metad;
@@ -157,7 +159,9 @@ _bt_checkmeta(Relation rel)
  */
 
 Buffer
-_bt_getroot(Relation rel, int access)
+_bt_getroot(rel, access)
+    Relation rel;
+    int access;
 {
     Buffer metabuf;
     Buffer rootbuf;
@@ -258,7 +262,10 @@ _bt_getroot(Relation rel, int access)
  */
 
 Buffer
-_bt_getbuf(Relation rel, BlockNumber blkno, int access)
+_bt_getbuf(rel, blkno, access)
+    Relation rel;
+    BlockNumber blkno;
+    int access;
 {
     Buffer buf;
     Page page;
@@ -296,7 +303,10 @@ _bt_getbuf(Relation rel, BlockNumber blkno, int access)
  */
 
 void
-_bt_relbuf(Relation rel, Buffer buf, int access)
+_bt_relbuf(rel, buf, access)
+    Relation rel;
+    Buffer buf;
+    int access;
 {
     BlockNumber blkno;
 
@@ -320,7 +330,9 @@ _bt_relbuf(Relation rel, Buffer buf, int access)
  */
 
 void
-_bt_wrtbuf(Relation rel, Buffer buf)
+_bt_wrtbuf(rel, buf)
+    Relation rel;
+    Buffer buf;
 {
     BlockNumber blkno;
 
@@ -338,7 +350,9 @@ _bt_wrtbuf(Relation rel, Buffer buf)
  */
 
 void
-_bt_wrtnorelbuf(Relation rel, Buffer buf)
+_bt_wrtnorelbuf(rel, buf)
+    Relation rel;
+    Buffer buf;
 {
     BlockNumber blkno;
 
@@ -351,7 +365,8 @@ _bt_wrtnorelbuf(Relation rel, Buffer buf)
  */
 
 void
-_bt_pageinit(Page page)
+_bt_pageinit(page)
+    Page page;
 {
     /*
      *  Cargo-cult programming -- don't really need this to be zero, but
@@ -379,7 +394,9 @@ _bt_pageinit(Page page)
  */
 
 void
-_bt_metaproot(Relation rel, BlockNumber rootbknum)
+_bt_metaproot(rel, rootbknum)
+    Relation rel;
+    BlockNumber rootbknum;
 {
     Buffer metabuf;
     BTMetaPageData *metap;
@@ -405,7 +422,10 @@ _bt_metaproot(Relation rel, BlockNumber rootbknum)
  */
 
 Buffer
-_bt_getstackbuf(Relation rel, BTStack stack, int access)
+_bt_getstackbuf(rel, stack, access)
+    Relation rel;
+    BTStack stack;
+    int access;
 {
     Buffer buf;
     BlockNumber blkno;
@@ -469,7 +489,10 @@ _bt_getstackbuf(Relation rel, BTStack stack, int access)
 }
 
 void
-_bt_setpagelock(Relation rel, BlockNumber blkno, int access)
+_bt_setpagelock(rel, blkno, access)
+    Relation rel;
+    BlockNumber blkno;
+    int access;
 {
     ItemPointerData iptr;
 
@@ -484,7 +507,10 @@ _bt_setpagelock(Relation rel, BlockNumber blkno, int access)
 }
 
 void
-_bt_unsetpagelock(Relation rel, BlockNumber blkno, int access)
+_bt_unsetpagelock(rel, blkno, access)
+    Relation rel;
+    BlockNumber blkno;
+    int access;
 {
     ItemPointerData iptr;
 
@@ -499,7 +525,9 @@ _bt_unsetpagelock(Relation rel, BlockNumber blkno, int access)
 }
 
 void
-_bt_pagedel(Relation rel, ItemPointer tid)
+_bt_pagedel(rel, tid)
+    Relation rel;
+    ItemPointer tid;
 {
     Buffer buf;
     Page page;
