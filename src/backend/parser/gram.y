@@ -86,6 +86,8 @@ static int p_numlevels,p_last_resno;
 Relation parser_current_rel = NULL;
 static bool QueryIsRule = false;
 
+bool Input_is_string = false;
+bool Typecast_ok = true;
 
 %}
 
@@ -1586,40 +1588,51 @@ a_expr:
 						    CString(CADR($1)),
 						    CInteger($3));
 		}
-	| spec 
+	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
-  		{ $$ = make_op(lispString("-"),$2, LispNil); }
+  		{ $$ = make_op(lispString("-"),$2, LispNil);
+		  Typecast_ok = false; }
 	| a_expr '+' a_expr
-		{ $$ = make_op (lispString("+"), $1, $3 ) ; }
+		{ $$ = make_op (lispString("+"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '-' a_expr
-		{ $$ = make_op (lispString("-"), $1, $3 ) ; }
+		{ $$ = make_op (lispString("-"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '/' a_expr
-		{ $$ = make_op (lispString("/"), $1, $3 ) ; }
+		{ $$ = make_op (lispString("/"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '*' a_expr
-		{ $$ = make_op (lispString("*"), $1, $3 ) ; }
+		{ $$ = make_op (lispString("*"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '<' a_expr
-		{ $$ = make_op (lispString("<"), $1, $3 ) ; }
+		{ $$ = make_op (lispString("<"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '>' a_expr
-		{ $$ = make_op (lispString(">"), $1, $3 ) ; }
+		{ $$ = make_op (lispString(">"), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| a_expr '=' a_expr
-		{ $$ = make_op (lispString("="), $1, $3 ) ; }
+		{ $$ = make_op (lispString("="), $1, $3 ) ;
+		  Typecast_ok = false; }
 	| AexprConst TYPECAST Typename
 		{ 
 		    extern LispValue parser_typecast();
 		    $$ = parser_typecast ( $1, $3 );
-		}
+		    Typecast_ok = false; /* it's already typecasted */
+					 /* don't do it again. */ }
 	| '(' a_expr ')'
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
-		{ $$ = make_op ( $2, $1 , $3 ); }
+		{ $$ = make_op ( $2, $1 , $3 );
+		  Typecast_ok = false; }
 	| relation_name
-		{ $$ = lispCons ( KW(relation), $1 ); }
+		{ $$ = lispCons ( KW(relation), $1 );
+		  Typecast_ok = false; }
 	| name '(' expr_list ')'
 		{
 			extern List ParseFunc();
 			$$ = ParseFunc ( CString ( $1 ), $3 ); 
-		}
+			Typecast_ok = false; }
 	;
 
 expr_list:
@@ -1745,7 +1758,8 @@ AexprConst:
 	  Iconst			{ $$ = make_const ( $1 ) ; }
 	| FCONST			{ $$ = make_const ( $1 ) ; }
 	| CCONST			{ $$ = make_const ( $1 ) ; }
-	| Sconst 			{ $$ = make_const ( $1 ) ; }
+	| Sconst 			{ $$ = make_const ( $1 ) ; 
+					  Input_is_string = true; }
 	| Pnull			 	{ $$ = make_const( LispNil ); }
 	;
 
@@ -1808,6 +1822,8 @@ parser_init()
 	p_target_resnos = LispNil;
 	ResdomNoIsAttrNo = false;
 	QueryIsRule = false;
+	Input_is_string = false;
+	Typecast_ok = true;
 }
 
 
@@ -1832,9 +1848,16 @@ make_targetlist_expr ( name , expr )
 	resdomno = varattno(rd,CString(name));
 	attrtype = att_typeid(rd,resdomno);
 	attrlen = tlen(get_id_type(attrtype)); 
-	if (attrtype != type_id)
-	  elog(WARN, "unequal type in tlist : %s \n",
-	       CString(name));
+
+	if(Input_is_string && Typecast_ok){
+              CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
+                fmgr(typeid_get_retinfunc(attrtype), get_constvalue(CDR(expr))),
+		0);
+	} else if (attrtype != type_id)
+		elog(WARN, "unequal type in tlist : %s \n", CString(name));
+	Input_is_string = false;
+        Typecast_ok = true;
+
 	if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
 	   != -1 ) {
 	    elog(WARN,"two or more occurence of same attr");
