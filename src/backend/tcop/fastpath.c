@@ -166,7 +166,7 @@ HandleFunctionRequest()
      *  to remember, so that we pfree() it after the call.
      */
     palloced = 0x0;
-    for (i = 0; i < MAXFMGRARGS; ++i) {
+    for (i = 0; i < 8; ++i) {
 	if (i >= nargs) {
 	    arg[i] = (char *) NULL;
 	} else {
