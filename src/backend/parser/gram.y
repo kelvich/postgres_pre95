@@ -1876,15 +1876,29 @@ SubstituteParamForNewOrCurrent ( parsetree )
 
     foreach ( i , parsetree ) {
 	List temp = CAR(i);
-	if ( IsA (temp,Var) ) {
+	if ( temp && IsA (temp,Var) ) {
+	    char  *attrname = NULL;
+	    Relation foo = amopenr ( CString(CAR(NewOrCurrentIsReally)));
+
+	    if ( foo ) {
+		attrname = &(foo->rd_att.data[get_varattno(temp)-1]->attname);
+	    }
 	    if ( get_varno(temp) == 1 ) {
 		/* replace with make_param(old) */
-				} 
+		CAR(i) = MakeParam (PARAM_OLD,
+				    (int32)0,
+				    attrname,
+				    get_vartype(temp));
+	    } 
 	    if ( get_varno(temp) == 2 ) {
 		/* replace with make_param(new) */
+		CAR(i) = MakeParam(PARAM_NEW,
+				   (int32)0,
+				   attrname,
+				   get_vartype(temp) );
 	    }
 	} 
-	if (  temp->type == PGLISP_DTPR ) 
+	if (  temp && temp->type == PGLISP_DTPR ) 
 	  SubstituteParamForNewOrCurrent ( temp );
     }
 }
