@@ -1528,11 +1528,11 @@ a_expr:
 		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
 				    $$ );
 		}
-	| attr '(' expr_list ')'
+ /*	| attr '(' expr_list ')'
 		{ 
 		    /* for now, ignore the expression list , ie assume none 
 		     * exists
-                     */
+                     *#
 		    Var temp = (Var)NULL;
 		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
 					    CString(CADR($1)) ));
@@ -1557,7 +1557,7 @@ a_expr:
 
 		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
 				    $$ );
-		}
+		} */
 	| AexprConst		
 	| attr '[' Iconst ']'
 		{ 
