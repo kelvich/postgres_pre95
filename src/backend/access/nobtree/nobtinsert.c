@@ -3,6 +3,7 @@
  */
 
 #include "tmp/c.h"
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -175,10 +176,7 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
 	/* split the buffer into left and right halves */
 	NOBT_NSplits++;
 #ifdef	SHADOW
-	if (NOBT_Building)
-	    rbuf = _nobt_bsplit(rel, buf);
-	else
-	    rbuf = _nobt_nsplit(rel, &buf);
+	rbuf = _nobt_nsplit(rel, &buf);
 #endif	/* SHADOW */
 #ifdef	REORG
 	rbuf = _nobt_bsplit(rel, buf);
@@ -1053,3 +1051,4 @@ _nobt_goesonpg(rel, buf, keysz, scankey, afteritem)
 
     return (false);
 }
+#endif /* NOBTREE */

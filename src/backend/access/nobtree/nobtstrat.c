@@ -3,6 +3,8 @@
  */
 
 #include "tmp/c.h"
+
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/page.h"
@@ -130,3 +132,5 @@ _nobt_invokestrat(rel, attno, strat, left, right)
     return (RelationInvokeStrategy(rel, &BTEvaluationData, attno, strat, 
 				   left, right));
 }
+
+#endif /* NOBTREE */

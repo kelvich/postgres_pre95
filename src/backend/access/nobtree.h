@@ -4,6 +4,8 @@
  *	$Header$
  */
 
+#ifdef NOBTREE
+
 /* exactly one of these must be defined */
 #undef	SHADOW
 #undef	NORMAL
@@ -221,3 +223,5 @@ void			_nobt_adjscans();
 void			_nobt_scandel();
 bool			_nobt_scantouched();
 OffsetIndex		_nobt_findsplitloc();
+
+#endif /* NOBTREE */

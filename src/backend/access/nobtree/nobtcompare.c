@@ -11,8 +11,9 @@
  */
 
 #include "tmp/c.h"
-#include "tmp/postgres.h"
 
+#ifdef NOBTREE
+#include "tmp/postgres.h"
 RcsId("$Header$");
 
 int32
@@ -114,3 +115,4 @@ nobttextcmp(a, b)
 {
     return (strcmp(a, b));
 }
+#endif /* NOBTREE */

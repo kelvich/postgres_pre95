@@ -3,6 +3,8 @@
  */
 
 #include "tmp/c.h"
+
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -528,3 +530,5 @@ _nobt_countout()
 	    _count_r.ru_nvcsw, _count_r.ru_nivcsw);
     fprintf(stderr, "!\t%d page splits\n", NOBT_NSplits);
 }
+
+#endif /* NOBTREE */

@@ -6,6 +6,8 @@
  */
 
 #include "tmp/c.h"
+
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -53,8 +55,6 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     NOBTLItem btitem;
     TransactionId currxid;
     extern TransactionId GetCurrentTransactionId();
-
-    _nobt_countstart();
 
     /* don't bother with no-overwrite behavior for initial build */
     NOBT_Building = true;
@@ -110,7 +110,9 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	itup->t_tid = htup->t_ctid;
 
 	btitem = _nobt_formitem(itup);
+	_nobt_countstart();
 	res = _nobt_doinsert(index, btitem);
+	_nobt_countstop();
 	pfree(btitem);
 	pfree(itup);
 	pfree(res);
@@ -136,7 +138,6 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     pfree(attdata);
 
     NOBT_Building = false;
-    _nobt_countstop();
 }
 
 /*
@@ -156,13 +157,13 @@ nobtinsert(rel, itup)
     int nbytes_btitem;
     InsertIndexResult res;
 
-    _nobt_countstart();
     btitem = _nobt_formitem(itup);
 
+    _nobt_countstart();
     res = _nobt_doinsert(rel, btitem);
+    _nobt_countstop();
     pfree(btitem);
 
-    _nobt_countstop();
     return (res);
 }
 
@@ -382,3 +383,34 @@ nobtdelete(rel, tid)
     /* delete the data from the page */
     _nobt_pagedel(rel, tid);
 }
+
+___MAO(limit)
+    int limit;
+{
+    int i;
+    int v;
+    IndexScanDesc s;
+    Relation index;
+    extern int getpid();
+    extern long random();
+    ScanKeyEntryData skey;
+
+    srandom(getpid());
+    ScanKeyEntryInitialize(&skey, 0x0, 1, 65, 0);
+    index = index_openr("zzz");
+
+    for (i = 0; i < 8000; i++) {
+	v = random() % limit;
+	skey.argument = Int32GetDatum(v);
+	s = (IndexScanDesc) nobtbeginscan(index, false, 1, &skey);
+	(void) nobtgettuple(s, ForwardScanDirection);
+	nobtendscan(s);
+    }
+
+    index_close(index);
+
+    _nobt_countout();
+    exitpg(0);
+}
+
+#endif /* NOBTREE */

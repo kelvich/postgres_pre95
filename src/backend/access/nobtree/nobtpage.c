@@ -10,6 +10,7 @@
  */
 
 #include "tmp/c.h"
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -523,3 +524,4 @@ _nobt_pagedel(rel, tid)
     /* write the buffer and release the lock */
     _nobt_wrtbuf(rel, buf);
 }
+#endif /* NOBTREE */

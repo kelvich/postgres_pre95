@@ -3,6 +3,8 @@
  */
 
 #include "tmp/c.h"
+
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -1246,3 +1248,5 @@ _nobt_endpoint(scan, dir)
 
     return (res);
 }
+
+#endif /* NOBTREE */

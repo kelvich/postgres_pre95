@@ -330,6 +330,119 @@ DATA(insert OID = 0 (  403 432 560 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 565 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 563 5 btreesel btreenpage ));
 
+#ifdef NOBTREE
+/*
+ *  nobtree int2_ops
+ */
+
+DATA(insert OID = 0 (  404 421  95 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 421 522 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 421  94 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 421 524 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 421 520 5 btreesel btreenpage ));
+
+/*
+ *  nobtree float8_ops
+ */
+
+DATA(insert OID = 0 (  404 423 672 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 423 673 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 423 670 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 423 675 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 423 674 5 btreesel btreenpage ));
+
+/*
+ *  nobtree int24_ops
+ */
+
+DATA(insert OID = 0 (  404 424 534 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 424 540 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 424 532 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 424 542 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 424 536 5 btreesel btreenpage ));
+
+/*
+ *  nobtree int42_ops
+ */
+
+DATA(insert OID = 0 (  404 425 535 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 425 541 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 425 533 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 425 543 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 425 537 5 btreesel btreenpage ));
+
+/*
+ *  nobtree int4_ops
+ */
+
+DATA(insert OID = 0 (  404 426  97 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 426 523 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 426  96 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 426 525 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 426 521 5 btreesel btreenpage ));
+
+/*
+ *  nobtree oid_ops
+ */
+
+DATA(insert OID = 0 (  404 427 609 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 427 611 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 427 607 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 427 612 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 427 610 5 btreesel btreenpage ));
+
+/*
+ *  nobtree float4_ops
+ */
+
+DATA(insert OID = 0 (  404 428 622 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 428 624 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 428 620 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 428 625 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 428 623 5 btreesel btreenpage ));
+
+/*
+ *  nobtree char_ops
+ */
+
+DATA(insert OID = 0 (  404 429 631 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 429 632 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 429 92 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 429 634 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 429 633 5 btreesel btreenpage ));
+
+/*
+ *  nobtree char16_ops
+ */
+
+DATA(insert OID = 0 (  404 430 660 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 430 661 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 430 93 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 430 663 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 430 662 5 btreesel btreenpage ));
+
+/*
+ *  nobtree text_ops
+ */
+
+DATA(insert OID = 0 (  404 431 664 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 431 665 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 431 98 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 431 667 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 431 666 5 btreesel btreenpage ));
+
+/*
+ *  nobtree abstime_ops
+ */
+
+DATA(insert OID = 0 (  404 432 562 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 432 564 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 432 560 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 432 565 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 432 563 5 btreesel btreenpage ));
+
+#endif /* NOBTREE */
+
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm
  * ----------------

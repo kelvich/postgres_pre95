@@ -16,6 +16,8 @@
  */
 
 #include "tmp/c.h"
+
+#ifdef NOBTREE
 #include "tmp/postgres.h"
 
 #include "storage/bufmgr.h"
@@ -164,3 +166,5 @@ _nobt_scantouched(scan, blkno, offno)
 
     return (false);
 }
+
+#endif /* NOBTREE */
