@@ -42,7 +42,6 @@
 #include "nodes/primnodes.a.h"
 #include "rules/params.h"
 #include "utils/lsyscache.h"
-
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
@@ -92,6 +91,7 @@ bool Input_is_string = false;
 bool Input_is_integer = false;
 bool Typecast_ok = true;
 static bool Params_ok = false;
+bool is_postquel_function = false;
 %}
 
 /* Commands */
@@ -618,11 +618,16 @@ MergeStmt:
 
   ************************************************************/
 
-Executable: OptimizableStmt 
+ Executable:     OptimizableStmt 
                {
 		   $$ = $1;
+		   if (!is_postquel_function)
+		       elog(WARN,
+		      "non-postquel functions don't use queries, you lose!");
+		   
+			   
  	       }
-            | SCONST
+| SCONST
                {
 		   $$ = $1;
 	       };
@@ -632,9 +637,25 @@ ProcedureStmt:
 
         DEFINE FUNCTION def_rest AS 
                 {
+		    char *pfa = "not_a_relation";
 		    /* so current and new can be used in definition of 
 		       postquel functions */
 		    QueryIsRule = true;
+
+		    is_postquel_function = false;
+		    if(is_postquel_func($3)) {
+			is_postquel_function = true;
+			pfa = postquel_func_arg($3);
+			NewOrCurrentIsReally = lispString($4);
+		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
+					     LispNil,
+					     (Name)"*CURRENT*" ) );
+		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
+					     LispNil,
+					     (Name)"*NEW*" ));
+
+		    }
+
 		}
         Executable
                 {
@@ -2134,3 +2155,46 @@ make_targetlist_expr ( name , expr )
     
 }
 
+static int is_postquel_func(parameters)
+     List parameters;
+{
+    List assoc_list;
+    List rest;
+    assoc_list = CDR(parameters);
+    foreach (rest, assoc_list) {
+	List item = CAR(CAR(rest));
+	List value = CAR(CDR(CAR(rest)));
+
+ 	if (!stringp(item)) continue;
+	if (!strcmp(CString(item), "language")) {
+	    char *name;
+	    char *c;
+
+	    name = CString(value);
+	    for (c = name; *c != '\0'; c++)
+		*c = toupper(*c);
+	    if (!strcmp(name, "POSTQUEL")) return true;
+	}
+    }
+    return false;
+}
+static char *postquel_func_arg(parameters)
+     List parameters;
+{
+    List assoc_list;
+    List rest;
+    assoc_list = CDR(parameters);
+    foreach (rest, assoc_list) {
+	List item = CAR(CAR(rest));
+	List value = CAR(CDR(CAR(rest)));
+
+	if (atom(item) && (CAtom(item) == ARG)) {
+	    if (stringp(value)) {
+		char *name = CString(value);
+		return name;
+	    }
+	}
+
+    }
+    elog(WARN, "no zero argument postquel functions");
+}

@@ -142,4 +142,7 @@ RemoveOperator ARGS((
 	Name	type2
 ));
 
+void DefinePFunction ARGS((char *pname, List parameters, List query_tree));
+
+
 #endif	/* !defined(DefRemIncluded) */

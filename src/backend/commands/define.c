@@ -90,9 +90,7 @@ DefineFunction(nameargsexe)
 
     if (!strcmp(languageName, "POSTQUEL"))
       {
-	  /* to be done by Adam */
-	  elog(WARN, "DefineFunction: can't handle POSTQUEL yet");
-	  /* DefinePFunction(name, relationname, CDR(CDR(nameargsexe))); */
+	  DefinePFunction(name, parameters, CADR((nameargsexe)));
       }
 
     else if (!strcmp(languageName, "C"))
@@ -186,35 +184,69 @@ DefineCFunction(name, parameters, fileName, languageName)
  */
 
 void
-DefinePFunction(pname,relname,qstring)
-     Name  pname;
-     Name  relname;
-     char  *qstring;
+DefinePFunction(pname,parameters, query_tree)
+     char *pname;
+     List parameters;
+     List query_tree;
 {
   static char query_buf[1024];
+  static char tbuf[32];
   extern void eval_as_new_xact();
-
+  List entry; 
+  List p = LispNil;
+  List argList;
+  char *relname;
+  List reln;
+  String  returnTypeName;
   /*
    *  First we have to add a column to the relation.
    */
 
   /* XXX Fix this after catalogs fix to get relation type. */
 
+  entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
+  returnTypeName = DefineEntryGetString(entry);
+
+  argList = LispRemoveMatchingSymbol(&parameters, ARG);
+	 
+  argList = CDR(argList);
+  AssertArg(length(argList) > 0);
+	     
+  if (length(argList) >1)
+      elog(WARN, "POSTQUEL functions with base type arguments aren't implemented yet");
+  reln = CAR(argList);
+  if (!lispStringp(reln))
+      elog(WARN, "DefineFunction: arg type = ?");
+   relname = CString(reln);
   sprintf(query_buf, "addattr (%s = SET ) to %s", pname, relname); 
   /*  printf( "Query is : %s\n", query_buf); */
   pg_eval(query_buf); 
-
   /*
    * Now we have to define the appropriate rule for the Postquel
    * function(procedure).
    */
+  CommandCounterIncrement();
+  strcpy(tbuf, pname);
+  strcat(tbuf, "_rule");
+  p = nappend1(p, lispString(tbuf));	/* rulename */
+  p = nappend1(p, lispAtom("retrieve")); /* event_type */
+  p = nappend1(p, lispCons(lispString(relname),
+			   lispCons(lispString(pname), LispNil)));
+	       /* event_obj */
+  p = nappend1(p, LispNil);	/* event_qual */
+  p = nappend1(p, lispInteger(true)); /* is instead */
+  p = nappend1(p, lispCons(query_tree,LispNil));	/* action list*/
+  DefineQueryRewrite(p);
 
+
+#ifdef
   sprintf(query_buf, "define rewrite rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
 
   /*  printf("Rule defined is: %s\n", query_buf); */
-/*  CommitTransaction();
+
   StartTransaction();*/
   eval_as_new_xact(query_buf);
+#endif
 }
 
 

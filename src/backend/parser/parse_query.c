@@ -289,7 +289,10 @@ ExpandAll(relname,this_resno)
 	maxattrs = RelationGetNumberOfAttributes(rdesc);
 
 	for ( i = maxattrs-1 ; i > -1 ; --i ) {
-		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
+		char *attrname;
+
+		attrname = (char *) palloc (sizeof(NameData)+1);
+		strcpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname));
 		temp = make_var ( relname, (Name) attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
