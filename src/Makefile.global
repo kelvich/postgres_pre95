@@ -43,7 +43,7 @@ STRIP=
 #
 # Globally pass PORTNAME
 #
-CFLAGS+= -DPORTNAME=${PORTNAME}
+CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
 
 # XXX - to get alpha going
 .if (${PORTNAME} == "alpha")
