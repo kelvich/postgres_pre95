@@ -67,7 +67,7 @@ extern int NBuffers;
 /**** xxref:
  *           ExecProcNode
  ****/
-List
+TupleTableSlot
 ExecHash(node)
 Hash node;
 {
@@ -178,7 +178,12 @@ Hash node;
 	NDirectFileWrite++;
    }
     
-    return LispNil;
+    /* ---------------------
+     *  Return the slot so that we have the tuple descriptor 
+     *  when we need to save/restore them.  -Jeff 11 July 1991
+     * ---------------------
+     */
+    return slot;
 }
  
 /* ----------------------------------------------------------------
