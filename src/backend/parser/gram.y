@@ -1318,23 +1318,27 @@ relation_expr:
 	  relation_name
   		{ 
 		    /* normal relations */
-		    $$ = $1;
+		    $$ = lispCons ( MakeList ( $1, LispNil , LispNil , -1 ),
+				   LispNil );
 		}
-	| relation_expr '|' relation_expr %prec Op
+	| relation_expr '|' relation_expr %prec '='
 		{ 
 		    /* union'ed relations */
 		    elog ( NOTICE, "now consing the union'ed relations");
-		    $$ = lispCons ( $1, $3 );
+		    $$ = append ( $1, $3 );
 		}
-	| relation_expr '*'
+	| relation_name '*'
 		{ 
 		    /* inheiritance query */
-		    $$ = lispCons ( lispString("*"), $1 ); 
+		    $$ = lispCons ( MakeList ( $1, LispNil, 
+					      lispString("*"), -1) ,
+				   LispNil );
 		}
-	| relation_expr time_range %prec UMINUS
+	| relation_name time_range 
 		{ 
 		    /* time-qualified query */
-		    $$ = lispCons ( $2, $1 ); 
+		    $$ = lispCons ( MakeList ( $1, $2, LispNil , -1 ) ,
+				    LispNil );
 		}
 	| '(' relation_expr ')'
 		{ 
@@ -1344,66 +1348,13 @@ relation_expr:
 	;
 
 	  
-old_Relation:
-	    relation_name opt_time_range '*'
-
-		{
-		    List options = LispNil;
-
-		    /* printf("timerange flag = %d",(int)$2); */
-		    
-		    if ($3 != LispNil )	/* inheritance query*/
-		      options = lispCons(KW(inherits),options);
-
-		    if ($2 != LispNil ) /* time range query */
-		      options = lispCons($2, options );
-
-		    if( !RangeTablePosn(CString($1),options ))
-		      ADD_TO_RT (MakeRangeTableEntry (CString($1),
-						      options,
-						      CString($1) ));
-		}
-	  | relation_name opt_time_range  
-		{
-		    List options = LispNil;
-
-		    /* printf("timerange flag = %d",(int)$2); */
-		    
-		    if ($2 != LispNil ) /* time range query */
-		      options = lispCons($2, options );
-
-		    if( !RangeTablePosn(CString($1),options ))
-		      ADD_TO_RT (MakeRangeTableEntry (CString($1),
-						      options,
-						      CString($1) ));
-		}
-	;
-
-opt_time_range:
-	  '[' opt_range_start ',' opt_range_end ']'
-        	{ 
-		    /* printf ("time range\n");fflush(stdout); */
-		    $$ = MakeTimeRange($2,$4,1); 
-		}
-	| '[' date ']'
-		{ 
-		    /* printf("snapshot\n"); fflush(stdout); */
-		    $$ = MakeTimeRange($2,LispNil,0); 
-		}
-	| /* empty */
-		{ 
-		    $$ =  lispInteger(0); 
-	        }
-	;
 time_range:
 	  '[' opt_range_start ',' opt_range_end ']'
         	{ 
-		    /* printf ("time range\n");fflush(stdout); */
 		    $$ = MakeTimeRange($2,$4,1); 
 		}
 	| '[' date ']'
 		{ 
-		    /* printf("snapshot\n"); fflush(stdout); */
 		    $$ = MakeTimeRange($2,LispNil,0); 
 		}
         ;
