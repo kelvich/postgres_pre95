@@ -138,6 +138,10 @@ class (TupleCount) public (Node) {
  *	prs2_info			Information used by the rule
  *					manager (for loop detection
  *					etc.). Must be initialized to NULL
+ *	explain_relation		The relation descriptor of the
+ *					result relation of an 'explain'
+ *					command. NULL if this is not
+ *					an explain command.
  * ----------------
  */
 
@@ -159,6 +163,7 @@ class (EState) public (Node) {
       TupleCount	es_tuplecount;
       ParamListInfo	es_param_list_info;
       Prs2EStateInfo	es_prs2_info;
+      Relation		es_explain_relation;
       int		es_BaseId;
 };
 
