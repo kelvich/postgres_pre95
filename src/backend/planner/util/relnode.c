@@ -9,6 +9,8 @@
  *      EXPORTS
  *     		get_rel
  *     		rel-member
+ *
+ *	$Header$
  */
 
 #include "planner/internal.h"
