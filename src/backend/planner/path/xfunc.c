@@ -19,7 +19,8 @@
 **              xfunc_clause_compare
 **              xfunc_disjunct_sort
 */
-#include <math.h>      /* for MAXFLOAT */
+#include <math.h>	/* for MAXFLOAT on most systems */
+#include <values.h>	/* for MAXFLOAT on SunOS */
 #include <strings.h>
 
 #include "nodes/pg_lisp.h"
@@ -55,11 +56,6 @@
 #define MAXFLOAT	1.8e+308
 #endif /* MAXFLOAT */
 #endif /* sequent */
-
-#ifdef linux
-#undef MAXFLOAT
-#define MAXFLOAT	MAXFLOAT
-#endif /* linux */
 
 /*
 ** xfunc_trypullup --
