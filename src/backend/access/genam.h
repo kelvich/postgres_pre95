@@ -212,17 +212,6 @@ IndexScanGetGeneralRetrieveIndexResult ARGS((
 	ScanDirection	direction
 ));
 
-/* OBSOLETE
- * IndexScanGetIndexTuple --
- *	General access method get index tuple routine.
- */
-extern
-GeneralRetrieveIndexResult
-IndexScanGetIndexTuple ARGS((
-	IndexScanDesc	scan,
-	Boolean		backward
-));
-
 /* ----------------
  *	support macros for old index access method interface
  * ----------------
