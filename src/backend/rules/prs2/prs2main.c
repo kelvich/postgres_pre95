@@ -1,0 +1,184 @@
+/*---------------------------------------------------------------
+ *
+ * FILE
+ *    prs2main.c
+ *
+ * DESCRIPTION
+ *   top level PRS2 rule manager routines (called by the executor)
+ *
+ * INTERFACE ROUTINES
+ *   prs2main()
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+
+#include "parse.h"	/* RETRIEVE et all are defined here */
+#include "log.h"
+#include "rel.h"
+#include "htup.h"
+#include "buf.h"
+#include "prs2.h"
+#include "executor.h"
+
+/*------------------------------------------------------------------
+ *
+ * prs2main()
+ *
+ * Activate any rules that apply to the attributes specified.
+ *
+ *
+ * Explanation of arguments:
+ *   operation:
+ *	the kind of operation performed.
+ *	this can only be a RETRIEVE (everything else is ignored).
+ *   userId:
+ *	the user Id (currently ignored).
+ *   relation:
+ *	the relation where oldTuple & newTuple belong.
+ *   oldTuple:
+ *      If the operation is a RETRIEVE this is the base tuple, as
+ *      returned form the access methods (i.e. no rules have been applied
+ *      yet).
+ *      If the operation is a DELETE then this is the tuple to be
+ *      deleted.
+ *      If the operation is a REPLACE then this is the tuple
+ *      that is going to be replace with the new tuple.
+ *   oldBuffer:
+ *	the Buffer of the oldTuple.
+ *   newTuple:
+ *      If the operation is a APPEND then this is the new tuple
+ *      to be appended.
+ *      If the operation is a REPLACE then this is the new version
+ *      of the tuple (the one that will replace oldTuple).
+ *   newBuffer:
+ *	the Buffer of the newTuple.
+ *   attributeArray
+ *	An array of AttributeNumber. These are the attributes that
+ *      are affected by the specified operation.
+ *      If the operation is a RETRIEVE or a REPLACE then these
+ *      are the attributes that are retrieved or replaced.
+ *      In the xcase of APPEND & DELETE we assume that all the
+ *      attributes of the tuple are affected.
+ *   numberOfAttributes
+ *      the number of attributes in attributeArray.
+ *   returnedTupleP
+ *      If the operation was a RETRIEVE and the value of the
+ *      oldTuple has changed because of a rule, then this is 
+ *      the new tuple (that has to be used by the executor in
+ *      the place of the oldTuple.
+ *      If the operation was a REPLACE or APPEND and newTuple had
+ *      to be changed because of a rule, then this is the new tuple
+ *      that the executor has to use in the place of newTuple.
+ *   returnedBufferP
+ *      The Buffer of the returnedTuple (usually InvalidBuffer).
+ *
+ * Returned values:
+ *   PRS2_STATUS_TUPLE_UNCHANGED
+ *      Probably no applicable rules were found. Proceed as normal
+ *      returnedTupleP and returnedBufferP should NOT be used.
+ *   PRS2_STATUS_TUPLE_CHANGED
+ *	One or more rules were activated, (*returnedTupleP) should
+ *      be used (instead of oldTuple or newTuple).
+ *   PRS2_STATUS_INSTEAD
+ *      An instead was specified in the action part of a rule,
+ *      and therefore the executor must do nothing.
+ *
+ */
+
+int
+prs2Main(estate, operation, userId, relation,
+	    oldTuple, oldBuffer,
+	    newTuple, newBuffer,
+	    attributeArray, numberOfAttributes,
+	    returnedTupleP, returnedBufferP)
+EState estate;
+int operation;
+int userId;
+Relation relation;
+HeapTuple oldTuple;
+Buffer oldBuffer;
+HeapTuple newTuple;
+Buffer newBuffer;
+AttributeNumberPtr attributeArray;
+int numberOfAttributes;
+HeapTuple *returnedTupleP;
+Buffer *returnedBufferP;
+{
+    int status;
+    Buffer localBuffer;
+    Prs2EStateInfo prs2EStateInfo;
+    int topLevel;
+
+    if (relation == NULL) {
+	/*
+	 * This should not happen!
+	 */
+	elog(WARN, "prs2main: called with relation = NULL");
+    }
+
+    if (returnedBufferP == NULL) {
+	returnedBufferP = &localBuffer;
+    }
+
+    prs2EStateInfo = get_es_prs2_info(estate);
+
+    if (prs2EStateInfo == NULL) {
+	prs2EStateInfo = prs2RuleStackInitialize();
+	topLevel = 1;
+    } else {
+	topLevel = 0;
+    }
+
+    switch (operation) {
+	case RETRIEVE:
+	    status = prs2Retrieve(
+				prs2EStateInfo,
+				oldTuple,
+				oldBuffer,
+				attributeArray,
+				numberOfAttributes,
+				relation,
+				returnedTupleP,
+				returnedBufferP);
+	    break;
+#ifdef NOT_YET
+	case DELETE:
+	    status = prs2Delete(
+				oldTuple,
+				oldBuffer,
+				relation);
+	    break;
+	case APPEND:
+	    status = prs2Append(
+				oldTuple,
+				oldBuffer,
+				attributeArray,
+				numberOfAttributes,
+				relation,
+				returnedTupleP,
+				returnedBufferP);
+	    break;
+	case REPLACE:
+	    status = prs2Replace(
+				oldTuple,
+				oldBuffer,
+				attributeArray,
+				numberOfAttributes,
+				relation,
+				returnedTupleP,
+				returnedBufferP);
+	    break;
+
+#endif NOT_YET
+	default:
+	    elog(WARN, "prs2main: illegal operation %d", operation);
+
+    } /* switch */
+
+    if (topLevel) {
+	prs2RuleStackFree(prs2EStateInfo);
+    }
+    return(status);
+}
