@@ -91,7 +91,6 @@
 #include "catalog/pg_naming.h"
 
 #include "utils/log.h"
-#include "utils/ftype.h"
 
 static GlobalMemory fscxt = NULL;
 
@@ -106,8 +105,18 @@ int LOTell ARGS((void *obj_desc ));
 int LORead ARGS((void *obj_desc , char *buf , int n ));
 int LOWrite ARGS((void *obj_desc , char *buf , int n ));
 
+/* ftype.c */
+void  *f262open ARGS((ObjectId foid ));
+int f262seek ARGS((void *f , int loc ));
+int f262read ARGS((void *f , char *dbuf , int nbytes ));
+void f262close ARGS((void *f ));
+
 static int noaction() { return  -1; } /* error */
 static void *noactionnull() { return (void *) NULL; } /* error */
+/* These should be easy to code */
+static int f262seekwhence() {return -1;}
+static int f262tell() {return -1;}
+static int f262unixstat() {return -1;}
 
 /* This is ordered upon objtype values.  Make sure that entries are sorted
    properly. */
@@ -126,12 +135,8 @@ static struct {
     int (*LOunixstat) ARGS((void *,struct pgstat *)); /* rt-cookie,stat ->errorcode*/
 } LOprocs[] = {
     /* Inversion */
-#if 0
-    { SMALL_INT,Inversion_Create, Inversion_Open, Inversion_Close, 
-        Inversion_Read, Inversion_Write,
-	Inversion_Seek, Inversion_Tell, Inversion_UnixStat},
-#endif
-    { SMALL_INT,0,0,0,0,0,0,0,0 }, 
+    { SMALL_INT,noactionnull, f262open, f262close, f262read, noaction,
+	f262seekwhence, f262tell, f262unixstat},
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
