@@ -19,6 +19,7 @@
 #include "globals.h"
 
 #include "command.h"
+#include "fmgr.h"	/* for EnableDynamicFunctionManager, fmgr_dynamic */
 #include "exc.h"
 #include "pg_lisp.h"
 #include "pinit.h"
@@ -187,6 +188,10 @@ main(argc, argv)
 	
     /* XXX the -C version flag should be removed and combined with -O */
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
+    /*
+     * allow functions to be dynamically loaded
+     */
+    EnableDynamicFunctionManager(fmgr_dynamic);
 
     if (! Quiet)
 	puts("\tInitPostgres()..");
