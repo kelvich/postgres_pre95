@@ -54,8 +54,9 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      LispValue t_list = LispNil;
      LispValue temp = LispNil;
 
-     if ( result_relation )
-	  relid = getrelid (CInteger(result_relation),range_table);
+	if (!null(result_relation) && command_type != RETRIEVE) {
+		relid = getrelid(CInteger(result_relation), range_table);
+	}
      
      if ( integerp (relid) ) {
 	  expanded_tlist = 
