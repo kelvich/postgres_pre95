@@ -398,7 +398,8 @@ def_elem:
 /*			lispCons ($3, LispNil)); } */
 		{ $$ = lispCons($1, lispCons($3, LispNil)); }
 	| def_name
-		{ $$ = lispCons(lispAtom(CString($1)), LispNil); }
+/*		{ $$ = lispCons(lispAtom(CString($1)), LispNil); } */
+		{ $$ = lispCons($1, LispNil); }
 	;
 
 def_list:
