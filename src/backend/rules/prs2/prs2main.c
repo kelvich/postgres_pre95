@@ -20,7 +20,8 @@
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "rules/prs2.h"
-#include "executor/executor.h"
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
 
 /*------------------------------------------------------------------
  *

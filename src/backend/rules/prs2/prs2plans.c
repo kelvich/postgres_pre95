@@ -16,7 +16,11 @@
 #include "tmp/postgres.h"
 #include "catalog/syscache.h"
 #include "utils/log.h"
-#include "executor/executor.h"		/* for EState */
+#include "nodes/execnodes.h"		/* for EState */
+#include "nodes/execnodes.a.h"		/* for EState */
+#include "executor/execdefs.h"
+#include "executor/x_execmain.h"
+#include "parser/parsetree.h"
 
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
