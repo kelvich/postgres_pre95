@@ -41,6 +41,11 @@ getreldesc ARGS((
 
 #define RelationNameGetRelation(name) getreldesc(name)
 
+extern Relation
+RelationIdCacheGetRelation ARGS((
+	ObjectId	relationId
+));
+
 /*
  * Relation Id Get Relation--
  *	Returns the matching relation descriptor 
