@@ -5,14 +5,11 @@
  *   DESCRIPTION
  *	generalized portal support routines
  *
- *   SUPPORT ROUTINES
- *	get_portal_index - Return the index of the portal entry
- *	portal_setup 	- Set up a portal for dumping data
- *	portal_close 	- Close a portal, remove it from the portal table
- *	findGroup 	- Return group given the group_index
- *	findFnumber 	- Return field index of a given field within a group
- *	findFname 	- Find the field name given the field index
- *	check_field_number - signal an error if field number is out of bounds
+ *   UTILITY ROUTINES
+ *	pqdebug		- send a string to the debugging output port
+ *	pqdebug2	- send two strings to stdout
+ *	PQtrace		- turn on pqdebug() tracing
+ *	PQuntrace	- turn off pqdebug() tracing
  *
  *   INTERFACE ROUTINES
  *	PQnportals 	- Return the number of open portals. 
@@ -33,11 +30,15 @@
  *	PQftype 	- Return the type of a field
  *	PQsametype 	- Return 1 if the two tuples have the same type
  *	PQgetvalue 	- Return an attribute (field) value
+ *	PQclear		- free storage claimed by named portal
  *
  *   NOTES
  *	These functions may be used by both frontend routines which
  *	communicate with a backend or by user-defined functions which
  *	are compiled or dynamically loaded into a backend.
+ *
+ *	the portals[] array should be organized as a hash table for
+ *	quick portal-by-name lookup.
  *
  *   IDENTIFICATION
  *	$Header$
@@ -61,148 +62,47 @@ Exception PortalError = {"Invalid arguments to portal functions"};
 Exception PostquelError = {"Postquel Error"};
 Exception ProtocolError = {"Protocol Error"};
 
+int	PQtracep = 0;		/* 1 to print out debugging message */
+FILE    *debug_port;
+
 /* ----------------------------------------------------------------
- *			PQ support routines
+ *			PQ utility routines
  * ----------------------------------------------------------------
  */
-
-/* --------------------------------
- *	get_portal_index - Return the index of the portal entry
- * 	note: portals[] maps portal names to portal buffers.
- * --------------------------------
- */
-int 
-get_portal_index(pname)
-    char *pname;
+void
+pqdebug (target, msg)
+char *target, *msg;
 {
-    int i;
-
-    for (i = 0; i < MAXPORTALS; i++) 
-	if (portals[i] != NULL && strcmp(portals[i]->name, pname) == 0)
-	    return i;
-    
-    return (-1);
-}
-
-/* --------------------------------
- *	portal_setup - Set up a portal for dumping data
- * --------------------------------
- */
-PortalBuffer *
-portal_setup(pname)
-    char *pname;
-{
-    int i;
-
-    /* If a portal with the same name already exists, close it. */
-    if ((i = get_portal_index(pname)) != -1) 
-	freePortal(portals[i]->portal);
-    /* Look for an empty entry in the portal table. */
-    else {
-	for (i = 0; i < MAXPORTALS; i++)
-	    if (portals[i] == NULL)
-		break;
-	/* If the portal table is full, signal an error. */
-	if (i >= MAXPORTALS) 
-	    libpq_raise(PortalError, form("Portal Table overflows!"));
-	
-	portals[i] = addPortalEntry();
-	strcpy(portals[i]->name, pname);
+    if (PQtracep) {
+	fprintf(debug_port, target, msg);
+	fprintf(debug_port, "\n");
     }
-    portals[i]->portal = addPortal();
+}
 
-    return (portals[i]->portal);
+void
+pqdebug2(target, msg1, msg2)
+char *target, *msg1, *msg2;
+{
+    if (PQtracep) {
+	printf(target, msg1, msg2);
+	printf("\n");
+    }
 }
 
 /* --------------------------------
- *	portal_close - Close a portal, remove it from the portal table
- *			and free up the space
+ *	PQtrace() / PQuntrace()
  * --------------------------------
  */
 void
-portal_close(pname)
-    char *pname;
+PQtrace()
 {
-    int i;
-
-    if ((i = get_portal_index(pname)) == -1) 
-	libpq_raise(PortalError, form("Portal %s does not exist.", pname));
-
-    freePortal(portals[i]->portal);
-    freePortalEntry(i);
+    PQtracep = 1;
 }
 
-/* --------------------------------
- *	findGroup - Return the group given the group_index
- * --------------------------------
- */
-GroupBuffer *
-findGroup(portal, group_index)
-    PortalBuffer *portal;
-    int 	 group_index;
-{
-    GroupBuffer *group;
-
-    group = portal->groups;
-    while (group_index > 0 && group != NULL) {
-	group = group->next;
-	group_index--;
-    }
-
-    if (group == NULL)
-	libpq_raise(PortalError, 
-		    form("Group index %d out of bound.", group_index));
-
-    return (group);
-}
-
-/* --------------------------------
- *	findFnumber - Return the field index of a given field within a group
- * --------------------------------
- */
-findFnumber(group, field_name)
-    GroupBuffer *group;
-    char	*field_name;
-{	
-    TypeBlock *types;
-    int i;
-
-    types = group->types;
-
-    for (i = 0; i < group->no_fields; i++, types++) 
-	if (strcmp(types->name, field_name) == 0)
-	    return (i);
-	
-    libpq_raise(PortalError, 
-		form("Field-name %s does not exist.", field_name));
-}
-
-/* --------------------------------
- *	check_field_number - signal an error if field number is out of bounds
- * --------------------------------
- */
 void
-check_field_number(group, field_number)
-    GroupBuffer *group;
-    int		 field_number;
+PQuntrace()
 {
-    if (field_number < 0 || field_number >= group->no_fields)
-	libpq_raise(PortalError, 
-		    form("Field number %d out of bound.", field_number));
-}
-
-/* --------------------------------
- *	findFname - Find the field name given the field index
- * --------------------------------
- */
-char *
-findFname(group, field_number)
-    GroupBuffer *group;
-    int		field_number;
-{
-     check_field_number(group, field_number);
-     return
-	 (group->types + field_number)->name;
+    PQtracep = 0;
 }
 
 /* ----------------------------------------------------------------
@@ -260,7 +160,7 @@ PQparray(pname)
 {
     int i;
     
-    if ((i = get_portal_index(pname)) == -1) 
+    if ((i = pbuf_getIndex(pname)) == -1) 
 	return (PortalBuffer *) NULL;
     
     return (portals[i]->portal);
@@ -310,7 +210,7 @@ PQntuplesGroup(portal, group_index)
     int 	 group_index;
 {
     return
-	findGroup(portal, group_index)->no_tuples;
+	pbuf_findGroup(portal, group_index)->no_tuples;
 }
 
 /* --------------------------------
@@ -323,7 +223,7 @@ PQnfieldsGroup(portal, group_index)
     int		 group_index;
 {
     return
-	findGroup(portal, group_index)->no_fields;
+	pbuf_findGroup(portal, group_index)->no_fields;
 }
 
 /* --------------------------------
@@ -338,7 +238,7 @@ PQfnumberGroup(portal, group_index, field_name)
     char	 *field_name;
 {
     return
-	findFnumber( findGroup(portal, group_index), field_name);
+	pbuf_findFnumber( pbuf_findGroup(portal, group_index), field_name);
 }
 
 /* --------------------------------
@@ -353,7 +253,7 @@ PQfnameGroup(portal, group_index, field_number)
     int field_number;
 {
     return
-	findFname( findGroup(portal, group_index), field_number);
+	pbuf_findFname( pbuf_findGroup(portal, group_index), field_number);
 }
 
 /* --------------------------------
@@ -434,7 +334,7 @@ PQfnumber(portal, tuple_index, field_name)
     char	 *field_name;
 {
     return
-	findFnumber( PQgroup(portal, tuple_index), field_name);
+	pbuf_findFnumber( PQgroup(portal, tuple_index), field_name);
 }
 
 /* --------------------------------
@@ -448,7 +348,7 @@ PQfname(portal, tuple_index, field_number)
     int		 field_number;
 {
     return
-	findFname( PQgroup(portal, tuple_index), field_number);
+	pbuf_findFname( PQgroup(portal, tuple_index), field_number);
 }
 
 /* --------------------------------
@@ -464,7 +364,7 @@ PQftype(portal, tuple_index, field_number)
     GroupBuffer *group;
     
     group = PQgroup(portal, tuple_index);
-    check_field_number(group, field_number);
+    pbuf_checkFnumber(group, field_number);
     
     return
 	(group->types + field_number)->adtid;
@@ -516,9 +416,19 @@ PQgetvalue(portal, tuple_index, field_number)
 	tuple_ptr = tuple_ptr->next;
     }
 
-    check_field_number(group, field_number);
+    pbuf_checkFnumber(group, field_number);
     
     return
 	tuple_ptr->values[tuple_index][field_number];
 }
 
+/* ----------------
+ *	PQclear		- free storage claimed by named portal
+ * ----------------
+ */
+void
+PQclear(pname)
+    char *pname;
+{    
+    pbuf_close(pname);
+}
