@@ -544,7 +544,7 @@ pg_eval( query_string )
 	    
 	    if ( DebugPrintPlan == true ) {
 		printf("\nPlan is :\n");
-		(*(plan->printFunc))(stdout, plan);
+		lispDisplay(plan, 0);
 		printf("\n");
 	    }
 	    
