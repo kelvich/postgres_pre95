@@ -260,6 +260,7 @@ typedef struct AnyStruct {
 } AnyStruct;
 
 typedef unsigned long Datum;
+typedef Datum *       DatumPtr;
 
 /*
  * We want to pad to the right on Sun computers and to the right on
