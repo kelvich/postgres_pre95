@@ -550,7 +550,7 @@ ufp_clear_info()
 	
 	for (uip = UFPinfo; uip != (struct ufp_info *) NULL; uip = next_uip) {
 		next_uip = uip->next;
-		pfree(uip);
+		free(uip);
 	}
 	UFPinfo = (struct ufp_info *) NULL;
 	return;
