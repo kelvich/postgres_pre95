@@ -197,4 +197,5 @@ long inter_sb ARGS((LSEG *lseg , BOX *box ));
 long inter_lb ARGS((LINE *line , BOX *box ));
 void make_bound_box ARGS((POLYGON *poly ));
 long poly_pt_count ARGS((char *s , char delim ));
+void statlseg_construct ARGS((LSEG *lseg, POINT *pt1, POINT *pt2));
 #endif !GeoDeclsIncluded
