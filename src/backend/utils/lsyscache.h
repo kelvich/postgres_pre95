@@ -16,6 +16,8 @@ extern ObjectId get_regproc ARGS((Name funname));
 extern AttributeNumber get_relnatts ARGS((ObjectId relid));
 extern Name get_rel_name ARGS((ObjectId relid));
 extern struct varlena * get_relstub ARGS((ObjectId relid));
+extern ObjectId get_ruleid ARGS((Name rulename));
+extern ObjectId get_eventrelid ARGS((ObjectId ruleid));
 extern int16 get_typlen ARGS((ObjectId typid));
 extern bool get_typbyval ARGS((ObjectId typid));
 extern struct varlena *get_typdefault ARGS((ObjectId typid));
