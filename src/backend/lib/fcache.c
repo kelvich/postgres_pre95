@@ -142,7 +142,16 @@ LispValue argList;
     typeStruct = (Form_pg_type) GETSTRUCT(typeTuple);
 
     retval->typlen = (typeStruct)->typlen;
-    retval->typbyval = (typeStruct)->typbyval ? true : false ;
+    if ((typeStruct)->typrelid == InvalidObjectId) {
+	 /* The return type is not a relation, so just use byval */
+	 retval->typbyval = (typeStruct)->typbyval ? true : false ;
+    } else {
+	 /* This is a hack.  We assume here that any function returning
+	  * a relation returns it by reference.  This needs to be
+	  * fixed.
+	  */
+	 retval->typbyval = false;
+    }
     retval->foid = foid;
     retval->language = procedureStruct->prolang;
     retval->func_state = (char *)NULL;
@@ -159,7 +168,7 @@ LispValue argList;
      */
     if ((retval->language == POSTQUELlanguageId) &&
 	(retval->oneResult) &&
-	!(typeStruct->typbyval))
+	!(retval->typbyval))
     {
 	Form_pg_relation relationStruct;
 	HeapTuple        relationTuple;
