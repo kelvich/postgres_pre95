@@ -13,7 +13,9 @@
 
 #include "internal.h"
 #include "relnode.h"
+#include "relation.h"
 
+extern List relation_info(); /* XXX - should become #include "cfi.h" */
 /*    
  *    	get_rel
  *    
@@ -26,32 +28,33 @@
  *  .. find-all-join-paths, find-clause-joins, find-clauseless-joins
  *  .. initialize-targetlist
  */
-LispValue
-get_rel (relid)
-     LispValue relid ;
-{
-     LispValue rel = rel_member (list (relid),_query_relation_list_);
-     if /*when */ ( null (rel)) {
-	  rel = create_node ("Rel");
-	  set_relids (rel,list (relid));
-	  _query_relation_list_ = cons (rel,_query_relation_list_);
-	  if(listp (relid)) {
-	       /*    If the relation is a materialized relation, assume 
-		     constants for sizes. */
-	       set_pages (rel,_TEMP_RELATION_PAGES_);
-	       set_tuples (rel,_TEMP_RELATION_TUPLES_);
-	  } 
-	  else {
-	       /*    Otherwise, retrieve relation characteristics from the */
-	       /*    system catalogs. */
 
-	       LispValue relinfo = relation_info (relid);
-	       set_indexed (rel,not (zerop (nth (0,relinfo))));
-	       set_pages (rel,nth (1,relinfo));
-	       set_tuples (rel,nth (2,relinfo));
-	  } 
-     }
-     return(rel);
+Rel
+get_rel (relid)
+     OID relid ;
+{
+    Rel rel = rel_member (list (relid),_query_relation_list_);
+    if /*when */ ( null (rel)) {
+	rel = CreateNode(Rel);
+	set_relids (rel,list (relid));
+	_query_relation_list_ = cons (rel,_query_relation_list_);
+	if(listp (relid)) {
+	    /*    If the relation is a materialized relation, assume 
+		  constants for sizes. */
+	    set_pages (rel,_TEMP_RELATION_PAGES_);
+	    set_tuples (rel,_TEMP_RELATION_TUPLES_);
+	} 
+	else {
+	    /*    Otherwise, retrieve relation characteristics from the */
+	    /*    system catalogs. */
+	    
+	    LispValue relinfo = relation_info (relid);
+	    set_indexed (rel,not (zerop (nth (0,relinfo))));
+	    set_pages (rel,nth (1,relinfo));
+	    set_tuples (rel,nth (2,relinfo));
+	} 
+    }
+    return(rel);
 }
 
 /*    
@@ -66,16 +69,18 @@ get_rel (relid)
 
 /*  .. find-all-join-paths, get_rel
  */
-LispValue
+
+Rel
 rel_member (relid,rels)
-LispValue relid,rels ;
+     OID relid;
+     List rels;
 {
-     LispValue retval;
+     Rel retval;
      if ( consp (relid) && consp (rels)) {
-	  retval = find (relid,rels,"get_relids","same");
+	  retval = (Rel)Contents(find (relid,rels,"get_relids","same"));
      } 
      else {
-	  retval = LispNil;
+	  retval = (Rel)NULL;
      } 
      return(retval);
 }
