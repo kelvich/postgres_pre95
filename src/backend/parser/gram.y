@@ -1899,7 +1899,7 @@ make_targetlist_expr ( name , expr )
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
                 fmgr(typeid_get_retinfunc(attrtype), val),
                 0);
-	} else if((Input_is_integer && Typecast_ok) && (attrtype != type_id)){
+	} else if((Typecast_ok) && (attrtype != type_id)){
               CDR(expr) = (LispValue) 
 			parser_typecast2 ( expr, get_id_type((long)attrtype));
 	} else 

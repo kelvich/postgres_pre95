@@ -204,8 +204,6 @@ int arg1;       /* typeid */
        if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg1, (char *) 'b')))
        {
           /* there's no reasonable default type for the right argument */
-          elog ( WARN , "Can't find binary op: %s for types %d and %d",
-                 op, arg1, arg1);
           return(NULL);
        }
     }

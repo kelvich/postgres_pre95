@@ -395,19 +395,22 @@ make_op(op,ltree,rtree)
 		/* binary operator */
                 if (typeid(rtype) == typeid(type("unknown")))
                 {
-                  /* trying to find default type for the right arg... */
-                  temp = (Operator) oper_default(CString(op),typeid(ltype));
-                  /* now, we have the default type, typecast */
-                  if(temp){
-                      Datum val;
-                      val = textout(get_constvalue(right));
-                      optemp = (OperatorTupleForm) GETSTRUCT(temp);
-                      right = (LispValue) MakeConst(optemp->oprright,
-                            tlen(get_id_type(optemp->oprright)),
-                            fmgr(typeid_get_retinfunc(optemp->oprright),
-                                 val),
-                            0);
-                  }
+                    /* trying to find default type for the right arg... */
+                    temp = (Operator) oper_default(CString(op),typeid(ltype));
+                    /* now, we have the default type, typecast */
+                    if(temp){
+                        Datum val;
+                        val = textout(get_constvalue(right));
+                        optemp = (OperatorTupleForm) GETSTRUCT(temp);
+                        right = (LispValue) MakeConst(optemp->oprright,
+                              tlen(get_id_type(optemp->oprright)),
+                              fmgr(typeid_get_retinfunc(optemp->oprright),
+                                   val),
+                              0);
+                     } else 
+	                elog ( WARN , 
+			     "Can't find binary op: %s for types %d and %d",
+                 	      CString(op), typeid(ltype), typeid(ltype));
                 }
                 else
                    temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
