@@ -17,7 +17,8 @@ When the command
 .BI notify " relation_name"
 is called either from within a rule or at the query level, the
 frontend applications corresponding to the listening backends 
-are notified.
+are notified.  When the backend process exits, this registration
+is cleared.
 .PP
 This event notification is performed through the \*(LI protocol
 and frontend application interface.  The application program 
@@ -34,3 +35,11 @@ define rule(commands),
 notify(commands),
 retrieve(commands),
 libpq.
+.SH BUGS
+There is no way to un-
+.BR listen
+except to drop the connection (restart the backend server).
+.PP
+The
+.IR monitor (unix)
+command does not poll for asynchronous events.
