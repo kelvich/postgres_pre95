@@ -996,7 +996,7 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
      */
     bcopy((char *) &tuple->t_ctid,
 	  (char *) &newTuple->t_ctid,	/*XXX*/
-	  ((char *) &tuple->t_bits[0] - (char *) &tuple->t_ctid)); /*XXX*/
+	  ((char *) &tuple->t_hoff - (char *) &tuple->t_ctid)); /*XXX*/
 	
     newTuple->t_natts = numberOfAttributes;	/* fix t_natts just in case */
 
