@@ -82,7 +82,7 @@ InvalidationEntryAllocate(size)
 {
     InvalidationEntryData	*entryDataP;
     entryDataP = (InvalidationEntryData *)
-	malloc(sizeof (*char) + size);	/* XXX alignment */
+	malloc(sizeof (char *) + size);	/* XXX alignment */
     entryDataP->nextP = NULL;
     return ((Pointer) &entryDataP->userData);
 }
