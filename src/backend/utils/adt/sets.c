@@ -8,7 +8,6 @@
  */
 
 #include "tmp/postgres.h"
-#include "tcop/dest.h"
 #include "utils/log.h"
 #include "rules/prs2.h"
 #include "nodes/pg_lisp.h"          /* for LispValue and List */
@@ -18,6 +17,7 @@
 #include "catalog/catname.h"        /* for ProcedureRelationName */
 #include "catalog/indexing.h"       /* for Num_pg_proc_indices */
 #include "utils/sets.h"             /* for GENERICSETNAME      */
+#include "tcop/dest.h"
 
 extern CommandDest whereToSendOutput;  /* defined in tcop/postgres.c */
 
