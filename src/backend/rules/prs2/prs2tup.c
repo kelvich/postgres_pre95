@@ -25,6 +25,7 @@
 LispValue MakeRangeTableEntry();
 LispValue MakeRoot();
 LispValue planner();
+Prs2StubQual prs2StubQualFromConstQual();
 
 /*--------------------------------------------------------------------
  *
@@ -68,6 +69,8 @@ LispValue constQual;
     LispValue parseTree, plan;
     Name relname;
     NameData lockName;
+    Relation relation;
+    Prs2OneStub oneStub;
 
     /* ---------------------
      * The parsetree we want to create corresponds to a query
@@ -91,7 +94,8 @@ LispValue constQual;
      * dummy range table entries or change the "varno"s of all the
      * Var nodes of the qualification.
      */
-    relname = get_rel_name(relationOid);
+    relation = ObjectIdOpenHeapRelation(relationOid);
+    relname = RelationGetRelationName(relation);
     rtentry = MakeRangeTableEntry(relname, LispNil, relname);
     rtable = lispCons(rtentry, LispNil);
 
@@ -186,4 +190,26 @@ LispValue constQual;
 		    NULL,
 		    NULL,			/* prs2EstateInfo */
 		    EXEC_RESULT);		/* feature */
+    
+    /*
+     * BTW, don't forget to put the (relation level) stub record too!
+     *
+     * NOTE: we assume that the "varno" for the CURRENT relation is
+     * always 1.
+     */
+     oneStub = prs2MakeOneStub();
+     oneStub->ruleId = ruleId;
+     oneStub->stubId = (Prs2StubId) 0;
+     oneStub->counter = 1;
+     oneStub->lock = newlock;
+     oneStub->qualification = prs2StubQualFromConstQual(relationOid,
+					    constQual, 1);
+
+     prs2AddRelationStub(relation, oneStub);
+
+    /*
+     * And there is no need to leave that poor relation open for
+     * too long, now, is it?
+     */
+    RelationCloseHeapRelation(relation);
 }
