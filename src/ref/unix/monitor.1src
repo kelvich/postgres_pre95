@@ -77,11 +77,11 @@ none of this happens.
 .sp
 \fI-o options\fR specifies additonal options for the postgres backend.
 This is only intended for use by postgres developers.
-.pp
+.lp
 You may set environment variables to avoid typing the above options.
 See the \fBENVIRONMENT VARIABLES\fR section below.
 .uh "MESSAGES AND PROMPTS"
-.pp
+.lp
 The terminal monitor gives a variety of messages to keep the user informed
 of the status of the monitor and the query buffer.
 .sp
