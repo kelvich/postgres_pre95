@@ -33,6 +33,8 @@
 #include "tuple.h"
 
 
+RcsId("$Header$");
+
 extern LispValue lispRead();
 extern char *lsptok ARGS((char *string, int *length));
 extern Datum readValue();
@@ -1083,7 +1085,7 @@ IndexPath _readIndexPath()
 	token = lsptok(NULL, &length);      /* get :indexid */
 	token = lsptok(NULL, &length);      /* now read it */
 
-	local_node->indexid = atoi(token);
+	local_node->indexid = lispCons(lispInteger(atoi(token)), LispNil);
 
 	token = lsptok(NULL, &length);      /* get :indexqual */
 	local_node->indexqual = lispRead(true);      /* now read it */
