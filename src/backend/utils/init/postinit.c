@@ -197,8 +197,12 @@ InitMyDatabaseId()
 	    if (TransactionIdIsValid(tup->t_xmax))
 		continue;
 
-	    /* okay, see if this is the one we want */
-	    tup_db = ((char *) tup) + sizeof (*tup);
+	    /*
+	     *  Okay, see if this is the one we want.
+	     *	XXX 1 july 91:  mao and mer discover that tuples now squash
+	     *			t_bits.  Why is this?
+	     */
+	    tup_db = ((char *) tup) + sizeof (*tup) - sizeof(tup->t_bits);
 
 	    /* note: MyDatabaseName set by call to SetDatabaseName() */
 	    if (strncmp(MyDatabaseName, tup_db, 16) == 0) {
