@@ -140,6 +140,7 @@ CreateExecutorState()
 		       rangeTable,
 		       qualTuple,
 		       qualTupleID,
+		       (HeapTuple) NULL,
 		       relationRelationDesc,
 		       (Relation) NULL,
 		       resultRelationInfo,
