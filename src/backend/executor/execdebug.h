@@ -181,6 +181,8 @@
  *	      only as necessary -cim 10/26/89
  * ----------------------------------------------------------------
  */
+#define T_OR_F(b)  		(b ? "true" : "false")
+#define NULL_OR_TUPLE(slot) 	(TupIsNull(slot) ? "null" : "a tuple")
 
 /* ----------------
  *	tuple table debugging
@@ -347,15 +349,33 @@ extern int     NIndexTupleInserted;
  * ----------------
  */
 #ifdef EXEC_MERGEJOINDEBUG
+#define MJ_lispDisplay(l)		lispDisplay(l, 0)
 #define MJ_printf(s)			printf(s)
 #define MJ1_printf(s, p)		printf(s, p)
+#define MJ2_printf(s, p1, p2)		printf(s, p1, p2)
 #define MJ_debugtup(tuple, type)	debugtup(tuple, type)
 #define MJ_dump(context, state)		ExecMergeTupleDump(econtext, state)
+#define MJ_DEBUG_QUAL(clause, res) \
+  MJ2_printf("  ExecQual(%s, econtext) returns %s\n", \
+	     CppAsString(clause), T_OR_F(res));
+	    
+#define MJ_DEBUG_MERGE_COMPARE(qual, res) \
+  MJ2_printf("  MergeCompare(mergeclauses, %s, ..) returns %s\n", \
+	     CppAsString(qual), T_OR_F(res));
+
+#define MJ_DEBUG_PROC_NODE(slot) \
+  MJ2_printf("  %s = ExecProcNode(innerPlan) returns %s\n", \
+	     CppAsString(slot), NULL_OR_TUPLE(slot));
 #else
+#define MJ_lispDisplay(l)
 #define MJ_printf(s)		
 #define MJ1_printf(s, p)		
+#define MJ2_printf(s, p1, p2)
 #define MJ_debugtup(tuple, type)
 #define MJ_dump(context, state)
+#define MJ_DEBUG_QUAL(clause, res)
+#define MJ_DEBUG_MERGE_COMPARE(qual, res)
+#define MJ_DEBUG_PROC_NODE(slot)
 #endif EXEC_MERGEJOINDEBUG
 
 /* ----------------------------------------------------------------
