@@ -485,6 +485,7 @@ extern int *BTreeBufferPinCount;
  */
 
 int	testFlag = 0;
+int	lockingOff = 0;
 
 /*
  */
@@ -676,7 +677,7 @@ InitPostgres(name)
      */
     if (!bootstrap)
 	SetProcessingMode(NormalProcessing);
-    if (testFlag)
+    if (testFlag || lockingOff)
 	LockingIsDisabled = true;
 }
 
