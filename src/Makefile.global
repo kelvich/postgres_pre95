@@ -81,7 +81,7 @@ POSTGRESLOGIN=	postgres
 # changable separately.  This is usually "/usr/local/postgres" but may be 
 # different for the postgres development team and sequoia users.
 #
-POSTGRESDIR=	/private/devel/postgres
+POSTGRESDIR?=	/private/devel/postgres
 
 #
 # DATADIR specifies where the postmaster expects to find its database.
