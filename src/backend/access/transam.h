@@ -6,7 +6,9 @@
  *	postgres transaction access method support code header
  *
  *   NOTES
- *	
+ *	Transaction System Version 101 now support proper oid
+ *	generation and recording in the variable relation.
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -14,31 +16,6 @@
 
 #ifndef TransamIncluded       /* include this file only once */
 #define TransamIncluded 1
-
-#include <sys/file.h>
-#include <strings.h>
-#include <math.h>
-#include <stdio.h>
-
-#include "tmp/postgres.h"	/* for struct varlena, etc. */
-
-#include "access/att.h"
-#include "access/attnum.h"
-#include "access/heapam.h"
-#include "access/htup.h"
-#include "access/relscan.h"
-#include "access/skey.h"
-#include "access/tupdesc.h"
-#include "catalog/catname.h"
-#include "rules/rlock.h"
-#include "storage/block.h"
-#include "storage/buf.h"
-#include "storage/bufmgr.h"
-#include "storage/bufpage.h"
-#include "utils/memutils.h"
-#include "utils/log.h"
-#include "utils/mcxt.h"
-#include "utils/rel.h"
 
 /* ----------------
  *	transaction system version id
@@ -53,7 +30,7 @@
  *	even if their minor versions differ.
  * ----------------
  */
-#define TRANS_SYSTEM_VERSION	100
+#define TRANS_SYSTEM_VERSION	101
 
 /* ----------------
  *	transaction id status values
@@ -131,13 +108,15 @@ typedef TimeRelationContentsData *TimeRelationContents;
  *	number of the transction system.
  *
  *	Currently, the relation has only one page and the next
- *	available xid and the last committed xid are stored there.
+ *	available xid, the last committed xid and the next
+ *	available oid are stored there.
  * ----------------
  */
 typedef struct VariableRelationContentsData {
    int			TransSystemVersion;
    TransactionIdData	nextXidData;
    TransactionIdData	lastXidData;
+   oid			nextOid;
 } VariableRelationContentsData;
 
 typedef VariableRelationContentsData *VariableRelationContents;
