@@ -8,5 +8,7 @@
 
 HEADERS+= machine.h 
 
+LDADD+= -ldl
+
 SRCS+= dynloader.c
 
