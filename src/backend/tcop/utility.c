@@ -172,11 +172,11 @@ ProcessUtility(command, args, commandString, dest)
 		foreach (arg, args) {
 			relname = CString(CAR(arg));
 			if (NameIsSystemRelationName(relname))
-				elog(WARN, "class \"%-*s\" is a system catalog",
+				elog(WARN, "class \"%-.*s\" is a system catalog",
 				     sizeof(NameData), relname);
 #ifndef NO_SECURITY
 			if (!pg_ownercheck(user.data, relname, RELNAME))
-				elog(WARN, "you do not own class \"%-*s\"",
+				elog(WARN, "you do not own class \"%-.*s\"",
 				     sizeof(NameData), relname);
 #endif
 		}
@@ -242,11 +242,11 @@ ProcessUtility(command, args, commandString, dest)
 #ifndef NO_SECURITY
 	    if (isFrom) {
 		    if (!pg_aclcheck(relname, user.data, ACL_RD))
-			    elog(WARN, "read on \"%-*s\": permission denied",
+			    elog(WARN, "read on \"%-.*s\": permission denied",
 				 sizeof(NameData), relname);
 	    } else {
 		    if (!pg_aclcheck(relname, user.data, ACL_WR))
-			    elog(WARN, "write on \"%-*s\": permission denied",
+			    elog(WARN, "write on \"%-.*s\": permission denied",
 				 sizeof(NameData), relname);
 	    }
 #endif
@@ -294,11 +294,11 @@ ProcessUtility(command, args, commandString, dest)
 
 	relname = CString(CAR(args));
 	if (NameIsSystemRelationName(relname))
-		elog(WARN, "class \"%-*s\" is a system catalog",
+		elog(WARN, "class \"%-.*s\" is a system catalog",
 		     sizeof(NameData), relname);
 #ifndef NO_SECURITY
 	if (!pg_ownercheck(user.data, relname, RELNAME))
-		elog(WARN, "you do not own class \"%-*s\"",
+		elog(WARN, "you do not own class \"%-.*s\"",
 		     sizeof(NameData), relname);
 #endif
 	PerformAddAttribute(relname, CDR(args));
@@ -321,11 +321,11 @@ ProcessUtility(command, args, commandString, dest)
 
 	    relname = CString(CAR(args));
 	    if (NameIsSystemRelationName(relname))
-		    elog(WARN, "class \"%-*s\" is a system catalog",
+		    elog(WARN, "class \"%-.*s\" is a system catalog",
 			 sizeof(NameData), relname);
 #ifndef NO_SECURITY
 	    if (!pg_ownercheck(user.data, relname, RELNAME))
-		    elog(WARN, "you do not own class \"%-*s\"",
+		    elog(WARN, "you do not own class \"%-.*s\"",
 			 sizeof(NameData), relname);
 #endif
 
@@ -378,7 +378,7 @@ ProcessUtility(command, args, commandString, dest)
 		foreach (i, args) {
 			relname = CString(CAR(i));
 			if (!pg_ownercheck(user.data, relname, RELNAME))
-				elog(WARN, "you do not own class \"%-*s\"",
+				elog(WARN, "you do not own class \"%-.*s\"",
 				     sizeof(NameData), relname);
 		}
 #endif
@@ -429,7 +429,7 @@ ProcessUtility(command, args, commandString, dest)
 #ifndef NO_SECURITY
 	    relname = CString(CAR(nth(2, args)));
 	    if (!pg_aclcheck(relname, user.data, ACL_RU))
-		    elog(WARN, "define rule on \"%-*s\": permission denied",
+		    elog(WARN, "define rule on \"%-.*s\": permission denied",
 			 sizeof(NameData), relname);
 #endif
 	    DefineQueryRewrite(args); 
@@ -438,7 +438,7 @@ ProcessUtility(command, args, commandString, dest)
 #ifndef NO_SECURITY
 	    relname = CString(CAR(GetRuleEventTargetFromParse(args)));
 	    if (!pg_aclcheck(relname, user.data, ACL_RU))
-		    elog(WARN, "define rule on \"%-*s\": permission denied",
+		    elog(WARN, "define rule on \"%-.*s\": permission denied",
 			 sizeof(NameData), relname);
 #endif
 	    prs2DefineTupleRule(args, commandString);
@@ -486,11 +486,11 @@ ProcessUtility(command, args, commandString, dest)
 	case INDEX:
 	    relname = CString(CADR(args));
 	    if (NameIsSystemRelationName(relname))
-		    elog(WARN, "class \"%-*s\" is a system catalog index",
+		    elog(WARN, "class \"%-.*s\" is a system catalog index",
 			 sizeof(NameData), relname);
 #ifndef NO_SECURITY
 	    if (!pg_ownercheck(user.data, relname, RELNAME))
-		    elog(WARN, "you do not own class \"%-*s\"",
+		    elog(WARN, "you do not own class \"%-.*s\"",
 			 sizeof(NameData), relname);
 #endif
 	    RemoveIndex(relname);
@@ -518,7 +518,7 @@ ProcessUtility(command, args, commandString, dest)
 
 		    relationName = prs2GetRuleEventRel(rulename);
 		    if (!pg_aclcheck(relationName, user.data, ACL_RU))
-			    elog(WARN, "remove rule on \"%-*s\": permission denied",
+			    elog(WARN, "remove rule on \"%-.*s\": permission denied",
 				 sizeof(NameData), relationName);
 #endif
 		    prs2RemoveTupleRule(rulename);
@@ -532,7 +532,7 @@ ProcessUtility(command, args, commandString, dest)
 
 		    relationName = RewriteGetRuleEventRel(rulename);
 		    if (!pg_aclcheck(relationName, user.data, ACL_RU))
-			    elog(WARN, "remove rule on \"%-*s\": permission denied",
+			    elog(WARN, "remove rule on \"%-.*s\": permission denied",
 				 sizeof(NameData), relationName);
 #endif
 		    RemoveRewriteRule(rulename);
@@ -554,7 +554,7 @@ ProcessUtility(command, args, commandString, dest)
 		    makeRetrieveViewRuleName(&ruleName, viewName);
 		    relationName = RewriteGetRuleEventRel(&ruleName);
 		    if (!pg_ownercheck(user.data, relationName, RELNAME))
-			    elog(WARN, "remove view \"%-*s\": permission denied",
+			    elog(WARN, "remove view \"%-.*s\": permission denied",
 				 sizeof(NameData), relationName);
 	    }
 #endif

@@ -83,7 +83,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     tup = SearchSysCacheTuple(AGGNAME, aggName->data,
 			      (char *) NULL, (char *) NULL, (char *) NULL);
     if (HeapTupleIsValid(tup))
-	elog(WARN, "AggregateDefine: aggregate \"%-*s\" already exists",
+	elog(WARN, "AggregateDefine: aggregate \"%-.*s\" already exists",
 	     sizeof(NameData), aggName->data);
 
     if (!NameIsValid(aggtransfn1Name) && !NameIsValid(aggtransfn2Name))
@@ -92,13 +92,13 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     if (NameIsValid(aggtransfn1Name)) {
 	tup = SearchSysCacheTuple(TYPNAME, aggbasetypeName);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggbasetypeName);
 	xbase = tup->t_oid;
 
 	tup = SearchSysCacheTuple(TYPNAME, aggtransfn1typeName);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggtransfn1typeName);
 	xret1 = tup->t_oid;
 
@@ -109,25 +109,25 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\", \"%-*s\",) does not exist",
+	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\", \"%-.*s\",) does not exist",
 		 sizeof(NameData), aggtransfn1Name->data,
 		 sizeof(NameData), aggtransfn1typeName->data,
 		 sizeof(NameData), aggbasetypeName->data);
 	if (((Form_pg_proc) GETSTRUCT(tup))->prorettype != xret1)
-	    elog(WARN, "AggregateDefine: return type of \"%-*s\" is not \"%-*s\"",
+	    elog(WARN, "AggregateDefine: return type of \"%-.*s\" is not \"%-.*s\"",
 		 sizeof(NameData), aggtransfn1Name->data,
 		 sizeof(NameData), aggtransfn1typeName->data);
 	xfn1 = tup->t_oid;
 	if (!ObjectIdIsValid(xfn1) || !ObjectIdIsValid(xret1) ||
 	    !ObjectIdIsValid(xbase))
-	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
+	    elog(WARN, "AggregateDefine: bogus function \"%-.*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
 
     if (NameIsValid(aggtransfn2Name)) {
 	tup = SearchSysCacheTuple(TYPNAME, aggtransfn2typeName);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggtransfn2typeName);
 	xret2 = tup->t_oid;
 
@@ -138,16 +138,16 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\") does not exist",
+	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\") does not exist",
 		 sizeof(NameData), aggtransfn2Name->data,
 		 sizeof(NameData), aggtransfn2typeName->data);
 	if (((Form_pg_proc) GETSTRUCT(tup))->prorettype != xret2)
-	    elog(WARN, "AggregateDefine: return type of \"%-*s\" is not \"%-*s\"",
+	    elog(WARN, "AggregateDefine: return type of \"%-.*s\" is not \"%-.*s\"",
 		 sizeof(NameData), aggtransfn2Name->data,
 		 sizeof(NameData), aggtransfn2typeName->data);
 	xfn2 = tup->t_oid;
 	if (!ObjectIdIsValid(xfn2) || !ObjectIdIsValid(xret2))
-	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
+	    elog(WARN, "AggregateDefine: bogus function \"%-.*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
 
@@ -168,7 +168,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\", \"%-*s\") does not exist",
+	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\", \"%-.*s\") does not exist",
 		 sizeof(NameData), aggfinalfnName->data,
 		 sizeof(NameData), aggtransfn1typeName->data,
 		 sizeof(NameData), aggtransfn2typeName->data);
@@ -176,7 +176,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	proc = (Form_pg_proc) GETSTRUCT(tup);
 	fret = proc->prorettype;
 	if (!ObjectIdIsValid(ffn) || !ObjectIdIsValid(fret))
-	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
+	    elog(WARN, "AggregateDefine: bogus function \"%-.*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
 
@@ -229,7 +229,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	nulls[Anum_pg_aggregate_agginitval2-1] = 'n';
     
     if (!RelationIsValid(aggdesc = heap_openr(AggregateRelationName)))
-	elog(WARN, "AggregateDefine: could not open \"%-*s\"",
+	elog(WARN, "AggregateDefine: could not open \"%-.*s\"",
 	     sizeof(NameData), AggregateRelationName);
     if (!HeapTupleIsValid(tup = heap_formtuple(Natts_pg_aggregate,
 					       &aggdesc->rd_att,
@@ -261,7 +261,7 @@ AggNameGetInitVal(aggName, xfuncno, isNull)
     tup = SearchSysCacheTuple(AGGNAME, aggName, (char *) NULL,
 			      (char *) NULL, (char *) NULL);
     if (!HeapTupleIsValid(tup))
-	elog(WARN, "AggNameGetInitVal: cache lookup failed for aggregate \"%-*s\"",
+	elog(WARN, "AggNameGetInitVal: cache lookup failed for aggregate \"%-.*s\"",
 	     sizeof(NameData), aggName);
     if (xfuncno == 1) {
 	transtype = ((Form_pg_aggregate) GETSTRUCT(tup))->aggtranstype1;
@@ -274,7 +274,7 @@ AggNameGetInitVal(aggName, xfuncno, isNull)
     
     aggRel = heap_openr(AggregateRelationName);
     if (!RelationIsValid(aggRel))
-	elog(WARN, "AggNameGetInitVal: could not open \"%-*s\"",
+	elog(WARN, "AggNameGetInitVal: could not open \"%-.*s\"",
 	     sizeof(NameData), AggregateRelationName->data);
     /* 
      * must use fastgetattr in case one or other of the init values is NULL
