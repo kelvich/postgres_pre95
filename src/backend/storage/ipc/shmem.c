@@ -82,6 +82,17 @@ HTAB *ShmemInitHash();
 
 HTAB *BindingTable = NULL;
 
+/* ---------------------
+ * ShmemBindingTabReset() - Resets the binding table to NULL....
+ * useful when the postmaster destroys existing shared memory
+ * and creates all new segments after a backend crash.
+ * ----------------------
+ */
+ShmemBindingTabReset()
+{
+    BindingTable = (HTAB *)NULL;
+}
+
 /*
  *  CreateSharedRegion() --
  *
