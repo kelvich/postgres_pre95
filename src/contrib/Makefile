@@ -7,7 +7,7 @@
 #
 # C programs
 #
-SUBDIR=  pgperl spog
+SUBDIR=  pgperl spog relshow
 .if (${PORTNAME} == "sparc")
 SUBDIR+= xposthelp
 .endif
