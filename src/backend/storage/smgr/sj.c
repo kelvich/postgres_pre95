@@ -117,6 +117,7 @@ static int		_sjfindnblocks();
 static int		_sjwritegrp();
 static int		_sjreadgrp();
 static int		_sjgroupvrfy();
+static int		_sjdowrite();
 static Form_pg_plmap	_sjchoose();
 static SJCacheItem	*_sjallocgrp();
 static SJCacheItem	*_sjfetchgrp();
@@ -153,9 +154,6 @@ sjinit()
     char *cacheblk, *cachesave;
     int status;
     char *path;
-
-    /* XXX for s2k 4.1 initial install, no sj interface */
-    return (SM_SUCCESS);
 
     /*
      *  First attach the shared memory block that contains the disk
@@ -541,9 +539,6 @@ _sjwait_io(item)
 int
 sjshutdown()
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    return (SM_SUCCESS);
-
     FileClose(SJCacheVfd);
     FileClose(SJMetaVfd);
 
@@ -572,9 +567,6 @@ sjcreate(reln)
     int grpno;
     int i;
     char *path;
-
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
 
     /*
      *  If the cache is in the process of being initialized, then we need
@@ -1298,9 +1290,6 @@ sjextend(reln, buffer)
     int grpoffset;
     long seekpos;
 
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     RelationSetLockForExtend(reln);
     nblocks = sjnblocks(reln);
     base = (nblocks / SJGRPSIZE) * SJGRPSIZE;
@@ -1457,9 +1446,6 @@ int
 sjunlink(reln)
     Relation reln;
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     return (SM_FAIL);
 }
 
@@ -1604,9 +1590,6 @@ sjopen(reln)
     int fd;
     extern char *relpath();
 
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     path = relpath(&(reln->rd_rel->relname.data[0]));
 
     fd = FileNameOpenFile(path, O_RDWR, 0600);
@@ -1618,9 +1601,6 @@ int
 sjclose(reln)
     Relation reln;
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     FileClose(reln->rd_fd);
 
     return (SM_SUCCESS);
@@ -1638,9 +1618,6 @@ sjread(reln, blocknum, buffer)
     int offset;
     int grpno;
     long seekpos;
-
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
 
     /* fake successful read on non-existent data */
     if (sjnblocks(reln) <= blocknum) {
@@ -1729,25 +1706,33 @@ sjwrite(reln, blocknum, buffer)
     BlockNumber blocknum;
     char *buffer;
 {
-    SJCacheItem *item;
     ObjectId reldbid;
-    BlockNumber base;
-    int offset;
-    int grpno;
-    int which;
-    long seekpos;
-
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
 
     if (reln->rd_rel->relisshared)
 	reldbid = (ObjectId) 0;
     else
 	reldbid = MyDatabaseId;
 
+    return (_sjdowrite(reldbid, reln->rd_id, blocknum, buffer));
+}
+
+static int
+_sjdowrite(reldbid, relid, blocknum, buffer)
+    ObjectId reldbid;
+    ObjectId relid;
+    BlockNumber blocknum;
+    char *buffer;
+{
+    SJCacheItem *item;
+    BlockNumber base;
+    int offset;
+    int grpno;
+    int which;
+    long seekpos;
+
     base = (blocknum / SJGRPSIZE) * SJGRPSIZE;
 
-    item = _sjfetchgrp(reldbid, reln->rd_id, base, &grpno);
+    item = _sjfetchgrp(reldbid, relid, base, &grpno);
 
     /* shd expand _sjfetchgrp() inline to avoid extra semop()s */
     SpinAcquire(SJCacheLock);
@@ -1817,9 +1802,6 @@ sjflush(reln, blocknum, buffer)
     BlockNumber blocknum;
     char *buffer;
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     return (sjwrite(reln, blocknum, buffer));
 }
 
@@ -1832,10 +1814,7 @@ sjblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
     BlockNumber blkno;
     char *buffer;
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
-    return (SM_FAIL);
+    return (_sjdowrite(dbid, relid, blkno, buffer));
 }
 
 /*
@@ -1852,9 +1831,6 @@ sjnblocks(reln)
 {
     SJCacheTag tag;
     int nblocks;
-
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
 
     if (reln->rd_rel->relisshared)
 	tag.sjct_dbid = (ObjectId) 0;
@@ -1880,9 +1856,6 @@ _sjfindnblocks(tag)
     int i;
     SJCacheTag *cachetag;
     SJCacheTag mytag;
-
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
 
     cachetag = SJNBlockCache;
     i = 0;
@@ -1983,9 +1956,6 @@ _sjregnblocks(tag)
 int
 sjcommit()
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    return (SM_SUCCESS);
-
     FileSync(SJMetaVfd);
     FileSync(SJCacheVfd);
     FileSync(SJBlockVfd);
@@ -1996,9 +1966,6 @@ sjcommit()
 int
 sjabort()
 {
-    /* XXX for s2k 4.1 initial install, no sj interfaces */
-    elog(WARN, "sony jukebox conversion for S2K on heel not yet complete");
-
     return (SM_SUCCESS);
 }
 
