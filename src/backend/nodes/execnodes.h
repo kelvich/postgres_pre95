@@ -489,6 +489,14 @@ class (ParallelState) public (BaseNode) {
  * ----------------------------------------------------------------
  */
 
+/*----------
+ * NOTE:
+ * This file (rulescan.h) must be included here because it uses
+ * the EState defined previously in this file.
+ * See comments in rulescan.h for more details....
+ */
+#include "rulescan.h"
+
 /* ----------------
  *   CommonScanState information
  *
