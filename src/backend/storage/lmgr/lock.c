@@ -194,7 +194,7 @@ InitLocks()
    * set up the invalid transaction id.
    * -------------------
    */
-  TransactionIdSetTransactionIdValue(NullTransactionIdValue, &InvalidXid);
+  TransactionIdSetTransactionIdValue(&InvalidXid, NullTransactionIdValue);
 
   bit = 1;
   /* -------------------
