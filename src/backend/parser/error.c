@@ -11,7 +11,7 @@ char    message[];
 {
     extern char     yytext[];
 
-    elog(NOTICE, "parser: %s at or near \"%s\"\n", message, yytext);
+    elog(WARN, "parser: %s at or near \"%s\"\n", message, yytext);
 }
 
 /*
