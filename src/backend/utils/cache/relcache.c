@@ -733,7 +733,9 @@ formrdesc(relationName, natts, att)
      */
     relation->rd_rel = (RelationTupleForm)
 	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
-    
+
+    bzero(relation->rd_rel, sizeof(struct RelationTupleFormD));
+
     strncpy(&relation->rd_rel->relname, relationName, sizeof(NameData));
     relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
     relation->rd_rel->relpages = 1;			/* XXX */
