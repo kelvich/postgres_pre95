@@ -23,8 +23,6 @@ fi
 #
 sleep 5
 kill $APORTALPID
-# if the process is already dead $%@! ultrix waits forever
-#wait $APORTALPID
 cat aportal.out
 destroydb aportaldb
 exit 0

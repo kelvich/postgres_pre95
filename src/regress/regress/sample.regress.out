@@ -10871,7 +10871,6 @@ pls \
 aportal
 aportal.o
 aportal.out
-aportal.so
 aportalappend.pq
 aportalcreate.pq
 aportaltest.sh
@@ -10882,7 +10881,6 @@ errors.pq
 fstest.sh
 iportal
 iportal.o
-iportal.so
 onek.data
 queries.pq
 regress.o
@@ -10923,7 +10921,6 @@ pls \
 aportal
 aportal.o
 aportal.out
-aportal.so
 aportalappend.pq
 aportalcreate.pq
 aportaltest.sh
@@ -10933,7 +10930,6 @@ errors.pq
 fstest.sh
 iportal
 iportal.o
-iportal.so
 onek.data
 queries.pq
 regress.o
@@ -11360,7 +11356,6 @@ fi
 sleep 5
 kill $APORTALPID
 kill: 18776: no such process
-wait $APORTALPID
 cat aportal.out
 aportal: listen asynctest1a
 Async. notification on relation asynctest1a, our backend pid is 18778
