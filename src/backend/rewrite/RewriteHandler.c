@@ -23,8 +23,6 @@
 #include "./RewriteHandler.h"
 #include "./locks.h"
 
-#define REWRITE_DEBUG
-
 extern List lispCopy();
 
 /*****************************************************/
