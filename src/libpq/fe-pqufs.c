@@ -665,28 +665,30 @@ static Direntry *new_Direntry(name,OIDf)
 #define EOP(x) ((x)=='/' ||(x) =='\0')
 #define DOT(x) ((x) =='.')
 
-static int cwdinit = 0;
-
 /* Be careful, the result returned is statically allocated*/
 static char *resolve_path(gpath)
-     char *gpath;
+    char *gpath;
 {
     char *cp;
     static char thenewdir[MAXPATHLEN];
     char tpath[MAXPATHLEN];
     char *path = tpath;
-    strcpy(path,gpath);
 
-    if (!cwdinit) {
-	if ((cp = (char *)getenv("PFCWD")) != NULL)
-		strcpy(cwdir,cp);
-	cwdinit = 1;
+    /* 
+     * always do this initialization (some routines call resolve_path
+     * just to get this side effect)
+     */
+    if (cp = (char *) getenv("PFCWD"))
+	(void) strcpy(cwdir, cp);
+
+    (void) strcpy(path, gpath);
+    if (*path == '/') {		/* absolute, don't do any more work */
+	(void) strcpy(thenewdir, path);
+	return(thenewdir);
     }
-    if (*path == '/') {
-	strcpy(thenewdir,path);
-	return thenewdir;
-    }
-    strcpy(thenewdir,cwdir);
+
+    (void) strcpy(thenewdir, cwdir);
+
     while (path && *path) {
 	if (DOT(path[0]) && DOT(path[1]) && EOP(path[2])) {
 	    char *sep = (char *)rindex(thenewdir,'/');
@@ -725,7 +727,7 @@ static char *resolve_path(gpath)
 	    continue;
 	}
     }
-    return thenewdir;
+    return(thenewdir);
 }
 
 /*
