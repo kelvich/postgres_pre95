@@ -1,4 +1,6 @@
 /*
+ * $Header$
+ *
  * Dynamic Loader for Postgres for Linux, generated from those for
  * Ultrix.
  * You need to install the dld library on your Linux system!

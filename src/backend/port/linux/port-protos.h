@@ -8,7 +8,7 @@
  *   NOTES
  *
  *   IDENTIFICATION
- *	/usr/local/devel/postgres-4.2-devel/src/backend/port/sparc/RCS/port-protos.h,v 1.5 1993/08/04 11:02:54 aoki Exp
+ *	$Header$
  */
 
 #ifndef PortProtos_H			/* include this file only once */
