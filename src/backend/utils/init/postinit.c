@@ -160,6 +160,12 @@ InitMyDatabaseId()
      *  someplace else?  This is really pg_database schema dependent
      *  code.  Perhaps it should go in lib/catalog/pg_database?
      *  -cim 10/3/90
+     *
+     *  mao replies 4 apr 91:  yeah, maybe this should be moved to
+     *  lib/catalog.  however, we CANNOT use the access methods since
+     *  those use the buffer cache, which uses the relation cache, which
+     *  requires that the dbid be set, which is what we're trying to do
+     *  here.
      * ----------------
      */
     pg = (Page) palloc(BLCKSZ);
@@ -179,9 +185,21 @@ InitMyDatabaseId()
 	    /* get a pointer to the tuple itself */
 	    offset = (int) ph->pd_linp[i].lp_off;
 	    tup = (HeapTuple) (((char *) pg) + offset);
+
+	    /*
+	     *  if the tuple has been deleted (the database was destroyed),
+	     *  skip this tuple.  XXX warning, will robinson:  violation of
+	     *  transaction semantics happens right here.  we should check
+	     *  to be sure that the xact that deleted this tuple actually
+	     *  committed.  only way to do this at init time is to paw over
+	     *  the log relation by hand, too.  let's be optimistic.
+	     */
+	    if (TransactionIdIsValid(tup->t_xmax))
+		continue;
+
+	    /* okay, see if this is the one we want */
 	    tup_db = ((char *) tup) + sizeof (*tup);
 
-	    /* see if this is the one we want */
 	    /* note: MyDatabaseName set by call to SetDatabaseName() */
 	    if (strncmp(MyDatabaseName, tup_db, 16) == 0) {
 		MyDatabaseId = tup->t_oid;
