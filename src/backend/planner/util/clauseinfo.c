@@ -166,17 +166,17 @@ get_joinvars (relid,clauseinfo_list)
      
      foreach(temp,clauseinfo_list) {
 	  relattvals = nappend1(relattvals,get_joinvar(CInteger(relid),
-						       temp));
+						       CAR(temp)));
      }
      
      foreach(temp,relattvals) {
-	  result1 = nappend1(result1,CADR(temp));
+	  result1 = nappend1(result1,CAR(CAR(temp)));
      }
      foreach(temp,relattvals) {
-	  result2 = nappend1(result2,CADDR(temp));
+	  result2 = nappend1(result2,CADR(CAR(temp)));
      }
      foreach(temp,relattvals) {
-	  result3 = nappend1(result3,CADDR(CDR(temp)));
+	  result3 = nappend1(result3,CADDR(CAR(temp)));
      }
      return(lispCons (result1,
 		      lispCons(result2,
@@ -210,13 +210,13 @@ get_joinvar (relid,clauseinfo)
     Expr clause = get_clause (clauseinfo);
     if( IsA (get_leftop (clause),Var) &&
        (relid == get_varno (get_leftop (clause)))) {
-	return(lispCons (get_varattno (get_leftop (clause)),
+	return(lispCons (lispInteger(get_varattno(get_leftop (clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger
 					    (_SELEC_CONSTANT_RIGHT_),
 					    LispNil))));
      } else {
-	 return(lispCons (get_varattno (get_rightop (clause)),
+	 return(lispCons (lispInteger(get_varattno(get_rightop (clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
 					    LispNil))));

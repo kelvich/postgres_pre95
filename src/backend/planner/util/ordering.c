@@ -54,6 +54,7 @@ equal_path_merge_ordering (path_ordering,merge_ordering)
 {
 	/* XXX - let form, maybe incorrect */
 	LispValue path_sortop = CAR (path_ordering);
+	if (merge_ordering == LispNil) return(false);
 	if (equal (path_sortop,get_left_operator (merge_ordering)) ||
 	    equal (path_sortop,get_right_operator (merge_ordering)))
 	  return(true);
