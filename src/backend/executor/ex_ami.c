@@ -252,6 +252,10 @@ ExecCloseR(node)
 	state =  (Pointer) get_sortstate(node);
 	break;
 
+    case classTag(Agg):
+	state = (Pointer) get_aggstate(node);
+	break;
+
     default:
 	elog(DEBUG, "ExecCloseR: not a scan, material, or sort node!");
 	return;
