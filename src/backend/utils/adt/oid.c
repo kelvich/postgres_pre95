@@ -30,7 +30,7 @@ oid8in(oidString)
 	if (oidString == NULL)
 		return(NULL);
 	result = (ObjectId (*)[]) palloc(sizeof(ObjectId [8]));
-	if ((nums = sscanf(oidString, "%ld%ld%ld%ld%ld%ld%ld%ld",
+	if ((nums = sscanf(oidString, "%d%d%d%d%d%d%d%d",
 			   *result,
 			   *result + 1,
 			   *result + 2,
@@ -110,18 +110,3 @@ oid8eq(arg1, arg2)
 }
 
 	     /* ========== PRIVATE ROUTINES ========== */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
