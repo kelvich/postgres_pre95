@@ -3,7 +3,7 @@
 #
 # try locating libpq.a in the following places (bletch...)
 #
-L1= ${.CURDIR}/../../libpq/obj/libpq.a
+L1= ${.CURDIR}/../../libpq/${MAKEOBJDIR}/libpq.a
 L2= ${.CURDIR}/../../libpq/libpq.a
 L3= ${LIBDIR}/libpq.a
 L4= ${.CURDIR}/../../../lib/libpq.a
@@ -39,7 +39,7 @@ CLEANFILES+= ${CREATEFILES} ${OUTFILES}
 
 ${OUTFILES}: ${CREATEFILES} ${PROG}
 	${SHCMD} ${.CURDIR}/regress.sh 2>&1 | tee regress.out
-	@echo "RESULTS OF REGRESSION ARE SAVED IN obj/regress.out"
+	@echo "RESULTS OF REGRESSION ARE SAVED IN ${MAKEOBJDIR}/regress.out"
 
 all: ${CREATEFILES} ${PROG}
 	rm -f ${OUTFILES}

@@ -8,10 +8,10 @@ CFLAGS+= -I${.CURDIR}/../../backend
 # Almost all (all?) the C programs in this directory
 # link with libpq, so we put it here.
 #
-.if exists(${.CURDIR}/../../libpq/obj/libpq.a)
-LIBPQ= ${.CURDIR}/../../libpq/obj/libpq.a
-.elif exists(${.CURDIR}/../../libpq/libpq.a)
-LIBPQ= ${.CURDIR}/../../libpq/libpq.a
+.if exists(${.CURDIR}/../../libpq/${MAKEOBJDIR}/libpq.a)
+LIBPQ= ${.CURDIR}/../../libpq/${MAKEOBJDIR}/libpq.a
+.elif exists(${LIBDIR}/libpq.a)
+LIBPQ= ${LIBDIR}/libpq.a
 .endif
 
 LDADD= ${LIBPQ}

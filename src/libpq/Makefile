@@ -11,7 +11,7 @@ LIB= pq
 	${.CURDIR}/../backend/lib
 
 CFLAGS+= -DFRONTEND \
-	-I${.CURDIR}/../backend/obj \
+	-I${.CURDIR}/../backend/${MAKEOBJDIR} \
 	-I${.CURDIR}/../backend
 
 .ifdef KRBVERS
@@ -90,9 +90,9 @@ install-headers::
 	-ln ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
 #	XXX - installing fmgr.h depends on the backend being built
 	${INSTALL} -c -m 444 \
-		${.CURDIR}/../backend/obj/fmgr.h ${HEADERDIR}/fmgr.h
+		${.CURDIR}/../backend/${MAKEOBJDIR}/fmgr.h ${HEADERDIR}/fmgr.h
 	${INSTALL} -c -m 444 \
-		${.CURDIR}/../backend/obj/tags.h ${HEADERDIR}/tags.h
+		${.CURDIR}/../backend/${MAKEOBJDIR}/tags.h ${HEADERDIR}/tags.h
 	-rm -f ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME ${PORTNAME}" > ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME_${PORTNAME}" >> ${HEADERDIR}/tmp/c.h

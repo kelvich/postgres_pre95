@@ -20,7 +20,7 @@ LDADD+= -ldld
 
 
 CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
-	 -I${.CURDIR}/../../backend/obj \
+	 -I${.CURDIR}/../../backend/${MAKEOBJDIR} \
 	 -I${.CURDIR}/../../backend
 CFLAGS+= -DUFP
 #CFLAGS+= -DUFPDEBUG -DUFPDEBUG_PROTO
