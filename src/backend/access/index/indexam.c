@@ -71,6 +71,7 @@
 #include "access/relscan.h"
 #include "access/sdir.h"
 #include "access/skey.h"
+#include "access/funcindex.h"
 
 #include "storage/form.h"
 #include "utils/log.h"
@@ -494,4 +495,43 @@ GetHeapTuple(result, heaprel, buffer)
 	return(NULL);
     else 
 	return(tuple);
+}
+
+Datum
+GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
+	HeapTuple tuple;
+	TupleDescriptor hTupDesc;
+	AttributeOffset attOff;
+	AttributeNumber attrNums[];
+	FuncIndexInfo *fInfo;
+	Boolean *attNull;
+	Buffer buffer;
+{
+    Datum returnVal;
+
+    if (PointerIsValid(fInfo))
+    {
+	int i;
+	Datum *attData = (Datum *)palloc(FIgetnArgs(fInfo)*sizeof(Datum));
+
+	for (i = 0; i < FIgetnArgs(fInfo); i++)
+	{
+	    attData[i] = (Datum) heap_getattr(tuple, buffer, attrNums[i], 
+					      hTupDesc, attNull);
+	}
+	returnVal = (Datum)fmgr_array_args(FIgetProcOid(fInfo),
+					   FIgetnArgs(fInfo),
+					   attData);
+	pfree(attData);
+	if (returnVal == (Datum)NULL)
+	    *attNull = TRUE;
+	else
+	    *attNull = FALSE;
+    }
+    else
+    {
+	returnVal = (Datum) heap_getattr(tuple, buffer, attrNums[attOff], 
+					 hTupDesc, attNull);
+    }
+    return returnVal;
 }
