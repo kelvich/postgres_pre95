@@ -68,7 +68,8 @@ class (Node) {
 #define	NodeDefs \
 	NodeTag			type;	\
 	void			(*printFunc)();	\
-	bool			(*equalFunc)()
+	bool			(*equalFunc)(); \
+	bool			(*copyFunc)()
  /* private: */
 	NodeDefs;
  /* public: */
@@ -104,7 +105,7 @@ NodeTag
 NodeGetTag ARGS(( Node	node ));
 
 /*
- * CreateNode --
+ * NewNode --
  *	Returns a new node of the given size and tag.
  */
 extern
@@ -127,7 +128,7 @@ NodeSetTag ARGS((
 ));
 
 /*
- * NodeIsType --
+ * NodeHasTag --
  *	True iff node or one of its ancestors has the given tag.
  *
  * Note:
