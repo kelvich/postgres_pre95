@@ -813,8 +813,8 @@ typedef char	*charP;
  *	hj_InnerBatches		file descriptors for inner batches
  *	hj_OuterReadPos		current read position of outer batch
  *	hj_OuterReadBlk		current read block of outer batch
- *	hj_SavedTupleSlot	xxx comment me
- *	hj_TemporaryTupleSlot	xxx comment me
+ *	hj_OuterTupleSlot	tuple slot for outer tuples
+ *	hj_HashTupleSlot	tuple slot for hashed tuples
  *
  *   JoinState information
  *
@@ -842,8 +842,8 @@ class (HashJoinState) public (JoinState) {
       FileP		hj_InnerBatches;
       charP		hj_OuterReadPos;
       int		hj_OuterReadBlk;
-      Pointer   	hj_SavedTupleSlot;
-      Pointer   	hj_TemporaryTupleSlot;
+      Pointer   	hj_OuterTupleSlot;
+      Pointer   	hj_HashTupleSlot;
   /* public: */
 };
 
