@@ -3,7 +3,7 @@
  *      Functions for the built-in floating-point types.
  *
  *	Basic float4 ops:
- * 	 float4in, float4inAd, float4out, float4outAd, float4abs, float4um
+ * 	 float4in, float4out, float4abs, float4um
  *	Basic float8 ops:
  *	 float8in, float8inAd, float8out, float8outAd, float8abs, float8um
  *	Arithmetic operators:
@@ -30,12 +30,19 @@
 
 #include <strings.h>
 #include <ctype.h>
-#ifndef sparc
-#include <float.h>
+#include <stdlib.h>
+#include <errno.h>
+
+#ifdef sparc /* this is because SunOS doesn't have all the ANSI C library headers */
+#include <values.h>
+#define FLT_MIN   MINFLOAT
+#define FLT_MAX   MAXFLOAT
+#define FLT_DIG   6
+#define DBL_DIG   15
 #else
-#define FLT_DIG 6
-#define DBL_DIG 15
+#include <float.h>
 #endif
+
 #include <math.h>
 
 #include "tmp/postgres.h"
@@ -47,8 +54,9 @@ RcsId("$Header$");
 
 
 #define FORMAT 		'g'	/* use "g" output format as standard format */
-#define	MAXFLOATWIDTH 	12
-#define MAXDOUBLEWIDTH	24
+/* not sure what the following should be, but better to make it over-sufficient */
+#define	MAXFLOATWIDTH 	64
+#define MAXDOUBLEWIDTH	128
 
 extern double	atof ARGS((const char *p));
 #ifndef NEED_CBRT
@@ -57,11 +65,6 @@ extern double   cbrt ARGS((double x));
 #ifndef NEED_RINT
 extern double   rint ARGS((double x));
 #endif /* NEED_RINT */
-
-char *float8outAd ARGS((float64 num , int precision , char format ));
-float64 float8inAd ARGS((char *num ));
-char *float4outAd ARGS((float32 num , int precision , char format ));
-float32 float4inAd ARGS((char *num ));
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -77,42 +80,28 @@ float32
 float4in(num)
 	char	*num;
 {
+  
+
 	float32	result = (float32) palloc(sizeof(float32data));
-	
-	*result = (float32data) atof(num);
-	return(result);
-}
+	double val;
+	char* endptr;
 
-
-/*
- *	float4inAd	- advanced float4in, converts "num" to float4,
- *			  extended syntax:
- *			 {<sp>}[+|-]{<sp>}{<digit>}[.{digit}]{<sp>}[<exp>]
- *			 where <exp> is "e" or "E" followed by an integer, 
- *			 <sp> is a space character, <digit> is zero through 
- *			 nine, [] is zero or one, and {} is zero or more.
- *
- *			 uses atof1, code of ingres; file atof1.c
- */
-float32
-float4inAd(num)
-	char	*num;
-{
-	float64data	val;
-	float32		result = (float32) palloc(sizeof(float32data));
-	int	status;
+	errno = 0;
+	val = strtod(num,&endptr);
+	if (*endptr != '\0' || errno == ERANGE)
+	  elog(WARN,"\tBad float4 input format\n");
 	
-	status=atof1(num,&val);
-	if (status==0) {
-		*result = val;
-		return(result);
-	}
-	if (status==-1) 
-		printf("\tSyntax error\n");
-	if (status==1) 
-		printf("\tOverflow\n");
+	/* if we get here, we have a legal double, still need to check to see
+	   if it's a legal float */
+
+	if (fabs(val) > FLT_MAX)
+	  elog(WARN,"\tBad float4 input format -- overflow\n");
+	if (val > 0.0 && fabs(val) < FLT_MIN)
+	  elog(WARN,"\tBad float4 input format -- underflow\n");
+
 	*result = val;
-	return(result);
+	return result;
+
 }
 
 
@@ -135,35 +124,6 @@ float4out(num)
 }
 
 
-/*	float4outAd	- converts a float4 number to a string
- *			  allowing to specify the output format
- *
- *	'format' can be:
- *		e or E:  "E" format output
- *		f or F:  "F" format output
- *		g or G:  "F" format output if it will fit, otherwise
- *			 use "E" format.
- *		n or N:  same as G, but decimal points will not always
- *			 be aligned.
- *
- *	'precision' is the number of digits after decimal point.
- */
-char *
-float4outAd(num, precision, format)
-	float32	num;
-	int	precision;
-	char	format;
-{
-	char	*ascii = (char *)palloc(MAXFLOATWIDTH);	
-
-	if (!num)
-		return strcpy(ascii, "(null)");
-
-	ftoa(*num, ascii, MAXFLOATWIDTH, precision, format);
-	return(ascii);
-}
-
-
 /*
  *	float8in	- converts "num" to float8
  *			  restricted syntax:
@@ -176,40 +136,17 @@ float8in(num)
 	char	*num;
 {
 	float64	result = (float64) palloc(sizeof(float64data));
-	
-	*result = (float64data) atof(num);
-	return(result);
-}
+	double val;
+	char* endptr;
 
-
-/*
- *	float8inAd	- advanced float8in, converts "num" to float8,
- *			  extended syntax:
- *			 {<sp>}[+|-]{<sp>}{<digit>}[.{digit}]{<sp>}[<exp>]
- *			 where <exp> is "e" or "E" followed by an integer, 
- *			 <sp> is a space character, <digit> is zero through 
- *			 nine, [] is zero or one, and {} is zero or more.
- *
- */
-float64
-float8inAd(num)
-	char	*num;
-{
-	float64data	val;
-	float64	result = (float64) palloc(sizeof(float64data));
-	int	status;
+	errno = 0;
+	val = strtod(num,&endptr);
+	if (*endptr != '\0' || errno == ERANGE)
+	  elog(WARN,"\tBad float8 input format\n");
 	
-	status = atof1(num,&val);
-	if (status==0) {
-		*result = val;
-		return(result);
-	}
-	if (status == -1)
-		elog(WARN, "Bad float8 constant");
-	if (status == 1)
-		elog(WARN, "float8 overflow");
 	*result = val;
 	return(result);
+
 }
 
 
@@ -229,37 +166,6 @@ float8out(num)
 	sprintf(ascii, "%.*g", DBL_DIG, *num);
 	return(ascii);
 }
-
-
-/*
- *	float8outAd	- advanced float8out, converts float8 number to a
- *			  string allowing to specify the output format
- *
- *	'format' can be:
- *		e or E:  "E" format output
- *		f or F:  "F" format output
- *		g or G:  "F" format output if it will fit, otherwise
- *			 use "E" format.
- *		n or N:  same as G, but decimal points will not always
- *			 be aligned.
- *
- *	'precision' is the number of digits after decimal point.
- */
-char *
-float8outAd(num, precision, format)
-	float64	num;
-	int	precision;
-	char	format;
-{
-	char	*ascii = (char *)palloc(MAXDOUBLEWIDTH);
-	
-	if (!num)
-		return strcpy(ascii, "(null)");
-
-	ftoa(*num, ascii, MAXDOUBLEWIDTH, precision, format);
-	return(ascii);
-}
-
 
 	     /* ========== PUBLIC ROUTINES ========== */
 
