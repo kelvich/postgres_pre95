@@ -398,6 +398,7 @@ ExecHashTableCreate(node)
      * ----------------
      */
     hashtable = (HashJoinTable)palloc((HashTBSize+1)*BLCKSZ);
+    shmid = 0;
 #endif /* sequent */
 
     if (hashtable == NULL) {
