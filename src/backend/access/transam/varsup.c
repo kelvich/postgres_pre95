@@ -36,9 +36,7 @@
 
 #include "storage/buf.h"
 #include "storage/bufmgr.h"
-#ifdef sequent
 #include "storage/ipc.h"	/* for OIDGENLOCKID */
-#endif
 
 #include "utils/rel.h"
 #include "utils/log.h"
@@ -55,6 +53,12 @@
  * ----------
  */
 #define BootstrapObjectIdData 16384
+
+/* ---------------------
+ *	spin lock for oid generation
+ * ---------------------
+ */
+static int OidGenLockId = OIDGENLOCKID;
 
 /* ----------------------------------------------------------------
  *	      variable relation query/update routines
@@ -393,6 +397,7 @@ GetNewTransactionId(xid)
 	 *	and save it in the prefetched id.
 	 * ----------------
 	 */
+	SpinAcquire(OidGenLockId);
 	VariableRelationGetNextXid(&nextid);
 	TransactionIdStore(&nextid, (Pointer) &next_prefetched_xid);
 	
@@ -405,6 +410,7 @@ GetNewTransactionId(xid)
 	prefetched_xid_count = VAR_XID_PREFETCH;
 	TransactionIdAdd(&nextid, prefetched_xid_count * 2);
 	VariableRelationPutNextXid(&nextid);
+	SpinRelease(OidGenLockId);
 	
 	/* ----------------
 	 *	relinquish our lock on the variable relation page
@@ -486,9 +492,6 @@ UpdateLastCommittedXid(xid)
  *	id assignments should use this 
  * ----------------
  */
-#ifdef sequent
-static int OidGenLockId = OIDGENLOCKID;
-#endif
 
 void
 GetNewObjectIdBlock(oid_return, oid_block_size)
@@ -509,9 +512,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      */
     if (RelationIsValid(VariableRelation))
         RelationSetLockForRead(VariableRelation);
-#ifdef sequent
-    ExclusiveLock(OidGenLockId);
-#endif
+    SpinAcquire(OidGenLockId);
 	
     /* ----------------
      *	get the "next" oid from the variable relation
@@ -535,9 +536,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      *  That someday is today -mer 5 Aug 1991
      * ----------------
      */
-#ifdef sequent
-    ExclusiveUnlock(OidGenLockId);
-#endif
+    SpinRelease(OidGenLockId);
     if (RelationIsValid(VariableRelation))
         RelationUnsetLockForRead(VariableRelation);
 }
