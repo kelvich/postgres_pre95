@@ -64,6 +64,17 @@ ExecIdenticalTuples(t1, t2)
 	return false;
     
     /* ----------------
+     *  if the tuples have different header offsets then
+     *  they are different.  This will prevent us from returning
+     *  true when comparing tuples of one attribute where one of
+     *  two we're looking at is null (t_len - t_hoff == 0).
+     *  THE t_len FIELDS CAN BE THE SAME IN THIS CASE!!
+     * ----------------
+     */
+    if (h1->t_hoff != h2->t_hoff)
+	return false;
+
+    /* ----------------
      *	ok, now get the pointers to the data and the
      *  size of the attribute portion of the tuple.
      * ----------------
