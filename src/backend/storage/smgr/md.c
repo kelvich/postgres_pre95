@@ -8,7 +8,6 @@
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"
-#include "tmp/miscadmin.h"
 
 #include "machine.h"
 #include "storage/smgr.h"
@@ -69,6 +68,7 @@ mdcreate(reln)
     int tmp;
     char *path;
     extern char *relpath();
+    extern bool IsBootstrapProcessingMode();
 
     path = relpath(&(reln->rd_rel->relname.data[0]));
     fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0666);
