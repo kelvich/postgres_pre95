@@ -109,7 +109,9 @@ extern int on_exitpg();
 #define OIDGENLOCKID	3	/* reserved lock for oid generation */
 #define SHMEMLOCKID	4	/* reserved lock for shmem allocation */
 #define BINDINGLOCKID	5	/* reserved lock for shmem binding table */
-#define FIRSTFREELOCKID	6	/* the first free lock id */
+#define LOCKMGRLOCKID	6	/* reserved lock for lock table access */
+#define PROCSTRUCTLOCKID 7	/* reserved lock for process structure access */
+#define FIRSTFREELOCKID	8	/* the first free lock id */
 typedef struct slock {
     slock_t		locklock;
     unsigned char	flag;
@@ -128,9 +130,11 @@ extern void SharedUnlock();
 extern void ExclusiveLock();
 extern void ExclusiveUnlock();
 extern bool LockIsFree();
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
 #define SHMEMLOCKID	0	/* fixed spin lock for shmem allocation */
 #define BINDINGLOCKID	1	/* fixed spin lock for shmem binding table */
 #define BUFMGRLOCKID	2	/* fixed spin lock for shared buffer pool */
-#endif /* sequent */
+#define LOCKMGRLOCKID	3	/* fixed spin lock for lmgr lock table */
+#define PROCSTRUCTLOCKID 3	/* fixed spin lock for lmgr lock table */
+#endif /* HAS_TEST_AND_SET */
 #endif	/* !defined(IPCIncluded) */
