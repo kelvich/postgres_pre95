@@ -269,7 +269,7 @@ pq_getinaddr(sin, host, port)
     }
     
     sin->sin_family = AF_INET;
-    sin->sin_port = htonl(port);
+    sin->sin_port = htons(port);
     
     return(0);
 }
@@ -296,7 +296,7 @@ pq_getinserv(sin, host, serv)
     }
     
     return
-	pq_getinaddr(sin, host, ntohl(ss->s_port));
+	pq_getinaddr(sin, host, ntohs(ss->s_port));
 }
 
 /* ----------------------------------------
@@ -470,7 +470,7 @@ int	*fdP;
   }
 
   sin.sin_family = AF_INET;
-  sin.sin_port = htonl(portName);
+  sin.sin_port = htons(portName);
 
   if (bind(fd, (char *)&sin, sizeof sin) < 0) {
     fprintf(stderr,"StreamServerPort: cannot bind to port\n");
@@ -572,7 +572,7 @@ int	*sockP;
   }
 
   addr.sin_family = AF_INET;
-  addr.sin_port = htonl(portName);
+  addr.sin_port = htons(portName);
 
   *sockP = sock;
   if (! connect(sock, &addr, sizeof(addr)))
