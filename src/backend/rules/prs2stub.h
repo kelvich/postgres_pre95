@@ -143,6 +143,8 @@ typedef Prs2StubStatsData *Prs2StubStats;
  *========================================================================
  */
 
+#define prs2StubIsEmpty(x) ((x)==NULL || (x)->numOfStubs == 0)
+
 /*================= ROUTINES IN FILE 'stubraw.c' =======================*/
 
 /*-------------------------
