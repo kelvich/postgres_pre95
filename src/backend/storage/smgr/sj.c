@@ -49,6 +49,7 @@ static File		SJBlockVfd;	/* vfd for nblocks file */
 static SJCacheHeader	*SJHeader;	/* pointer to cache header in shmem */
 static HTAB		*SJCacheHT;	/* pointer to hash table in shmem */
 static SJCacheItem	*SJCache;	/* pointer to cache metadata in shmem */
+static SJCacheTag	*SJNBlockCache;	/* pointer to nblock cache */
 
 #ifndef	HAS_TEST_AND_SET
 
@@ -175,7 +176,7 @@ sjinit()
     /*
      *  Order of items in shared memory is metadata header, number of
      *  processes sleeping on the wait semaphore (if no test-and-set locks),
-     *  and cache entries.
+     *  nblock cache, and jukebox cache entries.
      */
 
     SJHeader = (SJCacheHeader *) cacheblk;
@@ -185,6 +186,9 @@ sjinit()
     SJNWaiting = (long *) cacheblk;
     cacheblk += sizeof(long);
 #endif /* ndef HAS_TEST_AND_SET */
+
+    SJNBlockCache = (SJCacheTag *) cacheblk;
+    cacheblk += SJNBLKSIZE * sizeof(SJCacheTag);
 
     SJCache = (SJCacheItem *) cacheblk;
 
@@ -328,6 +332,11 @@ _sjcacheinit()
 	_sjunwait_init();
 	elog(FATAL, "sj cache metadata file corrupted.");
     }
+
+    /*
+     *  Clear out the nblock cache
+     */
+    bzero((char *) SJNBlockCache, SJNBLKSIZE * sizeof(SJCacheTag));
 
     /*
      *  Add every group that appears in the cache to the hash table.  Since
@@ -1763,7 +1772,20 @@ _sjfindnblocks(tag)
     SJCacheTag *tag;
 {
     int nbytes;
+    int i;
+    SJCacheTag *cachetag;
     SJCacheTag mytag;
+
+    cachetag = SJNBlockCache;
+    i = 0;
+    while (i < SJNBLKSIZE && cachetag->sjct_relid != (ObjectId) 0) {
+	if (cachetag->sjct_dbid == tag.sjct_dbid
+	    && cachetag->sjct_relid == tag.sjct_relid) {
+	    return (cachetag->sjct_base);
+	}
+	i++;
+	cachetag++;
+    }
 
     if (FileSeek(SJBlockVfd, 0L, L_SET) != 0) {
 	elog(FATAL, "_sjfindnblocks: cannot seek to zero on block count file");
@@ -1772,6 +1794,18 @@ _sjfindnblocks(tag)
     while ((nbytes = FileRead(SJBlockVfd, &mytag, sizeof(mytag))) > 0) {
 	if (mytag.sjct_dbid == tag->sjct_dbid
 	    && mytag.sjct_relid == tag->sjct_relid) {
+
+	    if (i == SJNBLKSIZE) {
+		/* fast pseudo-random function */
+		i = mytag.sjct_relid % SJNBLKSIZE;
+		cachetag = &(SJNBlockCache[i]);
+	    }
+
+	    /* save cache tag */
+	    cachetag->sjct_dbid = mytag.sjct_dbid;
+	    cachetag->sjct_relid = mytag.sjct_relid;
+	    cachetag->sjct_base = mytag.sjct_base;
+
 	    return (mytag.sjct_base);
 	}
     }
@@ -1789,7 +1823,29 @@ _sjregnblocks(tag)
     SJCacheTag *tag;
 {
     int loc;
+    int i;
+    SJCacheTag *cachetag;
     SJCacheTag mytag;
+
+    cachetag = SJNBlockCache;
+    i = 0;
+    while (i < SJNBLKSIZE && cachetag->sjct_relid != (ObjectId) 0) {
+	if (cachetag->sjct_dbid == tag.sjct_dbid
+	    && cachetag->sjct_relid == tag.sjct_relid)
+	    break;
+
+	i++;
+	cachetag++;
+    }
+
+    if (i == SJNBLKSIZE) {
+	i = tag.sjct_relid % SJNBLKSIZE;
+	cachetag = &(SJCacheTag[i]);
+    }
+
+    cachetag->sjct_dbid = tag.sjct_dbid;
+    cachetag->sjct_relid = tag.sjct_relid;
+    cachetag->sjct_base = tag.sjct_base;
 
     /* update block count file */
     if (FileSeek(SJBlockVfd, 0L, L_SET) < 0) {
@@ -1863,6 +1919,9 @@ SJShmemSize()
     tmp = (int)ceil((double)SJCACHESIZE/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR *
             (sizeof(BUCKET_INDEX) + sizeof(SJHashEntry));
+
+    /* nblock cache */
+    size += SJNBLKSIZE * sizeof(SJCacheTag);
 
     /* count shared memory required for jukebox state */
     size += JBShmemSize();
