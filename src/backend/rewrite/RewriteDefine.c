@@ -1,4 +1,9 @@
-/* $Header$ */
+/* 
+ * $File:$
+ * $Version:$
+ * $State$
+ * $Author$
+ */
 
 #include <stdio.h>
 #include "tmp/oid.h"
@@ -55,6 +60,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
     ObjectId eventrel_oid = InvalidObjectId;
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
+    char *is_instead = "f";
 
     eventrel = amopenr( evobj );
     if ( eventrel == NULL ) {
@@ -70,21 +76,27 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
       evslot_index = -1;
     else
       evslot_index = varattno ( eventrel,evslot );
+    if ( evinstead )
+	is_instead = "t";
+    if ( evqual == NULL )
+      evqual = "nil";
 
     sprintf(rulebuf,
-	    "append pg_prs2rule (prs2name=\"%s\",prs2eventtype=\"%d2\"::char,\
-	    prs2eventrel=%d::oid,prs2eventattr= %d::int2,\
-	    prs2text= `%s`::text , \
-            necessary = %f , sufficient = %f )",
+	    "append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,\
+	    ev_class=%d::oid,ev_attr= %d::int2,\
+	    action= `%s`::text , ev_qual= `%s`::text, \
+            fril_lb= %f , fril_ub= %f , is_instead=\"%s\"::bool )",
 	    rulname,
 	    AtomValueGetString(evtype),
 	    eventrel_oid,
 	    evslot_index,
 	    actiontree,
+	    evqual,
 	    necessary,
-	    sufficient);
+	    sufficient,
+	    is_instead );
 
-    /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
+    fprintf(stdout,"rule is \n%s\n", rulebuf ); 
 
     pg_eval(rulebuf);
 
