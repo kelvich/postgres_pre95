@@ -1,7 +1,7 @@
 /* $Header$ */
 
 extern LispValue preprocess_qualification ARGS((LispValue qual, LispValue tlist));
-extern LispValue cnfify ARGS((LispValue qual));
+extern LispValue cnfify ARGS((LispValue qual, bool removeAndFlag));
 extern LispValue pull_args ARGS((LispValue qual));
 extern LispValue pull_ors ARGS((LispValue orlist));
 extern LispValue pull_ands ARGS((LispValue andlist));

@@ -12,6 +12,6 @@ extern List find_qual_union_sets ARGS((List qual));
 extern List flatten_union_list ARGS((List ulist));
 extern List remove_subsets ARGS((List usets));
 extern List SplitQual ARGS((List ulist, List uqual));
-extern void match_union_clause ARGS((List unionlist, List leftop, List rightop));
+extern void match_union_clause ARGS((List unionlist, List *leftop, List *rightop));
 extern List find_matching_union_qual ARGS((List ulist, List qual));     
 
