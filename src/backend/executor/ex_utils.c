@@ -361,19 +361,21 @@ ExecAssignResultTypeFromTL(node, commonstate)
 	    fjtl = CDR(tle);
 	    tle = get_fj_innerNode((Fjoin)CAR(tle));
 	  }
-	if (get_rescomplex((Resdom)CAR(tle))) {
+/*	if (get_rescomplex((Resdom)CAR(tle)) && IsA(get_expr(tle),Var)) {
 	    /* if it is a composite type, i.e., a tuple */
-	    tlvar = (Var)get_expr(tle);
+/*	    tlvar = (Var)get_expr(tle);
 	    Assert(IsA(tlvar,Var));
 	    varlen = ExecGetVarLen(node, commonstate, tlvar);
 	    varTupDesc = ExecGetVarTupDesc(node, commonstate, tlvar);
 	    execTupDesc->data[i] = MakeExecAttDesc(ATTTUP, varlen, varTupDesc);
 	  }
 	else {
+*/
 	    /* this means that it is a base type */
 	    execTupDesc->data[i] = ExecMakeExecAttDesc(ATTVAL, 1);
 	    execTupDesc->data[i]->attdesc->data[0] = origTupDesc->data[i];
-	  }
+/*	  }
+*/
 	i++;
       }
     if (len > 0) {
@@ -725,6 +727,7 @@ ExecSetTypeInfo(index, typeInfo, typeID, attNum, attLen, attName, attbyVal)
     att->attproc = 	0;			/* dummy value */
     att->attnelems = 	0;			/* dummy value */
     att->attcacheoff = 	-1;
+    att->attisset =     false;
 }
 
 ExecTupDescriptor
