@@ -571,13 +571,11 @@ _readHash()
 	token = lsptok(NULL, &length);    		/* eat :tempid */
 	token = lsptok(NULL, &length);    		/* get tempid */
 
-	local_node->tempid = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :keycount */
 
 	token = lsptok(NULL, &length);    		/* get keycount */
 
-	local_node->keycount = atoi(token);
 
 	return(local_node);
 }
