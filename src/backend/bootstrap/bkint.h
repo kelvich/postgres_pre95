@@ -107,7 +107,7 @@ extern void ExcAbort 	ARGS((Exception *, ExcDetail, ExcData, ExcMessage));
 extern unsigned char MapEscape ARGS((char **));
 extern int  EnterString ARGS((char *));
 extern char *LexIDStr	ARGS((int));
-extern int  Hash	ARGS((char *, int));
+extern int  CompHash	ARGS((char *, int));
 extern hashnode *FindStr ARGS((char *, int, hashnode *));
 extern hashnode *AddStr ARGS((char *, int, int));
 extern void printhashtable ARGS((void));
