@@ -50,6 +50,10 @@
 
 #include "nodes/pg_lisp.h"
 
+#ifdef PARALLELDEBUG
+#include <usclkc.h>
+#endif
+
 extern int on_exitpg();
 extern void BufferManagerFlush();
 
@@ -635,6 +639,10 @@ PostgresMain(argc, argv)
     signal(SIGINT, die);
     signal(SIGTERM, die);
     
+#ifdef PARALLELDEBUG
+    usclk_init();
+#endif
+
     /* ----------------
      *	initialize palloc memory tracing
      * ----------------
@@ -1138,6 +1146,9 @@ ResetUsage()
         gettimeofday(&Save_t, &tz);
 	ResetBufferUsage();
 	ResetTupleCount();
+#ifdef PARALLELDEBUG
+        ResetParallelDebugInfo();
+#endif
 }
 
 ShowUsage()
@@ -1215,4 +1226,7 @@ ShowUsage()
 	fprintf(stderr, "postgres usage stats:\n");
 	PrintBufferUsage();
 	DisplayTupleCount();
+#ifdef PARALLELDEBUG
+        PrintParallelDebugInfo();
+#endif
 }
