@@ -8,19 +8,18 @@
 
 static char	pskip_c[] = "$Header$";
 
-#include "c.h"
-#include "clib.h"
+#include "tmp/c.h"
 
-#include "skey.h"
-#include "align.h"
-#include "buf.h"
-#include "bufmgr.h"
-#include "bufpage.h"
-#include "itemid.h"
-#include "itempos.h"
-#include "itemptr.h"
-#include "log.h"
-#include "page.h"
+#include "access/skey.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "storage/itemid.h"
+#include "storage/itempos.h"
+#include "storage/itemptr.h"
+#include "storage/page.h"
+#include "utils/memutils.h"
+#include "utils/log.h"
 
 /*
  *	pskip.c		- standard buffer page traversal routines
