@@ -31,177 +31,14 @@
 #include "catalog/pg_plmap.h"
 #include "catalog/pg_proc.h"
 
+#include "storage/sj.h"
+
 RcsId("$Header$");
-
-/*
- *  When the buffer pool requests a particular page, we load a group of
- *  pages from the jukebox into the mag disk cache for efficiency.
- *  SJCACHESIZE is the number of these groups in the disk cache.  Every
- *  group is represented by one entry in the shared memory cache.  SJGRPSIZE
- *  is the number of 8k pages in a group.
- */
-
-#define	SJCACHESIZE	64		/* # groups in mag disk cache */
-#define	SJGRPSIZE	10		/* # 8k pages in a group */
-#define SJPATHLEN	64		/* size of path to cache file */
-
-/* misc constants */
-#define	SJCACHENAME	"_sj_cache_"	/* relative to $POSTGRESHOME/data */
-#define	SJMETANAME	"_sj_meta_"	/* relative to $POSTGRESHOME/data */
-
-/* bogus macros */
-#define	RelationSetLockForExtend(r)
-
-/*
- *  SJGroupDesc -- Descriptor block for a cache group.
- *
- *	The first 1024 bytes in a group -- on a platter or in the magnetic
- *	disk cache -- are a descriptor block.  We choose 1024 bytes because
- *	this is the native block size of the jukebox.
- *
- *	This block includes a description of the data that appears in the
- *	group, including relid, dbid, relname, dbname, and a unique OID
- *	that we use to verify cache consistency on startup.  SJGroupDesc
- *	is the structure that contains this information.  It resides at the
- *	start of the 1024-byte block; the rest of the block is unused.
- */
-
-typedef struct SJGroupDesc {
-    long	sjgd_magic;
-    long	sjgd_version;
-    NameData	sjgd_dbname;
-    NameData	sjgd_relname;
-    ObjectId	sjgd_dbid;
-    ObjectId	sjgd_relid;
-    long	sjgd_relblkno;
-    long	sjgd_jboffset;
-    long	sjgd_extentsz;
-    ObjectId	sjgd_groupoid;
-} SJGroupDesc;
-
-#define SJGDMAGIC	0x060362
-#define	SJGDVERSION	0
-#define JBBLOCKSZ	1024
-
-/*
- *  SJCacheTag -- Unique identifier for individual groups in the magnetic
- *		  disk cache.
- *
- *	We use this identifier to query the shared memory cache metadata
- *	when we want to find a particular group.  
- */
-
-typedef struct SJCacheTag {
-    ObjectId		sjct_dbid;	/* database OID of this group */
-    ObjectId		sjct_relid;	/* relation OID of this group */
-    BlockNumber		sjct_base;	/* number of first block in group */
-} SJCacheTag;
-
-/*
- *  SJHashEntry -- The hash table code returns a pointer to a structure
- *		   that has this layout.
- */
-
-typedef struct SJHashEntry {
-    SJCacheTag		sjhe_tag;	/* cache tag -- hash key */
-    int			sjhe_groupno;	/* which group this is in cache file */
-} SJHashEntry;
-
-/*
- *  SJCacheHeader -- Header data for in-memory metadata cache.
- */
-
-typedef struct SJCacheHeader {
-    int			sjh_nentries;
-    int			sjh_lruhead;
-    int			sjh_lrutail;
-    uint32		sjh_flags;
-
-#define SJH_INITING	(1 << 0)
-#define SJH_INITED	(1 << 1)
-
-#ifdef HAS_TEST_AND_SET
-
-    slock_t		sjh_initlock;	/* initialization in progress lock */
-
-#endif /* HAS_TEST_AND_SET */
-
-} SJCacheHeader;
-
-/*
- *  SJCacheItem -- Cache item describing blocks on the magnetic disk cache.
- *
- *	An array of these is maintained in shared memory, with one entry
- *	for every group that appears in the magnetic disk block cache.  We
- *	maintain a consistent copy of this array on magnetic disk whenever
- *	we change the cache contents.  This is because the magnetic disk
- *	cache is persistent, and contains data that logically appears on the
- *	jukebox between backend instances.
- *
- *	The OID that appears in this structure is used to detect corruption
- *	of the cache due to crashes during cache metadata update on disk.
- *	When we detect corruption, we recover by marking the group free.  We
- *	are very careful to do this in a way that guarantees no data is lost,
- *	and that does not require log processing.
- *
- *	Since we never return pointers to private data, we don't need to
- *	maintain a free list or pin count on magnetic disk cache groups.
- *	In shared memory, we maintain a list of groups in LRU order (offsets
- *	from the start of cache metadata are stored in this structure).
- *	When we need a group for data transfer, we use the least-recently-used
- *	group's space, kicking it out to the platter if necessary.
- *
- *	Groups on the jukebox include one page (the first) that describes the
- *	group, including its dbid, relid, dbname, relname, and extent size.
- *	This page also includes the OID described above.
- */
-
-typedef struct SJCacheItem {
-    SJCacheTag		sjc_tag;		/* dbid, relid, group triple */
-    int			sjc_lruprev;		/* LRU list pointer */
-    int			sjc_lrunext;		/* LRU list pointer */
-    int			sjc_refcount;		/* number of active refs */
-    ObjectId		sjc_oid;		/* OID of group */
-
-    uint8		sjc_gflags;		/* flags for entire group */
-
-#define SJG_CLEAR	(uint8) 0x0
-#define	SJG_IOINPROG	(1 << 0)
-
-    uint8		sjc_flags[SJGRPSIZE];	/* flag bytes, 1 per block */
-
-#define	SJC_DIRTY	(1 << 0)
-#define SJC_MISSING	(1 << 1)
-#define SJC_ONPLATTER	(1 << 2)
-
-#ifdef HAS_TEST_AND_SET
-
-    slock_t		sjc_iolock;		/* transfer in progress */
-
-#endif /* HAS_TEST_AND_SET */
-
-} SJCacheItem;
-
-/*
- *  SJNBlock -- Linked list of count of blocks in relations.
- *
- *	Computing a block count is so expensive that we cache the count
- *	in local space when we've done the work.  This is really a stupid
- *	way to do it -- we'd rather do it in shared memory and have the
- *	computed count survive transactions -- but this will work for now.
- */
-
-typedef struct SJNBlock {
-    ObjectId		sjnb_relid;
-    int			sjnb_nblocks;
-    struct SJNBlock	*sjnb_next;
-} SJNBlock;
 
 /* globals used in this file */
 SPINLOCK		SJCacheLock;	/* lock for cache metadata */
-extern bool		IsPostmaster;	/* is this the postmaster running? */
-extern ObjectId		MyDatabaseId;	/* OID of database we have open */
-extern Name		MyDatabaseName;	/* name of database we have open */
+static ObjectId		MyDatabaseId;	/* OID of database we have open */
+static Name		MyDatabaseName;	/* name of database we have open */
 
 static File		SJCacheVfd;	/* vfd for cache data file */
 static File		SJMetaVfd;	/* vfd for cache metadata file */
@@ -231,22 +68,27 @@ static long		*SJNWaiting;	/* # procs sleeping on the wait sem */
 
 /* static buffer is for data transfer -- SJGRPSIZE blocks + descriptor block */
 static char	SJCacheBuf[(BLCKSZ * SJGRPSIZE) + JBBLOCKSZ];
-static int	SJBufSize = ((BLCKSZ * SJGRPSIZE) + JBBLOCKSZ);
 
-/* routines declared here */
-extern void		sjcacheinit();
-extern void		sjwait_init();
-extern void		sjunwait_init();
-extern void		sjwait_io();
-extern void		sjunwait_io();
-extern void		sjtouch();
-extern void		sjunpin();
-extern void		sjregister();
-extern void		sjregnblocks();
-extern int		sjfindnblocks();
-extern ObjectId		sjchoose();
-extern SJCacheItem	*sjallocgrp();
-extern SJCacheItem	*sjfetchgrp();
+/* used in sj.c, pgjb.c */
+int		SJBufSize = ((BLCKSZ * SJGRPSIZE) + JBBLOCKSZ);
+
+/* routines declared in this file */
+static void		_sjcacheinit();
+static void		_sjwait_init();
+static void		_sjunwait_init();
+static void		_sjwait_io();
+static void		_sjunwait_io();
+static void		_sjtouch();
+static void		_sjunpin();
+static void		_sjregister();
+static void		_sjregnblocks();
+static int		_sjfindnblocks();
+static int		_sjwritegrp();
+static int		_sjreadgrp();
+static Form_pg_plmap	_sjchoose();
+static SJCacheItem	*_sjallocgrp();
+static SJCacheItem	*_sjfetchgrp();
+static void		_sjdump();
 
 /* routines declared elsewhere */
 extern HTAB	*ShmemInitHash();
@@ -354,15 +196,6 @@ sjinit(key)
     }
 #endif /* ndef HAS_TEST_AND_SET */
 
-    if (IsPostmaster) {
-
-	if (metafound)
-	    elog(FATAL, "sj cache found in shared memory by postmaster!");
-
-	bzero((char *) cachesave, metasize);
-	return (SM_SUCCESS);
-    }
-
     /*
      *  Okay, all our shared memory pointers are set up.  If we did not
      *  find the cache metadata entries in shared memory, or if the cache
@@ -399,7 +232,7 @@ sjinit(key)
 	    /* if we were initializing the metadata, note our surrender */
 	    if (!metafound) {
 		SJHeader->sjh_flags &= ~SJH_INITING;
-		sjunwait_init();
+		_sjunwait_init();
 	    }
 
 	    return (SM_FAIL);
@@ -415,7 +248,7 @@ sjinit(key)
 	    /* if we were initializing the metadata, note our surrender */
 	    if (!metafound) {
 		SJHeader->sjh_flags &= ~SJH_INITING;
-		sjunwait_init();
+		_sjunwait_init();
 	    }
 
 	    return (SM_FAIL);
@@ -426,21 +259,29 @@ sjinit(key)
     SJNBlockList = (SJNBlock *) NULL;
 
     /*
-     *  Finally, if it's our responsibility to initialize the shared-memory
-     *  cache metadata, then go do that.  sjcacheinit() will elog(FATAL, ...)
-     *  if it can't initialize the cache, so we don't need to worry about
-     *  a return value here.
+     *  If it's our responsibility to initialize the shared-memory cache
+     *  metadata, then go do that.  Sjcacheinit() will elog(FATAL, ...) if
+     *  it can't initialize the cache, so we don't need to worry about a
+     *  return value here.
      */
 
     if (initcache) {
-	sjcacheinit();
+	_sjcacheinit();
     }
+
+    /*
+     *  Finally, we need to initialize the data structures we use for
+     *  communicating with the jukebox.
+     */
+
+    if (pgjb_init() == SM_FAIL)
+	return (SM_FAIL);
 
     return (SM_SUCCESS);
 }
 
-void
-sjcacheinit()
+static void
+_sjcacheinit()
 {
     int nbytes, nread;
     int nentries;
@@ -464,7 +305,7 @@ sjcacheinit()
     nentries = nread / sizeof(SJCacheItem);
     if ((nentries * sizeof(SJCacheItem)) != nread) {
 	SJHeader->sjh_flags &= ~SJH_INITING;
-	sjunwait_init();
+	_sjunwait_init();
 	elog(FATAL, "sj cache metadata file corrupted.");
     }
 
@@ -487,13 +328,13 @@ sjcacheinit()
 
 	if (result == (SJHashEntry *) NULL) {
 	    SJHeader->sjh_flags &= ~SJH_INITING;
-	    sjunwait_init();
+	    _sjunwait_init();
 	    elog(FATAL, "sj cache hash table corrupted");
 	}
 
 	if (found) {
 	    SJHeader->sjh_flags &= ~SJH_INITING;
-	    sjunwait_init();
+	    _sjunwait_init();
 	    elog(FATAL, "duplicate group in sj cache file: <%d,%d,%d>",
 		 cur->sjc_tag.sjct_dbid, cur->sjc_tag.sjct_relid, 
 		 cur->sjc_tag.sjct_base);
@@ -509,8 +350,8 @@ sjcacheinit()
 	else
 	    cur->sjc_lrunext = i + 1;
 
-	/* not waiting on I/O or anything, no active references to this guy */
-	cur->sjc_gflags = SJG_CLEAR;
+	/* no io in progress */
+	cur->sjc_gflags &= ~SJC_IOINPROG;
 	cur->sjc_refcount = 0;
 
 #ifdef HAS_TEST_AND_SET
@@ -531,7 +372,7 @@ sjcacheinit()
 }
 
 /*
- *  sjunwait_init() -- Release initialization lock on the jukebox cache.
+ *  _sjunwait_init() -- Release initialization lock on the jukebox cache.
  *
  *	When we initialize the cache, we don't keep the cache semaphore
  *	locked.  Instead, we set a flag in the metadata to let other
@@ -540,7 +381,7 @@ sjcacheinit()
  *	not yet populated.  If they want to look something up in the
  *	cache, they'll block on the flag we set, and wait for us to finish.
  *	If they don't need the jukebox, they can run unimpeded.  When we
- *	finish, we call sjunwait_init() to release the initialization lock
+ *	finish, we call _sjunwait_init() to release the initialization lock
  *	that we hold during initialization.
  *
  *	When we do this, either the cache is properly initialized, or
@@ -548,8 +389,8 @@ sjcacheinit()
  *	we no longer need exclusive access to the cache metadata.
  */
 
-void
-sjunwait_init()
+static void
+_sjunwait_init()
 {
 #ifdef HAS_TEST_AND_SET
 
@@ -580,7 +421,7 @@ void
 sjunwait_io(item)
     SJCacheItem *item;
 {
-    item->sjc_gflags &= ~SJG_IOINPROG;
+    item->sjc_gflags &= ~SJC_IOINPROG;
 
 #ifdef HAS_TEST_AND_SET
     S_UNLOCK(&(item->sjc_iolock));
@@ -599,7 +440,7 @@ sjunwait_io(item)
 }
 
 /*
- *  sjwait_init() -- Wait for cache initialization to complete.
+ *  _sjwait_init() -- Wait for cache initialization to complete.
  *
  *	This routine is called when we want to access jukebox cache metadata,
  *	but someone else is initializing it.  When we return, the init lock
@@ -607,8 +448,8 @@ sjunwait_io(item)
  *	holding the cache metadata lock.
  */
 
-void
-sjwait_init()
+static void
+_sjwait_init()
 {
 #ifdef HAS_TEST_AND_SET
     SpinRelease(SJCacheLock);
@@ -622,7 +463,7 @@ sjwait_init()
 }
 
 /*
- *  sjwait_io() -- Wait for group IO to complete.
+ *  _sjwait_io() -- Wait for group IO to complete.
  *
  *	This routine is called when we discover that some other process is
  *	doing IO on a group in the cache that we want to use.  We need to
@@ -631,8 +472,8 @@ sjwait_init()
  *	lock, and the IO completed.  We can retry our access.
  */
 
-void
-sjwait_io(item)
+static void
+_sjwait_io(item)
     SJCacheItem *item;
 {
 #ifdef HAS_TEST_AND_SET
@@ -695,7 +536,7 @@ sjcreate(reln)
     SpinAcquire(SJCacheLock);
     if (!(SJHeader->sjh_flags & SJH_INITED)) {
 	if (SJHeader->sjh_flags & SJH_INITING) {
-	    sjwait_init();
+	    _sjwait_init();
 	} else {
 	    sjinit();
 	}
@@ -707,7 +548,7 @@ sjcreate(reln)
      *  metadata.  Allocate a group in the cache.
      */
 
-    item = sjallocgrp(&grpno);
+    item = _sjallocgrp(&grpno);
 
     if (reln->rd_rel->relisshared)
 	item->sjc_tag.sjct_dbid = (ObjectId) 0;
@@ -728,7 +569,7 @@ sjcreate(reln)
     }
 
     entry->sjhe_groupno = grpno;
-    item->sjc_gflags = SJG_IOINPROG;
+    item->sjc_gflags |= SJC_IOINPROG;
 #ifdef HAS_TEST_AND_SET
     SpinRelease(SJCacheLock);
     S_LOCK(item->sjc_iolock);
@@ -739,6 +580,7 @@ sjcreate(reln)
 #endif /* HAS_TEST_AND_SET */
 
     /* set flags on item, initialize group descriptor block */
+    item->sjc_gflags = SJC_DIRTY;
     for (i = 0; i < SJGRPSIZE; i++)
 	item->sjc_flags[i] = SJC_MISSING;
 
@@ -763,24 +605,38 @@ sjcreate(reln)
 	    sizeof(NameData));
     group->sjgd_relid = reln->rd_id;
     group->sjgd_relblkno = 0;
-    group->sjgd_jboffset = -1;
-    group->sjgd_extentsz = (SJBufSize / JBBLOCKSZ);
     item->sjc_oid = group->sjgd_groupoid = newoid();
 
-    if (sjwritegrp(item, grpno) == SM_FAIL) {
+    /*
+     *  Record the presence of the new extent in the system catalogs.  The
+     *  plid, jboffset, and extentsz fields are filled in by _sjregister()
+     *  or the routines that it calls.  Note that we do not force the new
+     *  group descriptor block all the way to the optical platter here.
+     *  We do decide where to place it, however, and must go to a fair amount
+     *  of trouble elsewhere in the code to avoid allocating the same extent
+     *  to a different relation, or block within the same relation.
+     */
+
+    _sjregister(item, group);
+
+    /*
+     *  Write the new group cache entry to disk.  Sjwritegrp() knows where
+     *  the cache buffer begins, and forces out the group descriptor we
+     *  just set up.
+     */
+
+    if (_sjwritegrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
 	return (-1);
     }
 
-    /* record presence of new extent in system catalogs */
-    sjregister(item, group->sjgd_jboffset, group->sjgd_extentsz);
-    sjregnblocks(reln->rd_id, 0);
+    _sjregnblocks(reln->rd_id, 0);
 
     /* can now release i/o lock on the item we just added */
     sjunwait_io(item);
 
     /* no longer need the reference */
-    sjunpin(item);
+    _sjunpin(item);
 
     /* last thing to do is to create the mag-disk file to hold last page */
     if (group->sjgd_dbid == (ObjectId) 0)
@@ -796,7 +652,7 @@ sjcreate(reln)
 }
 
 /*
- *  sjregister() -- Make catalog entry for a new extent
+ *  _sjregister() -- Make catalog entry for a new extent
  *
  *	When we create a new jukebox relation, or when we add a new extent
  *	to an existing relation, we need to make the appropriate entry in
@@ -807,31 +663,32 @@ sjcreate(reln)
  *	new extent.
  */
 
-void
-sjregister(item, jboffset, extentsz)
+static void
+_sjregister(item, group)
     SJCacheItem *item;
-    int32 jboffset;
-    int32 extentsz;
+    SJGroupDesc *group;
 {
     Relation plmap;
     ObjectId plid;
     Form_pg_plmap plmdata;
     HeapTuple plmtup;
 
-    plmap = heap_openr(Name_pg_plmap);
-    RelationSetLockForWrite(plmap);
+    /*
+     *  Choose a platter to put the new extent on.  This returns a filled-in
+     *  pg_plmap tuple data part to insert into the system catalogs.  The
+     *  choose routine also figures out where to place the extent on the
+     *  platter.
+     *
+     *	Sjchoose() palloc's and fills in plmdata; we free it later in this
+     *  routine.
+     */
 
-    plmdata = (Form_pg_plmap) palloc(sizeof(FormData_pg_plmap));
+    plmdata = _sjchoose(item);
 
-    /* choose a platter to put the new extent on */
-    plmdata->plid = sjchoose(item);
-
-    /* init the rest of the fields */
-    plmdata->pldbid = item->sjc_tag.sjct_dbid;
-    plmdata->plrelid = item->sjc_tag.sjct_relid;
-    plmdata->plblkno = item->sjc_tag.sjct_base;
-    plmdata->ploffset = jboffset;
-    plmdata->plextentsz = extentsz;
+    /* record plid, offset, extent size for caller */
+    group->sjgd_plid = plmdata->plid;
+    group->sjgd_jboffset = plmdata->ploffset;
+    group->sjgd_extentsz = plmdata->plextentsz;
 
     plmtup = (HeapTuple) heap_addheader(Natts_pg_plmap,
 					sizeof(FormData_pg_plmap),
@@ -841,48 +698,86 @@ sjregister(item, jboffset, extentsz)
     plmtup->t_oid = InvalidObjectId;
     bzero((char *) &(plmtup->t_chain), sizeof(plmtup->t_chain));
 
+    /* open the relation and lock it */
+    plmap = heap_openr(Name_pg_plmap);
+    RelationSetLockForWrite(plmap);
+
     /* insert the new catalog tuple */
     heap_insert(plmap, plmtup, (double *) NULL);
 
-    pfree((char *) plmtup);
+    /* done */
     heap_close(plmap);
+
+    /* be tidy */
+    pfree((char *) plmtup);
+    pfree((char *) plmdata);
 }
 
 /*
- *  sjchoose() -- Choose a platter to receive a new extent.
+ *  _sjchoose() -- Choose a platter to receive a new extent.
  *
  *	For now, this makes a really stupid choice.  Need to think about
  *	the right way to go about this.
  */
 
-ObjectId
-sjchoose(item)
+static Form_pg_plmap
+_sjchoose(item)
     SJCacheItem *item;
 {
     Relation plat;
+    TupleDescriptor platdesc;
     HeapScanDesc platscan;
     HeapTuple plattup;
     Buffer buf;
+    Form_pg_plmap plmdata;
     ObjectId plid;
+    Datum d;
+    Name platname;
+    char *plname;
+    bool isnull;
+
+    /* allocate the tuple form */
+    plmdata = (Form_pg_plmap) palloc(sizeof(FormData_pg_plmap));
+    plname = (char *) palloc(sizeof(NameData) + 1);
 
     plat = heap_openr(Name_pg_platter);
+    platdesc = RelationGetTupleDescriptor(plat);
     platscan = heap_beginscan(plat, false, NowTimeQual, 0, NULL);
     plattup = heap_getnext(platscan, false, &buf);
 
     if (!HeapTupleIsValid(plattup))
-	elog(WARN, "sjchoose: no platters in pg_plmap");
+	elog(WARN, "_sjchoose: no platters in pg_plmap");
 
-    plid = plattup->t_oid;
+    /* get platter OID, name */
+    plmdata->plid = plattup->t_oid;
+    d = (Datum) heap_getattr(plattup, buf, Anum_pg_platter_plname,
+			     platdesc, &isnull);
+    platname = DatumGetName(d);
+    strncpy(plname, &(platname->data[0]), sizeof(NameData));
+    plname[sizeof(NameData)] = '\0';
+
+    /* done */
     ReleaseBuffer(buf);
-
     heap_endscan(platscan);
     heap_close(plat);
 
-    return (plid);
+    /* init the rest of the fields */
+    plmdata->pldbid = item->sjc_tag.sjct_dbid;
+    plmdata->plrelid = item->sjc_tag.sjct_relid;
+    plmdata->plblkno = item->sjc_tag.sjct_base;
+    plmdata->plextentsz = SJEXTENTSZ;
+    plmdata->ploffset = pgjb_offset(plname, plmdata->plid, plmdata->plextentsz);
+
+    /* save platter name, id, offset in item */
+    bcopy(&(item->sjc_plname.data[0]), plname, sizeof(NameData));
+    item->sjc_plid = plmdata->plid;
+    item->sjc_jboffset = plmdata->ploffset;
+
+    return (plmdata);
 }
 
 /*
- *  sjallocgrp() -- Allocate a new group in the cache for use by some
+ *  _sjallocgrp() -- Allocate a new group in the cache for use by some
  *		    relation.
  *
  *	If there are any unused slots in the cache, we just return one
@@ -894,8 +789,8 @@ sjchoose(item)
  *	group we're kicking out, if indeed we're doing that.
  */
 
-SJCacheItem *
-sjallocgrp(grpno)
+static SJCacheItem *
+_sjallocgrp(grpno)
     int *grpno;
 {
     SJCacheItem *item;
@@ -922,13 +817,13 @@ sjallocgrp(grpno)
     }
 
     /* bump ref count */
-    sjtouch(item);
+    _sjtouch(item);
 
     return (item);
 }
 
-SJCacheItem *
-sjfetchgrp(dbid, relid, blkno, grpno)
+static SJCacheItem *
+_sjfetchgrp(dbid, relid, blkno, grpno)
     ObjectId dbid;
     ObjectId relid;
     int blkno;
@@ -949,32 +844,32 @@ sjfetchgrp(dbid, relid, blkno, grpno)
 
     if (entry == (SJHashEntry *) NULL) {
 	SpinRelease(SJCacheLock);
-	elog(FATAL, "sjfetchgrp: hash table corrupted");
+	elog(FATAL, "_sjfetchgrp: hash table corrupted");
     }
 
     if (found) {
 	*grpno = entry->sjhe_groupno;
 	item = &(SJCache[*grpno]);
 
-	if (item->sjc_gflags & SJG_IOINPROG) {
-	    sjwait_io(item);
-	    return (sjfetchgrp(dbid, relid, blkno));
+	if (item->sjc_gflags & SJC_IOINPROG) {
+	    _sjwait_io(item);
+	    return (_sjfetchgrp(dbid, relid, blkno));
 	}
 
-	sjtouch(item, *grpno);
+	_sjtouch(item, *grpno);
 
 	SpinRelease(SJCacheLock);
     } else {
 	SpinRelease(SJCacheLock);
-	elog(FATAL, "sjfetchgrp: hey mao: can't find <%d,%d,%d>",
+	elog(FATAL, "_sjfetchgrp: hey mao: can't find <%d,%d,%d>",
 		    dbid, relid, blkno);
     }
 
     return (item);
 }
 
-void
-sjtouch(item, grpno)
+static void
+_sjtouch(item, grpno)
     SJCacheItem *item;
     int grpno;
 {
@@ -997,19 +892,19 @@ sjtouch(item, grpno)
     SJHeader->sjh_lruhead = grpno;
 }
 
-void
-sjunpin(item)
+static void
+_sjunpin(item)
     SJCacheItem *item;
 {
     SpinAcquire(SJCacheLock);
     if (item->sjc_refcount <= 0)
-	elog(FATAL, "sjunpin: illegal reference count");
+	elog(FATAL, "_sjunpin: illegal reference count");
     (item->sjc_refcount)--;
     SpinRelease(SJCacheLock);
 }
 
-int
-sjwritegrp(item, grpno)
+static int
+_sjwritegrp(item, grpno)
     SJCacheItem *item;
     int grpno;
 {
@@ -1055,8 +950,8 @@ sjwritegrp(item, grpno)
     return (SM_SUCCESS);
 }
 
-int
-sjreadgrp(item, grpno)
+static int
+_sjreadgrp(item, grpno)
     SJCacheItem *item;
     int grpno;
 {
@@ -1069,7 +964,7 @@ sjreadgrp(item, grpno)
     /* get the group from the cache file */
     seekpos = grpno * SJBufSize;
     if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
-	elog(NOTICE, "sjreadgrp: cannot seek");
+	elog(NOTICE, "_sjreadgrp: cannot seek");
 	return (SM_FAIL);
     }
 
@@ -1078,7 +973,7 @@ sjreadgrp(item, grpno)
     while (nbytes > 0) {
 	i = FileRead(SJCacheVfd, buf, nbytes);
 	if (i < 0) {
-	    elog(NOTICE, "sjreadgrp: read failed");
+	    elog(NOTICE, "_sjreadgrp: read failed");
 	    return (SM_FAIL);
 	}
 	nbytes -= i;
@@ -1090,7 +985,7 @@ sjreadgrp(item, grpno)
     if (gdesc->sjgd_magic != SJGDMAGIC
 	|| gdesc->sjgd_version != SJGDVERSION
 	|| gdesc->sjgd_groupoid != item->sjc_oid) {
-	elog(NOTICE, "sjreadgrp: trashed cache");
+	elog(NOTICE, "_sjreadgrp: trashed cache");
 	return (SM_FAIL);
     }
 
@@ -1148,7 +1043,7 @@ sjextend(reln, buffer)
     grpno = entry->sjhe_groupno;
     item = &SJCache[grpno];
 
-    sjtouch(item, grpno);
+    _sjtouch(item, grpno);
 
     for (blkno = 0; blkno < SJGRPSIZE; blkno++) {
 	if (item->sjc_flags[blkno] & SJC_MISSING) {
@@ -1163,7 +1058,7 @@ sjextend(reln, buffer)
 	elog(WARN, "sjextend:  hey mao:  no missing blocks to extend");
     }
 
-    item->sjc_gflags = SJG_IOINPROG;
+    item->sjc_gflags |= SJC_IOINPROG;
 
 #ifdef HAS_TEST_AND_SET
     SpinRelease(SJCacheLock);
@@ -1174,7 +1069,7 @@ sjextend(reln, buffer)
     IpcSemaphoreLock(SJWaitSemId, 0, 1);
 #endif /* HAS_TEST_AND_SET */
 
-    if (sjreadgrp(item, grpno) == SM_FAIL) {
+    if (_sjreadgrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
 	return (SM_FAIL);
     }
@@ -1182,15 +1077,15 @@ sjextend(reln, buffer)
     offset = ((blkno % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
     bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
 
-    if (sjwritegrp(item, grpno) == SM_FAIL) {
+    if (_sjwritegrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
 	return (SM_FAIL);
     }
 
     sjunwait_io(item);
-    sjunpin(item);
+    _sjunpin(item);
 
-    sjregnblocks(reln->rd_id, ++nblocks);
+    _sjregnblocks(reln->rd_id, ++nblocks);
 
     return (SM_SUCCESS);
 }
@@ -1235,12 +1130,12 @@ sjread(reln, blocknum, buffer)
     else
 	reldbid = MyDatabaseId;
 
-    item = sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+    item = _sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
 
-    /* shd expand sjfetchgrp() inline to avoid extra semop()s */
+    /* shd expand _sjfetchgrp() inline to avoid extra semop()s */
     SpinAcquire(SJCacheLock);
 
-    item->sjc_gflags = SJG_IOINPROG;
+    item->sjc_gflags |= SJC_IOINPROG;
 
 #ifdef HAS_TEST_AND_SET
     SpinRelease(SJCacheLock);
@@ -1251,7 +1146,7 @@ sjread(reln, blocknum, buffer)
     IpcSemaphoreLock(SJWaitSemId, 0, 1);
 #endif /* HAS_TEST_AND_SET */
 
-    if (sjreadgrp(item, grpno) == SM_FAIL) {
+    if (_sjreadgrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
 	return (SM_FAIL);
     }
@@ -1260,7 +1155,7 @@ sjread(reln, blocknum, buffer)
     bcopy(&(SJCacheBuf[offset]), buffer, BLCKSZ);
 
     sjunwait_io(item);
-    sjunpin(item);
+    _sjunpin(item);
 
     return (SM_SUCCESS);
 }
@@ -1282,22 +1177,22 @@ sjwrite(reln, blocknum, buffer)
     else
 	reldbid = MyDatabaseId;
 
-    item = sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+    item = _sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
 
-    /* shd expand sjfetchgrp() inline to avoid extra semop()s */
+    /* shd expand _sjfetchgrp() inline to avoid extra semop()s */
     SpinAcquire(SJCacheLock);
 
     which = blocknum % SJGRPSIZE;
 
     if (item->sjc_flags[which] & SJC_ONPLATTER) {
 	SpinRelease(SJCacheLock);
-	sjunpin(item);
+	_sjunpin(item);
 	elog(WARN, "sjwrite: optical platters are write-once, cannot rewrite");
     }
 
     item->sjc_flags[which] &= ~SJC_MISSING;
     item->sjc_flags[which] |= SJC_DIRTY;
-    item->sjc_gflags = SJG_IOINPROG;
+    item->sjc_gflags |= SJC_IOINPROG;
 
 #ifdef HAS_TEST_AND_SET
     SpinRelease(SJCacheLock);
@@ -1308,23 +1203,23 @@ sjwrite(reln, blocknum, buffer)
     IpcSemaphoreLock(SJWaitSemId, 0, 1);
 #endif /* HAS_TEST_AND_SET */
 
-    if (sjreadgrp(item, grpno) == SM_FAIL) {
+    if (_sjreadgrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
-	sjunpin(item);
+	_sjunpin(item);
 	return (SM_FAIL);
     }
 
     offset = (which * BLCKSZ) + JBBLOCKSZ;
     bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
 
-    if (sjwritegrp(item, grpno) == SM_FAIL) {
+    if (_sjwritegrp(item, grpno) == SM_FAIL) {
 	sjunwait_io(item);
-	sjunpin(item);
+	_sjunpin(item);
 	return (SM_FAIL);
     }
 
     sjunwait_io(item);
-    sjunpin(item);
+    _sjunpin(item);
 
     return (SM_SUCCESS);
 }
@@ -1377,7 +1272,7 @@ sjnblocks(reln)
     ScanKeyEntryData plmkey[2];
 
     /* see if we've already figured this out */
-    if ((maxblkno = sjfindnblocks(reln->rd_id)) >= 0)
+    if ((maxblkno = _sjfindnblocks(reln->rd_id)) >= 0)
 	return (maxblkno);
 
     if (reln->rd_rel->relisshared)
@@ -1421,7 +1316,7 @@ sjnblocks(reln)
      *  that are actually present in the group.
      */
 
-    item = sjfetchgrp(reldbid, reln->rd_id, maxblkno, &grpno);
+    item = _sjfetchgrp(reldbid, reln->rd_id, maxblkno, &grpno);
 
     for (i = 0; i < SJGRPSIZE; i++) {
 	if (item->sjc_flags[i] & SJC_MISSING)
@@ -1429,23 +1324,23 @@ sjnblocks(reln)
     }
 
     /* don't need the reference anymore */
-    sjunpin(item);
+    _sjunpin(item);
 
     /* adjust the count of blocks and remember it for next time */
     maxblkno += i;
-    sjregnblocks(reln->rd_id, maxblkno);
+    _sjregnblocks(reln->rd_id, maxblkno);
 
     return(maxblkno);
 }
 
 /*
- *  sjfindnblocks() -- Find a precomputed block count for the given relid.
+ *  _sjfindnblocks() -- Find a precomputed block count for the given relid.
  *
  *	We should really do something smarter here.
  */
 
-int
-sjfindnblocks(relid)
+static int
+_sjfindnblocks(relid)
     ObjectId relid;
 {
     SJNBlock *l;
@@ -1463,13 +1358,13 @@ sjfindnblocks(relid)
 }
 
 /*
- *  sjregnblocks() -- Remember the count of blocks for this relid.
+ *  _sjregnblocks() -- Remember the count of blocks for this relid.
  *
  *	Should really do something smarter here.
  */
 
-void
-sjregnblocks(relid, nblocks)
+static void
+_sjregnblocks(relid, nblocks)
     ObjectId relid;
     int nblocks;
 {
@@ -1536,14 +1431,104 @@ SJShmemSize()
 #endif /* ndef HAS_TEST_AND_SET */
 
     /* size of hash table */
+    nbuckets = 1 << (int)my_log2((SJCACHESIZE - 1) / DEF_FFACTOR + 1);
+    nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
     size += my_log2(SJCACHESIZE) + sizeof(HHDR)
           + nsegs * DEF_SEGSIZE * sizeof(SEGMENT)
           + (int)ceil((double)SJCACHESIZE/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR*
              (sizeof(BUCKET_INDEX) + sizeof(SJHashEntry));
 
+    /* count shared memory required for jukebox state */
+    size += JBShmemSize();
+
     return (size);
 }
 
+/*
+ *  sjmaxseg() -- Find highest segment number occupied by platter id plid
+ *		  in the on-disk cache.
+ *
+ *	This routine is called from _pgjb_findoffset().  On entry here,
+ *	we hold JBSpinLock, but not SJCacheLock.  We do something a little
+ *	dangerous here; we trust the group descriptor metadata that is in
+ *	shared memory to reflect accurately the state of the actual cache
+ *	file.  This isn't so bad; if there's an inconsistency, there are
+ *	exactly two possibilities:
+ *
+ *		+  There was a crash between metadata and cache update,
+ *		   and we'll figure that out later;
+ *
+ *		+  Some other backend has IO_IN_PROG set on the group we
+ *		   are examining, and we need to look at the group desc
+ *		   on disk in order to find out if the group is on plid.
+ *
+ *	The second case basically means that we wind up holding SJCacheLock
+ *	during a disk io, but that's a sufficiently rare event that we don't
+ *	care.  I can't think of any cleaner way to do this, anyway.
+ *
+ *	We return the address of the first block of the highest-numbered
+ *	extent that we have cached for plid.  If we have none cached, we
+ *	return InvalidBlockNumber.
+ */
+
+BlockNumber
+sjmaxseg(plid)
+    ObjectId plid;
+{
+    int i;
+    long seekpos, loc;
+    int nbytes;
+    BlockNumber last;
+    SJGroupDesc *group;
+
+    /* XXX hold the lock for a walk of the entire cache */
+    SpinAcquire(SJCacheLock);
+
+    last = InvalidBlockNumber;
+    group = (SJGroupDesc *) &(SJCacheBuf[0]);
+
+    for (i = 0; i < SJHeader->sjh_nentries; i++) {
+
+	/* if IO_IN_PROG is set, we need to look at the group desc on disk */
+	if (SJCache[i].sjc_gflags & SJC_IOINPROG) {
+	    seekpos = i * SJBufSize;
+	    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
+		SpinRelease(SJCacheLock);
+		elog(NOTICE, "sjmaxseg: cannot seek");
+		return (-1);
+	    }
+
+	    nbytes = FileRead(SJCacheVfd, (char *) group, sizeof(SJGroupDesc));
+	    if (nbytes != sizeof(SJGroupDesc)) {
+		SpinRelease(SJCacheLock);
+		elog(NOTICE, "sjmaxseg: read of group desc %d failed", i);
+		return (-1);
+	    }
+
+	    /* sanity checks */
+	    if (group->sjgd_magic != SJGDMAGIC
+		|| group->sjgd_version != SJGDVERSION) {
+		elog(FATAL, "sjmaxseg: cache file corrupt.");
+	    }
+
+	    if (group->sjgd_plid == plid) {
+		if (group->sjgd_jboffset > last)
+		    last = group->sjgd_jboffset;
+	    }
+	} else {
+	    if (SJCache[i].sjc_plid == plid) {
+		if (SJCache[i].sjc_jboffset > last)
+		    last = SJCache[i].sjc_jboffset;
+	    }
+	}
+    }
+
+    SpinRelease(SJCacheLock);
+
+    return (last);
+}
+
+static void
 _sjdump()
 {
     int i, j;
@@ -1565,11 +1550,11 @@ _sjdump()
 
     for (i = 0; i < nentries; i++) {
 	item = &SJCache[i];
-	printf("    [%2d] <%ld,%ld,%ld> next %d prev %d flags %s oid %ld\n",
+	printf("    [%2d] <%ld,%ld,%ld> %d@%d next %d prev %d flags %s oid %ld\n",
 	       i, item->sjc_tag.sjct_dbid, item->sjc_tag.sjct_relid,
-	       item->sjc_tag.sjct_base, item->sjc_lrunext,
-	       item->sjc_lruprev,
-	       (item->sjc_gflags & SJG_IOINPROG ? "IO_IN_PROG" : "CLEAR"),
+	       item->sjc_tag.sjct_base, item->sjc_plid, item->sjc_jboffset,
+	       item->sjc_lrunext, item->sjc_lruprev,
+	       (item->sjc_gflags & SJC_IOINPROG ? "IO_IN_PROG" : "CLEAR"),
 	       item->sjc_oid);
 	printf("         ");
 	for (j = 0; j < SJGRPSIZE; j++) {
