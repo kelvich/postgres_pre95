@@ -1393,8 +1393,8 @@ _copyArrayRef(from, to, alloc)
     newnode->refelemtype = 	from->refelemtype;
     newnode->refelemlength = 	from->refelemlength;
     newnode->refelembyval = 	from->refelembyval;
-    newnode->refindex = 	from->refindex;
 
+    (void) NodeCopy(from->refindexpr, &(newnode->refindexpr), alloc);
     (void) NodeCopy(from->refexpr, &(newnode->refexpr), alloc);
 
     (*to) = newnode;

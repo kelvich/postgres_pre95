@@ -204,7 +204,7 @@ _equalArrayRef(a, b)
 		return (false);
 	if (a->refelembyval != b->refelembyval)
 		return (false);
-	if (a->refindex != b->refindex)
+	if (!_equalLispValue(a->refindexpr, b->refindexpr))
 		return (false);
 
 	return (_equalLispValue(a->refexpr, b->refexpr));

@@ -901,9 +901,7 @@ _readArrayRef()
 	local_node->refelembyval = (token[0] == 't') ? true : false;
 
 	token = lsptok(NULL, &length);    		/* eat :refindex */
-	token = lsptok(NULL, &length);    		/* get refindex */
-
-	local_node->refindex = atoi(token);
+	local_node->refindexpr = (LispValue) lispRead(true);
 
 	token = lsptok(NULL, &length);    		/* eat :refexpr */
 	local_node->refexpr = (LispValue) lispRead(true);

@@ -731,8 +731,10 @@ _outArrayRef(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :refelembyval %c", (node->refelembyval) ? 't' : 'f');
 	appendStringInfo(str, buf);
-	sprintf(buf, " :refindex %d", node->refindex);
+	sprintf(buf, " :refindex ");
 	appendStringInfo(str, buf);
+	s = lispOut(node->refindexpr);
+	appendStringInfo(str, s);
 	sprintf(buf, " :refexpr ");
 	appendStringInfo(str, buf);
 	s = lispOut(node->refexpr);
