@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/timeb.h>
 #include <strings.h>
 
 #include "tmp/postgres.h"
