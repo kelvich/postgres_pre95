@@ -20,6 +20,25 @@
 
 RcsId("$Header$");
 
+
+InsertIndexResult _bt_doinsert (Relation rel, BTItem btitem);
+InsertIndexResult _bt_insertonpg (Relation rel, Buffer buf, BTStack stack,
+                                  int keysz, ScanKey scankey, BTItem btitem,
+				  BTItem afteritem);
+Buffer _bt_split (Relation rel, Buffer buf);
+OffsetIndex _bt_findsplitloc (Relation rel, Page page, OffsetIndex start,
+                              OffsetIndex maxoff, Size llimit);
+void _bt_newroot (Relation rel, Buffer lbuf, Buffer rbuf);
+OffsetIndex _bt_pgaddtup (Relation rel, Buffer buf, int keysz,
+                          ScanKey itup_scankey, Size itemsize, BTItem btitem,
+			  BTItem afteritem);
+bool _bt_goesonpg (Relation rel, Buffer buf, Size keysz, ScanKey scankey,
+                   BTItem afteritem);
+bool _bt_itemcmp (Relation rel, Size keysz, BTItem item1, BTItem item2,
+                  StrategyNumber strat);
+void _bt_updateitem (Relation rel, Size keysz, Buffer buf, OID bti_oid,
+                     BTItem newItem);
+
 /*
  *  _bt_doinsert() -- Handle insertion of a single btitem in the tree.
  *
@@ -29,9 +48,7 @@ RcsId("$Header$");
  */
 
 InsertIndexResult
-_bt_doinsert(rel, btitem)
-    Relation rel;
-    BTItem btitem;
+_bt_doinsert(Relation rel, BTItem btitem)
 {
     ScanKey itup_scankey;
     IndexTuple itup;
@@ -107,14 +124,8 @@ _bt_doinsert(rel, btitem)
  */
 
 InsertIndexResult
-_bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
-    Relation rel;
-    Buffer buf;
-    BTStack stack;
-    int keysz;
-    ScanKey scankey;
-    BTItem btitem;
-    BTItem afteritem;
+_bt_insertonpg(Relation rel, Buffer buf, BTStack stack, int keysz,
+               ScanKey scankey, BTItem btitem, BTItem afteritem)
 {
     InsertIndexResult res;
     Page page;
@@ -131,6 +142,7 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
     ItemId hikey;
     InsertIndexResult newres;
     BTItem new_item = (BTItem) NULL;
+    BTItem lowLeftItem;
     Buffer _bt_split();
 
     page = BufferGetPage(buf, 0);
@@ -201,6 +213,29 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 	    /* find the parent buffer */
 	    pbuf = _bt_getstackbuf(rel, stack, BT_WRITE);
 
+	    /*
+	     *  If the key of new_item is < than the key of the item in the
+	     *  parent page pointing to the left page (stack->bts_btitem), we
+	     *  have to update the latter key; otherwise the keys on the parent
+	     *  page wouldn't be monotonically increasing after we inserted the
+	     *  new pointer to the right page (new_item). This only happens if
+	     *  our left page is the leftmost page and a new minimum key had
+	     *  been inserted before, which is not reflected in the parent page
+	     *  but didn't matter so far. If there are duplicate keys and this
+	     *  new minimum key spills over to our new right page, we get an
+	     *  inconsistency if we don't update the left key in the parent
+	     *  page.
+	     */
+
+	    if (_bt_itemcmp(rel, keysz, stack->bts_btitem, new_item,
+	                    BTGreaterStrategyNumber)) {
+		lowLeftItem =
+		    (BTItem) PageGetItem(page, PageGetItemId(page, 1));
+		    /* page must have right pointer after split */
+		_bt_updateitem(rel, keysz, pbuf, stack->bts_btitem->bti_oid,
+		               lowLeftItem);
+	    }
+
 	    /* don't need the children anymore */
 	    _bt_relbuf(rel, buf, BT_WRITE);
 	    _bt_relbuf(rel, rbuf, BT_WRITE);
@@ -241,9 +276,7 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
  */
 
 Buffer
-_bt_split(rel, buf)
-    Relation rel;
-    Buffer buf;
+_bt_split(Relation rel, Buffer buf)
 {
     Buffer rbuf;
     Page origpage;
@@ -405,12 +438,9 @@ _bt_split(rel, buf)
  *		[2 2 2 2] [2 3 4].
  */
 
-_bt_findsplitloc(rel, page, start, maxoff, llimit)
-    Relation rel;
-    Page page;
-    OffsetIndex start;
-    OffsetIndex maxoff;
-    Size llimit;
+OffsetIndex
+_bt_findsplitloc(Relation rel, Page page, OffsetIndex start, OffsetIndex maxoff,
+                 Size llimit)
 {
     OffsetIndex i;
     OffsetIndex saferight;
@@ -497,10 +527,8 @@ _bt_findsplitloc(rel, page, start, maxoff, llimit)
  *	two new children.  The new root page is neither pinned nor locked.
  */
 
-_bt_newroot(rel, lbuf, rbuf)
-    Relation rel;
-    Buffer lbuf;
-    Buffer rbuf;
+void
+_bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf)
 {
     Buffer rootbuf;
     Page lpage, rpage, rootpage;
@@ -572,14 +600,8 @@ _bt_newroot(rel, lbuf, rbuf)
  */
 
 OffsetIndex
-_bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
-    Relation rel;
-    Buffer buf;
-    int keysz;
-    ScanKey itup_scankey;
-    Size itemsize;
-    BTItem btitem;
-    BTItem afteritem;
+_bt_pgaddtup(Relation rel, Buffer buf, int keysz, ScanKey itup_scankey,
+             Size itemsize, BTItem btitem, BTItem afteritem)
 {
     OffsetIndex itup_off, maxoff;
     OffsetIndex first;
@@ -635,12 +657,8 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
  */
 
 bool
-_bt_goesonpg(rel, buf, keysz, scankey, afteritem)
-    Relation rel;
-    Buffer buf;
-    Size keysz;
-    ScanKey scankey;
-    BTItem afteritem;
+_bt_goesonpg(Relation rel, Buffer buf, Size keysz, ScanKey scankey,
+             BTItem afteritem)
 {
     Page page;
     ItemId hikey;
@@ -702,4 +720,79 @@ _bt_goesonpg(rel, buf, keysz, scankey, afteritem)
     }
 
     return (found);
+}
+
+/*
+ *	_bt_itemcmp() -- compare item1 to item2 using a requested
+ *		         strategy (<, <=, =, >=, >)
+ *
+ */
+
+bool
+_bt_itemcmp(Relation rel, Size keysz, BTItem item1, BTItem item2,
+            StrategyNumber strat)
+{
+    TupleDescriptor tupDes;
+    IndexTuple indexTuple1, indexTuple2;
+    Datum attrDatum1, attrDatum2;
+    int i;
+    bool isNull;
+    bool compare;
+
+    tupDes = RelationGetTupleDescriptor(rel);
+    indexTuple1 = &(item1->bti_itup);
+    indexTuple2 = &(item2->bti_itup);
+
+    for (i = 1; i <= keysz; i++) {
+	attrDatum1 = IndexTupleGetAttributeValue(indexTuple1, i, tupDes,
+	                                         &isNull);
+	attrDatum2 = IndexTupleGetAttributeValue(indexTuple2, i, tupDes,
+	                                         &isNull);
+	compare = _bt_invokestrat(rel, i, strat, attrDatum1, attrDatum2);
+	if (!compare) {
+	    return (false);
+	}
+    }
+    return (true);
+}
+
+/*
+ *	_bt_updateitem() -- updates the key of the item identified by the
+ *			    oid with the key of newItem (done in place)
+ *
+ */
+
+void
+_bt_updateitem(Relation rel, Size keysz, Buffer buf, OID bti_oid,
+               BTItem newItem)
+{
+    Page page;
+    OffsetIndex maxoff;
+    int i;
+    ItemPointerData itemPtrData;
+    BTItem item;
+    IndexTuple oldIndexTuple, newIndexTuple;
+
+    page = BufferGetPage(buf, 0);
+    maxoff = PageGetMaxOffsetIndex(page);
+
+    /* locate  item on the page */
+    i = 0;
+    do {
+	item = (BTItem) PageGetItem(page, PageGetItemId(page, i));
+	i++;
+    } while (i <= maxoff && item->bti_oid != bti_oid);
+
+    /* this should never happen (in theory) */
+    if (item->bti_oid != bti_oid) {
+	elog(FATAL, "_bt_getstackbuf was lying!!");
+    }
+
+    oldIndexTuple = &(item->bti_itup);
+    newIndexTuple = &(newItem->bti_itup);
+
+    /* keep the original item pointer */
+    ItemPointerCopy(&(oldIndexTuple->t_tid), &itemPtrData);
+    CopyIndexTuple(newIndexTuple, &oldIndexTuple);
+    ItemPointerCopy(&itemPtrData, &(oldIndexTuple->t_tid));
 }
