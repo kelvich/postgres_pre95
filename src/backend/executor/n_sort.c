@@ -65,7 +65,7 @@ Pointer
 FormSortKeys(sortnode)
     Sort sortnode;
 {
-    Pointer 		sortkeys;
+    struct skey		*sortkeys;
     List    		targetList;
     List   		tl;
     int			keycount;
@@ -85,7 +85,7 @@ FormSortKeys(sortnode)
      *	first allocate space for scan keys
      * ----------------
      */
-    sortkeys = (Pointer) ExecMakeSkeys(keycount);
+    sortkeys = (struct skey*)ExecMakeSkeys(keycount);
     if (sortkeys == NULL)
 	elog(DEBUG, "FormSortKeys: ExecMakeSkeys(keycount) returns NULL!");
     
@@ -108,7 +108,7 @@ FormSortKeys(sortnode)
 	}
     }
     
-    return sortkeys;
+    return (Pointer)sortkeys;
 }
  
 /* ----------------------------------------------------------------
