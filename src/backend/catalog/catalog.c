@@ -1,23 +1,23 @@
-static	char	catalog_c[] = "$Header$";
-
-#include <strings.h>
-#include <sys/file.h>
-#include "access.h"
-#include "catname.h"	/* XXX for definitions of NameIs{,Shared}SystemRelationName */
-#include "fmgr.h"
-#include "log.h"
-#include "name.h"
+/*
+ * catalog.c --
+ *
+ */
 
 #include "c.h"
 
+RcsId("$Header$");
+
+#include <strings.h>	/* XXX */
+#include "catname.h"	/* XXX for definitions of NameIs{,Shared}SystemRelationName */
+
 #include "buf.h"
 #include "cat.h"
+#include "htup.h"
+#include "log.h"
+#include "name.h"
 #include "oid.h"
-#include "trange.h"
-
-/*
- *	catalog.c	- system catalog utility functions
- */
+#include "syscache.h"
+#include "tuple.h"	/* XXX OBSOLETE, for MAXATTS, etc. */
 
 /*
  * XXX The global relation names should be merged with the ones defined
@@ -200,20 +200,13 @@ newoid()
  */
 
 fillatt(natts, att)
-int		natts;
-struct	attribute *att[];
+	int			natts;
+	AttributeTupleForm	att[];	/* tuple desc */
 {
-	register struct attribute  **attp;
+	AttributeTupleForm	*attributeP;
 	register TypeTupleForm	typp;
-	struct	skey	key;
-	TUPLE		*tup;
-	struct	reldesc	*rdesc;
-	struct	relscan	*sdesc;
-	int		i;
-	struct	reldesc	*amopenr();
-	struct	relscan	*ambeginscan();
-	TUPLE		*amgetnext();
-	extern		amendscan(), amclose();
+	HeapTuple		tuple;
+	int			i;
 
 	if (natts < 0 || natts > MAXATTS)
 		elog(WARN, "fillatt: %d attributes is too large", natts);
@@ -221,27 +214,19 @@ struct	attribute *att[];
 		elog(DEBUG, "fillatt: called with natts == 0");
 		return;
 	}
-	/* XXX catcache */
-	rdesc = amopenr(TYPE_R);
-	key.sk_flags = 0;
-	key.sk_attnum = T_OID;		/* typid */
-	key.sk_opr = F_INT4EQ;
-	attp = att;
+
+	attributeP = &att[0];
+
 	for (i = 0; i < natts;) {
-		key.sk_data = (DATUM)(*attp)->atttypid;
-		sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, &key);
-		tup = (TUPLE *)amgetnext(sdesc, 0, (Buffer *)NULL);
-		if (!PointerIsValid(tup)) {
-			elog(WARN,
-				"fillatt: unknown atttypid %ld",
-				(long)key.sk_data);
+		tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, "fillatt: unknown atttypid %ld",
+				(*attributeP)->atttypid);
 		}
-		typp = (TypeTupleForm)GETSTRUCT((&tup->tp_t));	/* XXX */
-		(*attp)->attlen = typp->typlen;
-		(*attp)->attnum = (int16)++i;
-		(*attp)->attbyval = typp->typbyval;
-		amendscan(sdesc);
-		attp++;
+		typp = (TypeTupleForm)GETSTRUCT(tuple);  /* XXX */
+		(*attributeP)->attlen = typp->typlen;
+		(*attributeP)->attnum = (int16)++i;
+		(*attributeP)->attbyval = typp->typbyval;
+		attributeP += 1;
 	}
-	amclose(rdesc);
 }
