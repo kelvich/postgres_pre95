@@ -45,6 +45,7 @@
 
 #include "catalog/pg_amop.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_prs2stub.h"
 
 /* 
 require ("cstructs");
@@ -437,18 +438,19 @@ get_relstub (relid)
      ObjectId relid ;
 {
     HeapTuple tuple;
-    RelationTupleForm relp;
+    Form_pg_prs2stub prs2stubStruct;
     struct varlena * retval;
     struct varlena * relstub;
 
-    tuple = SearchSysCacheTuple(RELOID,relid,0,0,0);
+    tuple = SearchSysCacheTuple(PRS2STUB,relid,0,0,0);
     if (HeapTupleIsValid(tuple)) {
-	relp = (RelationTupleForm) HeapTupleGetForm(tuple);
+	prs2stubStruct = (Form_pg_prs2stub) GETSTRUCT(tuple);
 	/*
+	 * NOTE:
 	 * skip the 4 first bytes to get the actual
 	 * varlena struct
 	 */
-	relstub = (struct varlena *) PSIZESKIP( & (relp->relstub) );
+	relstub = (struct varlena *) PSIZESKIP( & (prs2stubStruct->prs2stub) );
 	retval = (struct varlena *)palloc(VARSIZE( relstub ));
 	bcopy(relstub, retval, VARSIZE( relstub ));
 	return(retval);
