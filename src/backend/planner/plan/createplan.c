@@ -1152,12 +1152,17 @@ generate_fjoin(tlist)
 	LispValue inner;
 	List      tempList;
 	Fjoin     fjoinNode;
-	Datum     *results = (Datum *)palloc(nIters*sizeof(Datum));
+	DatumPtr  results = (DatumPtr)palloc(nIters*sizeof(Datum));
+	BoolPtr   alwaysDone = (BoolPtr)palloc(nIters*sizeof(bool));
 
 	inner = CAR(fjoinList);
 	fjoinList = CDR(fjoinList);
 	CDR(inner) = LispNil;
-	fjoinNode = (Fjoin)MakeFjoin(nIters, inner, results);
+	fjoinNode = (Fjoin)MakeFjoin(false,
+				     nIters,
+				     inner,
+				     results,
+				     alwaysDone);
 	tempList = nappend1(fjoinNode, LispNil);
 	tempList = nappend1(fjoinNode, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
