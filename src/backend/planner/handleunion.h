@@ -1,4 +1,4 @@
-/* $Header: */
+/* $Header$ */
 
 extern List handleunion ARGS((List root, List rangetable, List tlist, List qual));
 extern List SplitTlistQual ARGS(( List root, List rangetable,List tlist, List qual));

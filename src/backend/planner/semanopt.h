@@ -1,3 +1,7 @@
+/*
+ * $Header$
+ */
+
 extern List SemantOpt ARGS((List root, List rangetable, List tlist, tlist qual));
 extern List SemantOpt2 ARGS((List rangetable, List qual, List modqual));
 extern void replace_varnodes ARGS((int left, int right, List qual));
