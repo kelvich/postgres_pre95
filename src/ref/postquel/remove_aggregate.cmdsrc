@@ -24,7 +24,7 @@ the owner of the aggregate.
 .fi
 .uh "SEE ALSO"
 .lp
-define aggregate(commands)
+define aggregate(commands).
 .uh BUGS
 .lp
 Remove aggregate

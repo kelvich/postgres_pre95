@@ -22,4 +22,4 @@ remove function sqrt
 .)b
 .uh "SEE ALSO"
 .lp
-definefunction(commands).
+define C function(commands).
