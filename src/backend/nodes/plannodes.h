@@ -12,6 +12,7 @@
 #include "nodes.h"		/* bogus inheritance system */
 #include "pg_lisp.h"
 #include "oid.h"
+#include "recursion_a.h"        /* recursion stuff that must go first */
 
 /* ----------------
  *  Executor State types are used in the plannode structures
@@ -27,6 +28,7 @@
  *      Sort			SortState		sortstate;
  *	MergeJoin		MergeJoinState		mergestate;
  *	HashJoin		HashJoinState		hashstate;
+ *      Recursive               RecursiveState          recurstate;
  *
  *	  (*** nodes which inherit Scan also inherit scanstate)
  * ----------------
@@ -133,6 +135,32 @@ class (Append) public (Plan) {
 	Index			unionrelid;
 	List			unionrtentries;
 	AppendState		unionstate;
+ /* public: */
+};
+
+/*****=====================
+ *  JJJ - recursion node
+ *****=====================
+ *
+ *      recurMethod             method chosen for recursive query evaluation
+ *      recurCommand            e.g. append, delete
+ *      recurInitPlans          plans/utilities executed once at start
+ *      recurLoopPlans          sequence to be repeated until no effects
+ *                                      are detected
+ *      recurCleanupPlans       plans/utilities executed once at end
+ *      recurCheckpoints        indicate which plans affect the true result
+ */
+
+class (Recursive) public (Plan) {
+        inherits(Plan);
+ /* private */
+        RecursiveMethod         recurMethod;
+        Command                 recurCommand;
+        List                    recurInitPlans;
+        List                    recurLoopPlans;
+        List                    recurCleanupPlans;
+        List                    recurCheckpoints;
+        RecursiveState          recurState;
  /* public: */
 };
 
