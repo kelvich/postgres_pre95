@@ -12,7 +12,6 @@
 #include <strings.h>
 #include "magic.h"
 #include "postgres.h"
-#include "context.h"
 #include "log.h"
 
 RcsId("$Header$");

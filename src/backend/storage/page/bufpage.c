@@ -5,7 +5,6 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include "context.h"
 #include "align.h"
 
 #include "c.h"

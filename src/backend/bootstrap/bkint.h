@@ -12,7 +12,6 @@ static	char ami_h[] = "$Header$";
 #include <strings.h>
 #include <signal.h>
 #include <ctype.h>
-#include "context.h"
 #include "fmgr.h"
 #include "catalog.h"
 

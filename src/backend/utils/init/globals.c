@@ -14,7 +14,6 @@
 #include <sys/types.h>
 /* #include <signal.h> */
 #include "catname.h"
-#include "context.h"
 #include "heapam.h"
 #include "lmgr.h"
 #include "log.h"

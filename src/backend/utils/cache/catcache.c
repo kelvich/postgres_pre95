@@ -13,7 +13,6 @@ RcsId("$Header$");
 
 #include "access.h"
 #include "catalog.h"
-#include "context.h"
 #include "mcxt.h"
 #include "fmgr.h"
 #include "lmgr.h"

@@ -4,7 +4,6 @@ static	char	catalog_c[] = "$Header$";
 #include <sys/file.h>
 #include "access.h"
 #include "catname.h"	/* XXX for definitions of NameIs{,Shared}SystemRelationName */
-#include "context.h"
 #include "fmgr.h"
 #include "log.h"
 #include "name.h"

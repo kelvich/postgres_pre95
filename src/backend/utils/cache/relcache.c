@@ -33,7 +33,6 @@ RcsId("$Header$");
 #include <errno.h>
 #include <sys/file.h>
 #include <strings.h>
-#include "context.h"
 /* XXX check above includes */
 
 #include "os.h"
@@ -45,7 +44,6 @@ RcsId("$Header$");
 #include "buf.h"
 #include "cat.h"
 #include "catname.h"
-#include "context.h"
 #include "mcxt.h"
 #include "fd.h"
 #include "genam.h"
