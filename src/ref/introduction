@@ -74,7 +74,7 @@ Version 2.
 Application developers should note that
 this reference manual contains only the specification for
 the low-level call-oriented application program interface,
-.b libpq .
+LIBPQ.
 In addition, a companion project directed by Professor Rowe is
 building a collection of powerful development tools called
 .b \*(OF ,
