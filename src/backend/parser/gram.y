@@ -900,8 +900,7 @@ ReplaceStmt:
                                            (CString($5),0,CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),0,0);
-                  CurrentRelationPtr = amopenr(CString(VarnoGetRelname(x)));
-                   printf("relation is %s\n",CString(VarnoGetRelname(x)));
+                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
                    fflush(stdout);
                   if (CurrentRelationPtr == NULL)
                         elog(WARN,"invalid relation name");
