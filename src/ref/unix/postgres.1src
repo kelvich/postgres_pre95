@@ -40,9 +40,9 @@ see the results of prior commands.
 .lp
 \fI-M nnn\fR indicates that the backend should fork \fInnn\fR slave
 backend processes and then execute queries in parallel.  This is only
-useful on multiprocessor systems (e.g. sequent).  Presently the slave
+useful on multiprocessor systems (e.g. Sequent).  Presently the slave
 processes are not used, so don't do this.  Full support for heavyweight
-query parallism is not expected until version 3.
+query parallism is not expected until Version 4.
 .sp
 .lp
 \fI-D nnn\fR indicates the degree of disk striping the backend should
