@@ -1,8 +1,18 @@
+#
+# $Header$
+#
+
 .include <postgres.global.mk>
 
 .PATH: ${.CURDIR}/${PORTNAME}
 
-.undef SEDSCRIPT
+.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "hpux")
+IPCCLEANPATH=/bin:/usr/bin:/usr/ucb
+.elif (${PORTNAME} == "sparc" || ${PORTNAME} == "alpha")
+IPCCLEANPATH=/bin:/sbin:/usr/ucb
+.endif
+
+SEDSCRIPT= -e "s^_fUnKy_IPCCLEANPATH_sTuFf_^${IPCCLEANPATH}^g"
 
 SHPROG= ipcclean
 
