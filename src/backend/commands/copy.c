@@ -20,6 +20,9 @@
 #include "fmgr.h"
 #include "heapam.h"
 #include "log.h"
+#include "mcxt.h"
+#include "palloc.h"
+#include "portal.h"	/* for StartPortalAllocMode, etc. */
 #include "syscache.h"
 #include "tqual.h"
 
@@ -373,12 +376,12 @@ copyrel(relname, isfrom, filename, maprelname, ndoms, doms)
 		return;
 	}
 
-	startmmgr(M_DYNAMIC);
+	StartPortalAllocMode(DynamicAllocMode, (Size)0);
 	if (BooleanIsFalse(isfrom))
 		copyWrite(rdesc, maprdesc, fp, ndoms, doms);
 	else
 		copyRead(rdesc, maprdesc, fp, ndoms, doms);
-	endmmgr(NULL);
+	EndPortalAllocMode();
 
 	copyCleanup(rdesc, fp, doms);
 
