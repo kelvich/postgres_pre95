@@ -55,12 +55,26 @@ extern bool	BuildingBtree;
 
 #define USELOCKING	(!BuildingBtree && !IsInitProcessingMode())
 
+void _bt_metapinit (Relation rel);
+void _bt_checkmeta (Relation rel);
+Buffer _bt_getroot (Relation rel, int access);
+Buffer _bt_getbuf (Relation rel, BlockNumber blkno, int access);
+void _bt_relbuf (Relation rel, Buffer buf, int access);
+void _bt_wrtbuf (Relation rel, Buffer buf);
+void _bt_wrtnorelbuf (Relation rel, Buffer buf);
+void _bt_pageinit (Page page);
+void _bt_metaproot (Relation rel, BlockNumber rootbknum);
+Buffer _bt_getstackbuf (Relation rel, BTStack stack, int access);
+void _bt_setpagelock (Relation rel, BlockNumber blkno, int access);
+void _bt_unsetpagelock (Relation rel, BlockNumber blkno, int access);
+void _bt_pagedel (Relation rel, ItemPointer tid);
+
 /*
  *  _bt_metapinit() -- Initialize the metadata page of a btree.
  */
 
-_bt_metapinit(rel)
-    Relation rel;
+void
+_bt_metapinit(Relation rel)
 {
     Buffer buf;
     Page pg;
@@ -98,8 +112,8 @@ _bt_metapinit(rel)
  *		       reasonable.
  */
 
-_bt_checkmeta(rel)
-    Relation rel;
+void
+_bt_checkmeta(Relation rel)
 {
     Buffer metabuf;
     BTMetaPageData *metad;
@@ -143,9 +157,7 @@ _bt_checkmeta(rel)
  */
 
 Buffer
-_bt_getroot(rel, access)
-    Relation rel;
-    int access;
+_bt_getroot(Relation rel, int access)
 {
     Buffer metabuf;
     Buffer rootbuf;
@@ -246,10 +258,7 @@ _bt_getroot(rel, access)
  */
 
 Buffer
-_bt_getbuf(rel, blkno, access)
-    Relation rel;
-    BlockNumber blkno;
-    int access;
+_bt_getbuf(Relation rel, BlockNumber blkno, int access)
 {
     Buffer buf;
     Page page;
@@ -287,10 +296,7 @@ _bt_getbuf(rel, blkno, access)
  */
 
 void
-_bt_relbuf(rel, buf, access)
-    Relation rel;
-    Buffer buf;
-    int access;
+_bt_relbuf(Relation rel, Buffer buf, int access)
 {
     BlockNumber blkno;
 
@@ -314,9 +320,7 @@ _bt_relbuf(rel, buf, access)
  */
 
 void
-_bt_wrtbuf(rel, buf)
-    Relation rel;
-    Buffer buf;
+_bt_wrtbuf(Relation rel, Buffer buf)
 {
     BlockNumber blkno;
 
@@ -334,9 +338,7 @@ _bt_wrtbuf(rel, buf)
  */
 
 void
-_bt_wrtnorelbuf(rel, buf)
-    Relation rel;
-    Buffer buf;
+_bt_wrtnorelbuf(Relation rel, Buffer buf)
 {
     BlockNumber blkno;
 
@@ -348,8 +350,8 @@ _bt_wrtnorelbuf(rel, buf)
  *  _bt_pageinit() -- Initialize a new page.
  */
 
-_bt_pageinit(page)
-    Page page;
+void
+_bt_pageinit(Page page)
 {
     /*
      *  Cargo-cult programming -- don't really need this to be zero, but
@@ -376,9 +378,8 @@ _bt_pageinit(page)
  *	a reference to or lock on the metapage.
  */
 
-_bt_metaproot(rel, rootbknum)
-    Relation rel;
-    BlockNumber rootbknum;
+void
+_bt_metaproot(Relation rel, BlockNumber rootbknum)
 {
     Buffer metabuf;
     BTMetaPageData *metap;
@@ -404,10 +405,7 @@ _bt_metaproot(rel, rootbknum)
  */
 
 Buffer
-_bt_getstackbuf(rel, stack, access)
-    Relation rel;
-    BTStack stack;
-    int access;
+_bt_getstackbuf(Relation rel, BTStack stack, int access)
 {
     Buffer buf;
     BlockNumber blkno;
@@ -434,7 +432,7 @@ _bt_getstackbuf(rel, stack, access)
 
 	/* if the item has just moved right on this page, we're done */
 	for (i = stack->bts_offset + 1; i <= maxoff; i++) {
-	    itemid = PageGetItemId(page, stack->bts_offset);
+	    itemid = PageGetItemId(page, i);
 	    item = (BTItem) PageGetItem(page, itemid);
 
 	    /* if the item is where we left it, we're done */
@@ -470,10 +468,8 @@ _bt_getstackbuf(rel, stack, access)
     }
 }
 
-_bt_setpagelock(rel, blkno, access)
-    Relation rel;
-    BlockNumber blkno;
-    int access;
+void
+_bt_setpagelock(Relation rel, BlockNumber blkno, int access)
 {
     ItemPointerData iptr;
 
@@ -487,10 +483,8 @@ _bt_setpagelock(rel, blkno, access)
     }
 }
 
-_bt_unsetpagelock(rel, blkno, access)
-    Relation rel;
-    BlockNumber blkno;
-    int access;
+void
+_bt_unsetpagelock(Relation rel, BlockNumber blkno, int access)
 {
     ItemPointerData iptr;
 
@@ -505,9 +499,7 @@ _bt_unsetpagelock(rel, blkno, access)
 }
 
 void
-_bt_pagedel(rel, tid)
-    Relation rel;
-    ItemPointer tid;
+_bt_pagedel(Relation rel, ItemPointer tid)
 {
     Buffer buf;
     Page page;
