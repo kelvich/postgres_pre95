@@ -11,6 +11,10 @@
 
 #include "tmp/c.h"
 
+#if defined(sequent) || defined(sparc)
+#define HAS_TEST_AND_SET
+#endif
+
 #if defined(sequent) || defined(mips)
 #if !sprite
 union semun {
@@ -72,9 +76,17 @@ extern int on_exitpg();
  *  use hardware locks to replace semaphores for sequent machines
  *  to avoid costs of swapping processes and to provide unlimited
  *  supply of locks.
+ *
+ *  The file "parallel/parallel.h" on sequent has S_LOCK defined - for
+ *  other machines, it is defined in src/storage/ipc/s_lock.c
  * ------------------
  */
+
 #include <parallel/parallel.h>
+#endif
+
+#ifdef HAS_TEST_AND_SET
+
 #define NSLOCKS		2048
 #define	NOLOCK		0
 #define SHAREDLOCK	1
