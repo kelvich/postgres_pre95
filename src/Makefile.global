@@ -279,10 +279,15 @@ CFLAGS= ${CDEBUG}
 LDFLAGS= ${CDEBUG}
 .else
 .  if (${PORTNAME} == "linux")
-CFLAGS= -O2 -DNO_ASSERT_CHECKING
+CFLAGS= -O2
 .  else
-CFLAGS= -O -DNO_ASSERT_CHECKING
+CFLAGS= -O
 .  endif
+#
+# Uncommenting this will make things go a LOT faster, but you will
+# also lose a lot of useful error-checking.
+#
+#CFLAGS+= -DNO_ASSERT_CHECKING
 .endif
 
 .ifdef PROFILE
