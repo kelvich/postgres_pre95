@@ -10,7 +10,33 @@
 #define	PlanNodesIncluded
 
 #include "nodes.h"	/* bogus inheritance system */
+#include "pg_lisp.h"
 #include "oid.h"
+
+/*
+ *  All of these #defines indicate that we have written print support
+ *  for the classes named.  The print routines are in lib/C/printfuncs.c;
+ *  an interface routine is generated automatically by Gen_creator.sh for
+ *  each node type.
+ *
+ *  This is pretty complicated, and a better-designed system needs to be
+ *  implemented.
+ */
+
+#define	PrintPlanExists
+#define	PrintResultExists
+#define	PrintExistentialExists
+#define	PrintAppendExists
+#define	PrintJoinExists
+#define	PrintNestLoopExists
+#define	PrintMergeSortExists
+#define	PrintHashJoinExists
+#define	PrintScanExists
+#define	PrintSeqScanExists
+#define	PrintIndexScanExists
+#define	PrintTempExists
+#define	PrintSortExists
+#define	PrintHashExists
 
 class (Plan) public (Node) { 
 #define PlanDefs \
