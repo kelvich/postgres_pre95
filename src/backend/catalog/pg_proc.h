@@ -552,8 +552,8 @@ DATA(insert OID = 996 (  lseg_perp         6 11 f t t 2 f 16 "0" 100 0 0 100  fo
 DATA(insert OID = 997 (  lseg_vertical     6 11 f t t 1 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 998 (  lseg_horizontal   6 11 f t t 1 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 999 (  lseg_eq           6 11 f t t 2 f 16 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 1000 (  NullValue        6 11 f t f 1 f 16 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 1001 (  NonNullValue     6 11 f t f 1 f 16 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 1029 (  NullValue        6 11 f t f 1 f 16 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 1030 (  NonNullValue     6 11 f t f 1 f 16 "0" 100 0 0 100  foo bar ));
 
 /* ----------------
  *	old definition of struct proc
