@@ -63,7 +63,7 @@ extern IndexPath RMakeIndexPath();
  *    
  */
 
-/*  .. find-index-paths, find-rel-paths */
+/*  .. find_index_paths, find_rel_paths */
 
 LispValue
 find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
@@ -73,113 +73,123 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 {
     LispValue scanclausegroups = LispNil;
     LispValue scanpaths = LispNil;
-    Rel	       index = (Rel)NULL;
+    Rel       index = (Rel)NULL;
     LispValue joinclausegroups = LispNil;
     LispValue joinpaths = LispNil;
     LispValue sortpath = LispNil;
     LispValue retval = LispNil;
     LispValue temp = LispNil;
-    List add_index_paths();
+    LispValue add_index_paths();
     
-    if(consp (indices)) {
+    if(!consp(indices))
+	return(NULL);
 	
-	/*  1. If this index has only one key, try matching it against 
-	 * subclauses of an 'or' clause.  The fields of the clauseinfo
-	 * nodes are marked with lists of the matching indices no path
-	 * are actually created. 
-	 *
-	 * XXX NOTE:  Currently btrees dos not support indices with
-	 * > 1 key, so the following test will always be true for
-	 * now but we have decided not to support index-scans 
-	 * on disjunction . -- lp
-	 */
+    index = (Rel)CAR (indices);
 
-      if ( 1 == length (get_indexkeys (CAR (indices)))) { 
+    /*  1. If this index has only one key, try matching it against 
+     * subclauses of an 'or' clause.  The fields of the clauseinfo
+     * nodes are marked with lists of the matching indices no path
+     * are actually created. 
+     *
+     * XXX NOTE:  Currently btrees dos not support indices with
+     * > 1 key, so the following test will always be true for
+     * now but we have decided not to support index-scans 
+     * on disjunction . -- lp
+     */
 
-	match_index_orclauses (rel,CAR (indices),
-			       CAR ( get_indexkeys 
-				    (CAR (indices))),
-			       CAR (get_classlist(CAR (indices))),
+    if (SingleAttributeIndex(index)) 
+    {
+	match_index_orclauses (rel,
+			       index,
+			       CAR(get_indexkeys(index)),
+			       CAR(get_classlist(index)),
 			       clauseinfo_list);
-      }
-	
-	index = (Rel)CAR (indices);
-	/* 2. If the keys of this index match any of the available 
-	 * restriction clauses, then create pathnodes corresponding 
-	 * to each group of usable clauses.
-	 */
-	     
-	scanclausegroups =
-	  group_clauses_by_indexkey (rel,index,get_indexkeys (index),
-				     get_classlist (index),clauseinfo_list,
-				     false);
+    }
 
+    /* 2. If the keys of this index match any of the available
+     * restriction clauses, then create pathnodes corresponding
+     * to each group of usable clauses.
+     */
 
-	scanpaths = LispNil;
-	if ( consp (scanclausegroups) ) 
-	  scanpaths = create_index_paths (rel,index,
-					  scanclausegroups,
-					  false);
+    scanclausegroups = group_clauses_by_indexkey (rel,
+						  index,
+						  get_indexkeys(index),
+						  get_classlist(index),
+						  clauseinfo_list,
+						  false);
+
+    scanpaths = LispNil;
+    if (consp (scanclausegroups))
+	scanpaths = create_index_paths (rel,
+					index,
+					scanclausegroups,
+					false);
 	     
-	/* 3. If this index can be used with any join clause, then 
-	 * create pathnodes for each group of usable clauses.  An 
-	 * index can be used with a join clause if its ordering is 
-	 * useful for a mergejoin, or if the index can possibly be 
-	 * used for scanning the inner relation of a nestloop join. 
-	 */
+    /* 3. If this index can be used with any join clause, then 
+     * create pathnodes for each group of usable clauses.  An 
+     * index can be used with a join clause if its ordering is 
+     * useful for a mergejoin, or if the index can possibly be 
+     * used for scanning the inner relation of a nestloop join. 
+     */
 	     
-	joinclausegroups = 
-	  indexable_joinclauses (rel,index,joininfo_list);
-	joinpaths = LispNil;
-	if ( consp (joinclausegroups) ) {
-	    LispValue new_join_paths = 
-	      create_index_paths (rel,index,joinclausegroups,
-				  true);
-	    LispValue innerjoin_paths = 
-	      index_innerjoin (rel,joinclausegroups,index);
-	    set_innerjoin (rel,nconc (get_innerjoin(rel),
-				      innerjoin_paths));
-	    joinpaths = new_join_paths;
-	}
+    joinclausegroups = indexable_joinclauses(rel,index,joininfo_list);
+    joinpaths = LispNil;
+
+    if (consp (joinclausegroups))
+    {
+	LispValue new_join_paths = create_index_paths(rel,
+						      index,
+						      joinclausegroups, 
+						      true);
+	LispValue innerjoin_paths = index_innerjoin(rel,joinclausegroups,index);
+
+	set_innerjoin (rel,nconc (get_innerjoin(rel), innerjoin_paths));
+	joinpaths = new_join_paths;
+    }
 	     
-	/* 4. If this particular index hasn't already been used above,
-	 *   then check to see if it can be used for ordering a  
-	 *   user-specified sort.  If it can, add a pathnode for the 
-	 *   sorting scan. 
-	 */
+    /* 4. If this particular index hasn't already been used above,
+     *   then check to see if it can be used for ordering a  
+     *   user-specified sort.  If it can, add a pathnode for the 
+     *   sorting scan. 
+     */
 	     
-	sortpath = LispNil;
-	if ( valid_sortkeys(sortkeys) && null(scanclausegroups) && 
-	    null(joinclausegroups) && (get_relid(sortkeys) == get_relid(rel)) && 
-	    equal_path_path_ordering(get_sortorder (sortkeys),
-				     get_ordering (index)) && 
-	    equal (get_sortkeys(sortkeys),get_indexkeys (index))) {
-	    sortpath =lispCons (create_index_path (rel,index,
-						   LispNil,
-						   LispNil),
-				      LispNil);
-	} 
+    sortpath = LispNil;
+    if ( valid_sortkeys(sortkeys)
+	 && null(scanclausegroups)
+	 && null(joinclausegroups)
+	 && (get_relid(sortkeys) == get_relid(rel))
+	 && equal_path_path_ordering(get_sortorder(sortkeys),
+				     get_ordering(index))
+	 && equal (get_sortkeys(sortkeys), get_indexkeys (index)) )
+    {
+	sortpath = lispCons(create_index_path(rel,
+					      index,
+					      LispNil,
+					      LispNil),
+			    LispNil);
+    }
 	
-	/*
-	 *  Some sanity checks to make sure that
-	 *  the indexpath is valid.
-	 */
-	if (!null(scanpaths))
-	  retval = add_index_paths(retval,scanpaths);
-	if ( !null(joinpaths) )
-	  retval = add_index_paths(retval,joinpaths);
-	if (!null(sortpath))
-	  retval = add_index_paths(retval,sortpath);
+    /*
+     *  Some sanity checks to make sure that
+     *  the indexpath is valid.
+     */
+    if (!null(scanpaths))
+	retval = add_index_paths(retval,scanpaths);
+    if ( !null(joinpaths) )
+	retval = add_index_paths(retval,joinpaths);
+    if (!null(sortpath))
+	retval = add_index_paths(retval,sortpath);
 	
-	if (!null((temp = find_index_paths (rel,
-					    CDR (indices),
-					    clauseinfo_list,
-					    joininfo_list,sortkeys))))
+    if (!null((temp = find_index_paths (rel,
+					CDR (indices),
+					clauseinfo_list,
+					joininfo_list,sortkeys))))
+    {
 	  retval = append (retval,temp);
+    }
 
-	return(retval);
-    } 
-    return(NULL);
+    return retval;
+
 }  /* function end */
 
 
@@ -224,21 +234,14 @@ LispValue rel,index,indexkey,xclass,clauseinfo_list ;
 	     * generated by adding 'index' to the existing
 	     * list where appropriate.
 	     */
-
-	  /*
-	   * if get_indexids is not nil, it implies that that
-	   * clause has already been matched with a previous index.
-	   */
-
-	  if (!get_indexids (clauseinfo))
 	    set_indexids (clauseinfo,
 			  match_index_orclause (rel,index,indexkey,
 						xclass,
 						get_orclauseargs
 						(get_clause(clauseinfo)),
 						get_indexids (clauseinfo)));
-	  }
-     }
+	}
+   }
 }  /* function end */
 
 /*
@@ -287,9 +290,6 @@ match_index_to_operand(indexkey, operand, rel, index)
  *    	a,b,c are nodes of indices that match the first subclause in
  *    	'or-clauses', d,e,f match the second subclause, no indices
  *    	match the third, g,h match the fourth, etc.
- *    
- *      NOTE:  Currently we have only 1 key. so the list will look like
- *      ((abc) nil nil ...) or just ((abc))
  */
 
 /*  .. match-index-orclauses  	 */
@@ -303,10 +303,17 @@ match_index_orclause (rel,index,indexkey,xclass,
     LispValue clause = LispNil;
     LispValue matched_indices  = other_matching_indices;
     LispValue index_list = LispNil;
-    LispValue i = LispNil;
+    LispValue clist;
+    LispValue ind;
 
-    foreach (i,or_clauses) {
-	clause = CAR(i);
+    if (!matched_indices)
+	matched_indices = lispCons(LispNil, LispNil);
+
+    for (clist = or_clauses, ind = matched_indices; 
+	 clist; 
+	 clist = CDR(clist), ind = CDR(ind))
+    {
+	clause = CAR(clist);
 	if (is_clause (clause) && 
 	    op_class(get_opno(get_op (clause)),CInteger(xclass)) && 
 	    match_index_to_operand (indexkey,
@@ -318,12 +325,7 @@ match_index_orclause (rel,index,indexkey,xclass,
 	  matched_indices =  lispCons(index, matched_indices);
 	  index_list = nappend1(index_list,
 				matched_indices);
-	} 
-/*	
-	else {
-	    index_list = nappend1(index_list,matched_indices); 
 	}
- */
     }
     return(index_list);
      
@@ -828,6 +830,43 @@ function_index_operand(funcOpnd, rel, index)
 
     /*
      * We have passed all the tests.
+     */
+    return true;
+}
+
+bool
+SingleAttributeIndex(index)
+    Rel index;
+{
+    /*
+     * Non-functional indices.
+     */
+
+    /*
+     * return false for now as I don't know if we support index scans
+     * on disjunction and the code doesn't work
+     */
+    return (false);
+
+    if (index->indproc == InvalidObjectId)
+    {
+	switch (length(get_indexkeys(index)))
+	{
+	    case 0:  return false;
+	    case 1:  return true;
+
+	    /*
+	     * The list of index keys currently always has 8 elements.
+	     * It is a SingleAttributeIndex if the second element on
+	     * are invalid. It suffices to just check the 2nd -mer Oct 21 1991
+	     */
+	    default: return (CInteger(CADR(get_indexkeys(index))) == 
+							    InvalidObjectId);
+	}
+    }
+
+    /*
+     * We have a functional index which is a single attr index
      */
     return true;
 }
