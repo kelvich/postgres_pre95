@@ -868,7 +868,8 @@ AppendStmt:
 
                         root = MakeRoot(1, command , lispInteger(x),
                                         p_rtable,
-                                        p_priority, p_ruleinfo);
+                                        p_priority, p_ruleinfo,
+					LispNil,LispNil,$8);
                         $$ = lispCons ( root , LispNil );
                         $$ = nappend1 ( $$ , $8 ); /* (eq p_target $8) */
                         $$ = nappend1 ( $$ , $10 ); /* (eq p_qual $10 */
@@ -926,7 +927,8 @@ DeleteStmt:
 		    
 		    root = MakeRoot(1,command,
 				    lispInteger ( x ) ,
-				    p_rtable, p_priority, p_ruleinfo);
+				    p_rtable, p_priority, p_ruleinfo,
+				    LispNil,LispNil,LispNil);
 		    $$ = lispCons ( root , LispNil );
 
 		    /* check that var_name is in the relation */
@@ -994,7 +996,8 @@ ReplaceStmt:
 
                     root = MakeRoot(1, command , lispInteger(result),
                                     p_rtable,
-                                    p_priority, p_ruleinfo);
+                                    p_priority, p_ruleinfo,
+				    LispNil,LispNil,$8);
 
                     $$ = lispCons( root , LispNil );
                     $$ = nappend1 ( $$ , $8 );          /* (eq p_target $6) */
