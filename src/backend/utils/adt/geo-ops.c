@@ -3,7 +3,7 @@
  *	2D geometric operations
  */
 
-#ifndef lint
+#ifndef l[20~int
 static char rcs_id[] = 
 "$Header$";
 #endif
@@ -788,54 +788,76 @@ path_n_ge(p1, p2)
 	return( (p1->npts >= p2->npts ) );
 }
 
-
 /* path_inter -
  *	Does p1 intersect p2 at any point?
  *	Use bounding boxes for a quick (O(n)) check, then do a 
  *	O(n^2) iterative edge check.
- *
- *	This is hideously slow.  Improvements later.
  */
 long
 path_inter(p1, p2)
-	PATH	*p1, *p2;
+     PATH	*p1, *p2;
 {
-	BOX	b1, b2;
-	LINE	*tmp;
-	double	a, b;
-	long	box_overlap();
-	int	i, j;
+    BOX	b1, b2;
+    int	i, j;
+    LSEG seg1, seg2;
+	
+    b1.xh = b1.yh = b2.xh = b2.yh = HUGE;
+    b1.xl = b1.yl = b2.xl = b2.yl = -HUGE;
+    for (i = 0; i < p1->npts; ++i) {
+	b1.xh = MAX(p1->p[i].x, b1.xh);
+	b1.yh = MAX(p1->p[i].y, b1.yh);
+	b1.xl = MIN(p1->p[i].x, b1.xl);
+	b1.yl = MIN(p1->p[i].y, b1.yl);
+    }
+    for (i = 0; i < p2->npts; ++i) {
+	b2.xh = MAX(p2->p[i].x, b2.xh);
+	b2.yh = MAX(p2->p[i].y, b2.yh);
+	b2.xl = MIN(p2->p[i].x, b2.xl);
+	b2.yl = MIN(p2->p[i].y, b2.yl);
+    }
+    if (! box_overlap(&b1, &b2))
+      return(0);
+    
+    /*  pairwise check lseg intersections */
+    for (i = 0; i < p1->npts - 1; i++)
+      for (j = 0; j < p2->npts - 1; j++)
+       {
+	   statlseg_construct(&seg1, &p1->p[i], &p1->p[i+1]);
+	   statlseg_construct(&seg2, &p2->p[j], &p2->p[j+1]);
+	   if (lseg_intersect(&seg1, &seg2))
+	     return(1);
+       }
+    
+    /* if we dropped through, no two segs intersected */
+    return(0);
+}
 
-	b1.xh = b1.yh = b2.xh = b2.yh = -HUGE;
-	b1.xl = b1.yl = b2.xl = b2.yl = HUGE;
-	for (i = 0; i < p1->npts; ++i) {
-		b1.xh = MAX(p1->p[i].x, b1.xh);
-		b1.yh = MAX(p1->p[i].y, b1.yh);
-		b1.xl = MIN(p1->p[i].x, b1.xl);
-		b1.yl = MIN(p1->p[i].y, b1.yl);
-	}
-	for (i = 0; i < p2->npts; ++i) {
-		b2.xh = MAX(p2->p[i].x, b2.xh);
-		b2.yh = MAX(p2->p[i].y, b2.yh);
-		b2.xl = MIN(p2->p[i].x, b2.xl);
-		b2.yl = MIN(p2->p[i].y, b2.yl);
-	}
-	if (! box_overlap(&b1, &b2))
-		return(0);
+/* this essentially does a cartesian product of the lsegs in the
+   two paths, and finds the min distance between any two lsegs */
+double *path_distance(p1, p2)
+     PATH *p1;
+     PATH *p2;
+{
+    double *min, *tmp;
+    int i,j;
+    LSEG seg1, seg2;
 
-	for (i = 1; i < p1->npts; ++i) {
-		tmp = line_construct_pp(&p1->p[i-1], &p1->p[i]);
-		for (j = 1; j < p2->npts; ++j) {
-			a = tmp->A * p2->p[j-1].x + tmp->B * 
-				p2->p[j-1].y + tmp->C;
-			b = tmp->A * p2->p[j].x + tmp->B * 
-				p2->p[j].y + tmp->C;
-			if (FPzero(a) || FPzero(b) || (a * b < 0.0))
-				return(1);
-		}
-		PFREE(tmp);
-	}
-	return(0);
+    statlseg_construct(&seg1, &p1->p[0], &p1->p[1]);
+    statlseg_construct(&seg2, &p2->p[0], &p2->p[1]);
+    min = lseg_distance(&seg1, &seg2);
+
+    for (i = 0; i < p1->npts - 1; i++)
+      for (j = 0; j < p2->npts - 1; j++)
+       {
+	   statlseg_construct(&seg1, &p1->p[i], &p1->p[i+1]);
+	   statlseg_construct(&seg2, &p2->p[j], &p2->p[j+1]);
+
+	   if (*min < *(tmp = lseg_distance(&seg1, &seg2)))
+	     *min = *tmp;
+	   PFREE(tmp);
+       }
+
+    return(min);
 }
 
 
@@ -1120,25 +1142,44 @@ lseg_construct(pt1, pt2)
 	return(result);
 }
 
+/* like lseg_construct, but assume space already allocated */
+void statlseg_construct(lseg, pt1, pt2)
+     LSEG *lseg;
+     POINT *pt1;
+     POINT *pt2;
+{
+    lseg->p[0].x = pt1->x;
+    lseg->p[0].y = pt1->y;
+    lseg->p[1].x = pt2->x;
+    lseg->p[1].y = pt2->y;
+    lseg->m = point_sl(pt1, pt2);
+}
 
 /*----------------------------------------------------------
  *  Relative position routines.
  *---------------------------------------------------------*/
 
+/*
+**  find intersection of the two lines, and see if it falls on 
+**  both segments.
+*/
 long
 lseg_intersect(l1, l2)
 	LSEG	*l1, *l2;
 {
-	LINE	*tmp;
-	double	a, b;
+    LINE *ln;
+    POINT *interpt;
+    long retval;
 
-	tmp = line_construct_pp(&l1->p[0], &l1->p[1]);
-	a = tmp->A * l2->p[0].x + tmp->B * l2->p[0].y + tmp->C;
-	b = tmp->A * l2->p[1].x + tmp->B * l2->p[1].y + tmp->C;
-	PFREE(tmp);
+    ln = line_construct_pp(&l2->p[0], &l2->p[1]);
+    interpt = interpt_sl(l1, ln);
 
-	return(	FPzero(a) || FPzero(b) || 	/* point on seg */
-	       (a * b < 0.0));			/* opposite sides */
+    if (interpt != NULL && on_ps(interpt, l2)) /* interpt on l1 and l2 */
+      retval = 1;
+    else retval = 0;
+    if (interpt != NULL) PFREE(interpt);
+    PFREE(ln);
+    return(retval);
 }
 
 long
@@ -1306,22 +1347,81 @@ dist_pl(pt, line)
 	return(result);
 }
 
-
 double *
 dist_ps(pt, lseg)
-	POINT	*pt;
-	LSEG	*lseg;
+     POINT *pt;
+     LSEG *lseg;
 {
-	POINT	*tmp;
-	double	*result;
+    double m;                       /* slope of perp. */
+    LINE *ln;
+    double *result, *tmpdist;
+    POINT *ip;
 
-	tmp = close_ps(pt, lseg);
-	result = point_distance(tmp, pt);
+    /* construct a line that's perpendicular.  See if the intersection of
+       the two lines is on the line segment. */
+    if (lseg->p[1].x == lseg->p[0].x)
+      m = 0;
+    else if (lseg->p[1].y == lseg->p[0].y) /* slope is infinite */
+      m = HUGE;
+    else m = (-1) * (lseg->p[1].y - lseg->p[0].y) / 
+                    (lseg->p[1].x - lseg->p[0].x);
+    ln = line_construct_pm(pt, m);
 
-	PFREE(tmp);
-	return(result);
+    if ((ip = interpt_sl(lseg, ln)) != NULL)
+      result = point_distance(pt, ip);
+    else  /* intersection is not on line segment, so distance is min
+	     of distance from point to an endpoint */
+     {
+	 result = point_distance(pt, &lseg->p[0]);
+	 tmpdist = point_distance(pt, &lseg->p[1]);
+	 if (*tmpdist < *result) *result = *tmpdist;
+	 PFREE (tmpdist);
+     }
+
+    if (ip != NULL) PFREE(ip);
+    PFREE(ln);
+    return (result);
 }
 
+
+/*
+** Distance from a point to a path 
+*/
+double *dist_ppth(pt, path)
+     POINT *pt;
+     PATH *path;
+{
+    double *result;
+    double *tmp;
+    int i;
+    LSEG lseg;
+
+    if (path->npts = 0) 
+     {
+	 result = PALLOCTYPE(double);
+	 *result = Abs((double) HUGE_VAL);
+	 goto exit;
+     }
+
+    if (path->npts = 1) 
+      {
+	  result = point_distance(pt, &path->p[0]);
+	  goto exit;
+      }
+
+    /* else */
+    for (i = 0; i < path->npts; i++)
+     {
+	 statlseg_construct(&lseg, &path->p[i], &path->p[i+1]);
+	 if (i = 0) result = tmp = dist_ps(pt, &lseg);
+	 if (*tmp < *result) 
+	   *result = *tmp;
+	 PFREE(tmp);
+     }
+
+  exit:
+    return(result);
+}
 
 double *
 dist_pb(pt, box)
@@ -1641,11 +1741,12 @@ on_ppath(pt, path)
 
 	for (i = 0; i < path->npts; i++) {
 		hi = path->p[i].y < path->p[NEXT(i)].y;
-		yh = path->p[i+hi].y;
-		yl = path->p[i+!hi].y;
+		/* must take care of wrap around to original vertex for closed paths */
+		yh = (i+hi < path->npts) ? path->p[i+hi].y : path->p[0].y;
+		yl = (i+!hi < path->npts) ? path->p[i+!hi].y : path->p[0].y;
 		hi = path->p[i].x < path->p[NEXT(i)].x;
-		xh = path->p[i+hi].x;
-		xl = path->p[i+!hi].x;
+		xh = (i+hi < path->npts) ? path->p[i+hi].x : path->p[0].x;
+		xl = (i+!hi < path->npts) ? path->p[i+!hi].x : path->p[0].x;
 		/* skip seg if it doesn't touch the ray */
 
 		if (FPeq(yh, yl))	/* horizontal seg? */
