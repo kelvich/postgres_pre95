@@ -4,7 +4,7 @@
 
 .SUFFIXES: .cat .ps .me .ms
 
-DOCSRCS= am.me smgr.me fmgr.me libpq.me fastpath.me parse-tree.me query-tree.me
+DOCSRCS= am.me array.me smgr.me fmgr.me libpq.me fastpath.me parse-tree.me query-tree.me
 
 NROFF=nroff
 

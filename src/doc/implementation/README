@@ -5,6 +5,7 @@ This directory contains detailed implementation notes that are still
 better description anywhere else.
 
 am.me			Access method interface
+array.me		Guide to working with arrays in C
 fastpath.me		Fast-path interface [NOT COMPLETE]
 fmgr.me			Function manager interface
 libpq.me		LIBPQ internals documentation
