@@ -42,10 +42,8 @@ the values of the fields to be appended to
 The fields may be listed in any order.
 Fields of the result class which do not appear in the 
 target list
-are default a null value.
-The expression for each field must be of the correct
-data type. 
-There is no automatic coercion of expressions.
+are default a null value.  If the expression for each field is not
+of the correct data type, automatic type coercion will be attempted.
 .sp
 The keyword
 .b all
