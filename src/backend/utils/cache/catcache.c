@@ -45,7 +45,7 @@ RcsId("$Header$");
 #define CCSIZE	(sizeof(struct catcache) + NCCBUCK * sizeof(SLList))
 
 struct catcache	*Caches = NULL;
-struct context	*CacheCxt = NULL;
+GlobalMemory	CacheCxt;
 
 static int	DisableCache;
 
@@ -86,20 +86,18 @@ int	key[];
 {
     struct catcache     *cp;
     register int        i;
-    struct context      *oldcxt;
+    MemoryContext	oldcxt;
+
     /* REMOVED (DEFERED)
      *Relation		relation;
      */
  
     /* initialize the cache system */
-
-    if (!CacheCxt) {
-	oldcxt = newcontext();
-	CacheCxt = Curcxt;
-	CacheCxt->ct_status |= CT_PRESERVE;
-    } else {
-	oldcxt = switchcontext(CacheCxt);
-    }
+        
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
+    
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
 
     cp = LintCast(struct catcache *, palloc(CCSIZE));
     bzero((char *)cp, CCSIZE); for (i = 0; i <= NCCBUCK; ++i)	/* each bucket is a list header */ SLNewList(&cp->cc_cache[i], offsetof(struct catctup, ct_node));
@@ -164,15 +162,16 @@ int	key[];
     /* REMOVED (DEFERED)
      * RelationCloseHeapRelation(relation);
      */
+   
+    MemoryContextSwitchTo(oldcxt);
 
-    switchcontext(oldcxt);
     return(cp);
 }
 
 void
 ResetSystemCache()
 {
-    struct context	*oldcxt;
+    MemoryContext	oldcxt;
     struct catcache	*cache;
 
 #ifdef	CACHEDEBUG
@@ -185,13 +184,11 @@ ResetSystemCache()
     }
 
     /* initialize the cache system */
-    if (!CacheCxt) {
-	oldcxt = newcontext();
-	CacheCxt = Curcxt;
-	CacheCxt->ct_status |= CT_PRESERVE;
-    } else {
-	oldcxt = switchcontext(CacheCxt);
-    }
+
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
+    
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
 
     for (cache = Caches; PointerIsValid(cache); cache = cache->cc_next) {
         register int hash;
@@ -212,7 +209,8 @@ ResetSystemCache()
 #ifdef	CACHEDEBUG
     elog(DEBUG, "end of ResetSystemCache call");
 #endif
-    switchcontext(oldcxt);
+    
+    MemoryContextSwitchTo(oldcxt);
 }
 
 /*
@@ -229,13 +227,13 @@ DATUM				v1, v2, v3, v4;
 {
     register unsigned	hash;
     register CatCTup	*ct;
-    struct context	*oldcxt;
     HeapTuple		ntp;
     Buffer		buffer;
     HeapTuple		palloctup();
     struct catctup	*nct;
     HeapScan		sd;
     Relation		relation;
+    MemoryContext	oldcxt;
 
     if (cache->relationId == InvalidObjectId)
 	CatalogCacheInitializeCache(cache, NULL);
@@ -309,8 +307,12 @@ DATUM				v1, v2, v3, v4;
 
 
     DisableCache = 1;
-
-    oldcxt = switchcontext(CacheCxt);
+        
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
+    
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
+   
 /*
     StartPortalAllocMode(StaticAllocMode);
 */
@@ -376,8 +378,9 @@ DATUM				v1, v2, v3, v4;
     }
 
     RelationCloseHeapRelation(relation);
+   
+    MemoryContextSwitchTo(oldcxt);
 
-    switchcontext(oldcxt);
     return(ntp);
 }
 
@@ -465,7 +468,7 @@ HeapTuple	tuple;
 void		(*function)();
 {
     struct catcache *ccp;
-    struct context	*oldcxt;
+    MemoryContext	oldcxt;
     ObjectId	relationId;
 
     Assert(RelationIsValid(relation));
@@ -476,18 +479,15 @@ void		(*function)();
 #endif
 
     /* initialize the cache system */
-    if (!CacheCxt) {
-	oldcxt = newcontext();
-	CacheCxt = Curcxt;
-	CacheCxt->ct_status |= CT_PRESERVE;
-    } else {
-	oldcxt = switchcontext(CacheCxt);
-    }
-
+            
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
+   
     relationId = RelationGetRelationId(relation);
 
     for (ccp = Caches; ccp; ccp = ccp->cc_next) {
-	if (relationId != ccp->relationId) 
+        if (relationId != ccp->relationId) 
 	    continue;
 
 	/* OPT inline simplification of CatalogCacheIdInvalidate */
@@ -501,7 +501,9 @@ void		(*function)();
 
 	RelationCloseHeapRelation(relation);
     }
-    switchcontext(oldcxt);
+
+    MemoryContextSwitchTo(oldcxt);
+    
 /*	sendpm('I', "Invalidated tuple"); */
 }
 
@@ -522,7 +524,7 @@ ItemPointer	pointer;
 {
     struct catcache *ccp;
     struct catctup	*ct, *hct;
-    struct context	*oldcxt;
+    MemoryContext	oldcxt;
 
     Assert(IndexIsValid(hashIndex) && IndexIsInBounds(hashIndex, NCCBUCK));
     Assert(ItemPointerIsValid(pointer));
@@ -531,15 +533,13 @@ ItemPointer	pointer;
     elog(DEBUG, "CatalogCacheIdInvalidate: called");
 #endif	/* defined(CACHEDEBUG) */
 
-	/* initialize the cache system */
-    if (!CacheCxt) {
-	oldcxt = newcontext();
-	CacheCxt = Curcxt;
-	CacheCxt->ct_status |= CT_PRESERVE;
-    } else {
-	oldcxt = switchcontext(CacheCxt);
-    }
+    /* initialize the cache system */
+        
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
 
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
+   
     for (ccp = Caches; ccp; ccp = ccp->cc_next) {
 	if (cacheId != ccp->id) 
     	    continue;
@@ -561,7 +561,9 @@ ItemPointer	pointer;
 	if (cacheId != InvalidCatalogCacheId) 
 	    break;
     }
-    switchcontext(oldcxt);
+
+    MemoryContextSwitchTo(oldcxt);
+
     /*	sendpm('I', "Invalidated tuple"); */
 }
 
@@ -692,7 +694,7 @@ CatalogCacheInitializeCache(cache, relation)
 struct catcache *cache;
 Relation relation;
 {
-    struct context      *oldcxt;
+    MemoryContext	oldcxt;
     short didopen = 0;
     short i;
 
@@ -705,13 +707,11 @@ Relation relation;
 	    cache->cc_relname
 	);
 #endif
-    if (!CacheCxt) {
-	oldcxt = newcontext();
-	CacheCxt = Curcxt;
-	CacheCxt->ct_status |= CT_PRESERVE;
-    } else {
-	oldcxt = switchcontext(CacheCxt);
-    }
+        
+    if (!CacheCxt)
+       CacheCxt = CreateGlobalMemory("Cache");
+
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
 
     /*
      *  If no relation was passed we must open it to get access to 
@@ -771,6 +771,7 @@ Relation relation;
     }
     if (didopen)
         RelationCloseHeapRelation(relation);
-    switchcontext(oldcxt);
+
+    MemoryContextSwitchTo(oldcxt);
 }
 
