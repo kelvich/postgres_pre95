@@ -147,28 +147,35 @@ StoreCatalogInheritance ARGS((
  * ----------------------------------------------------------------
  */
 void
-DefineRelation(relationName, parameters, schema)
-    Name	relationName;
+DefineRelation(relname, parameters, schema)
+    char	*relname;
     LispValue	parameters;
     LispValue	schema;
 {
     AttributeNumber	numberOfAttributes;
     AttributeNumber	attributeNumber;
-    LispValue		rest;
+    LispValue		rest 		= NULL;
     ObjectId		relationId;
-    List		arch;
+    List		arch 		= NULL ;
     char		archChar;
-    List		inheritList = LispNil;
-    Name		archiveName;
+    List		inheritList 	= NULL;
+    Name		archiveName 	= NULL;
+    Name		relationName 	= NULL;
     TupleDesc		descriptor;
 
     /* ----------------
      *	minimal argument checking follows
      * ----------------
      */
-    AssertArg(NameIsValid(relationName));
+    AssertArg(NameIsValid(relname));
     AssertArg(listp(parameters));
     AssertArg(listp(schema));
+
+    if ( strlen ( relname ) > sizeof ( NameData ))
+      elog(WARN, "the relation name %s is > %d characters long", relname,
+	   sizeof(NameData));
+
+    relationName = (Name)strcpy ( palloc ( sizeof (NameData)), relname );
 
     /* ----------------
      * 	Handle parameters
