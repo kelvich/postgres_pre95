@@ -39,6 +39,15 @@ class (LispValue) public (Node) {
 };
 
 #define List LispValue
+
+/* ----------------
+ *	arrays of LispValues are needed in execnodes.h
+ *	-cim 8/29/89
+ * ----------------
+ */
+typedef LispValue *LispValuePtr;
+#define	ListPtr	 LispValuePtr
+
 /*
 struct lisp_atom {
 	int 			type;

@@ -46,9 +46,9 @@ extern bool	EqualEState();
  *	error_message			?
  *	range_table			array of scan relation information
  *	qualification_tuple		tuple satisifying qualification
- *	qualification_tuple_id		oid of qualification_tuple
+ *	qualification_tuple_id		tid of qualification_tuple
  *	relation_relation_descriptor	as it says
- *	result_relation_oid		for update queries
+ *	result_relation_index		for update queries
  *	result_relation_descriptor	for update queries
  *
  * ----------------------------------------------------------------
@@ -66,7 +66,7 @@ class (EState) public (Node) {
 	HeapTuple	qualification_tuple;
 	ItemPointer	qualification_tuple_id;
 	Relation	relation_relation_descriptor;
-	ObjectId	result_relation_oid;
+	Index		result_relation_index;
 	Relation	result_relation_descriptor;
 };
 
@@ -117,6 +117,32 @@ class (StateNode) public (Node) {
 class (ResultState) public (StateNode) {
    inherits(StateNode);
    int	 	Loop;
+};
+
+/* ----------------------------------------------------------------
+ *    AppendState information
+ *
+ *	append nodes have this field "unionplans" which is this
+ *	list of plans to execute in sequence..  these variables
+ *	keep track of things..
+ *
+ *   	whichplan	which plan is being executed
+ *   	nplans		how many plans are in the list
+ *   	initialized	array of ExecInitNode() results
+ *   	rtentries	range table for the current plan
+ *
+ *	note: I don't fully comprehend what initialized is used
+ *	      for so don't expect code that uses it to be too
+ *	      correct -cim 8/29/89
+ * ----------------------------------------------------------------
+ */
+
+class (AppendState) public (Node) {
+    inherits(Node);
+    int 	whichplan;
+    int 	nplans;
+    ListPtr 	initialized;
+    List 	rtentries;
 };
 
 /* ----------------------------------------------------------------
@@ -264,25 +290,6 @@ class (SortState) public (Node) {
       bool	Flag;
       List 	Keys;
   /* public: */
-};
-
-/* ----------------------------------------------------------------
- *    AppendState information
- *
- *   	whichplan
- *   	nplans
- *   	initialzed
- *   	rtentries
- *
- * ----------------------------------------------------------------
- */
-
-class (AppendState) public (Node) {
-   inherits(Node);
-   int 		whichplan;
-   int 		nplans;
-   List 	initialzed;
-   List 	rtentries;
 };
 
 /* ----------------------------------------------------------------

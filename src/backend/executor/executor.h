@@ -193,10 +193,26 @@
 
 /* ----------------
  *	query feature accessors
+ *
+ *	BEWARE: the query "feature" can contain different sorts
+ *		of things depending on the operation.  In particular,
+ *		in the case of "retrieve into", it is a list
+ *
+ *			('result intoRelationDesc)
+ *
+ *		where 'result == lispInteger(EXEC_RESULT) and
+ *		      intoRelationDesc == lispInteger(relation descriptor)
+ *
+ *		It can also contain other stuff..
+ *
+ *	this is a real crappy interface.. we should fix it soon -cim 8/29/89
  * ----------------
  */
-#define QdGetCommand(queryDesc)	    CAR(QdGetFeature(queryDesc))
-#define QdGetCount(queryDesc)  	    CAR(CDR(QdGetFeature(queryDesc)))
+#define QdGetCommand(queryDesc)	    	CAR(QdGetFeature(queryDesc))
+#define QdGetCount(queryDesc)  	    	CAR(CDR(QdGetFeature(queryDesc)))
+
+#define QdGetIntoRelation(queryDesc) \
+    ((Relation) CInteger(CAR(CDR(QdGetFeature(queryDesc)))))
 
 /* ----------------
  *	parse tree accessors
