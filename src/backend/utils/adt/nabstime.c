@@ -420,12 +420,16 @@ nabstimeout(time)
     WeekdayToStr(timeValp->tm_wday, weekday);
 
     /*
-     * our sequent os doesn't support the time zone string
+     *  Dynix 3.0.17.10 and Ultrix WS 2 don't provide tm_zone.
      */
 #ifdef sequent
     tzoneStr = "";
 #else
+#ifdef OLD_DEC
+    tzoneStr = "";
+#else
     tzoneStr = timeValp->tm_zone;
+#endif
 #endif
 
     sprintf(outStr,
