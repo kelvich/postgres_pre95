@@ -310,6 +310,10 @@ ExecInitNode(node, estate, parent)
     case classTag(Unique):
 	INIT_WITH_HOOKS(Unique,uniquestate);
 	break;
+
+    case classTag(Agg):
+	INIT_WITH_HOOKS(Agg, aggstate);
+	break;
 		
 	/* ----------------
 	 *	XXX add hooks to these
@@ -421,6 +425,11 @@ ExecProcNode(node)
 	PROC_WITH_HOOKS(ExecUnique,Unique,uniquestate);
 	break;
 
+    case classTag(Agg):
+	PROC_WITH_HOOKS(ExecAgg, Agg, aggstate);
+	break;
+
+
     /* ----------------
      *  XXX add hooks to these
      * ----------------
@@ -527,6 +536,11 @@ ExecEndNode(node)
     case classTag(Unique):
 	END_WITH_HOOKS(Unique,uniquestate);
 	break;
+
+    case classTag(Agg):
+	END_WITH_HOOKS(Agg, aggstate);
+	break;
+
 
 	/* ----------------
 	 *	XXX add hooks to these
