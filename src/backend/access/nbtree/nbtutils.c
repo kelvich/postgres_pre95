@@ -280,7 +280,7 @@ _bt_dumptup(rel, itupdesc, page, offind)
     itemsz = ItemIdGetLength(itemid);
     btitem = (BTItem) PageGetItem(page, itemid);
     itup = &(btitem->bti_itup);
-    tuplen = itup->t_size;
+    tuplen = IndexTupleSize(itup);
     iptr = &(itup->t_tid);
     blkno = ItemPointerGetBlockNumber(iptr);
     pgno = ItemPointerGetPageNumber(iptr, 0);
@@ -313,13 +313,14 @@ _bt_formitem(itup, xid, seqno)
 {
     int nbytes_btitem;
     BTItem btitem;
+	Size tuplen = IndexTupleSize(itup);
 
     /* make a copy of the index tuple with room for the sequence number */
-    nbytes_btitem = LONGALIGN(itup->t_size) +
+    nbytes_btitem = tuplen +
 			(sizeof(BTItemData) - sizeof(IndexTupleData));
 
     btitem = (BTItem) palloc(nbytes_btitem);
-    bcopy((char *) itup, (char *) &(btitem->bti_itup), itup->t_size);
+    bcopy((char *) itup, (char *) &(btitem->bti_itup), tuplen);
 
     bcopy((char *) xid, (char *) &(btitem->bti_xid), TransactionIdDataSize);
     btitem->bti_seqno = seqno;

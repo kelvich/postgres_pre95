@@ -133,8 +133,8 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
     BTItem new_item = (BTItem) NULL;
 
     page = BufferGetPage(buf, 0);
-    itemsz = btitem->bti_itup.t_size
-		+ (sizeof(BTItemData) - sizeof(IndexTupleData));
+    itemsz = IndexTupleDSize(btitem->bti_itup)
+	   + (sizeof(BTItemData) - sizeof(IndexTupleData));
 
     if (PageGetFreeSpace(page) < itemsz) {
 

@@ -224,9 +224,9 @@ rtdoinsert(r, itup)
 
     /* add the item and write the buffer */
     if (PageIsEmpty(page))
-	PageAddItem(page, itup, itup->t_size, 1, LP_USED);
+	PageAddItem(page, itup, IndexTupleSize(itup), 1, LP_USED);
     else
-	PageAddItem(page, itup, itup->t_size,
+	PageAddItem(page, itup, IndexTupleSize(itup),
 		    PageGetMaxOffsetIndex(page) + 2, LP_USED);
 
     WriteBuffer(buffer);
@@ -234,7 +234,7 @@ rtdoinsert(r, itup)
     datum = (((char *) itup) + sizeof(IndexTupleData));
 
     /* now expand the page boundary in the parent to include the new child */
-    rttighten(r, stack, datum, (itup->t_size - sizeof(IndexTupleData)));
+    rttighten(r, stack, datum, (IndexTupleSize(itup) - sizeof(IndexTupleData)));
     freestack(stack);
 
     /* build and return an InsertIndexResult for this insertion */
@@ -357,10 +357,12 @@ dosplit(r, buffer, stack, itup)
 	item = (IndexTuple) PageGetItem(p, itemid);
 
 	if (i == *(v.spl_left)) {
-	    (void) PageAddItem(left, item, item->t_size, leftoff++, LP_USED);
+	    (void) PageAddItem(left, item, IndexTupleSize(item),
+			       leftoff++, LP_USED);
 	    v.spl_left++;
 	} else {
-	    (void) PageAddItem(right, item, item->t_size, rightoff++, LP_USED);
+	    (void) PageAddItem(right, item, IndexTupleSize(item),
+			       rightoff++, LP_USED);
 	    v.spl_right++;
 	}
     }
@@ -372,10 +374,12 @@ dosplit(r, buffer, stack, itup)
 
     /* now insert the new index tuple */
     if (*(v.spl_left) != (OffsetNumber) 0) {
-	(void) PageAddItem(left, itup, itup->t_size, leftoff++, LP_USED);
+	(void) PageAddItem(left, itup, IndexTupleSize(itup),
+			   leftoff++, LP_USED);
 	ItemPointerSet(&(res->pointerData), 0, lbknum, 0, leftoff);
     } else {
-	(void) PageAddItem(right, itup, itup->t_size, rightoff++, LP_USED);
+	(void) PageAddItem(right, itup, IndexTupleSize(itup),
+			   rightoff++, LP_USED);
 	ItemPointerSet(&(res->pointerData), 0, rbknum, 0, rightoff);
     }
 
@@ -454,27 +458,28 @@ rtintinsert(r, stk, ltup, rtup)
      *  the new left key is bigger than the old key.
      */
 
-    if (old->t_size != ltup->t_size)
+    if (IndexTupleSize(old) != IndexTupleSize(ltup))
 	elog(WARN, "Variable-length rtree keys are not supported.");
 
     /* install pointer to left child */
-    bcopy(ltup, old, ltup->t_size);
+    bcopy(ltup, old, IndexTupleSize(ltup));
 
     if (nospace(p, rtup)) {
 	newdatum = (((char *) ltup) + sizeof(IndexTupleData));
 	rttighten(r, stk->rts_parent, newdatum,
-		  (ltup->t_size - sizeof(IndexTupleData)));
+		  (IndexTupleSize(ltup) - sizeof(IndexTupleData)));
 	res = dosplit(r, b, stk->rts_parent, rtup);
 	pfree (res);
     } else {
-	PageAddItem(p, rtup, rtup->t_size, PageGetMaxOffsetIndex(p), LP_USED);
+	PageAddItem(p, rtup, IndexTupleSize(rtup),
+		    PageGetMaxOffsetIndex(p), LP_USED);
 	WriteBuffer(b);
 	ldatum = (((char *) ltup) + sizeof(IndexTupleData));
 	rdatum = (((char *) rtup) + sizeof(IndexTupleData));
 	newdatum = (char *) fmgr(union_proc, ldatum, rdatum);
 
 	rttighten(r, stk->rts_parent, newdatum,
-		  (rtup->t_size - sizeof(IndexTupleData)));
+		  (IndexTupleSize(rtup) - sizeof(IndexTupleData)));
 
 	pfree(newdatum);
     }
@@ -491,8 +496,8 @@ rtnewroot(r, lt, rt)
     b = ReadBuffer(r, P_ROOT);
     RTInitBuffer(b, 0);
     p = BufferGetPage(b, 0);
-    PageAddItem(p, lt, lt->t_size, 0, LP_USED);
-    PageAddItem(p, rt, rt->t_size, 1, LP_USED);
+    PageAddItem(p, lt, IndexTupleSize(lt), 0, LP_USED);
+    PageAddItem(p, rt, IndexTupleSize(rt), 1, LP_USED);
     WriteBuffer(b);
 }
 
@@ -705,7 +710,7 @@ nospace(p, it)
     Page p;
     IndexTuple it;
 {
-    return (PageGetFreeSpace(p) < it->t_size);
+    return (PageGetFreeSpace(p) < IndexTupleSize(it));
 }
 
 freestack(s)
@@ -794,7 +799,8 @@ _rtdump(r)
 	    datum += sizeof(IndexTupleData);
 	    itkey = (char *) box_out(datum);
 	    printf("\t[%d] size %d heap <%d,%d,%d> key:%s\n",
-		   offind + 1, itup->t_size, itblkno, itpgno, itoffno, itkey);
+		   offind + 1, IndexTupleSize(itup), itblkno, itpgno,
+		   itoffno, itkey);
 	    pfree(itkey);
 	}
 
