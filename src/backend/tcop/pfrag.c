@@ -125,10 +125,8 @@ Plan plan;
 	return SEQPERTUPTIME;
     case classTag(IndexScan):
 	return INDPERTUPTIME;
-    default:
-	return DEFPERTUPTIME;
       }
-    return 0.0;
+    return DEFPERTUPTIME;
 }
 
 #define AVGINDTUPS	5
