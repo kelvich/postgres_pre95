@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH DESTROY COMMANDS 01/23/93
+.TH DESTROY COMMANDS 02/14/94
 .XA 2 Destroy
 .SH NAME
 destroy \(em destroy existing classes
@@ -13,9 +13,8 @@ destroy \(em destroy existing classes
 .BR Destroy
 removes classes from the data base.  Only its owner may destroy a
 class.  A class may be emptied of instances, but not destroyed, by
-using the
-.BR delete
-statement.
+using 
+.IR delete (commands).
 .PP
 If a class being destroyed has secondary indices on it, then they will
 be removed first.  The removal of just a secondary index will not
@@ -23,9 +22,9 @@ affect the indexed class.
 .PP
 This command may be used to destroy a version class which is not a
 parent of some other version.  Destroying a class which is a parent of
-a version class is disallowed.  Instead, the
-.BR merge
-command should be used.  Moreover, destroying a qclass whose fields
+a version class is disallowed.  Instead, 
+.IR merge (commands)
+should be used.  Moreover, destroying a class whose fields
 are inherited by other classes is similarly disallowed.  An
 inheritance hierarchy must be destroyed from leaf level to root level.
 .PP
