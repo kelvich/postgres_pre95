@@ -100,12 +100,5 @@ my_varattno ( rd , a)
 			return(i+1);
 		}
 	}
-	for (i = 0; i < SPECIALS; i++) {
-		if (!strcmp(special_attr[i].field, a)) {
-			return(special_attr[i].code);
-		}
-	}
-	p_raise(CatalogFailure,
-		form("No such attribute: %s\n", a));
 	return(-1);
 }
