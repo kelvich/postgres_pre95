@@ -193,7 +193,7 @@ extern char		*rtreegettuple();
 extern char		*rtbeginscan();
 extern void		rtendscan();
 extern void		rtreebuild();
-extern void		rtmarkscan();
+extern void		rtmarkpos();
 extern void		rtrestrpos();
 extern void		rtrescan();
 
