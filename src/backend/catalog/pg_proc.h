@@ -325,6 +325,11 @@ DATA(insert OID = 651 (  oidnotin          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 652 (  int44in           6 11 f t f 1  22 foo bar ));
 DATA(insert OID = 653 (  int44out          6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 654 (  GetAttribute      6 11 f t f 1  23 foo bar ));
+
+DATA(insert OID = 655 (  char16lt          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 656 (  char16le          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 657 (  char16gt          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 658 (  char16ge          6 11 f t f 2  16 foo bar ));
     
 /* ----------------
  *	old definition of struct proc

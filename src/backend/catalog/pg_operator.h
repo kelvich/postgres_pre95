@@ -217,16 +217,23 @@ DATA(insert OID = 624 (  "<="      6 0 b t f  700  700  16 625 623  0 0 float4le
 DATA(insert OID = 625 (  ">="      6 0 b t f  700  700  16 624 622  0 0 float4ge intgtsel intgtjoinsel ));
 DATA(insert OID = 626 (  "!!="     6 0 b t f  23   19   16 0   0    0   0   int4notin "-"     "-"));
 DATA(insert OID = 627 (  "!!="     6 0 b t f  26   19   16 0   0    0   0   oidnotin "-"     "-"));
-DATA(insert OID = 630 (  "!="       6 0 b t f  18  18  16 630 92  0 0 charne eqsel eqjoinsel ));
-DATA(insert OID = 631 (  "<"       6 0 b t f  18  18  16 631 634  0 0 charlt eqsel eqjoinsel ));
-DATA(insert OID = 632 (  "<="       6 0 b t f  18  18  16 632 633  0 0 charle eqsel eqjoinsel ));
-DATA(insert OID = 633 (  ">"       6 0 b t f  18  18  16 633 632  0 0 chargt eqsel eqjoinsel ));
-DATA(insert OID = 634 (  ">="       6 0 b t f  18  18  16 634 631  0 0 charge eqsel eqjoinsel ));
+DATA(insert OID = 630 (  "!="      6 0 b t f  18  18  16 630  92  0 0 charne eqsel eqjoinsel ));
+    
+DATA(insert OID = 631 (  "<"       6 0 b t f  18  18  16 633 634  0 0 charlt eqsel eqjoinsel ));
+DATA(insert OID = 632 (  "<="      6 0 b t f  18  18  16 634 633  0 0 charle eqsel eqjoinsel ));
+DATA(insert OID = 633 (  ">"       6 0 b t f  18  18  16 631 632  0 0 chargt eqsel eqjoinsel ));
+DATA(insert OID = 634 (  ">="      6 0 b t f  18  18  16 632 631  0 0 charge eqsel eqjoinsel ));
+    
 DATA(insert OID = 635 (  "+"       6 0 b t f  18  18  16 0 0  0 0 charpl eqsel eqjoinsel ));
 DATA(insert OID = 636 (  "-"       6 0 b t f  18  18  16 0 0  0 0 charmi eqsel eqjoinsel ));
 DATA(insert OID = 637 (  "*"       6 0 b t f  18  18  16 0 0  0 0 charmul eqsel eqjoinsel ));
 DATA(insert OID = 638 (  "/"       6 0 b t f  18  18  16 0 0  0 0 chardiv eqsel eqjoinsel ));
 
+DATA(insert OID = 660 (  "<"       6 0 b t f  19  19  16 662 663  0 0 char16lt eqsel eqjoinsel ));
+DATA(insert OID = 661 (  "<="      6 0 b t f  19  19  16 663 662  0 0 char16le eqsel eqjoinsel ));
+DATA(insert OID = 662 (  ">"       6 0 b t f  19  19  16 660 661  0 0 char16gt eqsel eqjoinsel ));
+DATA(insert OID = 663 (  ">="      6 0 b t f  19  19  16 661 660  0 0 char16ge eqsel eqjoinsel ));
+    
 /* ----------------
  *	old definition of OperatorTupleForm
  * ----------------

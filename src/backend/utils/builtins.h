@@ -15,8 +15,11 @@
 #define BuiltinsIncluded
 
 #include "tmp/postgres.h"
-#include "rules/prs2locks.h"
-#include "rules/prs2stub.h"
+
+#include "rules/prs2locks.h"	
+#include "rules/prs2stub.h"	
+
+#include "storage/itemptr.h"
 
 #ifdef FMGR_ADT
 #include "utils/geo-decls.h"
@@ -176,6 +179,9 @@ extern char		*textout();
 extern int32		texteq();
 extern int32		textne();
 
+extern ItemPointer	tidin();
+extern char		*tidout();
+
 /*
  *	B-tree code.
  *	Defined in btree/
@@ -275,5 +281,10 @@ extern Datum GetAttribute();
 /* rule stub records */
 extern char * stubout();
 extern Prs2RawStub stubin();
+
+extern int32		char16lt();
+extern int32		char16le();
+extern int32		char16gt();
+extern int32		char16ge();
 
 #endif !BuiltinsIncluded

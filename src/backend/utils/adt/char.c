@@ -101,35 +101,66 @@ int32 chardiv(arg1, arg2)	int8 arg1, arg2; { return(arg1 / arg2); }
  *	BUGS:
  *		Assumes that "xy\0\0a" should be equal to "xy\0b".
  *		If not, can do the comparison backwards for efficiency.
+ *
+ *	char16lt	- returns 1 iff a < b
+ *	char16le	- returns 1 iff a <= b
+ *	char16gt	- returns 1 iff a < b
+ *	char16ge	- returns 1 iff a <= b
+ *
  */
 int32
 char16eq(arg1, arg2)
-	char	*arg1, *arg2;
+    char	*arg1, *arg2;
 {
 
-	if (arg1 == NULL || arg2 == NULL)
-		return((int32) NULL);
-	return((int32) (strncmp(arg1, arg2, 16) == 0));
-/*
-	register char	*a1p, *a2p;
-	
-	a1p = arg1 + 15;
-	a2p = arg2 + 15;
-	while (*a1p-- == *a2p--)
-		if (a1p < arg1)
-			return(1L);
-	return(0L);
-*/
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+    return((int32) (strncmp(arg1, arg2, 16) == 0));
 }
 
 int32
 char16ne(arg1, arg2)
-	char	*arg1, *arg2;
+    char	*arg1, *arg2;
 {
-	return((int32) !char16eq(arg1, arg2));
+    return((int32) !char16eq(arg1, arg2));
 }
 
+int32
+char16lt(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
 
-	     /* ========== PRIVATE ROUTINES ========== */
+    return((int32) (strncmp(arg1, arg2, 16) < 0));
+}
 
-			     /* (none) */
+int32
+char16le(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    return((int32) (strncmp(arg1, arg2, 16) <= 0));
+}
+
+int32
+char16gt(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    return((int32) (strncmp(arg1, arg2, 16) > 0));
+}
+
+int32
+char16ge(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    return((int32) (strncmp(arg1, arg2, 16) >= 0));
+}
