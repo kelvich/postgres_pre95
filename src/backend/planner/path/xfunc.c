@@ -676,18 +676,22 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
     ** calculated by xfunc_expense(), since the actual joining 
     ** (i.e. the usual path_cost) is paid for by the primary join clause
     */
-    joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
-    if (joinselec != 1.0 &&
-	xfunc_measure(get_clause(maxcinfo)) > 
-	((xfunc_expense(get_clause(primjoinclause)) 
-	  + get_path_cost(parentpath))
-	 / (1.0 - joinselec)))
+    if (primjoinclause != (CInfo) NULL)
      {
-	 *maxcinfopt = maxcinfo;
-	 return(retval);
-     }
-
-    else return(FALSE);
+	 joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
+	 if (joinselec != 1.0 &&
+	     xfunc_measure(get_clause(maxcinfo)) > 
+	     ((xfunc_expense(get_clause(primjoinclause)) 
+	       + get_path_cost(parentpath))
+	      / (1.0 - joinselec)))
+	  {
+	      *maxcinfopt = maxcinfo;
+	      return(retval);
+	  }
+	 else  /* drop through */;
+     } 
+	
+    return(FALSE);
 
 }
 
@@ -743,6 +747,9 @@ CInfo xfunc_primary_join(joinclauselist)
     CInfo mincinfo;
     LispValue tmplist;
     double minmeasure, tmpmeasure;
+
+    if (joinclauselist == LispNil)
+      return((CInfo) NULL);
 
     for(tmplist = joinclauselist, mincinfo = (CInfo) CAR(joinclauselist),
 	minmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)));
