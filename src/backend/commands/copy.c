@@ -319,11 +319,6 @@ FILE *fp;
                 else
                 {
                     values[i] = (Datum) (in_functions[i]) (string, elements[i]);
-		    if (attr[i]->attlen < 0 && values[i])
-		    {
-			if (VARSIZE(values[i]) > BLCKSZ)
-			    elog(WARN, "attribute %d too long", i+1);
-		    }
                 }
             }
         }
@@ -619,7 +614,7 @@ int28 **index_atts;
 }
 
 
-#define EXT_ATTLEN 2*8192
+#define EXT_ATTLEN 5*8192
 
 /*
  * Reads input from fp until eof is seen.  If we are reading from standard
