@@ -264,7 +264,7 @@ bool
 agg_clause(clause)
 	LispValue clause;
 {
-	char *keyword = "aggregate";
+	char *keyword = "agg";
 	LispValue temp;
 	int tempstring;
 	if(listp(clause)){
