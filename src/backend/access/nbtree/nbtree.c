@@ -181,6 +181,10 @@ btgettuple(scan, dir)
     return ((char *) res);
 }
 
+/*
+ *  btbeginscan() -- start a scan on a btree index
+ */
+
 char *
 btbeginscan(rel, fromEnd, keysz, scankey)
     Relation rel;
@@ -220,20 +224,20 @@ btrescan(scan, fromEnd, scankey)
     Boolean fromEnd;
     ScanKey scankey;
 {
+    ItemPointer iptr;
+
     /* we hold a read lock on the current page in the scan */
-    if (ItemPointerIsValid(&(scan->currentItemData))) {
-	_bt_unsetpagelock(scan->relation,
-			  ItemPointerGetBlockNumber(&(scan->currentItemData), 0),
+    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
 			  BT_READ);
-	ItemPointerSetInvalid(&scan->currentItemData);
+	ItemPointerSetInvalid(iptr);
     }
 
     /* and we hold a read lock on the last marked item in the scan */
-    if (ItemPointerIsValid(&(scan->currentMarkData))) {
-	_bt_unsetpagelock(scan->relation,
-			  ItemPointerGetBlockNumber(&(scan->currentMarkData), 0),
+    if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
 			  BT_READ);
-	ItemPointerSetInvalid(&scan->currentMarkData);
+	ItemPointerSetInvalid(iptr);
     }
 
     /* reset the scan key */
@@ -245,8 +249,80 @@ btrescan(scan, fromEnd, scankey)
     }
 }
 
+/*
+ *  btendscan() -- close down a scan
+ */
+
+void
+btendscan(scan)
+    IndexScanDesc scan;
+{
+    ItemPointer iptr;
+
+    /* release any locks we still hold */
+    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
+			  BT_READ);
+	ItemPointerSetInvalid(iptr);
+    }
+
+    if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
+			  BT_READ);
+	ItemPointerSetInvalid(iptr);
+    }
+}
+
+/*
+ *  btmarkpos() -- save current scan position
+ */
+
+void
+btmarkpos(scan)
+    IndexScanDesc scan;
+{
+    ItemPointer iptr;
+
+    /* release lock on old marked data, if any */
+    if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
+			  BT_READ);
+	ItemPointerSetInvalid(iptr);
+    }
+
+    /* bump lock on currentItemData and copy to currentMarkData */
+    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
+	_bt_setpagelock(scan->relation,
+			ItemPointerGetBlockNumber(iptr, 0),
+			BT_READ);
+	scan->currentMarkData = scan->currentItemData;
+    }
+}
+
+/*
+ *  btrestrpos() -- restore scan to last saved position
+ */
+
+void
+btrestrpos(scan)
+    IndexScanDesc scan;
+{
+    ItemPointer iptr;
+
+    /* release lock on current data, if any */
+    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
+	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
+			  BT_READ);
+	ItemPointerSetInvalid(iptr);
+    }
+
+    /* bump lock on currentMarkData and copy to currentItemData */
+    if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
+	_bt_setpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
+			BT_READ);
+	scan->currentItemData = scan->currentMarkData;
+    }
+}
+
 /* stubs */
 void btdelete() { ; }
-void btendscan() { ; }
-void btmarkpos() { ; }
-void btrestrpos() { ; }
