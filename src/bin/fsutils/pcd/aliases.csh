@@ -1,0 +1,1 @@
+alias pcd 'eval `\pcd \!:*`'
