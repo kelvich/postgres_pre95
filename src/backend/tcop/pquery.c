@@ -102,55 +102,35 @@ EState
 CreateExecutorState()
 {
     EState		state;
-    
-    ScanDirection   	direction;
-    abstime         	time;
-    ObjectId        	owner;
-    List            	locks;
-    List            	subPlanInfo;
-    Name            	errorMessage;
-    List            	rangeTable;
-    HeapTuple       	qualTuple;
-    ItemPointer     	qualTupleID;
-    Relation        	relationRelationDesc;
-    RelationInfo       	resultRelationInfo;
-    ParamListInfo	paramListInfo;
     TupleCount		tuplecount;
-    Prs2EStateInfo	prs2EStateInfo;
-    Relation	 	explainRelation;
-    int			baseid;
-    
-    /* ----------------
-     *	These are just guesses.. Someone should tell me if
-     *  they are incorrect -cim 9/18/89
-     * ----------------
-     */
-    direction = 	EXEC_FRWD;
-    time = 		0;
-    owner = 		0;
-    locks = 		LispNil;
-    qualTuple =		NULL;
-    qualTupleID =	0;
-    prs2EStateInfo = NULL;
-    explainRelation = NULL;
-    baseid =		0;
-    
-    /* ----------------
-     *   currently these next are initialized in InitPlan.
-     *	 For now we use dummy variables.. -cim 9/18/89
-     * ----------------
-     */
-    rangeTable = 	  	LispNil;
-    subPlanInfo = 	  	LispNil;
-    errorMessage = 	  	NULL;
-    relationRelationDesc = 	NULL;
-    resultRelationInfo =	NULL;
-    paramListInfo = 		NULL;
 
     /* ----------------
-     *	 initialize tuple count
+     *	create a new executor state
      * ----------------
      */
+    state = (EState) RMakeEState();
+		       
+    /* ----------------
+     *	initialize the Executor State structure
+     * ----------------
+     */
+    set_es_direction(state, EXEC_FRWD);
+    set_es_time(state, 0);
+    set_es_owner(state, 0);
+    set_es_locks(state, LispNil);
+    set_es_subplan_info(state, LispNil);
+    set_es_error_message(state, NULL);
+    set_es_range_table(state, LispNil);
+    
+    set_es_qualification_tuple(state, NULL);
+    set_es_qualification_tuple_id(state, NULL);
+    set_es_qualification_tuple_buffer(state, InvalidBuffer);
+    set_es_raw_qualification_tuple(state, NULL);
+    
+    set_es_relation_relation_descriptor(state, NULL);
+    set_es_into_relation_descriptor(state, NULL);
+    set_es_result_relation_info(state, NULL);
+
     tuplecount = MakeTupleCount(0, 	/* retrieved */
 				0, 	/* appended */
 				0, 	/* deleted */
@@ -158,29 +138,20 @@ CreateExecutorState()
 				0, 	/* inserted */
 				0); 	/* processed */
     
+    set_es_tuplecount(state, tuplecount);
+    
+    set_es_param_list_info(state, NULL);
+    set_es_prs2_info(state, NULL);
+    set_es_explain_relation(state, NULL);
+    
+    set_es_BaseId(state, 0);
+    set_es_tupleTable(state, NULL);
+
     /* ----------------
-     *	create the Executor State structure
+     *	return the executor state structure
      * ----------------
      */
-    state = MakeEState(direction,
-		       time,
-		       owner,
-		       locks,
-		       subPlanInfo,
-		       errorMessage,
-		       rangeTable,
-		       qualTuple,
-		       qualTupleID,
-		       (HeapTuple) NULL,
-		       relationRelationDesc,
-		       (Relation) NULL,
-		       resultRelationInfo,
-		       tuplecount,
-		       paramListInfo,
-		       prs2EStateInfo,
-		       explainRelation,
-		       baseid);
-       return state;
+    return state;
 }
 
 /* ----------------------------------------------------------------
