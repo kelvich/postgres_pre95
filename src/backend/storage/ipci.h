@@ -52,6 +52,10 @@ typedef uint32	IPCKey;
 	((key == PrivateIPCKey) ? key : 8 + (key))
 #define IPCKeyGetExecutorSharedMemoryKey(key) \
 	((key == PrivateIPCKey) ? key : 9 + (key))
+#ifdef sequent
+#define IPCKeyGetSLockSharedMemoryKey(key) \
+	((key == PrivateIPCKey) ? key : 10 + (key))
+#endif
 
 extern LockTableId	PageLockTableId;
 extern LockTableId	MultiLevelLockTableId;

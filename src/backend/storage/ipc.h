@@ -67,4 +67,33 @@ extern void IpcMemoryKill();
 
 extern int on_exitpg();
 
+#ifdef sequent
+/* ------------------
+ *  use hardware locks to replace semaphores for sequent machines
+ *  to avoid costs of swapping processes and to provide unlimited
+ *  supply of locks.
+ * ------------------
+ */
+#include <parallel/parallel.h>
+#define NSLOCKS		2048
+#define	NOLOCK		0
+#define SHAREDLOCK	1
+#define EXCLUSIVELOCK	2
+typedef struct slock {
+    slock_t		locklock;
+    unsigned char	flag;
+    short		nshlocks;
+    slock_t		shlock;
+    slock_t		exlock;
+    struct slock	*next;
+} SLock;
+extern void CreateAndInitSLockMemory();
+extern void AttachSLockMemory();
+extern int CreateLock();
+extern void RelinquishLock();
+extern void SharedLock();
+extern void SharedUnlock();
+extern void ExclusiveLock();
+extern void ExclusiveUnlock();
+#endif /* sequent */
 #endif	/* !defined(IPCIncluded) */

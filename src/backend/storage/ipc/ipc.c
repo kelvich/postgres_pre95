@@ -33,6 +33,7 @@
 
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
 #include "storage/ipc.h"
+#include "utils/log.h"
 
 int UsePrivateMemory = 0;
 
@@ -653,3 +654,174 @@ IpcMemoryKill(memKey)
 	shmctl(shmid, IPC_RMID, (struct shmid_ds *) 0);
     }
 } 
+
+#ifdef sequent
+/* ------------------
+ *  use hardware locks to replace semaphores for sequent machines
+ *  to avoid costs of swapping processes and to provide unlimited
+ *  supply of locks.
+ * ------------------
+ */
+static SLock *SLockArray;
+static SLock **FreeSLockPP;
+static int *UnusedSLockIP;
+static slock_t *SLockMemoryLock;
+static IpcMemoryId SLockMemoryId = -1;
+void
+CreateAndInitSLockMemory(key)
+IPCKey key;
+{
+    SLockMemoryId = IpcMemoryCreate(key,
+				    sizeof(SLock*) + 
+				    sizeof(int) +
+				    sizeof(slock_t) +
+				    NSLOCKS*sizeof(SLock),
+				    0700);
+    AttachSLockMemory();
+    *FreeSLockPP = NULL;
+    *UnusedSLockIP = 3;  /* 0, 1, 2 are reserved */
+    return;
+}
+
+void
+AttachSLockMemory()
+{
+    char *slockM;
+    if (SLockMemoryId == -1)
+	elog(FATAL, "SLockMemory not in shared memory");
+    slockM = IpcMemoryAttach(SLockMemoryId);
+    if (slockM == IpcMemAttachFailed)
+	elog(FATAL, "AttachSLockMemory: could not attach segment");
+    FreeSLockPP = (SLock**)slockM;
+    UnusedSLockIP = (int*)(FreeSLockPP + 1);
+    SLockMemoryLock = (slock_t*)(UnusedSLockIP + 1);
+    S_INIT_LOCK(SLockMemoryLock);
+    SLockArray = (SLock*)(SLockMemoryLock + 1);
+    return;
+}
+
+SemId
+CreateLock()
+{
+    int lockid;
+    SLock *slckP;
+
+    S_LOCK(SLockMemoryLock);
+    if (*FreeSLockPP != NULL) {
+       lockid = *FreeSLockPP - SLockArray;
+       *FreeSLockPP = (*FreeSLockPP)->next;
+      }
+    else {
+       lockid = *UnusedSLockIP;
+       (*UnusedSLockIP)++;
+     }
+    slckP = &(SLockArray[lockid]);
+    S_INIT_LOCK(&(slckP->locklock));
+    slckP->flag = NOLOCK;
+    slckP->nshlocks = 0;
+    S_INIT_LOCK(&(slckP->shlock));
+    S_INIT_LOCK(&(slckP->exlock));
+    slckP->next = NULL;
+    S_UNLOCK(SLockMemoryLock);
+    return lockid;
+}
+
+void
+RelinquishLock(lockid)
+int lockid;
+{
+    SLock *slckP;
+    slckP = &(SLockArray[lockid]);
+    S_LOCK(SLockMemoryLock);
+    slckP->next = *FreeSLockPP;
+    *FreeSLockPP = slckP;
+    S_UNLOCK(SLockMemoryLock);
+    return;
+}
+
+void
+SharedLock(lockid)
+SemId lockid;
+{
+    SLock *slckP;
+    slckP = &(SLockArray[lockid]);
+    S_LOCK(&(slckP->locklock));
+    switch (slckP->flag) {
+    case NOLOCK:
+       slckP->flag = SHAREDLOCK;
+       slckP->nshlocks = 1;
+       S_UNLOCK(&(slckP->locklock));
+       return;
+    case SHAREDLOCK:
+       (slckP->nshlocks)++;
+       S_UNLOCK(&(slckP->locklock));
+       return;
+    case EXCLUSIVELOCK:
+       (slckP->nshlocks)++;
+       S_UNLOCK(&(slckP->locklock));
+       S_LOCK(&(slckP->shlock));
+       SharedLock(lockid);
+       return;
+     }
+}
+
+void
+SharedUnlock(lockid)
+SemId lockid;
+{
+    SLock *slckP;
+    slckP = &(SLockArray[lockid]);
+    S_LOCK(&(slckP->locklock));
+    (slckP->nshlocks)--;
+    if (slckP->nshlocks == 0) {
+       slckP->flag = NOLOCK;
+       S_UNLOCK(&(slckP->exlock));
+     }
+    S_UNLOCK(&(slckP->locklock));
+    return;
+}
+
+void
+ExclusiveLock(lockid)
+SemId lockid;
+{
+    SLock *slckP;
+    slckP = &(SLockArray[lockid]);
+    S_LOCK(&(slckP->locklock));
+    switch (slckP->flag) {
+    case NOLOCK:
+	slckP->flag = EXCLUSIVELOCK;
+	S_UNLOCK(&(slckP->locklock));
+	return;
+    case SHAREDLOCK:
+    case EXCLUSIVELOCK:
+	S_UNLOCK(&(slckP->locklock));
+	S_LOCK(&(slckP->exlock));
+	ExclusiveLock(lockid);
+	return;
+      }
+}
+
+void
+ExclusiveUnlock(lockid)
+SemId lockid;
+{
+    SLock *slckP;
+    slckP = &(SLockArray[lockid]);
+    S_LOCK(&(slckP->locklock));
+    /* -------------
+     *  give favor to read processes
+     * -------------
+     */
+    slckP->flag = NOLOCK;
+    if (slckP->nshlocks > 0) {
+	slckP->nshlocks = 0;
+	S_UNLOCK(&(slckP->shlock));
+      }
+    else {
+      S_UNLOCK(&(slckP->exlock));
+     }
+    S_UNLOCK(&(slckP->locklock));
+    return;
+}
+#endif /* sequent */

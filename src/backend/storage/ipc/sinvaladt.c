@@ -53,7 +53,11 @@
  * 		lock table holding buffer locks
  * ----------------
  */
+#ifdef sequent
+LockId SharedInvalidationLockId;
+#else
 IpcSemaphoreId	SharedInvalidationSemaphore;
+#endif
 SISeg		*shmInvalBuffer;	
 extern BackendId MyBackendId;
 
@@ -944,6 +948,9 @@ void
 SISyncInit(key)
     IPCKey	key;
 {
+#ifdef sequent
+    SharedInvalidationLockId = 2;  /* a fixed lock */
+#else /* sequent */
     int status;
     SharedInvalidationSemaphore =
     	IpcSemaphoreCreate(key, 1, IPCProtection, SI_LockStartValue,
@@ -951,49 +958,68 @@ SISyncInit(key)
     if(0) { /* XXX use validity function and check status */
     	elog(FATAL, "SISynchInit: %m");
     }
+#endif /* sequent */
 }
 
 void
 SISyncKill(key)
     IPCKey	key;
 {
+#ifndef sequent
     IpcSemaphoreKill(key);
+#endif
 }
 
 
 void
 SIReadLock()
 {
+#ifdef sequent
+    SharedLock(SharedInvalidationLockId);
+#else /* sequent */
     IpcSemaphoreLock ( SharedInvalidationSemaphore ,
 		       0 , 
 		       SI_SharedLock );
+#endif /* sequent */
 }
 
 
 void
 SIWriteLock()
 {
+#ifdef sequent
+    ExclusiveLock(SharedInvalidationLockId);
+#else /* sequent */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0 ,
 		      SI_ExclusiveLock );
+#endif /* sequent */
 }
 
 
 void
 SIReadUnlock()
 {
+#ifdef sequent
+    SharedUnlock(SharedInvalidationLockId);
+#else /* sequent */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       (- SI_SharedLock) );
+#endif /* sequent */
 }
 
 
 void
 SIWriteUnlock()
 {
+#ifdef sequent
+    ExclusiveUnlock(SharedInvalidationLockId);
+#else /* sequent */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       ( - SI_ExclusiveLock ) );
+#endif /* sequent */
 }
 
 

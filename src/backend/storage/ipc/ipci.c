@@ -52,6 +52,13 @@ CreateSharedMemoryAndSemaphores(key)
     LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
     LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
 
+#ifdef sequent
+    /* ---------------
+     *  create shared memory for slocks
+     * --------------
+     */
+    CreateAndInitSLockMemory(IPCKeyGetSLockSharedMemoryKey(key));
+#endif
     /* ----------------
      *	kill and create the buffer manager buffer pool (and semaphore)
      * ----------------
@@ -111,6 +118,13 @@ AttachSharedMemoryAndSemaphores(key)
 	return;
     }
 
+#ifdef sequent
+    /* ----------------
+     *  attach the slock shared memory
+     * ----------------
+     */
+    AttachSLockMemory();
+#endif
     /* ----------------
      *	attach the buffer manager buffer pool (and semaphore)
      * ----------------
