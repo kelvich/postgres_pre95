@@ -22,7 +22,8 @@ NROFF=nroff
 NROFFOPTS=${MACROS}
 
 GROFF=groff -spt
-GROFFOPTS=${MACROS} -T${PRDEV}
+#GROFFOPTS=${MACROS} -T${PRDEV}
+GROFFOPTS= -T${PRDEV} tmac.an.old
 
 SOELIM=gsoelim
 
