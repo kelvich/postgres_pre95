@@ -43,6 +43,7 @@ static char sccsid[] = "@(#)fts.c	5.40 (Berkeley) 7/23/92";
 #include <fts.h>
 /*#include <stdlib.h>*/
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include "tmp/libpq-fs.h"
 
@@ -839,8 +840,16 @@ fts_sort(sp, head, nitems)
 	 */
 	if (nitems > sp->fts_nitems) {
 		sp->fts_nitems = nitems + 40;
-		if ((sp->fts_array = (FTSENT **)realloc(sp->fts_array,
-		    (size_t)(sp->fts_nitems * sizeof(FTSENT *)))) == NULL) {
+		if (sp->fts_array == NULL)
+			sp->fts_array = (FTSENT **)
+			    malloc((size_t)(sp->fts_nitems *
+					    sizeof(FTSENT *)));
+		else
+			sp->fts_array = (FTSENT **)
+			    realloc(sp->fts_array,
+				    (size_t)(sp->fts_nitems *
+					     sizeof(FTSENT *)));
+		if (sp->fts_array == NULL) {
 			sp->fts_nitems = 0;
 			return (head);
 		}
