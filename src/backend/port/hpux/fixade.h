@@ -18,6 +18,7 @@
 #define FixadeIncluded	1
 
 #if !defined(NOFIXADE)
+
 #if defined(HP_S500_ALIGN)
 /* ----------------
  *	This cheesy hack turns ON unaligned-access fixup on H-P PA-RISC;
@@ -52,6 +53,11 @@ struct HP_TOO_BOGUS {
 };
 #endif /* BROKEN_STRUCT_INIT */
 #endif /* HP_S500_ALIGN */
+
+#if defined(WEAK_C_OPTIMIZER)
+#pragma OPT_LEVEL 1
+#endif /* WEAK_C_OPTIMIZER */
+
 #endif /* !NOFIXADE */
 
 #endif /* !FixadeIncluded */
