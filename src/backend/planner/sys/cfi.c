@@ -64,6 +64,7 @@ index_info (not_first,relid)
     LispValue ikey = LispNil;
     LispValue iord = LispNil;
     LispValue am_ops = LispNil;
+    List returnList;
     
     /*    Retrieve information for a single index (if there is another one). */
     if(1 == IndexCatalogInformation (not_first,
@@ -90,16 +91,21 @@ index_info (not_first,relid)
 	
 	for (i = _MAX_KEYS_+18 ; i > 18; --i ) 
 	  am_ops = lispCons(lispInteger(indexinfo[i]),iord);
-	
-	return(lispCons (lispInteger(indexinfo[0]),
-			 lispCons(lispInteger(indexinfo[1]),
-				  lispCons(lispInteger(indexinfo[2]),
-					   lispCons(ikey,
-						    lispCons(iord,
-							     lispCons
-							     (am_ops,
-							      LispNil)
-							     ))))));
+
+	/*
+	 * Cons up a list the old fashioned way -- with an intermediate
+	 * variable.  I just could not get the old statement to stop screen
+	 * wrapping and becoming unreadable.  -mer
+	 */
+	returnList = lispCons(lispInteger(indexinfo[27]), LispNil);
+	returnList = lispCons(am_ops, returnList);
+	returnList = lispCons(iord, returnList);
+	returnList = lispCons(ikey, returnList);
+	returnList = lispCons(lispInteger(indexinfo[2]), returnList);
+	returnList = lispCons(lispInteger(indexinfo[1]), returnList);
+	returnList = lispCons(lispInteger(indexinfo[0]), returnList);
+
+	return (returnList);
     }
     return(NULL);
 }
