@@ -1564,6 +1564,7 @@ _copyParam(from, to, alloc)
 	newnode->paramname = (Name) NULL;
     
     newnode->paramtype = from->paramtype;
+    Node_Copy(from, newnode, alloc, param_tlist);
     
     (*to) = newnode;
     return true;

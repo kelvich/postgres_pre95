@@ -787,6 +787,7 @@ _outParam(str, node)
 	Param	node;
 {
 	char buf[500];
+	char *s;
 
 	sprintf(buf, "param");
 	appendStringInfo(str,buf);
@@ -798,6 +799,8 @@ _outParam(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :paramtype %ld", node->paramtype);
 	appendStringInfo(str,buf);
+	s = lispOut(node->param_tlist);
+	appendStringInfo(str, s);
 
 }
 

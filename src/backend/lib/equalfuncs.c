@@ -264,6 +264,8 @@ _equalParam(a, b)
 		return (false);
 	if (a->paramtype != b->paramtype)
 		return (false);
+	if (!equal(a->param_tlist, b->param_tlist))
+  	        return (false);
 
 	switch (a->paramkind) {
 	    case PARAM_NAMED:
