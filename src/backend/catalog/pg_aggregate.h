@@ -31,24 +31,25 @@
  *	cpp turns this into typedef struct FormData_pg_aggregate
  *
  *  aggname		Name of the aggregate
- *  xitionfunc1		transition function 1
- *  xitionfunc2		transition function 2
- *  finalfunc		final function - produces the aggregate value
- *  inttype		output type for xition funcs
- *  fintype		output type for final func
- *  initaggval		initial aggregate value
- *  initsecval		initial value for transition state 2
+ *  aggtransfn1		transition function 1
+ *  aggtransfn2		transition function 2
+ *  aggfinalfn		final function
+ *  aggtranstype	output type for xition funcs
+ *  aggfinaltype	output type for final func
+ *  agginitval1		initial aggregate value
+ *  agginitval2		initial value for transition state 2
  * ----------------------------------------------------------------
  */ 
 CATALOG(pg_aggregate) {
     char16 		aggname;
-    regproc	 	xitionfunc1;
-    regproc		xitionfunc2;
-    regproc 		finalfunc;
-    oid			inttype;
-    oid			fintype;
-    text		initaggval;	/* VARIABLE LENGTH FIELD */
-    text		initsecval;	/* VARIABLE LENGTH FIELD */
+    oid			aggowner;
+    regproc	 	aggtransfn1;
+    regproc		aggtransfn2;
+    regproc 		aggfinalfn;
+    oid			aggtranstype;
+    oid			aggfinaltype;
+    text		agginitval1;	/* VARIABLE LENGTH FIELD */
+    text		agginitval2;	/* VARIABLE LENGTH FIELD */
 } FormData_pg_aggregate;
 
 /* ----------------
@@ -58,22 +59,21 @@ CATALOG(pg_aggregate) {
  */
 typedef FormData_pg_aggregate	*Form_pg_aggregate;
 
-#define AggregateTupleFormData FormData_pg_aggregate;
-
 /* ----------------
  *	compiler constants for pg_aggregate
  * ----------------
  */
 #define Name_pg_aggregate		"pg_aggregate"
-#define Natts_pg_aggregate		8
+#define Natts_pg_aggregate		9
 #define Anum_pg_aggregate_aggname	1
-#define Anum_pg_aggregate_xitionfunc1	2
-#define Anum_pg_aggregate_xitionfunc2	3
-#define Anum_pg_aggregate_finalfunc	4
-#define Anum_pg_aggregate_inttype	5
-#define Anum_pg_aggregate_fintype	6
-#define Anum_pg_aggregate_initaggval	7
-#define Anum_pg_aggregate_initsecval	8
+#define Anum_pg_aggregate_aggowner	2
+#define Anum_pg_aggregate_aggtransfn1	3
+#define Anum_pg_aggregate_aggtransfn2	4
+#define Anum_pg_aggregate_aggfinalfn	5
+#define Anum_pg_aggregate_aggtranstype	6
+#define Anum_pg_aggregate_aggfinaltype	7
+#define Anum_pg_aggregate_agginitval1	8
+#define Anum_pg_aggregate_agginitval2	9
 
 
 /* ----------------
@@ -81,62 +81,26 @@ typedef FormData_pg_aggregate	*Form_pg_aggregate;
  * ---------------
  */
 
-DATA(insert OID = 0 ( int4ave   int4pl  int4inc  int4div  23  23 0  0 ));
-DATA(insert OID = 0 ( int2ave   int2pl  int2inc  int2div  21  21 0  0 ));
-DATA(insert OID = 0 ( float4ave float4pl float4inc float4div 700  700 0.0 0.0 ));
-DATA(insert OID = 0 ( float8ave float8pl float8inc float8div 701  701 0.0 0.0 ));
+DATA(insert OID = 0 ( int4ave   PGUID int4pl  int4inc  int4div  23  23 0  0 ));
+DATA(insert OID = 0 ( int2ave   PGUID int2pl  int2inc  int2div  21  21 0  0 ));
+DATA(insert OID = 0 ( float4ave PGUID float4pl float4inc float4div 700  700 0.0 0.0 ));
+DATA(insert OID = 0 ( float8ave PGUID float8pl float8inc float8div 701  701 0.0 0.0 ));
 
-DATA(insert OID = 0 ( int4sum   int4pl   - -  23  23  0   _null_ ));
-DATA(insert OID = 0 ( int2sum   int2pl   - -  21  21  0   _null_ ));
-DATA(insert OID = 0 ( float4sum float4pl - - 700  700 0.0 _null_ ));
-DATA(insert OID = 0 ( float8sum float8pl - - 701  701 0.0 _null_ ));
+DATA(insert OID = 0 ( int4sum   PGUID int4pl   - -  23  23  0   _null_ ));
+DATA(insert OID = 0 ( int2sum   PGUID int2pl   - -  21  21  0   _null_ ));
+DATA(insert OID = 0 ( float4sum PGUID float4pl - - 700  700 0.0 _null_ ));
+DATA(insert OID = 0 ( float8sum PGUID float8pl - - 701  701 0.0 _null_ ));
 
-DATA(insert OID = 0 ( int4max   int4larger   - -  23  23  _null_ _null_ ));
-DATA(insert OID = 0 ( int2max   int2larger   - -  21  21  _null_ _null_ ));
-DATA(insert OID = 0 ( float4max float4larger - - 700  700 _null_ _null_ ));
-DATA(insert OID = 0 ( float8max float8larger - - 701  701 _null_ _null_ ));
+DATA(insert OID = 0 ( int4max   PGUID int4larger   - -  23  23  _null_ _null_ ));
+DATA(insert OID = 0 ( int2max   PGUID int2larger   - -  21  21  _null_ _null_ ));
+DATA(insert OID = 0 ( float4max PGUID float4larger - - 700  700 _null_ _null_ ));
+DATA(insert OID = 0 ( float8max PGUID float8larger - - 701  701 _null_ _null_ ));
 
-DATA(insert OID = 0 ( int4min   int4smaller   - -  23  23  _null_ _null_ ));
-DATA(insert OID = 0 ( int2min   int2smaller   - -  21  21  _null_ _null_ ));
-DATA(insert OID = 0 ( float4min float4smaller - - 700  700 _null_ _null_ ));
-DATA(insert OID = 0 ( float8min float8smaller - - 701  701 _null_ _null_ ));
+DATA(insert OID = 0 ( int4min   PGUID int4smaller   - -  23  23  _null_ _null_ ));
+DATA(insert OID = 0 ( int2min   PGUID int2smaller   - -  21  21  _null_ _null_ ));
+DATA(insert OID = 0 ( float4min PGUID float4smaller - - 700  700 _null_ _null_ ));
+DATA(insert OID = 0 ( float8min PGUID float8smaller - - 701  701 _null_ _null_ ));
 
-DATA(insert OID = 0 ( count     int4inc  - -  23  23  0   _null_ ));
-
-/* ----------------
- *	old definition of struct aggregate
- * ----------------
- */
-#ifndef struct_aggregate_Defined
-#define struct_aggregate_Defined 1
-
-struct	aggregate {
-	char	aggname[16];
-	OID	xitionfunc1;
-	OID	xitionfunc2;
-	OID	finalfunc;
-	OID 	inttype;
-	OID 	fintype;
-	Datum   initaggval;
-	Datum   initsecval;
-}
-;
-#endif struct_aggregate_Defined
-
-#define AggregateNameAttributeNumber \
-   Anum_pg_aggregate_aggname
-#define AggregateIntFunc1AttributeNumber \
-   Anum_pg_aggregate_xitionfunc1
-#define AggregateIntFunc2AttributeNumber \
-   Anum_pg_aggregate_xitionfunc2
-#define AggregateFinFuncAttributeNumber \
-   Anum_pg_aggregate_finalfunc
-#define AggregateRelationNumberOfAttributes \
-   Natts_pg_aggregate
-#define AggregateInternalTypeAttributeNumber \
-   Anum_pg_aggregate_inttype
-#define AggregateFinalTypeAttributeNumber \
-   Anum_pg_aggregate_fintype
-
+DATA(insert OID = 0 ( count     PGUID - int4inc - 23 23 0 _null_ ));
 
 #endif PgAggregateIncluded
