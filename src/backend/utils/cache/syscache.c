@@ -4,6 +4,7 @@
  *	
  *   DESCRIPTION
  *	System cache management routines
+ *	Contents of cache_info[]
  *
  *   INTERFACE ROUTINES
  *	SearchSysCacheTuple()
