@@ -14,7 +14,7 @@ static	char	ami_lexer_l[] = "$Header$";
 #include "tmp/portal.h" 
 
 #undef BOOTSTRAP
-#include "y.tab.h"
+#include "bootstrap.h"
 
 int	yylval;
 int yycolumn,yyline;
