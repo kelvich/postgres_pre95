@@ -1069,11 +1069,11 @@ opt_time_range:
 		{ printf("snapshot\n"); fflush(stdout);
 		p_trange = MakeTimeRange($2,LispNil,0); $$ = (LispValue)2; }
 	| /*EMPTY*/
-		{ p_trange = LispNil; $$ = (LispValue)0; }
+		{ p_trange = lispInteger(0); $$ = lispInteger(0); }
 	;
 opt_date:
 	  /* no date, default to nil */
-		{ $$ = LispNil; }
+		{ $$ = lispString("now"); }
 	| date
 	;
  /**********************************************************************
