@@ -577,6 +577,7 @@ HandleDeadLock()
   lock = MyProc->waitLock;
   lockt = (LOCKT) MyProc->token;
 
+#if 0
   /* ----------------------
    * Decrement the holders fields since we can wait no longer.
    * the name hodlers is misleading, it represents the sum of the number
@@ -584,7 +585,14 @@ HandleDeadLock()
    * of waiting processes trying to acquire the lock.
    * ----------------------
    */
+  /*
+   * pma observes on 1/31/94: this is already done by the code in
+   * WaitOnLock that handles all ProcSleep failures, leading to
+   * wacky double-decrement problems.  (How the heck this worked
+   * before on Ultrix is beyond me...)
+   */
   LockDecrWaitHolders(lock, lockt);
+#endif
 
   /* ------------------------
    * Get this process off the lock's wait queue
