@@ -180,7 +180,7 @@ int entry_addr;
 
 			q = strings + (table_entry->n_un.n_strx - 4) + 1;
 
-			strcpy(scanner->funcname, q);
+			scanner->funcname= (char *)strcpy(malloc(strlen(q)+1),q);
 			scanner->func = (func_ptr) (table_entry->n_value + entry_addr);
 			scanner->next = NULL;
 		}

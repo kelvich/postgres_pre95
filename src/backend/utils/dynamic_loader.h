@@ -32,7 +32,7 @@ extern FList ExtSyms[];
 
 typedef struct df_list
 {
-    char funcname[16];				/* Name of function */
+    char *funcname;				/* Name of function */
     func_ptr func;					/* Function address */
     struct df_list *next;
 }
