@@ -1254,7 +1254,7 @@ res_target_el:
 			if (attrtype != type_id)
 				elog(WARN, "unequal type in tlist\n");
 			if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
-			   == -1 ) {
+			   != -1 ) {
 			    elog(WARN,"two or more occurence of same attr");
 			} else {
 			    p_target_resnos = lispCons( lispInteger(resdomno),
@@ -1508,9 +1508,11 @@ lispAssoc ( element, list)
 {
     LispValue temp = list;
     int i = 0;
-    /* if (list == LispNil) 
-      return -1; */
-    while (! lispNullp (temp)) {
+    if (list == LispNil) 
+      return -1; 
+    printf("Looking for %d", CInteger(element));
+
+    while (temp != LispNil ) {
 	if(CInteger(CAR(temp)) == CInteger(element))
 	  return i;
 	temp = CDR(temp);
