@@ -49,7 +49,7 @@
 /*
  *	local data structures
  */
-int MyPid;	/* int representing the process id */
+int MyPid = -1;	/* int representing the process id */
 static ProcessNode *SlaveArray, *FreeSlaveP;
 int NumberOfFreeSlaves;
 ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
@@ -577,10 +577,14 @@ void
 freeProcGroup(gid)
 int gid;
 {
-    ProcessNode *p;
+    ProcessNode *p, *nextp;
 
-    for (p=ProcGroupLocalInfoP[gid].memberProc; p!=NULL; p=p->next)
+    p=ProcGroupLocalInfoP[gid].memberProc;
+    while (p != NULL) {
+	nextp = p->next;
 	freeSlave(p->pid);
+	p = nextp;
+      }
     ProcGroupInfoP[gid].status = IDLE;
     ProcGroupLocalInfoP[gid].fragment = NULL;
     ProcGroupLocalInfoP[gid].nmembers = 0;
