@@ -43,7 +43,8 @@ The defaults are to the local machine (localhost) and to the default port
 (4321).
 .uh "SEE ALSO"
 .lp
-destroydb(unix).
+destroydb(unix),
+initdb(unix).
 .uh DIAGNOSTICS
 .lp
 You are not a valid \*(PP user
