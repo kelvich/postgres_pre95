@@ -984,6 +984,7 @@ _readFunc()
 		local_node->funcisindex = false;
 	}
 	local_node->func_fcache = (FunctionCache *) NULL;
+	local_node->func_tlist = LispNil;
 	
 	return(local_node);
 }
@@ -1076,6 +1077,7 @@ _readParam()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	local_node->paramtype = atol(token);
+	local_node->param_tlist = LispNil;
 	
 	return(local_node);
 }
