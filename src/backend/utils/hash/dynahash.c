@@ -34,9 +34,13 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.11  1992/03/05 23:25:29  mer
-    feeble attempt at speed up
+    Revision 1.12  1992/03/30 00:10:43  mer
+    cut down on calls to hash functions by saving some state
+    .,
 
+ * Revision 1.11  1992/03/05  23:25:29  mer
+ * feeble attempt at speed up
+ *
  * Revision 1.10  91/11/12  20:20:29  mer
  * prototyping changes
  * 
@@ -494,7 +498,10 @@ int *
 hash_search(hashp, keyPtr, action, foundPtr)
 HTAB		*hashp;
 char		*keyPtr;
-HASHACTION	action;		/* HASH_FIND/HASH_ENTER/HASH_REMOVE */
+HASHACTION	action;		/*
+				 * HASH_FIND / HASH_ENTER / HASH_REMOVE
+				 * HASH_FIND_SAVE / HASH_REMOVE_SAVED
+				 */
 Boolean	*foundPtr;
 {
 	uint32 bucket;
@@ -506,9 +513,14 @@ Boolean	*foundPtr;
 	BUCKET_INDEX	currIndex;
 	BUCKET_INDEX	*prevIndexPtr;
 	char *		destAddr;
+	static struct State {
+		ELEMENT      *currElem;
+		BUCKET_INDEX currIndex;
+		BUCKET_INDEX *prevIndex;
+	} saveState;
 
 	Assert((hashp && keyPtr));
-	Assert((action == HASH_FIND)||(action == HASH_REMOVE)||(action==HASH_ENTER));
+	Assert((action == HASH_FIND) || (action == HASH_REMOVE) || (action == HASH_ENTER) || (action == HASH_FIND_SAVE) || (action == HASH_REMOVE_SAVED));
 
 	hctl = hashp->hctl;
 
@@ -516,32 +528,45 @@ Boolean	*foundPtr;
 	hash_accesses++;
 	hashp->hctl->accesses++;
 # endif
-	bucket = call_hash(hashp, keyPtr, hctl->keysize);
-	segment_num = bucket >> hctl->sshift;
-	segment_ndx = bucket & ( hctl->ssize - 1 );
+	if (action == HASH_REMOVE_SAVED)
+	{
+	    curr = saveState.currElem;
+	    currIndex = saveState.currIndex;
+	    prevIndexPtr = saveState.prevIndex;
+	    /*
+	     * Try to catch subsequent errors
+	     */
+	    Assert(saveState.currElem && !(saveState.currElem = 0));
+	}
+	else
+	{
+	    bucket = call_hash(hashp, keyPtr, hctl->keysize);
+	    segment_num = bucket >> hctl->sshift;
+	    segment_ndx = bucket & ( hctl->ssize - 1 );
 
-	segp = GET_SEG(hashp,segment_num);
+	    segp = GET_SEG(hashp,segment_num);
 
-	Assert(segp);
+	    Assert(segp);
 
-	prevIndexPtr = &segp[segment_ndx];
-	currIndex = *prevIndexPtr;
+	    prevIndexPtr = &segp[segment_ndx];
+	    currIndex = *prevIndexPtr;
  /*
   * Follow collision chain
   */
-	for (curr = NULL;currIndex != INVALID_INDEX;) {
+	    for (curr = NULL;currIndex != INVALID_INDEX;) {
 	  /* coerce bucket index into a pointer */
-	  curr = GET_BUCKET(hashp,currIndex);
+	      curr = GET_BUCKET(hashp,currIndex);
 
-	  if (! bcmp((char *)&(curr->key), keyPtr, hctl->keysize)) {
-	    break;
-	  } 
-	  prevIndexPtr = &(curr->next);
-	  currIndex = *prevIndexPtr;
+	      if (! bcmp((char *)&(curr->key), keyPtr, hctl->keysize)) {
+	        break;
+	      } 
+	      prevIndexPtr = &(curr->next);
+	      currIndex = *prevIndexPtr;
 # if HASH_STATISTICS
-	  hash_collisions++;
-	  hashp->hctl->collisions++;
+	      hash_collisions++;
+	      hashp->hctl->collisions++;
 # endif
+	    }
 	}
 
 	/*
@@ -555,6 +580,7 @@ Boolean	*foundPtr;
 	    return(&(curr->key));
 	  break;
 	case HASH_REMOVE:
+	case HASH_REMOVE_SAVED:
 	  if (currIndex != INVALID_INDEX) {
 	    Assert(hctl->nkeys > 0);
 	    hctl->nkeys--;
@@ -574,6 +600,15 @@ Boolean	*foundPtr;
 	case HASH_FIND:
 	  if (currIndex != INVALID_INDEX)
 	    return(&(curr->key));
+	  return((int *)TRUE);
+	case HASH_FIND_SAVE:
+	  if (currIndex != INVALID_INDEX)
+	  {
+	      saveState.currElem = curr;
+	      saveState.prevIndex = prevIndexPtr;
+	      saveState.currIndex = currIndex;
+	      return(&(curr->key));
+	  }
 	  return((int *)TRUE);
 	default:
 	  /* can't get here */
