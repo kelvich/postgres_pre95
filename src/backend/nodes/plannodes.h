@@ -432,7 +432,7 @@ class (Sort) public (Temp) {
 class (Agg) public (Temp) {
 #define AggDefs \
 	inherits2(Temp); \
-	Name                    aggname; \
+	String                  aggname; \
 	AggState                aggstate
     /* private */
 	AggDefs;
