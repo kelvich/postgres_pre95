@@ -62,6 +62,6 @@ typedef FormData_pg_amproc	*Form_pg_amproc;
  * ----------------
  */
 
-DATA(insert OID = 0 (  400 421  95 1 btreesel btreenpage ));
+/* DATA(insert OID = 0 (  400 421  95 1 btreesel btreenpage )); */
 
 #endif PgAmprocIncluded
