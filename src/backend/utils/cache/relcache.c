@@ -266,6 +266,7 @@ ScanPgRelation(buildinfo)
     RelationBuildDescInfo buildinfo;    
 {
     HeapTuple	 pg_relation_tuple;
+    HeapTuple	 return_tuple;
     Relation	 pg_relation_desc;
     HeapScanDesc pg_relation_scan;
     ScanKeyData	 key;
@@ -304,6 +305,16 @@ ScanPgRelation(buildinfo)
 	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
     pg_relation_tuple = heap_getnext(pg_relation_scan, 0, (Buffer *)NULL);
 
+    /* ------------------
+     *  a satanic bug used to live here: pg_relation_tuple used to be
+     *  returned here without having the corresponding buffer pinned.
+     *  so when the buffer gets replaced, all hell breaks loose.
+     *  this bug is discovered and killed by wei on 9/27/91.
+     * -------------------
+     */
+    return_tuple = (HeapTuple)palloc(pg_relation_tuple->t_len);
+    bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
+
     /* ----------------
      *	close the relation
      * ----------------
@@ -318,7 +329,7 @@ ScanPgRelation(buildinfo)
     if (! HeapTupleIsValid(pg_relation_tuple))
 	return NULL;
 
-    return pg_relation_tuple;
+    return return_tuple;
 }
 
 /* ----------------
@@ -606,6 +617,12 @@ RelationBuildDesc(buildinfo)
      */
     
     RelationCacheInsert(relation);
+
+    /* -------------------
+     *  free the memory allocated for pg_relation_tuple
+     * -------------------
+     */
+    pfree(pg_relation_tuple);
 
     MemoryContextSwitchTo(oldcxt);
     
