@@ -118,15 +118,26 @@ bttextcmp(a, b)
     ap = VARDATA(a);
     bp = VARDATA(b);
 
+    /* len is the length of the shorter of the two strings */
     if ((len = VARSIZE(a)) > VARSIZE(b))
 	len = VARSIZE(b);
 
-    while (*ap == *bp && len != 0) {
-	ap++;
-	bp++;
-	--len;
-    }
-    if (len)
-	return ((*ap < *bp) ? -1 : 1);
-    return 0;
+    /*
+     *  If the two strings differ in the first len bytes, or if they're
+     *  the same in the first len bytes and they're both len bytes long,
+     *  we're done.
+     */
+
+    if ((res = strncmp(ap, bp, len)) != 0 || VARSIZE(a) == VARSIZE(b))
+	return (res);
+
+    /*
+     *  The two strings are the same in the first len bytes, and they
+     *  are of different lengths.
+     */
+
+    if (VARSIZE(a) < VARSIZE(b))
+	return (-1);
+    else
+	return (1);
 }
