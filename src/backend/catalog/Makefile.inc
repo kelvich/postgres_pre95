@@ -35,7 +35,7 @@ GENBKI= ${CATD}/genbki.sh
 BKIFILES= global1.bki local1_template1.bki 
 
 GLOBALBKI_SRCS= pg_database.h pg_demon.h pg_magic.h pg_defaults.h \
-	pg_variable.h pg_server.h pg_user.h pg_log.h pg_time.h
+	pg_variable.h pg_server.h pg_user.h pg_group.h pg_log.h pg_time.h
 
 LOCALBKI_SRCS= pg_proc.h pg_type.h pg_attribute.h pg_relation.h \
 	pg_inherits.h pg_index.h pg_version.h pg_statistic.h pg_operator.h \
