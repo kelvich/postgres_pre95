@@ -433,6 +433,7 @@ LOCK *		lock;
    */
   timeval.it_value.tv_sec = 0;
 
+
   if (setitimer(ITIMER_REAL, &timeval, &dummy))
 	elog(FATAL, "ProcSleep: Unable to diable timer for process wakeup");
 
@@ -449,19 +450,27 @@ LOCK *		lock;
 
 /*
  * ProcWakeup -- wake up a process by releasing its private semaphore.
+ *
+ *   remove the process from the wait queue and set its links invalid.
+ *   RETURN: the next process in the wait queue.
  */
-void
+PROC *
 ProcWakeup(proc, errType)
 PROC	*proc;
 int	errType;
 {
+  PROC *retProc;
   /* assume that spinlock has been acquired */
 
+  retProc = (PROC *) MAKE_PTR(proc->links.prev);
   SHMQueueDelete(&(proc->links));
 
   proc->errType = errType;
+  SHMQueueElemInit(&(proc->links));
 
   IpcSemaphoreUnlock(proc->sem.semId, proc->sem.semNum, IpcExclusiveLock);
+
+  return retProc;
 }
 
 
@@ -505,11 +514,12 @@ char *		lock;
      */
     GrantLock((LOCK *) lock, proc->token);
     queue->size--;
-    ProcWakeup(proc, NO_ERROR);
-    /* get next proc in chain.  If a writer just dropped its lock
-     * and there are several waiting readers, wake them all up.
+    /*
+     * ProcWakeup removes proc from the lock waiting process queue and
+     * returns the next proc in chain.  If a writer just dropped
+     * its lock and there are several waiting readers, wake them all up.
      */
-    proc = (PROC *) MAKE_PTR(proc->links.prev);
+    proc = ProcWakeup(proc, NO_ERROR);
 
     count++;
     if (queue->size == 0)
