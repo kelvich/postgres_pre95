@@ -15,7 +15,7 @@
 #ifndef	BTreeIncluded	/* Include this file only once. */
 #define BTreeIncluded	1
 
-#define DebuggingBtreeStuff 1
+/* #define DebuggingBtreeStuff 1 */
 
 /* ----------------------------------------------------------------
  *	btree access method include files
