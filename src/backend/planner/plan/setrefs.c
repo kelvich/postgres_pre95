@@ -189,29 +189,33 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
 				    rtlist,
 				    levelnum)));
     else if (IsA(clause,ArrayRef)) {
+      LispValue templist;
       Expr temp;
-      temp = replace_subclause_resultvar_refs(
-						  get_refupperindexpr((ArrayRef)clause),
-					      ltlist,
-					      rtlist,
-					      levelnum);
-      set_refupperindexpr((ArrayRef)clause,(LispValue)temp);
-      temp = replace_subclause_resultvar_refs(
-						  get_reflowerindexpr((ArrayRef)clause),
-					      ltlist,
-					      rtlist,
-					      levelnum);
-      set_reflowerindexpr((ArrayRef)clause,(LispValue)temp);
-      temp = replace_clause_resultvar_refs(get_refexpr((ArrayRef)clause),
-					      ltlist,
-					      rtlist,
-					      levelnum);
-      set_refexpr((ArrayRef)clause,(LispValue)temp);
-	  temp = replace_clause_resultvar_refs(get_refassgnexpr((ArrayRef)clause),
-                          ltlist,
-                          rtlist,
-                          levelnum);
-      set_refassgnexpr((ArrayRef)clause,(LispValue)temp);
+
+      templist =
+	  replace_subclause_resultvar_refs(get_refupperindexpr((ArrayRef)
+							       clause),
+					   ltlist,
+					   rtlist,
+					   levelnum);
+      set_refupperindexpr((ArrayRef) clause, templist);
+      templist =
+	  replace_subclause_resultvar_refs(get_reflowerindexpr((ArrayRef)
+							       clause),
+					   ltlist,
+					   rtlist,
+					   levelnum);
+      set_reflowerindexpr((ArrayRef) clause, templist);
+      temp = replace_clause_resultvar_refs(get_refexpr((ArrayRef) clause),
+					   ltlist,
+					   rtlist,
+					   levelnum);
+      set_refexpr((ArrayRef) clause, (LispValue) temp);
+      temp = replace_clause_resultvar_refs(get_refassgnexpr((ArrayRef) clause),
+					   ltlist,
+					   rtlist,
+					   levelnum);
+      set_refassgnexpr((ArrayRef) clause, (LispValue) temp);
       return(clause);
     }
     else if (is_funcclause ((LispValue)clause)) 
