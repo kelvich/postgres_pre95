@@ -374,4 +374,7 @@ extern int     NIndexTupleInserted;
  */
 #undef NOTYET
 
+extern int NDirectFileRead;
+extern int NDirectFileWrite;
+
 #endif  ExecDebugIncluded
