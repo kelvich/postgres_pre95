@@ -1,14 +1,9 @@
 /*
 
-Return-Path: jsmith@king.mcs.drexel.edu
-
-cc -Bstatic loader.c
-
-when this is executed by typing a.out it loads tst.o and calls it.
-
 !!!! Be sure that we close all open files up exit on the Sequent - the ld !!!!
      fails otherwise 
 
+	 $Header$
 */
 
 #include <pwd.h>
@@ -31,7 +26,7 @@ extern char pg_pathname[];
 #define FUDGE 10000
 
 static char *temp_file_name = NULL;
-static char *path = "/usr/tmp/postgresXXXXXX";
+static char *path = "/usr/tmp/postgres%6d";
 
 DynamicFunctionList *
 dynamic_file_load(err, filename, address, size)
@@ -40,8 +35,6 @@ char **err, *filename, **address;
 long *size;
 
 {
-	extern end;
-	extern char *mktemp();
 	extern char *valloc();
 
 	int nread;
@@ -51,8 +44,6 @@ long *size;
 	FILE *temp_file = NULL;
 	DynamicFunctionList *retval = NULL, *load_symbols();
 	int fd;
-
-/* commented out -lc */
 
 	fd = open(filename, O_RDONLY);
 
@@ -76,9 +67,8 @@ long *size;
 
 	if (temp_file_name == NULL)
 	{
-		temp_file_name = (char *)malloc(strlen(path) + 1);
-		strcpy(temp_file_name,path);
-		mktemp(temp_file_name);
+		temp_file_name = (char *)malloc(strlen(path) + 4);
+		sprintf(temp_file_name, path, getpid());
 	}
 
 	if(execld(load_address, temp_file_name, filename))
@@ -194,6 +184,7 @@ int entry_addr;
 
 	free(symb_table);
 	free(strings);
+	close(fd);
 	return(head);
 }
 
