@@ -1,6 +1,6 @@
 /*
  * define.c --
- *	define {procedure, operator, type} system commands
+ *	POSTGRES define (function | type | operator) utility code.
  *
  * NOTES:
  *	These things must be defined and committed in the following order:
@@ -9,18 +9,30 @@
  *		operators
  */
 
-#include <strings.h>
-#include "access.h"
+#include "c.h"
+
+RcsId("$Header$");
+
+#include <strings.h>	/* XXX style */
+#include "catalog.h"	/* XXX obsolete file, needed for (struct proc), etc. */
+
 #include "anum.h"
 #include "catname.h"
-#include "fmgr.h"
+#include "default.h"	/* for FetchDefault */
+#include "fmgr.h"	/* for fmgr */
 #include "ftup.h"
 #include "heapam.h"
+#include "htup.h"
 #include "log.h"
+#include "manip.h"
+#include "name.h"
+#include "parse.h"	/* for ARG */
+#include "pg_lisp.h"
+#include "rproc.h"
 #include "syscache.h"
 #include "tqual.h"
 
-RcsId("$Header$");
+#include "defrem.h"
 
 ObjectId	TypeGet();
 static ObjectId	OperatorGet();
@@ -51,7 +63,7 @@ TypeGet(typeName, defined)
 	HeapScanDesc	scan;
 	HeapTuple	tup;
 	static ScanKeyEntryData	typeKey[1] = {
-		{ 0, TypeNameAttributeNumber, F_CHAR16EQ }
+		{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
 	};
 	
 	Assert(NameIsValid(typeName));
@@ -92,9 +104,9 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
 	ObjectId		operatorObjectId;
 	bool			leftDefined = false, rightDefined = false;
 	static ScanKeyEntryData	operatorKey[3] = {
-		{ 0, OperatorNameAttributeNumber, F_CHAR16EQ },
-		{ 0, OperatorLeftAttributeNumber, F_OIDEQ },
-		{ 0, OperatorRightAttributeNumber, F_OIDEQ }
+		{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
+		{ 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
+		{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
 	};
 
 	Assert(NameIsValid(operatorName));
@@ -166,7 +178,10 @@ TypeShellMake(typeName)
 	values[i++] = (char *) InvalidObjectId;
 	values[i++] = (char *) InvalidObjectId;
 	values[i++] = (char *) InvalidObjectId;
-	values[i++] = fmgr(F_TEXTIN, (char *) typeName);
+	/*
+	 * ... and fill typdefault with a bogus value
+	 */
+	values[i++] = fmgr(TextInRegProcedure, (char *) typeName);
 
 	rdesc = RelationNameOpenHeapRelation(TypeRelationName);
 	tup = FormHeapTuple(TypeRelationNumberOfAttributes,
@@ -217,7 +232,10 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
 	values[i++] = (char *) operatorName;
 	values[i++] = (char *) InvalidObjectId;
 	values[i++] = (char *) (uint16) 0;
-	values[i++] = fmgr(F_CHARIN, "b");  
+	/*
+	 * ... and fill oprkind with a bogus value ...
+	 */
+	values[i++] = (char *)'b';
 	values[i++] = (char *) (Boolean) 0;
 	values[i++] = (char *) (Boolean) 0;
 	values[i++] = (char *) leftObjectId;
@@ -260,7 +278,7 @@ TypeDefine(typeName, internalSize, externalSize,
 	Relation 		rdesc;
 	HeapScanDesc 		sdesc;
 	static ScanKeyEntryData	typeKey[1] = {
-		{ 0, TypeNameAttributeNumber, F_CHAR16EQ }
+		{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
 	};
 	HeapTuple 		tup;
 	char 			nulls[TypeRelationNumberOfAttributes];
@@ -277,15 +295,12 @@ TypeDefine(typeName, internalSize, externalSize,
 	Assert(NameIsValid(inputProcedure) && NameIsValid(outputProcedure));
 
 	typeObjectId = TypeGet(typeName, &defined);
-	if (ObjectIdIsValid(typeObjectId) && defined)
+	if (ObjectIdIsValid(typeObjectId) && defined) {
 		elog(WARN, "TypeDefine: type %s already defined", typeName);
-	if (internalSize < 0)
-		elog(WARN, "TypeDefine: invalid internal length: %d",
-		     internalSize);
-	if (internalSize == 0)
-	        internalSize = -1;      /* variable length */
-	if (externalSize == 0)
+	}
+	if (externalSize == 0) {
 		externalSize = -1;	/* variable length */
+	}
 
 	for (i = 0; i < TypeRelationNumberOfAttributes; ++i) {
 		nulls[i] = ' ';
@@ -318,7 +333,7 @@ TypeDefine(typeName, internalSize, externalSize,
 			     procname);
 		values[i++] = (char *) tup->t_oid;
 	}
-	values[i] = fmgr(F_TEXTIN,
+	values[i] = fmgr(TextInRegProcedure,
 			 PointerIsValid(defaultTypeValue)
 			 ? defaultTypeValue
 			 : "-");	/* XXX default typdefault */
@@ -452,9 +467,9 @@ OperatorDef(operatorName, definedOK,
 	register		i, j;
 	Relation 		rdesc;
 	static ScanKeyEntryData	operatorKey[3] = {
-		{ 0, OperatorNameAttributeNumber, F_CHAR16EQ },
-		{ 0, OperatorLeftAttributeNumber, F_OIDEQ },
-		{ 0, OperatorRightAttributeNumber, F_OIDEQ }
+		{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
+		{ 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
+		{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
 	};
 	HeapScanDesc 		sdesc;
 	HeapTuple 		tup;
@@ -541,9 +556,8 @@ OperatorDef(operatorName, definedOK,
 	values[i++] = (char *) operatorName;
 	values[i++] = (char *) (ObjectId) getuid();
 	values[i++] = (char *) precedence;
-	values[i++] = fmgr(F_CHARIN,
-			   NameIsValid(leftTypeName) ?
-			   (NameIsValid(rightTypeName) ? "b" : "l") : "r");
+	values[i++] = (char *) (NameIsValid(leftTypeName) ?
+		(NameIsValid(rightTypeName) ? 'b' : 'l') : 'r');
 	values[i++] = (char *) isLeftAssociative;
 	values[i++] = (char *) canHash;
 	values[i++] = (char *) leftTypeId;
@@ -781,7 +795,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	languageObjectId = tup->t_oid;
 	typeObjectId = TypeGet(returnTypeName, &defined);
 	if (!ObjectIdIsValid(typeObjectId)) {
-		elog(DEBUG, "ProcedureDefine: return type %s not defined",
+		elog(NOTICE, "ProcedureDefine: return type %s not yet defined",
 		     returnTypeName);
 		typeObjectId = TypeShellMake(returnTypeName);
 		if (!ObjectIdIsValid(typeObjectId))
@@ -806,8 +820,8 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	values[i++] = (char *) typeObjectId;
 	{ 
 		/*  XXX Fix this when prosrc is used */
-		values[i++] = fmgr(F_TEXTIN, "-");	/* prosrc */
-		values[i++] = fmgr(F_TEXTIN, fileName);	/* probin */
+		values[i++] = fmgr(TextInRegProcedure, "-");	/* prosrc */
+		values[i++] = fmgr(TextInRegProcedure, fileName); /* probin */
 	}
 	rdesc = RelationNameOpenHeapRelation(ProcedureRelationName);
 	tup = FormHeapTuple(ProcedureRelationNumberOfAttributes,
@@ -837,4 +851,335 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	}
 	RelationCloseHeapRelation(rdesc);
 #endif /* USEPARGS */
+}
+
+void
+DefineFunction(name, parameters)
+	Name		name;
+	LispValue	parameters;
+{
+	String		returnTypeName;
+	String		languageName;
+	String		fileName;
+	bool		canCache;
+	Count		argCount;
+	TupleDesc	arg;
+	LispValue	argList;
+	LispValue	entry;
+
+	/*
+	 * Note:
+	 * XXX	Checking of "name" validity (16 characters?) is needed.
+	 */
+	AssertArg(NameIsValid(name));
+	AssertArg(listp(parameters));
+
+	/*
+	 * handle "[ language = X ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "language");
+	if (null(entry)) {
+		languageName = FetchDefault("language", "C");
+	} else {
+		languageName = DefineEntryGetString(entry);
+	}
+
+	/*
+	 * handle "file = X"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "file");
+	fileName = DefineEntryGetString(entry);
+
+	/*
+	 * handle "[ iscachable ]"
+	 */
+	entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
+	canCache = (bool)!null(entry);
+
+	/*
+	 * handle "returntype = X"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
+	returnTypeName = DefineEntryGetString(entry);
+
+	/*
+	 * handle "[ arg is (...) ]"
+	 * XXX fix optional arg handling below
+	 */
+	argList = LispRemoveMatchingSymbol(&parameters, ARG);
+	if (null(argList)) {
+		argCount = 0;
+		arg = NULL;
+	} else {
+		argCount = length(argList);
+		arg = NULL;			
+		if (argCount != 0) {
+			int		index;
+			LispValue	rest;
+
+			arg = CreateTemplateTupleDesc(argCount);
+			for (rest = argList; !null(rest); rest = CDR(rest)) {
+				if (!lispStringp(CAR(CAR(rest)))) {
+	elog(WARN, "DefineFunction: returntype = ?");
+				}
+			}
+		}
+		/*
+		 * XXX for now, arg is not passed on.
+		 */
+		argCount = 0;
+		arg = NULL;
+	}
+
+	DefineListAssertEmpty(parameters);
+
+	ProcedureDefine(name, returnTypeName, languageName, fileName,
+		canCache, argCount, arg);
+}
+
+void
+DefineType(name, parameters)
+	Name		name;
+	LispValue	parameters;
+{
+	LispValue	entry;
+	int16		internalLength;		/* int2 */
+	int16		externalLength;		/* int2 */
+	Name		inputName;
+	Name		outputName;
+	Name		sendName;
+	Name		receiveName;
+	char*		defaultValue;	/* Datum */
+	bool		byValue;	/* Boolean */
+
+	/*
+	 * Note:
+	 * XXX	Checking of "name" validity (16 characters?) is needed.
+	 */
+	AssertArg(NameIsValid(name));
+	AssertArg(listp(parameters));
+
+	/*
+	 * handle "internallength = (number | variable)"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters,
+		"internallength");
+	internalLength = DefineEntryGetLength(entry);
+
+	/*
+	 * handle "[ externallength = (number | variable) ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters,
+		"externallength");
+	externalLength = 0;		/* FetchDefault? */
+	if (!null(entry)) {
+		externalLength = DefineEntryGetLength(entry);
+	}
+
+	/*
+	 * handle "input = procedure"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "input");
+	inputName = DefineEntryGetName(entry);
+
+	/*
+	 * handle "output = procedure"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "output");
+	outputName = DefineEntryGetName(entry);
+
+	/*
+	 * handle "[ send = procedure ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "send");
+	sendName = NULL;
+	if (!null(entry)) {
+		sendName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ receive = procedure ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "receive");
+	receiveName = NULL;
+	if (!null(entry)) {
+		receiveName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ default = `...' ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "default");
+	defaultValue = NULL;
+	if (!null(entry)) {
+		defaultValue = DefineEntryGetString(entry);
+	}
+
+	/*
+	 * handle "[ passedbyvalue ]"
+	 */
+	entry = DefineListRemoveOptionalIndicator(&parameters, "passedbyvalue");
+	byValue = (bool)!null(entry);
+
+	DefineListAssertEmpty(parameters);
+
+	TypeDefine(name, internalLength, externalLength, inputName, outputName,
+		sendName, receiveName, defaultValue, byValue);
+}
+
+void
+DefineOperator(name, parameters)
+	Name		name;
+	LispValue	parameters;
+{
+	LispValue	entry;
+	Name 		functionName;	 	/* function for operator */
+	Name 		typeName1;	 	/* first type name */
+	Name 		typeName2;	 	/* optional second type name */
+	uint16 		precedence; 		/* operator precedence */
+	bool		canHash; 		/* operator hashes */
+	bool	isLeftAssociative; 	/* operator is left associative */
+	Name 	commutatorName;	 	/* optional commutator operator name */
+	Name 	negatorName;	 	/* optional negator operator name */
+	Name 	restrictionName;	/* optional restrict. sel. procedure */
+	Name 	joinName;	 	/* optional join sel. procedure name */
+	Name 	sortName1;	 	/* optional first sort operator */
+	Name 	sortName2;	 	/* optional second sort operator */
+
+	/*
+	 * Note:
+	 * XXX	Checking of "name" validity (16 characters?) is needed.
+	 */
+	AssertArg(NameIsValid(name));
+	AssertArg(listp(parameters));
+
+	/*
+	 * XXX ( ... arg1 = typname [ , arg2 = typname ] ... )
+	 * XXX is undocumented in the reference manual source as of 89/8/22.
+	 */
+	/*
+	 * handle "arg1 = typname"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "arg1");
+	typeName1 = DefineEntryGetName(entry);
+
+	/*
+	 * handle "[ arg2 = typname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "arg2");
+	typeName2 = NULL;
+	if (!null(entry)) {
+		typeName2 = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "procedure = proname"
+	 */
+	entry = DefineListRemoveRequiredAssignment(&parameters, "procedure");
+	functionName = DefineEntryGetName(entry);
+
+	/*
+	 * handle "[ precedence = number ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "precedence");
+	if (null(entry)) {
+		precedence = 0;		/* FetchDefault? */
+	} else {
+		precedence = DefineEntryGetInteger(entry);
+	}
+
+	/*
+	 * handle "[ associativity = (left|right|none|any) ]"
+	 */
+	/*
+	 * XXX Associativity code below must be fixed when the catalogs and
+	 * XXX the planner/executor support proper associativity semantics.
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "precedence");
+	if (null(entry)) {
+		isLeftAssociative = true;	/* XXX FetchDefault */
+	} else {
+		String	string;
+
+		string = DefineEntryGetString(entry);
+		if (StringEquals(string, "right")) {
+			isLeftAssociative = false;
+		} else if (!StringEquals(string, "left") &&
+				!StringEquals(string, "none") &&
+				!StringEquals(string, "any")) {
+			elog(WARN, "Define: precedence = what?");
+		} else {
+			isLeftAssociative = true;
+		}
+	}
+
+	/*
+	 * handle "[ commutator = oprname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "commutator");
+	commutatorName = NULL;
+	if (!null(entry)) {
+		commutatorName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ negator = oprname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "negator");
+	negatorName = NULL;
+	if (!null(entry)) {
+		negatorName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ restrict = proname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "restrict");
+	restrictionName = NULL;
+	if (!null(entry)) {
+		restrictionName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ join = proname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "join");
+	joinName = NULL;
+	if (!null(entry)) {
+		joinName = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ hashes ]"
+	 */
+	entry = DefineListRemoveOptionalIndicator(&parameters, "hashes");
+	canHash = (bool)!null(entry);
+
+	/*
+	 * XXX ( ... [ , sort1 = oprname ] [ , sort2 = oprname ] ... )
+	 * XXX is undocumented in the reference manual source as of 89/8/22.
+	 */
+	/*
+	 * handle "[ sort1 = oprname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "sort1");
+	sortName1 = NULL;
+	if (!null(entry)) {
+		sortName1 = DefineEntryGetName(entry);
+	}
+
+	/*
+	 * handle "[ sort2 = oprname ]"
+	 */
+	entry = DefineListRemoveOptionalAssignment(&parameters, "sort2");
+	sortName2 = NULL;
+	if (!null(entry)) {
+		sortName2 = DefineEntryGetName(entry);
+	}
+
+	DefineListAssertEmpty(parameters);
+
+	OperatorDefine(name, typeName1, typeName2, functionName, precedence,
+		isLeftAssociative, commutatorName, negatorName,
+		restrictionName, joinName, canHash, sortName1, sortName2);
 }

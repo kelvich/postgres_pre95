@@ -1,72 +1,71 @@
 /*
  * remove.c --
- *	remove {procedure, operator, type} system commands
+ *	POSTGRES remove (function | type | operator ) utilty code.
  */
 
-#include <strings.h>
-#include "access.h"
-#include "anum.h"
-#include "attnum.h"
-#include "catname.h"
-#include "fmgr.h"
-#include "heapam.h"
-#include "ftup.h"
-#include "log.h"
-#include "syscache.h"
-#include "tqual.h"
+#include "c.h"
 
 RcsId("$Header$");
 
-extern           TypeRemove();
-extern           OperatorRemove();
-extern           ProcedureRemove();
+#include "access.h"		/* XXX for "struct skey" */
+#include "anum.h"
+#include "attnum.h"
+#include "cat.h"
+#include "catname.h"
+#include "heapam.h"
+#include "htup.h"
+#include "log.h"
+#include "rproc.h"
+#include "tqual.h"
+
+#include "defrem.h"
 
 
-/*
- *  OperatorRemove
- */
+static String	Messages[] = {
+#define	NonexistantTypeMessage	(Messages[0])
+	"Define: type %s nonexistant",
+};
 
-OperatorRemove(operatorName, firstTypeName, lastTypeName)
-	Name 	operatorName;             /* operator name */
-	Name 	firstTypeName;            /* first type name */
-	Name 	lastTypeName;             /* last type name  */
+void
+RemoveOperator(operatorName, typeName1, typeName2)
+	Name 	operatorName;		/* operator name */
+	Name 	typeName1;		/* first type name */
+	Name 	typeName2;		/* optional second type name */
 {
 	Relation 	relation;
 	HeapScanDesc 	scan;
 	HeapTuple 	tup;
-	ObjectId	firstTypeId = InvalidObjectId;
-	ObjectId        lastTypeId  = InvalidObjectId;
+	ObjectId	typeId1;
+	ObjectId        typeId2;
 	int 		defined;
 	ItemPointerData	itemPointerData;
 	Buffer          buffer;
 	static ScanKeyEntryData	operatorKey[3] = {
-		{ 0, OperatorNameAttributeNumber, F_CHAR16EQ },
-		{ 0, OperatorLeftAttributeNumber, F_OIDEQ },
-		{ 0, OperatorRightAttributeNumber, F_OIDEQ }
+		{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
+		{ 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
+		{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure }
 	};
 
 	Assert(NameIsValid(operatorName));
-	Assert(PointerIsValid(firstTypeName) || PointerIsValid(lastTypeName));
+	Assert(NameIsValid(typeName1));
 
-	
-	firstTypeId = TypeGet(firstTypeName, &defined);
-	if (!ObjectIdIsValid(firstTypeId)) {
-		elog(WARN, "OperatorRemove: type %s does not exist",
-		     firstTypeName);
+	typeId1 = TypeGet(typeName1, &defined);
+	if (!ObjectIdIsValid(typeId1)) {
+		elog(WARN, NonexistantTypeMessage, typeName1);
 		return;
 	}
 
-	if (PointerIsValid(lastTypeName)) {
-		lastTypeId = TypeGet(lastTypeName, &defined);
-		if (!ObjectIdIsValid(lastTypeId)) {
-			elog(WARN, "OperatorRemove: type %s does not exist",
-			     lastTypeName);
+	typeId2 = InvalidObjectId;
+	if (NameIsValid(typeName2)) {
+		typeId2 = TypeGet(typeName2, &defined);
+		if (!ObjectIdIsValid(typeId2)) {
+			elog(WARN, NonexistantTypeMessage, typeName2);
 			return;
 		}
 	}
 	operatorKey[0].argument.name.value = operatorName;
-	operatorKey[1].argument.objectId.value = firstTypeId;
-	operatorKey[2].argument.objectId.value = lastTypeId;
+	operatorKey[1].argument.objectId.value = typeId1;
+	operatorKey[2].argument.objectId.value = typeId2;
 
 	relation = RelationNameOpenHeapRelation(OperatorRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 3,
@@ -76,19 +75,24 @@ OperatorRemove(operatorName, firstTypeName, lastTypeName)
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 	} else {
-		elog(DEBUG,
-		     "OperatorRemove: no such operator %s with types %s, %s",
-		     operatorName, firstTypeName, lastTypeName);		
+		if (ObjectIdIsValid(typeId2)) {
+			elog(WARN, "Remove: operator %s(%s, %s) nonexistant",
+				operatorName, typeName1, typeName2);
+		} else {
+			elog(WARN, "Remove: operator %s(%s) nonexistant",
+				operatorName, typeName1);
+		}
 	}
 	HeapScanEnd(scan);
 	RelationCloseHeapRelation(relation);
 }
 
-
 /*
  *  SingleOpOperatorRemove
  *	Removes all operators that have operands or a result of type 'typeOid'.
  */
+static
+void
 SingleOpOperatorRemove(typeOid)
 	OID 	typeOid;
 {
@@ -102,7 +106,7 @@ SingleOpOperatorRemove(typeOid)
 	register	i;
 	
 	key[0].sk_flags  = 0;
-	key[0].sk_opr    = F_OIDEQ;
+	key[0].sk_opr    = ObjectIdEqualRegProcedure;
 	key[0].sk_data   = (char *) typeOid;
 	rdesc = amopenr(OperatorRelationName->data);
 	for (i = 0; i < 3; ++i) {
@@ -124,6 +128,8 @@ SingleOpOperatorRemove(typeOid)
  *	that contain entries of type 'typeOid'.
  *      Currently nothing calls this code, it is untested.
  */
+static
+void
 AttributeAndRelationRemove(typeOid)
 	OID 	typeOid;
 {
@@ -148,7 +154,7 @@ AttributeAndRelationRemove(typeOid)
 	 */
 	key[0].sk_flags  = 0;
 	key[0].sk_attnum = 3;
-	key[0].sk_opr    = F_OIDEQ;
+	key[0].sk_opr    = ObjectIdEqualRegProcedure;
 	key[0].sk_data   = (DATUM) typeOid;
 	oidptr = (struct oidlist *) palloc(sizeof(*oidptr));
 	oidptr->next = NULL;
@@ -157,7 +163,7 @@ AttributeAndRelationRemove(typeOid)
 	sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, key);
 	while (PointerIsValid(tup = amgetnext(sdesc, 0, &buffer))) {
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);   
-		optr->reloid = ((struct attribute *) GETSTRUCT(tup))->attrelid;
+		optr->reloid = ((AttributeTupleForm)GETSTRUCT(tup))->attrelid;
 		optr->next = (struct oidlist *) palloc(sizeof(*oidptr));     
 		optr = optr->next;
         }
@@ -166,17 +172,20 @@ AttributeAndRelationRemove(typeOid)
 	amclose(rdesc);
 	
 	key[0].sk_flags  = NULL;
-	key[0].sk_attnum = T_OID;
-	key[0].sk_opr    = F_OIDEQ;
+	key[0].sk_attnum = ObjectIdAttributeNumber;
+	key[0].sk_opr    = ObjectIdEqualRegProcedure;
 	optr = oidptr;
 	rdesc = amopenr(RelationRelationName->data);
 	while (PointerIsValid((char *) optr->next)) {
 		key[0].sk_data = (DATUM) (optr++)->reloid;
 		sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, key);
 		tup = amgetnext(sdesc, 0, &buffer);
-		if (PointerIsValid(tup))
-			amdestroy(((struct relation *)
-				   GETSTRUCT(tup))->relname);
+		if (PointerIsValid(tup)) {
+			Name	name;
+
+			name = &((RelationTupleForm)GETSTRUCT(tup))->relname;
+			RelationNameDestroyHeapRelation(name);
+		}
 	}
 	amendscan(sdesc);
 	amclose(rdesc);
@@ -188,7 +197,8 @@ AttributeAndRelationRemove(typeOid)
  *	Removes the type 'typeName' and all attributes and relations that
  *	use it.
  */
-TypeRemove(typeName)
+void
+RemoveType(typeName)
 	Name      typeName;             /* type name to be removed */
 {
 	Relation 	relation;  
@@ -198,7 +208,7 @@ TypeRemove(typeName)
 	ItemPointerData	itemPointerData;
 	Buffer          buffer;
 	static ScanKeyEntryData typeKey[1] = {
-		{ 0, TypeNameAttributeNumber, F_CHAR16EQ }
+		{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
 	};
 
 	Assert(NameIsValid(typeName));
@@ -211,7 +221,7 @@ TypeRemove(typeName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "TypeRemove: type %s nonexistant",  typeName);
+		elog(WARN, NonexistantTypeMessage, typeName);
 	}
 	typeOid = tup->t_oid;
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
@@ -242,13 +252,9 @@ TypeRemove(typeName)
 #endif
 }
 
-
-/*
- * ProcedureRemove
- *	Removes a procedure.
- */
-ProcedureRemove(procedureName)
-	Name 	procedureName;             /* type name to be removed */
+void
+RemoveFunction(functionName)
+	Name 	functionName;             /* type name to be removed */
 {
 	Relation         relation;
 	HeapScanDesc         scan;
@@ -258,22 +264,21 @@ ProcedureRemove(procedureName)
 	ObjectId         oid;
 #endif
 	ItemPointerData  itemPointerData;
-	static ScanKeyEntryData procedureKey[3] = {
-		{ 0, ProcedureNameAttributeNumber, F_CHAR16EQ }
+	static ScanKeyEntryData functionKey[3] = {
+		{ 0, ProcedureNameAttributeNumber, NameEqualRegProcedure }
 	};
 	
-	Assert(NameIsValid(procedureName));
+	Assert(NameIsValid(functionName));
 
-	procedureKey[0].argument.name.value = procedureName;
+	functionKey[0].argument.name.value = functionName;
 	relation = RelationNameOpenHeapRelation(ProcedureRelationName);
-	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
-				     1, (ScanKey) procedureKey);
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1,
+		(ScanKey)functionKey);
 	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
 	if (!HeapTupleIsValid(tup)) {	
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "ProcedureRemove: procedure %s nonexistant",
-		     procedureName);
+		elog(WARN, "Remove: function %s nonexistant", functionName);
 	}
 #ifdef USEPARGS
 	oid = tup->t_oid;
@@ -291,9 +296,9 @@ ProcedureRemove(procedureName)
 #ifdef USEPARGS
 	typeKey[0].flags = 0;
 	typeKey[0].attributeNumber = 1; /* place an entry in anum.h if ever used */
-	typeKey[0].procedure = F_OIDEQ;
+	typeKey[0].procedure = ObjectIdEqualRegProcedure;
 	typeKey[0].argument.objectId.value = oid;
-	procedureKey[0].argument.name.value = procedureName;
+	functionKey[0].argument.name.value = functionName;
 	relation = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
