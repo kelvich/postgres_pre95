@@ -172,7 +172,7 @@ int LOclose(fd)
 	Assert(fscxt != NULL);
 	currentContext = MemoryContextSwitchTo((MemoryContext)fscxt);
 	
-	LOClose(cookies[fd]);
+	LOClose((LargeObjectDesc  *)cookies[fd]);
 	MemoryContextSwitchTo(currentContext);
     }
     DeleteLOfd(fd);
@@ -202,7 +202,7 @@ struct varlena * LOread(fd,len)
 #endif
     /* read leading partial block */
     if (current_objoffset[fd] > 0) {
-	int bytesread = LOBlockRead(cookies[fd],buf,1);
+	int bytesread = LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
 	int remainder;
 	int actuallyused;
 	if (bytesread > 0) {
@@ -236,7 +236,7 @@ struct varlena * LOread(fd,len)
 	int blockstoread = bytestoread / LARGE_OBJECT_BLOCK;
 	int remaindertoread = bytestoread % LARGE_OBJECT_BLOCK;
 	int bytesread =
-	  LOBlockRead(cookies[fd],VARDATA(retval)+totalread,blockstoread);
+	  LOBlockRead((LargeObjectDesc *)cookies[fd],VARDATA(retval)+totalread,blockstoread);
 	bytestoread -= bytesread;
 	totalread += bytesread;
 	current_objoffset[fd] = bytesread % LARGE_OBJECT_BLOCK;
@@ -245,14 +245,14 @@ struct varlena * LOread(fd,len)
 	/* need to read trailing partial?
 	   bytestoread < LARGE_OBJECT_BLOCK at this point*/
 	if ((bytestoread > 0) && (bytestoread < LARGE_OBJECT_BLOCK)) {
-	    int bytesread = LOBlockRead(cookies[fd],buf,1);
+	    int bytesread = LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
 	    int actuallyused;
 	    actuallyused = min(bytesread,bytestoread);
 	    bcopy(buf,VARDATA(retval)+totalread,actuallyused);
 	    totalread += actuallyused;
 	    bytestoread -= actuallyused;
 	    current_objoffset[fd] = actuallyused;
-	    LOBlockSeek(cookies[fd],current_objaddr[fd],SEEK_SET);
+	    LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
 	}
     }
 
@@ -289,13 +289,13 @@ int LOwrite(fd,wbuf)
     if (current_objoffset[fd] > 0) {
 	int remainder = LARGE_OBJECT_BLOCK - current_objoffset[fd];
 	int actuallywritten;
-	LOBlockRead(cookies[fd],buf,1);
+	LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
 	/* back to previous block */
-	LOBlockSeek(cookies[fd],current_objaddr[fd],SEEK_SET);
+	LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
 	bcopy(VARDATA(wbuf),buf+current_objoffset[fd],
 	      min(remainder,bytestowrite));
 	actuallywritten = min(remainder,bytestowrite);
-	LOBlockWrite(cookies[fd],buf,0,
+	LOBlockWrite((LargeObjectDesc *)cookies[fd],buf,0,
 		     current_objoffset[fd]+actuallywritten);
 	
 	current_objoffset[fd] += actuallywritten;
@@ -303,7 +303,7 @@ int LOwrite(fd,wbuf)
 	    current_objoffset[fd] = 0;
 	    current_objaddr[fd] ++;
 	} else { /* seek back to previous block */
-	    LOBlockSeek(cookies[fd],current_objaddr[fd],SEEK_SET);
+	    LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
 	}
 
 	bytestowrite -= actuallywritten;
@@ -315,7 +315,7 @@ int LOwrite(fd,wbuf)
 	int blockstowrite =  bytestowrite / LARGE_OBJECT_BLOCK;
 	int remaindertowrite = bytestowrite % LARGE_OBJECT_BLOCK;
 	int byteswritten;
-	byteswritten = LOBlockWrite(cookies[fd],VARDATA(wbuf)+totalwritten,
+	byteswritten = LOBlockWrite((LargeObjectDesc *)cookies[fd],VARDATA(wbuf)+totalwritten,
 				    blockstowrite,
 				    remaindertowrite);
 	totalwritten += byteswritten;
@@ -323,7 +323,7 @@ int LOwrite(fd,wbuf)
 	current_objaddr[fd] += byteswritten/LARGE_OBJECT_BLOCK;
 	current_objoffset[fd] = byteswritten % LARGE_OBJECT_BLOCK;
 	if (current_objoffset[fd] != 0) /* back up over incomplete blocks */
-	  LOBlockSeek(cookies[fd],current_objaddr[fd],SEEK_SET);
+	  LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
     }
 
     return totalwritten;
@@ -342,7 +342,7 @@ int LOlseek(fd,offset,whence)
     }
     /* Kemnitz large objects */
     current_objaddr[fd] =
-      LOBlockSeek(cookies[fd],offset/LARGE_OBJECT_BLOCK,whence);
+      LOBlockSeek((LargeObjectDesc *)cookies[fd],offset/LARGE_OBJECT_BLOCK,whence);
     current_objoffset[fd] = offset % LARGE_OBJECT_BLOCK;
 #if 0
     elog(NOTICE,"LOSeek(%d,%d,%d) curblock %d, curoffset %d",fd,offset,whence,
@@ -424,7 +424,7 @@ struct varlena *LOstat(path)
 	LOUnixStat(cookies[fd],st);
 /*	elog(NOTICE,"LOstat: fd %d file %s size %d blocks %d",fd,
 	     path,st->st_size,st->st_blocks);*/
-	LOStat(cookies[fd],&nblocks,&byte_offset);
+	LOStat((LargeObjectDesc *)cookies[fd],&nblocks,&byte_offset);
 	LOclose(fd);
 /*	st->st_size = nblocks*LARGE_OBJECT_BLOCK + byte_offset;
 	st->st_mode = S_IFREG;
