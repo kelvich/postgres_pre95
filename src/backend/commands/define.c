@@ -757,14 +757,13 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
  */
 /*ARGSUSED*/
 ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
-		canCache, parameterCount, parameters)
+		canCache, argList)
 	Name 			procedureName;	
 	Name 			returnTypeName;	
 	Name 			languageName;	
 	char 			*fileName;	/* XXX path to binary */
 	Boolean			canCache;
-	uint16 			parameterCount;
-	struct attribute 	*parameters[];	/* XXX for use with PARGS */
+	List			argList;
 {
 	register		i;
 	Relation 		rdesc;
@@ -776,11 +775,14 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 	ObjectId		procedureObjectId;
 #endif
 	bool              	defined;
+	uint16 			parameterCount;
 
 	Assert(NameIsValid(procedureName));
 	Assert(NameIsValid(returnTypeName));
 	Assert(NameIsValid(languageName));
 	Assert(PointerIsValid(fileName));
+
+	parameterCount = length(argList);
 	
 	tup = SearchSysCacheTuple(PRONAME, (char *) procedureName,
 				  (char *) NULL, (char *) NULL, (char *) NULL);
@@ -838,12 +840,20 @@ ProcedureDefine(procedureName, returnTypeName, languageName, fileName,
 #ifdef USEPARGS
 	rdesc = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
 	for (i = 0; i < parameterCount; ++i) {
+		HeapTuple	typeTuple;
+
+		typeTuple = SearchSysCacheTuple(TYPNAME, CString(CAR(argList)));
+		if (!HeapTupleIsValid(typeTuple)) {
+			elog(WARN, "DEFINE FUNCTION: arg type \"%s\" unknown",
+				CString(CAR(argList)));
+		}
+
 		j = 0;
 		values[j++] = (char *) procedureObjectId;
-		values[j++] = (char *) parameters[i]->attnum;
+		values[j++] = (char *)(1 + i);
 		/* XXX ignore array bound for now */
 		values[j++] = (char *) '\0';
-		values[j++] = (char *) parameters[i]->atttypid;
+		values[j++] = (char *)typeTuple->t_oid;
 		tup = FormHeapTuple(ProcedureArgumentRelationNumberOfAttributes,
 				    &rdesc->rd_att, values, nulls);
 		RelationInsertHeapTuple(rdesc, (HeapTuple) tup,
@@ -862,8 +872,6 @@ DefineFunction(name, parameters)
 	String		languageName;
 	String		fileName;
 	bool		canCache;
-	Count		argCount;
-	TupleDesc	arg;
 	LispValue	argList;
 	LispValue	entry;
 
@@ -907,38 +915,26 @@ DefineFunction(name, parameters)
 	 * XXX fix optional arg handling below
 	 */
 	argList = LispRemoveMatchingSymbol(&parameters, ARG);
-	if (null(argList)) {
-		argCount = 0;
-		arg = NULL;
-	} else {
+
+	if (!null(argList)) {
+		LispValue	rest;
+
 		/*
 		 * first discard symbol 'arg from list
 		 */
 		argList = CDR(argList);
-		argCount = length(argList);
-		arg = NULL;			
-		if (argCount != 0) {
-			int		index;
-			LispValue	rest;
+		AssertArg(length(argList) > 0);
 
-			arg = CreateTemplateTupleDesc(argCount);
-			for (rest = argList; !null(rest); rest = CDR(rest)) {
-				if (!lispStringp(CAR(rest))) {
-	elog(WARN, "DefineFunction: returntype = ?");
-				}
+		foreach (rest, argList) {
+			if (!lispStringp(CAR(rest))) {
+				elog(WARN, "DefineFunction: arg type = ?");
 			}
 		}
-		/*
-		 * XXX for now, arg is not passed on.
-		 */
-		argCount = 0;
-		arg = NULL;
 	}
-
 	DefineListAssertEmpty(parameters);
 
 	ProcedureDefine(name, returnTypeName, languageName, fileName,
-		canCache, argCount, arg);
+		canCache, argList);
 }
 
 void
