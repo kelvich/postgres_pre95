@@ -14,8 +14,8 @@
  *
  * NOTE: These routines are not supposed to be widely used in Postgres.
  *	 They are preserved solely for the purpose of porting Mark Sullivan's
- *	 buffer manager to Postgres.  In fact we are only using three such
- *	 spin locks: ShmemLock, BindingLock, and BufMgrLock.
+ *	 buffer manager to Postgres.  In fact we are only using four such
+ *	 spin locks: ShmemLock, BindingLock, BufMgrLock, and LockMgrLock.
  *	 -- Wei
  */
 #include <errno.h>
@@ -49,11 +49,15 @@ IPCKey key;
   extern SPINLOCK ShmemLock;
   extern SPINLOCK BindingLock;
   extern SPINLOCK BufMgrLock;
+  extern SPINLOCK LockMgrLock;
+  extern SPINLOCK ProcStructLock;
 
-  /* These three spinlocks have fixed location is shmem */
+  /* These five spinlocks have fixed location is shmem */
   ShmemLock = SHMEMLOCKID;
   BindingLock = BINDINGLOCKID;
   BufMgrLock = BUFMGRLOCKID;
+  LockMgrLock = LOCKMGRLOCKID;
+  ProcStructLock = PROCSTRUCTLOCKID;
 
   return(TRUE);
 }
@@ -79,8 +83,8 @@ SPINLOCK lock;
 /* Spinlocks are implemented using SysV semaphores */
 
 
-#define MAX_SPINS 3	/* only for ShmemLock, BindingLock, and
-			   BufMgrLock */
+#define MAX_SPINS 5	/* only for ShmemLock, BindingLock,
+			   BufMgrLock, LockMgrLock, and ProcStructLock */
 IpcSemaphoreId  SpinLockId = -1;
 
 /*
@@ -170,10 +174,11 @@ IPCKey key;
 /*
  * InitSpinLocks -- Spinlock bootstrapping
  * 
- * We need three spinlocks for bootstrapping,
+ * We need four spinlocks for bootstrapping,
  * BindingLock (for the shmem binding table) and
  * ShmemLock (for the shmem allocator), BufMgrLock (for buffer
- * pool exclusive access).
+ * pool exclusive access), LockMgrLock (for the lock table), and
+ * ProcStructLock (a spin lock for the shared process structure).
  *
  */
 InitSpinLocks(init, key)
@@ -183,6 +188,8 @@ IPCKey key;
   extern SPINLOCK ShmemLock;
   extern SPINLOCK BindingLock;
   extern SPINLOCK BufMgrLock;
+  extern SPINLOCK LockMgrLock;
+  extern SPINLOCK ProcStructLock;
 
   if (!init || key != IPC_PRIVATE) {
       /* if bootstrap and key is IPC_PRIVATE, it means that we are running
@@ -194,10 +201,12 @@ IPCKey key;
       }
     }
 
-  /* These four spinlocks have fixed location is shmem */
+  /* These five spinlocks have fixed location is shmem */
   ShmemLock = SHMEMLOCKID;
   BindingLock = BINDINGLOCKID;
   BufMgrLock = BUFMGRLOCKID;
+  LockMgrLock = LOCKMGRLOCKID;
+  ProcStructLock = PROCSTRUCTLOCKID;
   
   return(TRUE);
 }
