@@ -31,6 +31,7 @@
 RcsId("$Header$");
 
 #define	VACPNAME	"<vacuum>"
+bool	VacuumRunning =	false;
 
 vacuum()
 {
@@ -72,6 +73,15 @@ _vc_init()
 
     close(fd);
 
+    /*
+     *  By here, exclusive open on the lock file succeeded.  If we abort
+     *  for any reason during vacuuming, we need to remove the lock file.
+     *  This global variable is checked in the transaction manager on xact
+     *  abort, and the routine vc_abort() is called if necessary.
+     */
+
+    VacuumRunning = true;
+
     /* matches the StartTransaction in PostgresMain() */
     CommitTransactionCommand();
 }
@@ -83,8 +93,20 @@ _vc_shutdown()
     if (unlink("pg_vlock") < 0)
 	elog(WARN, "vacuum: can't destroy lock file!");
 
+    /* okay, we're done */
+    VacuumRunning = false;
+
     /* matches the CommitTransaction in PostgresMain() */
     StartTransactionCommand();
+}
+
+void
+vc_abort()
+{
+    /* on abort, remove the vacuum cleaner lock file */
+    (void) unlink("pg_vlock");
+
+    VacuumRunning = false;
 }
 
 /*
