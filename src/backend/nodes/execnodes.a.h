@@ -155,6 +155,8 @@ extern void set_css_currentRelation ARGS((CommonScanState node, Relation value))
 extern Relation get_css_currentRelation ARGS((CommonScanState node));
 extern void set_css_currentScanDesc ARGS((CommonScanState node, HeapScanDesc value));
 extern HeapScanDesc get_css_currentScanDesc ARGS((CommonScanState node));
+extern ScanStateRuleInfo get_css_ruleInfo ARGS((CommonScanState node));
+extern void set_css_ruleInfo ARGS((CommonScanState node, ScanStateRuleInfo value));
 extern void set_ss_ProcOuterFlag ARGS((ScanState node, bool value));
 extern bool get_ss_ProcOuterFlag ARGS((ScanState node));
 extern void set_ss_OldRelId ARGS((ScanState node, Index value));

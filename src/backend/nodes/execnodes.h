@@ -498,6 +498,7 @@ class (ParallelState) public (BaseNode) {
  *
  *	currentRelation    relation being scanned
  *      currentScanDesc    current scan descriptor for scan
+ *      ruleInfo	   information needed by the rule manager.
  *
  *   CommonState information
  *
@@ -516,7 +517,8 @@ class (CommonScanState) public (CommonState) {
 #define CommonScanStateDefs \
       inherits(CommonState); \
       Relation     css_currentRelation; \
-      HeapScanDesc css_currentScanDesc
+      HeapScanDesc css_currentScanDesc; \
+      ScanStateRuleInfo	css_ruleInfo
   /* private: */
       CommonScanStateDefs;
   /* public: */
