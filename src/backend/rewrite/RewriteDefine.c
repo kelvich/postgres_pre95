@@ -17,6 +17,14 @@
 ObjectId LastOidProcessed = InvalidObjectId;
 bool prs2AttributeIsOfBasicType();
 
+/*
+ * This is too small for many rule plans, but it'll have to do for now.
+ * Rule plans, etc will eventually have to be large objects.
+ * 
+ * should this be smaller?
+ */
+
+#define RULE_PLAN_SIZE 8192 
 
 #define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree),0)
 #define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree),0)
@@ -40,7 +48,9 @@ bool prs2AttributeIsOfBasicType();
  *		evinstead	-	is an instead rule
  *		actiontree	-	parsetree(s) of rule action
  */
+
 static char *foo = "reality is for dead birds" ;
+
 void strcpyq(dest, source)
 	char *dest, *source;
 {
@@ -69,9 +79,9 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
      char	*actiontree;
 
 {
-    static char	rulebuf[4096];
-	static char actionbuf[4096];
-	static char qualbuf[4096];
+    static char	rulebuf[RULE_PLAN_SIZE];
+	static char actionbuf[RULE_PLAN_SIZE];
+	static char qualbuf[RULE_PLAN_SIZE];
     ObjectId eventrel_oid = InvalidObjectId;
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
@@ -194,6 +204,7 @@ DefineQueryRewrite ( args )
     int j			= 0;		/* save index */
     int k			= 0;		/* actual lock placement */
     ObjectId event_attype	= 0;
+	char *actionP, *event_qualP;
     
     extern ObjectId att_typeid();
 
@@ -227,11 +238,17 @@ DefineQueryRewrite ( args )
 		 is_instead,event_attype);
     if (action == LispNil) {
 	if (!is_instead) return;	/* doesn't do anything */
+
+	actionP = PlanToString(event_qual);
+
+	if (strlen(actionP) > RULE_PLAN_SIZE)
+		elog(WARN, "DefineQueryRewrite: rule action too long.");
+
 	ruleId = InsertRule ( rulename, 
 				CAtom(event_type),
 				(Name)eobj_string,
 				(Name)eslot_string,
-				PlanToString(event_qual),
+				actionP,
 				1,
 				"nil ");
 	locktype = PutRelationLocks ( ruleId,
@@ -241,21 +258,31 @@ DefineQueryRewrite ( args )
 					1);
 	prs2AddRelationLevelLock(ruleId,locktype,
 				 ev_relid,event_attno);
-    }
-    else {
+    } else {
+
 	printf("# number of actions = %d\n", length(action));
 	/*
 	 * I don't use the some of the more interesting LockTypes...so
 	 * PutRelationLocks() has suddenly got much dumber -- glass
 	 */
+
+	event_qualP = PlanToString(event_qual);
+	actionP = PlanToString(action);
+
+	if (strlen(event_qualP) > RULE_PLAN_SIZE)
+		elog(WARN, "DefineQueryRewrite: event qual plan string too big.");
+
+	if (strlen(actionP) > RULE_PLAN_SIZE)
+		elog(WARN, "DefineQueryRewrite: action plan string too big.");
+
 	ruleId = InsertRule ( rulename, 
 				CAtom(event_type),
 				(Name)eobj_string,
 				(Name)eslot_string,
-				PlanToString(event_qual),
+				event_qualP,
 				is_instead,
-				PlanToString(action));
-				
+				actionP);
+
 	locktype = PutRelationLocks ( ruleId,
 					ev_relid,
 					event_attno,
@@ -269,6 +296,7 @@ DefineQueryRewrite ( args )
 				 ev_relid,event_attno);
     }
 }
+
 ShowRuleAction(ruleaction)
      LispValue ruleaction;
 {
