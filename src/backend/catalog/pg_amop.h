@@ -194,6 +194,116 @@ DATA(insert OID = 0 (  402 422 499 6 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 498 7 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 497 8 rtsel rtnpage ));
 
+/*
+ *  nbtree int2_ops
+ */
+
+DATA(insert OID = 0 (  403 421  95 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 421 522 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 421  94 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 421 524 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 421 520 5 btreesel btreenpage ));
+
+/*
+ *  nbtree float8_ops
+ */
+
+DATA(insert OID = 0 (  403 423 672 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 423 673 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 423 670 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 423 675 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 423 674 5 btreesel btreenpage ));
+
+/*
+ *  nbtree int24_ops
+ */
+
+DATA(insert OID = 0 (  403 424 534 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 424 540 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 424 532 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 424 542 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 424 536 5 btreesel btreenpage ));
+
+/*
+ *  nbtree int42_ops
+ */
+
+DATA(insert OID = 0 (  403 425 535 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 425 541 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 425 533 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 425 543 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 425 537 5 btreesel btreenpage ));
+
+/*
+ *  nbtree int4_ops
+ */
+
+DATA(insert OID = 0 (  403 426  97 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 426 523 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 426  96 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 426 525 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 426 521 5 btreesel btreenpage ));
+
+/*
+ *  nbtree oid_ops
+ */
+
+DATA(insert OID = 0 (  403 427 609 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 427 611 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 427 607 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 427 612 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 427 610 5 btreesel btreenpage ));
+
+/*
+ *  nbtree float4_ops
+ */
+
+DATA(insert OID = 0 (  403 428 622 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 428 624 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 428 620 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 428 625 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 428 623 5 btreesel btreenpage ));
+
+/*
+ *  nbtree char_ops
+ */
+
+DATA(insert OID = 0 (  403 429 631 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 429 632 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 429 92 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 429 634 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 429 633 5 btreesel btreenpage ));
+
+/*
+ *  nbtree char16_ops
+ */
+
+DATA(insert OID = 0 (  403 430 660 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 430 661 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 430 93 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 430 663 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 430 662 5 btreesel btreenpage ));
+
+/*
+ *  nbtree text_ops
+ */
+
+DATA(insert OID = 0 (  403 431 664 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 431 665 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 431 98 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 431 667 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 431 666 5 btreesel btreenpage ));
+
+/*
+ *  nbtree abstime_ops
+ */
+
+DATA(insert OID = 0 (  403 432 562 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 432 564 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 432 560 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 432 565 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 432 563 5 btreesel btreenpage ));
+
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm
  * ----------------

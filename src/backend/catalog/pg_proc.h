@@ -313,7 +313,7 @@ DATA(insert OID = 296 (  float8le          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 297 (  float8gt          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 298 (  float8ge          6 11 f t f 2  16 foo bar ));
 
-DATA(insert OID = 319 (  btbeginscan       6 11 f t f 3  23 foo bar ));
+DATA(insert OID = 319 (  btreebeginscan    6 11 f t f 3  23 foo bar ));
 DATA(insert OID = 320 (  rtinsert          6 11 f t f 3  23 foo bar ));
 DATA(insert OID = 321 (  rtdelete          6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 322 (  rtgettuple        6 11 f t f 6  23 foo bar ));
@@ -323,7 +323,29 @@ DATA(insert OID = 325 (  rtendscan         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 326 (  rtmarkpos         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 327 (  rtrestrpos        6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 328 (  rtrescan          6 11 f t f 3  23 foo bar ));
-    
+
+DATA(insert OID = 330 (  btgettuple        6 11 f t f 6  23 foo bar ));
+DATA(insert OID = 331 (  btinsert          6 11 f t f 3  23 foo bar ));
+DATA(insert OID = 332 (  btdelete          6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 333 (  btbeginscan       6 11 f t f 4  23 foo bar ));
+DATA(insert OID = 334 (  btrescan          6 11 f t f 3  23 foo bar ));
+DATA(insert OID = 335 (  btendscan         6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 336 (  btmarkpos         6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 337 (  btrestrpos        6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 338 (  btbuild           6 11 f t f 7  23 foo bar ));
+
+DATA(insert OID = 350 (  btint2cmp         6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 351 (  btint4cmp         6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 352 (  btint42cmp        6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 353 (  btint24cmp        6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 354 (  btfloat4cmp       6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 355 (  btfloat8cmp       6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 356 (  btoidcmp          6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 357 (  btabstimecmp      6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 358 (  btcharcmp         6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 359 (  btchar16cmp       6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 360 (  bttextcmp         6 11 f t f 2  23 foo bar ));
+
 DATA(insert OID = 612 (  fbtreeinsert      6 11 f t f 4  23 foo bar ));
 DATA(insert OID = 613 (  fbtreedelete      6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 614 (  fbtreegettuple    6 11 f t f 7  23 foo bar ));

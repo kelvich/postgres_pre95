@@ -62,9 +62,19 @@ typedef FormData_pg_amproc	*Form_pg_amproc;
  * ----------------
  */
 
-
 DATA(insert OID = 0 (402 422 193 1));
 DATA(insert OID = 0 (402 422 194 2));
 DATA(insert OID = 0 (402 422 195 3));
+DATA(insert OID = 0 (403 421 350 1));
+DATA(insert OID = 0 (403 423 355 1));
+DATA(insert OID = 0 (403 424 353 1));
+DATA(insert OID = 0 (403 425 352 1));
+DATA(insert OID = 0 (403 426 351 1));
+DATA(insert OID = 0 (403 427 356 1));
+DATA(insert OID = 0 (403 428 354 1));
+DATA(insert OID = 0 (403 429 358 1));
+DATA(insert OID = 0 (403 430 359 1));
+DATA(insert OID = 0 (403 431 360 1));
+DATA(insert OID = 0 (403 432 357 1));
 
 #endif PgAmprocIncluded
