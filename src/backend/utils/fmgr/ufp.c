@@ -6,12 +6,34 @@
  *	Implements both sides of the untrusted-function process (UFP)
  *	protocol.
  *
+ *   INTERFACE ROUTINES
+ *	fmgr_ufp
+ *
  *   NOTES
  *	Joe-code extraordinaire -- efficient and BSD-independent it
  *	ain't.  (See below for some enhancement ideas, though.)
  *	The whole thing is implemented here -- protocol, server side,
  *	UFP -- so changes are basically invisible to the rest of the
  *	system.  Isn't that convenient?
+ *
+ *	The current protocol is pretty simple.  Every discrete value
+ *	(indicated here by []) is preceded by a 4-byte length.  Arguments
+ *	and return values are assigned type information -- by-value flag
+ *	and length.
+ *
+ *	Backend sends:
+ *		[object file name]
+ *		[function (symbol) name]
+ *		[# of arguments]
+ *		[return-value by-value][return-value length]
+ *		[argument by-value][argument length][argument value]
+ *			... repeated ...
+ *	UFP replies:
+ *		[return-value]
+ *
+ *	This is a pretty silly way to do things, but I refuse to work
+ *	any harder on it until we do an RPC protocol redesign that
+ *	allows us to use one RPC mechanism for all of our IPC.
  *
  *   IDENTIFICATION
  *	$Header$
@@ -21,8 +43,10 @@
 #include <stdio.h>
 #include <strings.h>
 #include <sys/signal.h>
+
 #include "tmp/c.h"
 #include "tmp/postgres.h"
+
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
@@ -468,7 +492,7 @@ main(argc, argv)
  * when the file is loaded so that the information is consistent.
  *
  * XXX We do not currently keep this information consistent in any way.
- *     What will eventually happen is: we will search pg_proc for all
+ *     What may eventually happen is: we will search pg_proc for all
  *     functions registered in a new file and stash the struct ufp_info for
  *     each one at the same time so that they are consistent.  This will
  *     require keeping a DynamicFileList here as well as in the UFP.
@@ -785,7 +809,7 @@ ufp_execute(uip, values)
 	return(retvalue);
 }
 
-Datum
+char *
 fmgr_ufp(func_id, values)
 	ObjectId func_id;
 	Datum *values;
@@ -810,6 +834,6 @@ fmgr_ufp(func_id, values)
 	if (UFPid == -1 && ufp_start() < 0)
 		elog(WARN, "fmgr_ufp: unable to (re)start UFP");
 	
-	return(ufp_execute(uip, values));
+	return((char *) ufp_execute(uip, values));
 }
 #endif /* !UFP */
