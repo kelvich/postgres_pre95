@@ -530,10 +530,11 @@ AttributeNumber updatedAttributeNumber;
 			    (Index) 0,
 			    (OperatorTupleForm) 0);
 	value = Int32GetDatum(1);
-	constant = MakeConst((ObjectId) 23,
-			    (Size) 4,
-			    value,
-			    false);
+	constant = MakeConst((ObjectId) 23,	/* type */
+			    (Size) 4,		/* size */
+			    value,		/* value */
+			    false,		/* isnull */
+			    true);		/* byval */
 	targetList = lispCons(
 			lispCons(resdom, lispCons(constant, LispNil)),
 			LispNil);
