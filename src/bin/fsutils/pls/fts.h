@@ -1,3 +1,7 @@
+/* 
+ * $Header$
+ */
+
 /*
  * Copyright (c) 1989 The Regents of the University of California.
  * All rights reserved.
@@ -123,5 +127,3 @@ int	 fts_set __P((FTS *, FTSENT *, int));
 __END_DECLS
 
 #endif /* !_FTS_H_ */
-
-#define S_ISLNK(x) 0
