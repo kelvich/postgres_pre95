@@ -24,9 +24,10 @@
  * prs2Retrieve
  */
 Prs2Status
-prs2Retrieve(prs2EStateInfo, tuple, buffer, attributeArray,
+prs2Retrieve(prs2EStateInfo, explainRelation, tuple, buffer, attributeArray,
 	    numberOfAttributes, relation, returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
 AttributeNumberPtr attributeArray;
@@ -73,6 +74,7 @@ Buffer *returnedBufferP;
     for(i=0; i<numberOfAttributes; i++) {
 	prs2ActivateBackwardChainingRules(
 		    prs2EStateInfo,
+		    explainRelation,
 		    relation,
 		    attributeArray[i],
 		    PRS2_OLD_TUPLE,
@@ -83,7 +85,9 @@ Buffer *returnedBufferP;
 		    InvalidObjectId,
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
-		    LockTypeInvalid);
+		    LockTypeInvalid,
+		    attributeArray,
+		    numberOfAttributes);
     }
 
     /*
@@ -93,6 +97,7 @@ Buffer *returnedBufferP;
     for(i=0; i<numberOfAttributes; i++) {
 	prs2ActivateForwardChainingRules(
 		    prs2EStateInfo,
+		    explainRelation,
 		    relation,
 		    attributeArray[i],
 		    LockTypeRetrieveAction,
@@ -105,7 +110,9 @@ Buffer *returnedBufferP;
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
 		    LockTypeInvalid,
-		    &insteadRuleFoundThisTime);
+		    &insteadRuleFoundThisTime,
+		    attributeArray,
+		    numberOfAttributes);
 	if (insteadRuleFoundThisTime) {
 	    insteadRuleFound = true;
 	}
