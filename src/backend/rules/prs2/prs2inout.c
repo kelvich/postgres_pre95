@@ -253,6 +253,7 @@ char *s;
 int *index;
 {
     long res;
+    int sign;
 
     /*
      * skip blanks
@@ -261,12 +262,25 @@ int *index;
 	(*index)++;
     }
 
+    /*
+     * Is this a negative number ?
+     */
+    sign = 1;
+    if (s[*index] == '-') {
+	sign = -1;
+	(*index)++;
+    }
+
+    /*
+     * Now read the number
+     */
     res = 0;
     while (s[*index] <='9' && s[*index] >= '0') {
 	res = 10*res + s[*index] - '0';
 	(*index)++;
     }
 
+    res = res * sign;
     return(res);
 }
 
