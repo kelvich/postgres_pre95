@@ -16,12 +16,12 @@ RcsId("$Header$");
 
 #include "simplelists.h"
 
-#define NODE	SetNode
-#define LIST	SetList
+#define NODE	SLNode
+#define LIST	SLList
 #define SBASE(list,node) ((void *)((char *)(node) - (list)->sl_Offset))
 
 void
-SetNewList(list, offset)
+SLNewList(list, offset)
 LIST *list;
 Offset offset;
 {
@@ -33,7 +33,7 @@ Offset offset;
 }
 
 void
-SetNewNode(node)
+SLNewNode(node)
 NODE *node;
 {
     node->sn_List = NULL;
@@ -41,7 +41,7 @@ NODE *node;
 }
 
 void *
-SetGetHead(list)
+SLGetHead(list)
 register LIST *list;
 {
     register NODE *node;
@@ -57,7 +57,7 @@ register LIST *list;
 }
 
 void *
-SetGetTail(list)
+SLGetTail(list)
 register LIST *list;
 {
     register NODE *node;
@@ -73,7 +73,7 @@ register LIST *list;
 }
 
 void *
-SetGetPred(node)
+SLGetPred(node)
 register NODE *node;
 {
     Assert(node->sn_Magic == NODE_MAGIC);
@@ -86,7 +86,7 @@ register NODE *node;
 }
 
 void *
-SetGetSucc(node)
+SLGetSucc(node)
 register NODE *node;
 {
     Assert(node->sn_Magic == NODE_MAGIC);
@@ -99,7 +99,7 @@ register NODE *node;
 }
 
 void
-SetRemove(node)
+SLRemove(node)
 register NODE *node;
 {
     Assert(node->sn_Magic == NODE_MAGIC);
@@ -110,7 +110,7 @@ register NODE *node;
 }
 
 void
-SetAddHead(list, node)
+SLAddHead(list, node)
 register LIST *list;
 register NODE *node;
 {
@@ -125,7 +125,7 @@ register NODE *node;
 }
 
 void
-SetAddTail(list, node)
+SLAddTail(list, node)
 register LIST *list;
 register NODE *node;
 {
@@ -140,7 +140,7 @@ register NODE *node;
     node->sn_List = list;
 }
 
-SetList *
+SLList *
 SetGetList(node)
 register NODE *node;
 {
@@ -149,7 +149,7 @@ register NODE *node;
 }
 
 void
-SetInsertAfter(node, newnode)
+SLInsertAfter(node, newnode)
 register NODE *node, *newnode;
 {
     Assert(node->sn_List    != NULL);
@@ -165,7 +165,7 @@ register NODE *node, *newnode;
 }
 
 void
-SetInsertBefore(node, newnode)
+SLInsertBefore(node, newnode)
 register NODE *node, *newnode;
 {
     Assert(node->sn_List    != NULL);
@@ -181,7 +181,7 @@ register NODE *node, *newnode;
 }
 
 void *
-SetRemHead(list)
+SLRemHead(list)
 register LIST *list;
 {
     register NODE *node;
@@ -191,14 +191,14 @@ register LIST *list;
     if (node->sn_Next) {
 	Assert(node->sn_Magic == NODE_MAGIC);
 	Assert(node->sn_List == list);
-	SetRemove(node);
+	SLRemove(node);
 	return(SBASE(list,node));
     }
     return(NULL);
 }
 
 void *
-SetRemTail(list)
+SLRemTail(list)
 register LIST *list;
 {
     register NODE *node;
@@ -208,7 +208,7 @@ register LIST *list;
     if (node->sn_Prev) {
 	Assert(node->sn_Magic == NODE_MAGIC);
 	Assert(node->sn_List == list);
-	SetRemove(node);
+	SLRemove(node);
 	return(SBASE(list,node));
     }
     return(NULL);
