@@ -1,6 +1,6 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP DEFINE VIEW COMMANDS 6/14/90
+.SP "DEFINE VIEW" COMMANDS 6/14/90
 .XA 2 "Define View"
 .uh NAME
 .lp
@@ -59,5 +59,5 @@ See [STON90] for a detailed discussion of this point.
 
 .uh "SEE ALSO"
 .lp
-postquel(postquel),
+postquel(commands),
 create(commands).
