@@ -420,7 +420,7 @@ ProcessUtility(command, args, commandString)
 	{
 		char *dbname;
 		dbname = CString(CAR(args));
-		elog(NOTICE, "createdb %s detected", dbname);
+		createdb(dbname);
 	}
 	break;
       case DESTROYDB:
@@ -429,7 +429,7 @@ ProcessUtility(command, args, commandString)
 	{
 		char *dbname;
 		dbname = CString(CAR(args));
-		elog(NOTICE, "destroydb %s detected", dbname);
+		destroydb(dbname);
 	}
 	break;
 	/* default */
