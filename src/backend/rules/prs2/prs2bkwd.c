@@ -249,7 +249,7 @@ AttributeNumber numberOfAttributes;
 
 	    /*
 	     * in the case of a rule of the form:
-	     * ON REPLACE TO REL.Y THEN DO REPLACE CURRENT(X=...)
+	     * ON REPLACE TO REL.Y THEN DO REPLACE NEW(X=...)
 	     * activate this rule only if the attribute 'Y' has been
 	     * replaced by either the user or another ON REPLACE rule.
 	     */
