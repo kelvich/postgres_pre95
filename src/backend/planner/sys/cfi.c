@@ -181,11 +181,11 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 	  IndexSelectivity (indid,relid,nkeys,
 			    classes,opnos,attnos,values,flags,param);
 	  
-	  return (list(lispDouble(param[0]),
-		       lispDouble(param[1])));
+	  return (lispCons(lispFloat(param[0]),
+			   lispCons(lispFloat(param[1]),LispNil)));
      } else 
-       return(lispCons(lispDouble(0.0),
-		       lispCons(lispDouble(1.0))));
+       return(lispCons(lispFloat(0.0),
+		       lispCons(lispFloat(1.0),LispNil)));
 }
 
 /*    
