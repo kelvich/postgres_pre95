@@ -21,7 +21,7 @@ RcsId("$Header$");
 #include "rel.h"
 #include "sdir.h"
 #include "tim.h"
-
+#include "params.h"
 #include "command.h"
 
 /* ----------------------------------------------------------------
@@ -84,6 +84,7 @@ CreateExecutorState()
     ItemPointer     	qualTupleID;
     Relation        	relationRelationDesc;
     RelationInfo       	resultRelationInfo;
+    ParamListInfo	paramListInfo;
     
     /* ----------------
      *	These are just guesses.. Someone should tell me if
@@ -107,6 +108,7 @@ CreateExecutorState()
     errorMessage = 	  	NULL;
     relationRelationDesc = 	NULL;
     resultRelationInfo =	NULL;
+    paramListInfo = 		NULL;
 
     /* ----------------
      *	create the Executor State structure
@@ -122,7 +124,8 @@ CreateExecutorState()
 		       qualTuple,
 		       qualTupleID,
 		       relationRelationDesc,
-		       resultRelationInfo);
+		       resultRelationInfo,
+		       paramListInfo);
 
     return state;
 }
