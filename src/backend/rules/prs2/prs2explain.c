@@ -160,8 +160,12 @@ ObjectId tupleOid;
     /*
      * find the scan relation's name
      */
+    /*
+     *  XXX - relname is a char16, which is a "struct".  How did this
+     *    ever work??? - marc
+     */
     strncpy(relName.data,
-	RelationGetRelationTupleForm(relation)->relname, 16);
+	(char *)&RelationGetRelationTupleForm(relation)->relname, 16);
     
     
     /*
