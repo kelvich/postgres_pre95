@@ -159,6 +159,16 @@ box_copy(box)
  *	<, >, <=, >=, and == are based on box area.
  *---------------------------------------------------------*/
 
+/*	box_same	-	are two boxes identical?
+ */
+long
+box_same(box1, box2)
+	BOX	*box1, *box2;
+{
+	return((box1->xh == box2->xh && box1->xl == box2->xh) &&
+	       (box1->yh == box2->yh && box1->yl == box2->yh));
+}
+
 /*	box_overlap	-	does box1 overlap box2?
  */
 long
