@@ -176,7 +176,6 @@ stmt :
 	| MergeStmt
 	| MoveStmt
         | ListenStmt
-        | NotifyStmt
 	| ProcedureStmt
 	| PurgeStmt			
 	| RemoveOperatorStmt
@@ -972,13 +971,7 @@ opt_instead:
 
 /* NOTIFY <relation_name>  can appear both in rule bodies and
   as a query-level command */
-NotifyStmt: NOTIFY relation_name
-	    {
-		$$ = MakeList(KW(notify),$2,-1);
-	    }
-;
-
-NotifyOptStmt: NOTIFY relation_name 
+NotifyStmt: NOTIFY relation_name 
             {
 		LispValue root;
 		int x = 0;
@@ -993,7 +986,9 @@ NotifyOptStmt: NOTIFY relation_name
 		
 		parser_current_rel = heap_openr(VarnoGetRelname(x));
 		if (parser_current_rel == NULL)
-		  elog(WARN,"invalid relation name");
+		  elog(WARN,"notify: relation %s doesn't exist",$2);
+		else
+		  heap_close(parser_current_rel);
 
 		root = MakeRoot(1,
 				KW(notify),
@@ -1012,6 +1007,12 @@ NotifyOptStmt: NOTIFY relation_name
 
 ListenStmt: LISTEN relation_name 
             {
+		parser_current_rel = heap_openr($2);
+		if (parser_current_rel == NULL)
+		  elog(WARN,"listen: relation %s doesn't exist",$2);
+		else
+		  heap_close(parser_current_rel);
+
 		$$ = MakeList(KW(listen),$2,-1);
 	    }
 ;
@@ -1127,7 +1128,7 @@ OptimizableStmt:
 	| ExecuteStmt
 	| ReplaceStmt
 	| AppendStmt
-        | NotifyOptStmt
+        | NotifyStmt
         | DeleteStmt			/* by default all are $$=$1 */
 	;
 
