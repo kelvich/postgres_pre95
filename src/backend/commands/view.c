@@ -99,6 +99,8 @@ List tlist;
     parameters = lispCons(LispNil, parameters);	/* inheritance stuff */
     parameters = lispCons(LispNil, parameters);	/* is indexable */
     parameters = lispCons(LispNil, parameters);	/* archive type */
+    parameters = lispCons(LispNil, parameters);	/* heap store */
+    parameters = lispCons(LispNil, parameters);	/* archive store */
 
     /*
      * finally create the relation...
