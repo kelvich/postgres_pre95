@@ -61,3 +61,6 @@ then
 	echo "$progname: database creation failed on $dbname."
 	exit 1
 fi
+
+# successful execution
+exit 0
