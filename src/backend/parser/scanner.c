@@ -1,9 +1,22 @@
-static char *scanner_c = "$Header$";
+/*--------------------------------------------------------------------------
+ *   FILE
+ *	scanner.c
+ *
+ *   DESCRIPTION
+ *	support routines for the lex scanner.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ *--------------------------------------------------------------------------
+ */
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include <ctype.h>
-
-#define false 0
-#define true !false
 
 /*
  *	Support routines for the scanner.
@@ -156,7 +169,7 @@ int len;
 		     counter;  /* counts matching '{' and '}'.  */
 			       /* stop scanning when unmatched '}' */
 			       /* is encounterd. */
-	int in_string = false;
+	int in_string = 0;
 
 	cspec = 0;
 	/*

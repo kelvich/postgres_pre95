@@ -1,8 +1,20 @@
 /*--------------------------------------------------------------------------
- * array_utils.c :
- *     This file contains some support routines required for array functions
- *-------------------------------------------------------------------------
+ *   FILE
+ *	arrayutils.c
+ *
+ *   DESCRIPTION
+ *	This file contains some support routines required for array functions.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ *--------------------------------------------------------------------------
  */
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
 
 int GetOffset(n, dim, lb, indx)  
 int n, dim[], lb[], indx[];

@@ -1,15 +1,25 @@
 /*---------------------------------------------------------------
+ *   FILE
+ *	main.c
  *
- * FILE: main.c
+ *   DESCRIPTION
+ *	Stub main() routine for the postgres backend.
  *
- * $Header$
+ *   NOTES
+ *	Old comments:
+ *	The reason that `main()' is defined in a separate file in a
+ *	separate directory is to be able to easily link all the postgres
+ *	code (as opposed to just cinterface.a) with test programs (which
+ *	have their own `main').
  *
- * The reason that `main()' is defined in a separate file in a
- * separate directory is to be able to easily link all the postgres
- * code (as opposed to just cinterface.a) with test programs (which
- * have their own `main').
- *
+ *   IDENTIFICATION
+ *	$Header$
+ *---------------------------------------------------------------
  */
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include <string.h>
 
