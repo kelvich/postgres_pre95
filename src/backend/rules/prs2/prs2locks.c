@@ -11,9 +11,9 @@
  *=======================================================================
  */
 
-#include "log.h"
-#include "palloc.h"
-#include "prs2.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+#include "rules/prs2.h"
 
 /*-----------------------------------------------------------------------
  *
@@ -24,7 +24,8 @@ void
 prs2FreeLocks(lock)
 RuleLock lock;
 {
-    pfree(lock);
+    if (lock != NULL)
+	pfree(lock);
 }
 
 /*-----------------------------------------------------------------------
@@ -70,6 +71,10 @@ Prs2PlanNumber	planNumber;
     long newSize;
     RuleLock newLocks;
     Prs2OneLock theNewLock;
+
+    if (oldLocks == NULL){
+	oldLocks = prs2MakeLocks();
+    }
 
     /*
      * allocate enough space to hold the old locks + the new one..
@@ -117,6 +122,10 @@ RuleLock lock;
 int n;
 {
     Prs2OneLock t;
+
+    if (lock == NULL) {
+	elog(WARN, "prs2GetOneLockFromLocks: called with NULL rule lock");
+    }
 
     if (n >= lock->numberOfLocks || n<0) {
 	elog(WARN, "prs2GetOneLockFromLocks: lock # out of range (%d/%d)",
@@ -230,7 +239,9 @@ RuleLock   locks;
     Prs2OneLock oneLock;
 
     if (locks == NULL) {
-	elog(WARN, "prs2PrintLocks: NULL argument!");
+	printf("{-null-lock-}");
+	fflush(stdout);
+	return;
     }
 
     nlocks = prs2GetNumberOfLocks(locks);
@@ -263,6 +274,9 @@ RuleLock locks;
     int numberOfLocks;
     int i;
     Prs2OneLock oneLock;
+
+    if (locks == NULL)
+	return(NULL);
 
     numberOfLocks = prs2GetNumberOfLocks(locks);
 
@@ -304,6 +318,10 @@ int n;
     int i;
     Prs2OneLock lock1, lock2;
 
+    if (locks == NULL) {
+	elog(WARN, "prs2RemoveOneLockInPlace: called with NULL lock");
+    }
+
     if (n >= locks->numberOfLocks || n<0) {
 	elog(WARN, "prs2RemoveOneLockInPlace: lock # out of range (%d/%d)",
 	n, locks->numberOfLocks);
@@ -341,6 +359,10 @@ ObjectId ruleId;
     int numberOfLocks;
     int i;
     Prs2OneLock oneLock;
+
+    if (oldLocks==NULL) {
+	return(NULL);
+    }
 
     numberOfLocks = prs2GetNumberOfLocks(oldLocks);
 

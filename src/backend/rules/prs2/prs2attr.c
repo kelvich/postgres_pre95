@@ -12,11 +12,11 @@
  *==================================================================
  */
 
-#include "c.h"
-#include "palloc.h"
-#include "log.h"
-#include "ftup.h"	/* ModifyHeapTuple() defined here... */
-#include "prs2.h"
+#include "tmp/c.h"
+#include "utils/palloc.h"
+#include "utils/log.h"
+#include "access/ftup.h"	/* ModifyHeapTuple() defined here... */
+#include "rules/prs2.h"
 
 /*---------------------------------------------------------------------
  *
@@ -108,14 +108,14 @@ AttributeValues a;
  *
  * However we must also need change the locks of the tuple!
  * Say, if during a retrieve operation, a rule that had a lock of
- * type `LockTypeRetrieveWrite' has been activated and calculated a new
+ * type `LockTypeTupleRetrieveWrite' has been activated and calculated a new
  * value for this attribute, then we must remove this lock, so that if
  * later on (at a higher node in the plan, maybe a join or a topmost
  * result node that is used when the user's operation is an append
  * or delete) we want to find the value of this (laready claculated) 
  * attribute, we do not unnecessarily reactivate the rule.
  * Another case where this happens is when we append a tuple.
- * We have to activate all rules that have `LockTypeAppendWrite' locks,
+ * We have to activate all rules that have `LockTypeTupleAppendWrite' locks,
  * but then we can remove these locks because they are no longer
  * needed (a tuple is only appended once!).
  * The replace case is similar....
