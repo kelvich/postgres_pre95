@@ -845,6 +845,17 @@ typeid_get_relid(type_id)
 }
 
 OID
+get_typrelid(typ)
+    TypeTupleForm typ;
+{
+    Form_pg_type typtup;
+
+    typtup = (Form_pg_type) GETSTRUCT(typ);
+
+    return (typtup->typrelid);
+}
+
+OID
 get_typelem(type_id)
 
 OID type_id;
