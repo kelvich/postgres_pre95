@@ -418,7 +418,7 @@ fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
      */
 
     if (old_relid != new_relid)
-      foreach(i,CDR(parsetree)) {
+      foreach(i,parsetree) {
 	  foo = (Node)CAR(i);
 	  if (!null(foo) && IsA(foo,Var) && 
 	       (get_varno (foo) == rt_index)) {
