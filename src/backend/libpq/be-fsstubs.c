@@ -106,11 +106,9 @@ void *XOOpen ARGS((struct varlena *object , int open_mode ));
 #ifdef JAQUITH
 void *JOCreate ARGS((char *path , int open_mode ));
 void *JOOpen ARGS((struct varlena *object , int open_mode ));
-#endif /* JAQUITH */
-void LOClose ARGS((void *obj_desc ));
-#ifdef JAQUITH
 void JOClose ARGS((void *obj_desc ));
 #endif /* JAQUITH */
+void LOClose ARGS((void *obj_desc ));
 int LOUnixStat ARGS((void *obj_desc , struct pgstat *stbuf ));
 int LOSeek ARGS((void *obj_desc , int offset , int whence ));
 int LOTell ARGS((void *obj_desc ));
@@ -153,11 +151,9 @@ static struct {
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
-#ifdef EXTERNAL_LO
     /* External */
     ,{ BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
-#endif /* EXTERNAL_LO */
 #ifdef JAQUITH
     /* Jaquith */
     ,{ BIG, JOCreate, JOOpen, JOClose, LORead, LOWrite,
@@ -363,8 +359,14 @@ LOcreat(path,mode,objtype)
     MemoryContext currentContext;
 
     /* prevent garbage code */
-    if (objtype != Inversion && objtype != Unix &&
-	objtype != Jaquith && objtype != External)
+    if (objtype != Inversion && objtype != Unix
+#ifdef JAQUITH
+	&& objtype != Jaquith
+#endif
+#ifdef EXTERNAL_LO
+	&& objtype != External
+#endif
+	)
 	objtype = Unix;
 
     if (fscxt == NULL) {
