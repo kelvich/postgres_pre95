@@ -39,17 +39,17 @@ LispValue
 preprocess_qualification (qual,tlist)
      LispValue qual,tlist ;
 {
-  LispValue cnf_qual = cnfify (qual);
-  LispValue existential_qual = 
-    update_clauses (lispCons (lispInteger(_query_result_relation_),
-			      update_relations (tlist)),
-		    cnf_qual,_query_command_type_);
-  if ( existential_qual ) 
-    return (lispCons (set_difference (cnf_qual,existential_qual),
-		      lispCons(existential_qual,LispNil)));
-  else 
-    return (lispCons (cnf_qual,lispCons(existential_qual,LispNil)));
-
+    LispValue cnf_qual = cnfify (qual);
+    LispValue existential_qual = 
+      update_clauses (lispCons (lispInteger(_query_result_relation_),
+				update_relations (tlist)),
+		      cnf_qual,_query_command_type_);
+    if ( existential_qual ) 
+      return (lispCons (set_difference (cnf_qual,existential_qual),
+			lispCons(existential_qual,LispNil)));
+    else 
+      return (lispCons (cnf_qual,lispCons(existential_qual,LispNil)));
+    
 }  /* function end   */
 
 /*     	=======================
@@ -84,28 +84,27 @@ LispValue
 cnfify (qual)
      LispValue qual ;
 {
+/*
     if (qual)
       return(lispCons(qual,LispNil));
     else
       return(qual);
-/* XXX - remove the above line, when we want to test things
-   with cnf
+*/
+    LispValue newqual = LispNil;
 
     if ( consp (qual) ) {
-	LispValue newqual = LispNil;
 	newqual = find_nots (pull_args (qual));
 	newqual = normalize (pull_args (newqual));
 	newqual = qualcleanup (pull_args (newqual));
 	newqual = pull_args (newqual);;
 	
 	if(and_clause (newqual)) 
-	  return (remove_ands (newqual));
+	  newqual = remove_ands (newqual);
 	else 
-	  return (remove_ands (make_andclause (lispCons (newqual,
-							 LispNil))));
-    }
-    return (LispNil);
-*/
+	  newqual = remove_ands (make_andclause (lispCons (newqual,LispNil)));
+}
+    return (newqual);
+
 } /*  function end   */
 
 /*    
@@ -137,7 +136,7 @@ pull_args (qual)
 	LispValue t_list = LispNil;
 
 	foreach (temp,get_andclauseargs(qual)) 
-	  t_list = nappend1 (t_list, pull_args(temp));
+	  t_list = nappend1 (t_list, pull_args(CAR(temp)));
 	return (make_andclause (pull_ands (t_list)));
       }
       else 
@@ -146,7 +145,7 @@ pull_args (qual)
 	  LispValue t_list = LispNil;
 	  
 	  foreach (temp,get_orclauseargs(qual)) 
-	    t_list = nappend1 (t_list, pull_args(temp));
+	    t_list = nappend1 (t_list, pull_args(CAR(temp)));
 	  return (make_orclause (pull_ors (t_list)));
 	}
 	else 
@@ -237,7 +236,7 @@ find_nots (qual)
 	LispValue t_list = LispNil;
 
 	foreach (temp,(get_andclauseargs(qual))) {
-	  t_list = nappend1(t_list,find_nots(temp));
+	  t_list = nappend1(t_list,find_nots(CAR(temp)));
 	}
 
 	return (make_andclause (t_list));
@@ -247,7 +246,7 @@ find_nots (qual)
 	  LispValue t_list = LispNil;
 
 	  foreach (temp,get_orclauseargs(qual)) {
-	    t_list = nappend1(t_list,find_nots(temp));
+	    t_list = nappend1(t_list,find_nots(CAR(temp)));
 	  }
 	  return (make_orclause (t_list));
 	} else
@@ -301,7 +300,7 @@ push_nots (qual)
 	LispValue t_list = LispNil;
 
 	foreach(temp,get_andclauseargs(qual)) {
-	  t_list = nappend1(t_list,push_nots(temp));
+	  t_list = nappend1(t_list,push_nots(CAR(temp)));
 	}
 	return (make_orclause (t_list));
       }
@@ -311,7 +310,7 @@ push_nots (qual)
 	  LispValue t_list = LispNil;
 
 	  foreach(temp,get_orclauseargs(qual)) {
-	    t_list = nappend1(t_list,push_nots(temp));
+	    t_list = nappend1(t_list,push_nots(CAR(temp)));
 	}
 	return (make_andclause (t_list));
 	}
@@ -360,7 +359,7 @@ normalize (qual)
 	LispValue t_list = LispNil;
 
 	foreach (temp,get_andclauseargs(qual)) {
-	  t_list = nappend1(t_list,normalize(temp));
+	  t_list = nappend1(t_list,normalize(CAR(temp)));
 	}
 	return (make_andclause (t_list));
       } else
@@ -371,12 +370,12 @@ normalize (qual)
 	  LispValue has_andclause = LispNil;
 
 	  foreach(temp,get_orclauseargs(qual)) {
-	    orlist = nappend1(orlist,normalize(temp));
+	    orlist = nappend1(orlist,normalize(CAR(temp)));
 	  }
 	  temp = LispNil;
 	  /*  XXX was some  */
 	  foreach (temp,orlist) {
-	    if (and_clause (temp)) 
+	    if ( and_clause (CAR(temp)) )
 	      has_andclause = LispTrue;
 	    if (has_andclause == LispTrue)
 	      break;
@@ -416,7 +415,7 @@ or_normalize (orlist)
 	  LispValue temp = LispNil;
 	  
 	  foreach(temp,orlist) {
-	       if (and_clause(temp)) 
+	       if (and_clause(CAR(temp)) )
 		 distributable = LispTrue;
 	  }
 	  if (distributable == LispTrue) 
@@ -450,22 +449,22 @@ LispValue
 distribute_args (item,args)
      LispValue item,args ;
 {
-  if(null (args))
-    return (item);
-  else {
+    LispValue or_list = LispNil;
+    LispValue n_list = LispNil;
     LispValue temp = LispNil;
     LispValue t_list = LispNil;
 
+    if(null (args))
+      return (item);
+
     foreach (temp,args) {
-      t_list = nappend1(t_list,
-			make_orclause(or_normalize(pull_ors(lispCons(item,
-								     lispCons
-								     (temp,
-								      LispNil)
-								     )))));
+	n_list = or_normalize(pull_ors(lispCons(item,
+						lispCons(CAR(temp),LispNil))));
+	or_list = make_orclause(n_list);
+	t_list = nappend1(t_list,or_list);
     }
     return (make_andclause (t_list));
-  }
+
 }  /* function end  */
 
 /*    
@@ -500,7 +499,7 @@ qualcleanup (qual)
 	      LispValue new_and_args = LispNil;
 
 	      foreach(temp,get_andclauseargs(qual)) 
-		   t_list = nappend1(t_list,qualcleanup(temp));
+		   t_list = nappend1(t_list,qualcleanup(CAR(temp)));
 	      new_and_args = remove_duplicates (t_list);
 
 	      if(length (new_and_args) > 1) 
@@ -516,7 +515,7 @@ qualcleanup (qual)
 		LispValue new_or_args = LispNil;
 
 		foreach (temp,get_orclauseargs(qual)) 
-		  t_list = nappend1(t_list,qualcleanup(temp));
+		  t_list = nappend1(t_list,qualcleanup(CAR(temp)));
 		new_or_args = remove_duplicates (t_list);
 
 		if(length (new_or_args) > 1) 
@@ -537,8 +536,8 @@ qualcleanup (qual)
  *    	Remove the explicit "AND"s from the qualification:
  *    		("AND" A B) => (A B)
  *    
- *    	Returns the modified qualification.
- *    
+ *	RETURNS : qual
+ *    	MODIFIES: qual
  */
 
 /*  .. cnfify, remove-ands     */
@@ -551,30 +550,28 @@ remove_ands (qual)
 
      if(null (qual)) 
        return (LispNil);
-     else 
-       if (is_clause (qual)) 
-	 return (make_clause (get_op (qual),
-			      remove_ands (get_leftop (qual)),
-			      remove_ands (get_rightop (qual))));
-       else 
-	 if (and_clause (qual)) {
-	      LispValue temp = LispNil;
-	      foreach (temp,get_andclauseargs(temp))
-		t_list = nappend1(t_list,remove_ands(temp));
-	      return(t_list);
-	 } else 
-	   if (or_clause (qual)) {
-		LispValue temp = LispNil;
-		foreach (temp,get_orclauseargs(temp))
-		  t_list = nappend1(t_list,remove_ands(temp));
-		return (make_orclause (t_list));
-	   } else 
-	     if (not_clause (qual)) 
-		  return (make_notclause (remove_ands 
-					  (get_notclausearg (qual))));
-	     else 
-	       return (qual);
-}  /* function end   */
+     if (is_clause (qual)) 
+       return (make_clause (get_op (qual),
+			    remove_ands (get_leftop (qual)),
+			    remove_ands (get_rightop (qual))));
+     if (and_clause (qual)) {
+	 LispValue temp = LispNil;
+	 foreach (temp,get_andclauseargs(qual))
+		t_list = nappend1(t_list,remove_ands(CAR(temp)));
+	 return(t_list);
+     } else 
+       if (or_clause (qual)) {
+	   LispValue temp = LispNil;
+	   foreach (temp,get_orclauseargs(qual))
+		  t_list = nappend1(t_list,remove_ands(CAR(temp)));
+	   return (make_orclause (t_list));
+       } else 
+	 if (not_clause (qual)) 
+	   return (make_notclause (remove_ands 
+					(get_notclausearg (qual))));
+	 else 
+	   return (qual);
+ }  /* function end   */
 
 /*     	==========================
  *     	EXISTENTIAL QUALIFICATIONS
@@ -601,10 +598,10 @@ update_relations (tlist)
      LispValue t_list2 = LispNil;
 
      /* was mapCAR nested with mapcan  
-     foreach(xtl,tlist) 
-       t_list1 = nconc (t_list1,pull_var_clause(get_expr(xtl)));
+     foreach(xtll,tlist) 
+       t_list1 = nconc (t_list1,pull_var_clause(get_expr(CAR(xtl))));
      foreach(var,t_list1) 
-       t_list2 = nappend1(t_list2,get_varno(var));
+       t_list2 = nappend1(t_list2,get_varno(CAR(var)));
      return(remove_duplicates (t_list2));
 
      XXX - fix me after "retrieve x=1" works
