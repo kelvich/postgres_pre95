@@ -31,6 +31,22 @@
  */
 #define FD_H	"$Header$"
 
+/*
+ * FileOpen uses the standard UNIX open(2) flags.
+ */
+#include <fcntl.h>	/* for O_ on most */
+#ifndef O_RDONLY
+#include <sys/file.h>	/* for O_ on the rest */
+#endif /* O_RDONLY */
+
+/*
+ * FileSeek uses the standard UNIX lseek(2) flags.
+ */
+#include <unistd.h>	/* for SEEK_ on most */
+#ifndef SEEK_SET
+#include <stdio.h>	/* for SEEK_ on the rest */
+#endif /* SEEK_SET */
+
 #include "tmp/c.h"
 #include "storage/block.h"
 
