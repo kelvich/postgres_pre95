@@ -171,4 +171,6 @@ typedef enum _LockId_ {
 #define MAX_SPINS	FIRSTFREELOCKID
 
 #endif /* HAS_TEST_AND_SET */
+
+#include "storage/execipc.h"
 #endif	/* !defined(IPCIncluded) */
