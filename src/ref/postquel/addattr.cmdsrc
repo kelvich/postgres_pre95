@@ -45,5 +45,3 @@ addattr (hiredate = abstime) to emp
 .SH "SEE ALSO"
 create(commands),
 replace(commands).
-.SH "BUGS"
-\*(lq*\*(rq is not supported in Version \*(PV.
