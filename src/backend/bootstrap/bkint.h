@@ -25,7 +25,6 @@ static	char ami_h[] = "$Header$";
 #include "utils/log.h"
 #include "utils/rel.h"
 
-extern char *calloc();
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
 #define FIRST_TYPE_OID 16	/* OID of the first type */
