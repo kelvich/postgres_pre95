@@ -140,6 +140,30 @@ class (TupleCount) public (Node) {
 };
 
 /* ----------------
+ *	TupleTableSlot information
+ *
+ *	    shouldFree		boolean - should we call pfree() on tuple
+ *
+ *	LispValue information
+ *
+ *	    val.car		pointer to tuple data
+ *	    cdr			pointer to special info (currenty unused)
+ *
+ *	The executor stores pointers to tuples in a ``tuple table''
+ *	which is composed of TupleTableSlot's.  Some of the tuples
+ *	are pointers to buffer pages and others are pointers to
+ *	palloc'ed memory and the shouldFree variable tells us when
+ *	we may call pfree() on a tuple.  -cim 9/23/90
+ * ----------------
+ */
+class (TupleTableSlot) public (LispValue) {
+      inherits(LispValue);
+  /* private: */
+      bool	ttc_shouldFree;
+  /* public: */
+};
+
+/* ----------------
  *    EState information
  *
  *      direction                       direction of the scan
@@ -276,18 +300,18 @@ class (ReturnState) public (Node) {
 class (ExprContext) public (Node) {
 #define ExprContextDefs \
         inherits(Node); \
-        List          ecxt_scantuple; \
-        AttributePtr  ecxt_scantype; \
-        Buffer        ecxt_scan_buffer; \
-        List          ecxt_innertuple; \
-        AttributePtr  ecxt_innertype; \
-        Buffer        ecxt_inner_buffer; \
-        List          ecxt_outertuple; \
-        AttributePtr  ecxt_outertype; \
-        Buffer        ecxt_outer_buffer; \
-        Relation      ecxt_relation; \
-        Index         ecxt_relid; \
-        ParamListInfo ecxt_param_list_info
+        TupleTableSlot ecxt_scantuple; \
+        AttributePtr   ecxt_scantype; \
+        Buffer         ecxt_scan_buffer; \
+        TupleTableSlot ecxt_innertuple; \
+        AttributePtr   ecxt_innertype; \
+        Buffer         ecxt_inner_buffer; \
+        TupleTableSlot ecxt_outertuple; \
+        AttributePtr   ecxt_outertype; \
+        Buffer         ecxt_outer_buffer; \
+        Relation       ecxt_relation; \
+        Index          ecxt_relid; \
+        ParamListInfo  ecxt_param_list_info
  /* private: */
         ExprContextDefs;
  /* public: */
@@ -418,14 +442,14 @@ class (BaseNode) public (Node) {
 class (CommonState) public (BaseNode) {
 #define CommonStateDefs \
       inherits(BaseNode); \
-      List                cs_OuterTuple; \
+      TupleTableSlot      cs_OuterTuple; \
       AttributePtr        cs_TupType; \
       Pointer             cs_TupValue; \
       int                 cs_Level; \
       AttributePtr        cs_ScanType; \
       AttributeNumberPtr  cs_ScanAttributes; \
       int                 cs_NumScanAttributes; \
-      Pointer             cs_ResultTupleSlot; \
+      TupleTableSlot      cs_ResultTupleSlot; \
       ExprContext         cs_ExprContext 
   /* private: */
       CommonStateDefs;
@@ -768,7 +792,6 @@ class (NestLoopState) public (JoinState) {
  *      OSortopI           outerKey1 sortOp innerKey1 ...
  *      ISortopO           innerkey1 sortOp outerkey1 ...
  *      JoinState          current "state" of join. see executor.h
- *      MarkedTuple        current marked inner tuple.
  *      MarkedTupleSlot    pointer to slot in tuple table for marked tuple
  *
  *   JoinState information
@@ -790,11 +813,10 @@ class (NestLoopState) public (JoinState) {
 class (MergeJoinState) public (JoinState) {
       inherits(JoinState);
   /* private: */
-      List      mj_OSortopI;
-      List      mj_ISortopO;
-      int       mj_JoinState;
-      List      mj_MarkedTuple;
-      Pointer   mj_MarkedTupleSlot;
+      List           mj_OSortopI;
+      List           mj_ISortopO;
+      int            mj_JoinState;
+      TupleTableSlot mj_MarkedTupleSlot;
   /* public: */
 };
 

@@ -96,7 +96,6 @@
 #include "executor/hashjoin.h"
 #include "executor/x_indexscan.h"
 #include "executor/x_initnode.h"
-#include "executor/x_main.h"
 #include "executor/x_material.h"
 #include "executor/x_mergejoin.h"
 #include "executor/x_nestloop.h"

@@ -1,2 +1,2 @@
 /* $Header$ */
-extern List ExecProcNode ARGS((Plan node));
+extern TupleTableSlot ExecProcNode ARGS((Plan node));

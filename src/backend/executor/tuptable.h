@@ -29,16 +29,25 @@ typedef TupleTableData *TupleTable;
  * ----------------
  */
 #define TableSlotSize \
-    sizeof(classObj(LispValue))
+    sizeof(classObj(TupleTableSlot))
 
 #define TableSlot(array, i) \
-    (Pointer) &(((classObj(LispValue) *) array)[i])
+    (Pointer) &(((classObj(TupleTableSlot) *) array)[i])
+
+#define InitSlot(slot) \
+    RInitTupleTableSlot((Pointer) slot)
 
 #define SlotContents(slot) \
     (Pointer) CAR((List) slot)
 
 #define SetSlotContents(slot, ptr) \
     CAR((List) slot) = (List) ptr
+
+#define SlotShouldFree(slot) \
+    get_ttc_shouldFree(slot)
+
+#define SetSlotShouldFree(slot, shouldFree) \
+    set_ttc_shouldFree(slot, shouldFree)
     
 #define SlotSpecialInfo(slot) \
     (Pointer) CDR((List) slot)

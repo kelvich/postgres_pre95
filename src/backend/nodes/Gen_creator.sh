@@ -100,6 +100,7 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n\textern bool Equal", class, "();";
 	print "\n\textern bool Copy", class, "();";
 	print "\n\n\t", class, " node = (", class, ") p;\n";
+	print "\n\tnode->type = classTag(", class, ");";
 	print "\n\tnode->printFunc = Print", class, ";";
 	print "\n\tnode->equalFunc = Equal", class, ";";
 	print "\n\tnode->copyFunc =  Copy", class, ";";

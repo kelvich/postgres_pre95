@@ -1,8 +1,8 @@
 /* $Header$ */
-extern void IncrementRetrieved ARGS((EState estate));
-extern void IncrementAppended ARGS((EState estate));
-extern void IncrementDeleted ARGS((EState estate));
-extern void IncrementReplaced ARGS((EState estate));
-extern void IncrementInserted ARGS((EState estate));
-extern void IncrementProcessed ARGS((EState estate));
+extern void ExecIncrementRetrieved ARGS((EState estate));
+extern void ExecIncrementAppended ARGS((EState estate));
+extern void ExecIncrementDeleted ARGS((EState estate));
+extern void ExecIncrementReplaced ARGS((EState estate));
+extern void ExecIncrementInserted ARGS((EState estate));
+extern void ExecIncrementProcessed ARGS((EState estate));
 extern void DisplayTupleCount ARGS((EState estate));

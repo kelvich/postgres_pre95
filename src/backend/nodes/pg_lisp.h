@@ -87,19 +87,23 @@ struct vectori {
  *	we ported postgres V1 from lisp to C. -cim 4/23/90
  * ----------------
  */
+typedef union { 
+    char			*name;	/* symbol */
+    char   			*str;	/* string */ 
+    int    			fixnum; 
+    double 			flonum; 
+    struct _LispValue		*car;	/* dotted pair */ 
+    struct vectori		*veci; 
+} LispValueUnion;
+    
 class (LispValue) public (Node) {
-    /* private: */
-    inherits(Node);
-    union {
-	char			*name;	/* symbol */
-	char   			*str;	/* string */
-	int    			fixnum;
-	double 			flonum;
-	struct _LispValue	*car;	/* dotted pair */
-	struct vectori		*veci;
-    } 			val;
-    struct _LispValue	*cdr;
-    /* public: */
+#define LispValueDefs \
+    inherits(Node); \
+    LispValueUnion	val; \
+    struct _LispValue	*cdr 
+/* private: */
+    LispValueDefs;	
+/* public: */
 };
 
 /* ----------------
@@ -152,17 +156,17 @@ class (LispStr) public (Node) {
  *	macros and defines which depend on dummy class tags
  * ----------------
  */
-#define	PGLISP_ATOM	T_LispSymbol
-#define	PGLISP_DTPR	T_LispList
-#define	PGLISP_FLOAT	T_LispFloat
-#define	PGLISP_INT	T_LispInt
-#define	PGLISP_STR	T_LispStr
-#define	PGLISP_VECI	T_LispVector
+#define	PGLISP_ATOM	classTag(LispSymbol)
+#define	PGLISP_DTPR	classTag(LispList)
+#define	PGLISP_FLOAT	classTag(LispFloat)
+#define	PGLISP_INT	classTag(LispInt)
+#define	PGLISP_STR	classTag(LispStr)
+#define	PGLISP_VECI	classTag(LispVector)
 
-#define	LISP_BYTEVECTOR			T_LispVector
-#define	LISP_DOUBLE			T_LispFloat
-#define	LISP_INTEGER			T_LispInt
-#define	LISP_STRING			T_LispStr
+#define	LISP_BYTEVECTOR	classTag(LispVector)
+#define	LISP_DOUBLE	classTag(LispFloat)
+#define	LISP_INTEGER	classTag(LispInt)
+#define	LISP_STRING	classTag(LispStr)
 
 #define lispStringp(x) ((bool)(LISP_TYPE(x)==PGLISP_STR))
 #define lispIntegerp(x) ((bool)(LISP_TYPE(x)==PGLISP_INT))

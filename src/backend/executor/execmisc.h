@@ -229,9 +229,6 @@ extern GeneralInsertIndexResult   AMinsert();
 extern GeneralRetrieveIndexResult AMgettuple();
 extern HeapTuple		  RelationGetHeapTupleByItemPointer();
 
-extern Pointer		get_cs_ResultTupleSlot();
-extern Pointer		get_css_ScanTupleSlot();
-
 extern bool		ExecIsInitialized;
 extern Const		ConstTrue;
 extern Const		ConstFalse;

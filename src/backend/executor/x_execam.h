@@ -6,6 +6,6 @@ extern void ExecCloseR ARGS((Plan node));
 extern void ExecReScan ARGS((Plan node));
 extern HeapScanDesc ExecReScanR ARGS((Relation relDesc, HeapScanDesc scanDesc, ScanDirection direction, int nkeys, ScanKey skeys));
 extern List ExecMarkPos ARGS((Plan node));
-extern void ExecRestrPos ARGS((Plan node, List pos));
+extern void ExecRestrPos ARGS((Plan node));
 extern Relation ExecCreatR ARGS((int numberAttributes, AttributePtr tupType, int relationOid));
 extern void ExecDestroyR ARGS((List relID));
