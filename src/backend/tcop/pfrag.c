@@ -640,6 +640,7 @@ CommandDest	destination;
 		 set_frag_root(fragment, scantempNode);
 		 set_frag_subtrees(fragment, LispNil);
 		 set_fragment(scantempNode,-1);/*means end of parallelism */
+		 set_frag_is_inprocess(fragment, false);
 		}
 	      else {
 	      if (plan == (Plan)get_lefttree(parentPlan)) {
