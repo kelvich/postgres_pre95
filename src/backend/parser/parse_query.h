@@ -13,8 +13,11 @@ extern int RangeTablePosn();
 extern LispValue make_op();
 extern LispValue make_const();
 extern LispValue make_adt();
+extern LispValue make_var();
 extern LispValue lispMakeParam();
 extern LispValue lispMakeResdom();
+extern LispValue lispMakeConst();
+extern LispValue lispMakeOp();
 extern LispValue make_var();
 
 extern LispValue SkipForwardToFromList();

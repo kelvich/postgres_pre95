@@ -934,8 +934,8 @@ from_val:
 				temp = CDR(temp); /* move to last elt */
 			}
 			frelname = CAR(CDR(CAR(temp)));
-			printf("from relname = %s\n",CString(frelname));
-			fflush(stdout);
+			/*printf("from relname = %s\n",CString(frelname));
+			fflush(stdout);*/
 			CAR(CAR(temp)) = CAR($1); 
 
 			temp2 = CDR($1);
@@ -960,7 +960,7 @@ where_clause:
 	        { NULLTREE } 
 	| Where boolexpr
 		{ 
-		  printf("now processing where_clause\n");
+		  /*printf("now processing where_clause\n");*/
 		  fflush(stdout);
 		  $$ = $2; p_qual = $$; }
 	;
@@ -1062,10 +1062,6 @@ b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info
 a_expr:
 	  attr
 		{
-		  printf("relname = %s, attrname = %s", CString(CAR($1)),
-			CString(CDR ($1)));
-		fflush(stdout);	
-
 		$$ = make_var ( CAR ($1) , CDR($1));
 		}
 	| AexprConst		
@@ -1090,8 +1086,10 @@ a_expr:
 			}
 
 			adt = lispMakeConst ( typeid(tp), len, lcp , 0 );
+			/*
 			printf("adt %s : %d %d %d\n",CString($1),typeid(tp) ,
 			       len,cp);
+			       */
 			$$ = lispCons  ( lispInteger (typeid(tp)) , adt );
 		}
 	| spec 
@@ -1158,18 +1156,26 @@ res_target_list:
 		{
 			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
-			while (temp != LispNil && CDR(temp) != LispNil)
-				temp = CDR(temp);
-			CDR(temp) = ExpandAll( $1, &p_last_resno);
+			if(temp == LispNil )
+			  p_target = ExpandAll($1, &p_last_resno);
+			else {
+			  while (temp != LispNil && CDR(temp) != LispNil)
+			    temp = CDR(temp);
+			  CDR(temp) = ExpandAll( $1, &p_last_resno);
+			}
 			$$ = p_target;
 		}
 	| res_target_list ',' relation_name '.' All
 		{
 			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
-			while(temp != LispNil && CDR(temp) != LispNil )
-				temp = CDR(temp);
-			CDR(temp) = ExpandAll( $3, &p_last_resno);
+			if(temp == LispNil )
+			  p_target = ExpandAll($3, &p_last_resno);
+			else {
+			  while(temp != LispNil && CDR(temp) != LispNil )
+			    temp = CDR(temp);
+			  CDR(temp) = ExpandAll( $3, &p_last_resno);
+			}
 			$$ = p_target;
 		}
 	;
@@ -1177,15 +1183,10 @@ res_target_list:
 res_target_el:
 	  Id equals a_expr
 		{
-			printf ("rte -> type = %d\n", CInteger (CAR ($3)));
-			fflush(stdout);
 			$$ = lispCons (lispMakeResdom (  p_last_resno++ ,
 						       CInteger(CAR($3) ), 
 						       0 , $1, 0 , 0 ) ,
 				       lispCons (CDR($3) , LispNil) );
-
-			/* printf("done with rte\n"); */
-			fflush(stdout);
 		}
 
 	| attr
@@ -1393,7 +1394,7 @@ char *file;
 		strncpy(name, file+1, len);
 		name[len] = '\0';
 	    }
-	    printf("name: %s\n");
+	    /*printf("name: %s\n");*/
 	    if ((pw = getpwnam(name)) == NULL) {
 		elog(WARN, "No such user: %s\n", name);
 		ind = 0;
