@@ -7,23 +7,7 @@
 createdb \*- create a database
 .uh SYNOPSIS
 .lp
-.b createdb
-[
-.b \-e
-] [
-.b \-v
-(on|off)
-] [
-.b \-t
-template-name
-] [
-.b \-h
-host
-] [
-.b \-p
-port
-]
-dbname
+.b createdb dbname
 .uh DESCRIPTION
 .lp
 .b Createdb
@@ -78,85 +62,6 @@ would be physically stored in the directory
 /mnt/user/database
 rather than in the directory
 \&.../data/base/userdb.
-.uh "COMMAND OPTIONS"
-.sp
-.nf
-\fI\-v on\fR
-\fI\-v off\fR
-.pp
-Specifying the \fI\-v on\fR or \fI\-v off\fR option turns
-the vacuum daemon for a new database on or off (default is off).
-We suggest that you run a vacuum demon on each active
-database.  That way expired tuples will be purged 
-according to the criteria set in the
-.b purge 
-command for each relation.  Also,
-this will ensure that the statistics kept in the RELATION
-relation are updated periodically.
-.sp
-.nf
-\fI-p port\fR 
-\fI-h host\fR
-.pp
-The vacuum demon is associated with some postmaster process.
-Specifying the port and host using \fI-p port\fR and \fI-h host\fR
-will cause the vacuum demon to use the postmaster associated
-with the specified host and port.  
-.sp
-.bp
-.nf
-\fI-e\fR
-.pp
-Often it is desireable to turn on or off a vacuum demon for 
-an existing database.  Specifying \fI-e\fR tells createdb not
-to attempt to create a new database in such circumstances.
-.sp
-.nf
-\fI-t template-name\fR
-.pp
-The optional
-.i template-name
-specifies a file,
-\&.../files/local1_\c
-.i template-name .ami,
-whose contents control the inclusion of system data types.
-See
-.b introduction
-(postquel) and
-.b template
-(files) for information
-on the use of templates.
-.uh EXAMPLE
-.lp
-.nf
-/* create a database named demo (with no vacuum daemon) */
-createdb demo
-.fi
-.lp
-.nf
-/* enable the vacuum daemon for the production database */
-createdb \-e \-v on production
-.fi
-.uh "ENVIRONMENT VARIABLES"
-.ip PGPORT
-The port on which the postmaster is running.  This value is
-used if the
-.i -p
-option is not specified.  If 
-.i -p
-is not specified and PGPORT is not set, then the port defaults
-to 4321.
-.ip PGHOST
-The host on which the postmaster is running.  This value is
-used if the
-.b -h
-option is not specified.  If
-.b -h
-is not specified and PGHOST is not set, then the host defaults
-to "localhost".
-.uh FILES
-.lp
-\&.../files/data/base/*
 .uh "SEE ALSO"
 .lp
 destroydb(unix).
