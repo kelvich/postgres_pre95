@@ -90,7 +90,7 @@ index_info (not_first,relid)
 	/*    Classes of the AM operators used by index: */
 	
 	for (i = _MAX_KEYS_+18 ; i > 18; --i ) 
-	  am_ops = lispCons(lispInteger(indexinfo[i]),iord);
+	  am_ops = lispCons(lispInteger(indexinfo[i]),am_ops);
 
 	/*
 	 * Cons up a list the old fashioned way -- with an intermediate
@@ -151,7 +151,7 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 	int i = 0;
 	LispValue xclass,xopno,xattno,value,flag;
 
-	class_array = (int *)palloc(nkeys*sizeof(ObjectId));
+	class_array = (int *)palloc(_MAX_KEYS_*sizeof(ObjectId));
 	opno_array = (int *)palloc(nkeys*sizeof(ObjectId));
 	attno_array = (int *)palloc(nkeys*sizeof(int32));
 	value_array = (int *)palloc(nkeys*sizeof(char *));
