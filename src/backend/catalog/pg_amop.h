@@ -101,14 +101,14 @@ DATA(insert OID = 0 (  400 422 501 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 422 502 5 btreesel btreenpage ));
 DATA(insert OID = 0 (  401 421  95 1 int4eq int4eq ));
 DATA(insert OID = 0 (  401 421  94 3 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 493 1 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 494 2 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 500 3 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 495 4 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 496 5 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 499 5 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 498 5 int4eq int4eq ));
-DATA(insert OID = 0 (  402 422 497 5 int4eq int4eq ));
+DATA(insert OID = 0 (  402 422 493 1 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 494 2 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 500 3 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 495 4 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 496 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 499 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 498 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 497 5 rtsel rtnpage ));
 
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm
