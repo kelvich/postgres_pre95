@@ -59,7 +59,7 @@ index_info (not_first,relid)
      bool not_first;
      ObjectId  relid ;
 {
-    int indexinfo[32];
+    long indexinfo[32];
     int i = 0;
     LispValue ikey = LispNil;
     LispValue iord = LispNil;
@@ -97,7 +97,7 @@ index_info (not_first,relid)
 	 * variable.  I just could not get the old statement to stop screen
 	 * wrapping and becoming unreadable.  -mer
 	 */
-	returnList = lispCons(indexinfo[28], LispNil);
+	returnList = lispCons(indexinfo[28], LispNil); /* predicate */
 	returnList = lispCons(lispInteger(indexinfo[27]), returnList);
 	returnList = lispCons(am_ops, returnList);
 	returnList = lispCons(iord, returnList);

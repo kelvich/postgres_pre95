@@ -103,7 +103,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	int32		notFirst;
 	ObjectId	indrelid;		/* indexED relation */
 	Boolean		isarchival;		/* XXX not used YET */
-	int32		indexCatalogInfo[];
+        long		indexCatalogInfo[];
 {
 	register		i;
 	HeapTuple		indexTuple, amopTuple;
@@ -121,7 +121,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	fmgr_info(F_OIDEQ, &indexKey[0].func, &indexKey[0].nargs);
 
 	/* 29 = 27 (see above) + 1 (indproc) + 1 (indpred) */
-	bzero((char *) indexCatalogInfo, (unsigned) (29 * sizeof(int32)));
+	bzero((char *) indexCatalogInfo, (unsigned) (29 * sizeof(long)));
 
 	/* Find an index on the given relation */
 	if (notFirst == 0) {
@@ -171,7 +171,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	    predicate = lispReadString(predString);
 	    pfree(predString);
 	}
-	indexCatalogInfo[28] = (int32)predicate;		/* 28 */
+	indexCatalogInfo[28] = (long) predicate;		/* 28 */
 
 	/* Extract info from the relation descriptor for the index */
 	indexRelation = (Relation) index_open(index->indexrelid);
