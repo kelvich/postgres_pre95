@@ -1,0 +1,15 @@
+#
+# $Header$
+#
+
+.SUFFIXES: .cat .ps .me
+
+NROFF=nroff
+
+GROFF=groff -set
+
+.me.cat:
+	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
+
+.me.ps:
+	${GROFF} -me -Tps ${.IMPSRC} > ${.TARGET}
