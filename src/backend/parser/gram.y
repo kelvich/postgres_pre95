@@ -1285,10 +1285,10 @@ OptUseOp:
 	| USING '>'			{ $$ = lispString(">"); }
 	;
 
-Relation:
+new_Relation:
 	  relation_expr
 		{
-		    $$ = FlattenRelationList ( $1 );
+		      $$ = FlattenRelationList ( $1 ); 
 		}
 	;
 relation_expr:
@@ -1320,18 +1320,19 @@ relation_expr:
 		}
 	;
 
- /* 
-old_Relation:
-	  relation_name time_range '*'
+	  
+Relation:
+	    relation_name opt_time_range '*'
+
 		{
 		    List options = LispNil;
 
-		    #* printf("timerange flag = %d",(int)$2); *#
+		    /* printf("timerange flag = %d",(int)$2); */
 		    
-		    if ($3 != LispNil )	#* inheritance query*#
+		    if ($3 != LispNil )	/* inheritance query*/
 		      options = lispCons(KW(inherits),options);
 
-		    if ($2 != LispNil ) #* time range query *#
+		    if ($2 != LispNil ) /* time range query */
 		      options = lispCons($2, options );
 
 		    if( !RangeTablePosn(CString($1),options ))
@@ -1339,13 +1340,13 @@ old_Relation:
 						      options,
 						      CString($1) ));
 		}
-	  | relation_name time_range  
+	  | relation_name opt_time_range  
 		{
 		    List options = LispNil;
 
-		    #* printf("timerange flag = %d",(int)$2); *#
+		    /* printf("timerange flag = %d",(int)$2); */
 		    
-		    if ($2 != LispNil ) #* time range query *#
+		    if ($2 != LispNil ) /* time range query */
 		      options = lispCons($2, options );
 
 		    if( !RangeTablePosn(CString($1),options ))
@@ -1354,8 +1355,23 @@ old_Relation:
 						      CString($1) ));
 		}
 	;
- */
 
+opt_time_range:
+	  '[' opt_range_start ',' opt_range_end ']'
+        	{ 
+		    /* printf ("time range\n");fflush(stdout); */
+		    $$ = MakeTimeRange($2,$4,1); 
+		}
+	| '[' date ']'
+		{ 
+		    /* printf("snapshot\n"); fflush(stdout); */
+		    $$ = MakeTimeRange($2,LispNil,0); 
+		}
+	| /* empty */
+		{ 
+		    $$ =  lispInteger(0); 
+	        }
+	;
 time_range:
 	  '[' opt_range_start ',' opt_range_end ']'
         	{ 
