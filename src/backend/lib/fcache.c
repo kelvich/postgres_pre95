@@ -127,7 +127,9 @@ Boolean use_syscache;
      * before we return the results.  When you do this everything allocated
      * by the executor (i.e. slots and tuples) is freed.
      */
-    if ((retval->oneResult) && !(typeStruct->typbyval))
+    if ((retval->language == POSTQUELlanguageId) &&
+	(retval->oneResult) &&
+	!(typeStruct->typbyval))
     {
 	Form_pg_relation relationStruct;
 	HeapTuple        relationTuple;
