@@ -128,12 +128,14 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 				    LispNil));
 	       break;
 
+	     case DELETE :
 	     case REPLACE : 
 	       {
 		    /* XXX - let form, maybe incorrect */
 		   SeqScan scan = make_seqscan (tlist,
 					       LispNil,
-					       _query_result_relation_,
+					       (Index) CInteger(
+						   _query_result_relation_),
 					       LispNil);
 		   if ( consp (constant_qual) ) {
 		       return ((Plan)make_result (tlist,
