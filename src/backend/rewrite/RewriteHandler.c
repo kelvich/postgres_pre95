@@ -225,10 +225,10 @@ ThisLockWasTriggered ( varno, attnum, parse_subtree )
  * at once by NOT calling ThisLockWasTriggered
  */
 List
-MatchRetrieveLocks ( rulelocks , parse_subtree , varno )
+MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
      RuleLock rulelocks;
-     List parse_subtree;
      int varno;
+     List parse_subtree;
 {
     int nlocks		= 0;
     int i 		= 0;
@@ -656,7 +656,9 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
     List append_locks		= NULL;
     List delete_locks		= NULL;
     List additional_queries 	= NULL;
+#ifdef UNUSED
     List i 			= NULL;
+#endif
     List user_tlist = parse_targetlist(user_parsetree);
 
 #ifdef NOTYET
@@ -682,8 +684,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
      * if attnum = -1 )
      */
 
-    retrieve_locks = MatchRetrieveLocks ( rlocks , user_parsetree , 
-					  current_varno );
+    retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
+					  user_parsetree );
     if ( retrieve_locks ) {
 	printf ( "\nThese retrieve rules were triggered: \n");
 	PrintRuleLockList ( retrieve_locks );
@@ -716,6 +718,23 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
     switch (command) {
       case RETRIEVE:
 	/* do nothing since it is handled above */
+#ifdef BOGUS
+	retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno,
+					      user_parsetree );
+	if ( retrieve_locks ) {
+	    List new_queries = NULL;
+	    printf ( "\nRetrieve triggered the following locks:\n");
+	    PrintRuleLockList ( retrieve_locks );
+	    
+	    new_queries = 
+	      ModifyUpdateNodes( retrieve_locks,
+				user_parsetree,
+				drop_user_query,
+				current_varno);
+
+	    additional_queries = append (additional_queries, new_queries );
+	}
+#endif
 	break;
       case DELETE:
 	/* no targetlist, so handled differently */
@@ -747,10 +766,6 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 
 	    parse_targetlist ( user_parsetree ) = LispNil;
 
-#ifdef OLD
-	additional_queries = append ( additional_queries, 
-				     ModifyDeleteQueries( drop_user_query ) );
-#endif
 	    additional_queries = append (additional_queries, new_queries );
 	}
 	break;
@@ -905,7 +920,7 @@ QueryRewrite ( parsetree )
 
 	
     
-
+#ifdef OLDCODE
 
 /*****************************************************
   
@@ -920,4 +935,4 @@ ModifyDeleteQueries( drop_user_query )
     return(NULL);
 }
 
-
+#endif
