@@ -1,10 +1,9 @@
-static	char	amiint_c[] = "$Header$";
 
 /**********************************************************************
-  ami_sup.c
+  postgres.c
 
-  support routines for the new amiint
-
+  POSTGRES C Backend Interface
+  $Header$
  **********************************************************************/
 
 #include "c.h"
@@ -56,6 +55,14 @@ static	char	amiint_c[] = "$Header$";
 extern void die();
 extern void handle_warn();
 
+RcsId("$Header$");
+
+
+/* ----------------------------------------------------------------
+ *	misc routines
+ * ----------------------------------------------------------------
+ */
+
 /*
  * AllocateAttribute --
  *	Returns space for an attribute.
@@ -90,20 +97,32 @@ jmp_buf		Warn_restart;
 
 bool override = false;
 
+void
+handle_warn()
+{
+	longjmp(Warn_restart);
+}
+
+void
+die()
+{
+	ExitPostgres(0);
+}
+
 /* ----------------
  *	MakeQueryDesc
  * ----------------
  */
 
-LispValue
+List
 MakeQueryDesc(command, parsetree, plantree, state, feature)
-     LispValue	command;
-     LispValue	parsetree;
-     LispValue	plantree;
-     LispValue  state;
-     LispValue  feature;
+     List  command;
+     List  parsetree;
+     List  plantree;
+     List  state;
+     List  feature;
 {
-   return (LispValue)
+   return (List)
       lispCons(command,
 	       lispCons(parsetree,
 			lispCons(plantree,
@@ -123,213 +142,261 @@ MakeQueryDesc(command, parsetree, plantree, state, feature)
 
 void
 ProcessQuery(parser_output, plan)
-     LispValue parser_output;
-     Plan      plan;
+    List parser_output;
+    Plan plan;
 {
-	bool		isPortal = false;
-	bool		isInto = false;
-	Relation	intoRelation;
-	LispValue	parseRoot;
-	LispValue	resultDesc;
-   LispValue queryDesc;
-   EState state;
-   LispValue feature;
-   LispValue attinfo;		/* returned by ExecMain */
+    bool	isPortal = false;
+    bool	isInto = false;
+    Relation	intoRelation;
+    List	parseRoot;
+    List	resultDesc;
 
-	parseRoot = parse_root(parser_output);
-	if (root_command_type(parseRoot) == RETRIEVE) {
+    List 	queryDesc;
+    EState 	state;
+    List 	feature;
+    List 	attinfo;		/* returned by ExecMain */
 
-		resultDesc = root_result_relation(parseRoot);
-		if (!null(resultDesc)) {
-			int	destination;
+    int		 commandType;
+    String	 tag;
+    ObjectId	 intoRelationId;
+    String	 intoRelationName;
+    int		 numatts;
+    AttributePtr tupleDesc;
+    
+    /* ----------------
+     *	resolve the status of our query... are we retrieving
+     *  into a portal, into a relation, etc.
+     * ----------------
+     */
+    parseRoot = parse_root(parser_output);
+	
+    commandType = root_command_type(parseRoot);
+    switch (commandType) {
+    case RETRIEVE:
+	tag = "RETRIEVE";
+	break;
+    case APPEND:
+	tag = "APPEND";
+	break;
+    case DELETE:
+	tag = "DELETE";
+	break;
+    case EXECUTE:
+	tag = "EXECUTE";
+	break;
+    case REPLACE:
+	tag = "REPLACE";
+	break;
+    default:
+	elog(WARN, "ProcessQuery: unknown command type %d", commandType);
+    }
 
-			destination = CAtom(CAR(resultDesc));
+    if (root_command_type(parseRoot) == RETRIEVE) {
+	resultDesc = root_result_relation(parseRoot);
+	if (!null(resultDesc)) {
+	    int	destination;
+	    destination = CAtom(CAR(resultDesc));
 
-			switch (destination) {
-			case INTO:
-				isInto = true;
-				break;
-			case PORTAL:
-				isPortal = true;
-				break;
-			default:
-				elog(WARN, "ProcessQuery: bad result %d",
-					destination);
-			}
-		}
+	    switch (destination) {
+	    case INTO:
+		isInto = true;
+		intoRelationName = CString(CADR(resultDesc));
+		break;
+	    case PORTAL:
+		isPortal = true;
+		break;
+	    default:
+		elog(WARN, "ProcessQuery: bad result %d", destination);
+	    }
 	}
-   {
-      /* ----------------
-       *	create the Executor State structure
-       * ----------------
-       */
-      ScanDirection   direction;                    
-      abstime         time;                         
-      ObjectId        owner;                        
-      List            locks;                        
-      List            subPlanInfo;                 
-      Name            errorMessage;                
-      List            rangeTable;                  
-      HeapTuple       qualTuple;
-      ItemPointer     qualTupleID;
-      Relation        relationRelationDesc;
-      ObjectId        resultRelation;
-      Relation        resultRelationDesc; 
+    }
 
-      direction = 		  EXEC_FRWD;
-      time = 		  0;
-      owner = 		  0;                
-      locks = 		  LispNil;                
-      qualTuple =		  NULL;
-      qualTupleID =	  0;
+    /* ----------------
+     *	create the Executor State structure
+     * ----------------
+     */
+    {
+	ScanDirection   direction;                    
+	abstime         time;                         
+	ObjectId        owner;                        
+	List            locks;                        
+	List            subPlanInfo;                 
+	Name            errorMessage;                
+	List            rangeTable;                  
+	HeapTuple       qualTuple;
+	ItemPointer     qualTupleID;
+	Relation        relationRelationDesc;
+	Index        	resultRelationIndex;
+	Relation        resultRelationDesc; 
 
-      /* ----------------
-       *   currently these next are initialized in InitPlan.  For now
-       *   we pass dummy variables.. Eventually this should be cleaned up.
-       *   -cim 8/5/89
-       * ----------------
-       */
-      rangeTable = 	  LispNil;
-      subPlanInfo = 	  LispNil;   
-      errorMessage = 	  NULL;
-      relationRelationDesc = NULL;
-      resultRelation =	  NULL;
-      resultRelationDesc =   NULL;
+	direction = 	EXEC_FRWD;
+	time = 		0;
+	owner = 	0;                
+	locks = 	LispNil;                
+	qualTuple =	NULL;
+	qualTupleID =	0;
 
-      state = MakeEState(direction,    
-			 time,                 
-			 owner,                
-			 locks,                
-			 subPlanInfo,          
-			 errorMessage,         
-			 rangeTable,           
-			 qualTuple,            
-			 qualTupleID,          
-			 relationRelationDesc, 
-			 resultRelation,       
-			 resultRelationDesc);   
-   }
+	/* ----------------
+	 *   currently these next are initialized in InitPlan.  For now
+	 *   we pass dummy variables.. Eventually this should be cleaned up.
+	 *   -cim 8/5/89
+	 * ----------------
+	 */
+	rangeTable = 	  	LispNil;
+	subPlanInfo = 	  	LispNil;   
+	errorMessage = 	  	NULL;
+	relationRelationDesc = 	NULL;
+	resultRelationIndex =	0;
+	resultRelationDesc =   	NULL;
+
+	state = MakeEState(direction,    
+			   time,                 
+			   owner,                
+			   locks,                
+			   subPlanInfo,          
+			   errorMessage,         
+			   rangeTable,           
+			   qualTuple,            
+			   qualTupleID,          
+			   relationRelationDesc, 
+			   resultRelationIndex,       
+			   resultRelationDesc);   
+    }
    
-   /* ----------------
-    *	first time through ExecMain we call it with feature = '(start)
-    *
-    *   (setq attinfo (ExecMain (list (cadar partree)
-    *			      partree plan state '(start))))
-    * ----------------
-    */
+    /* ----------------
+     *	now, prepare the plan for execution by calling ExecMain()
+     *	feature = '(start)
+     * ----------------
+     */
    
-   feature = lispCons(lispInteger(EXEC_START), LispNil);
-   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+    feature = lispCons(lispInteger(EXEC_START), LispNil);
+    queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+			      parser_output,
+			      plan,
+			      state,
+			      feature);
+
+    attinfo = ExecMain(queryDesc);
+    
+    /* ----------------
+     *   extract result type information from attinfo
+     *	 returned by ExecMain()
+     * ----------------
+     */
+    numatts = 	CInteger(CAR(attinfo));
+    tupleDesc = (AttributePtr) CADR(attinfo);
+    
+    /* ----------------
+     *   display the result of the first call to ExecMain()
+     * ----------------
+     */
+
+    showatts("blank", numatts, tupleDesc);
+
+    /* ----------------
+     *   now how in the hell is this ever supposed to work?
+     *   we have only initialized the plan..  Why do we then
+     *   return here if isPortal?  This *CANNOT* be correct.
+     *   but portals aren't *my* problem (yet..) -cim 8/29/89
+     * ----------------
+     */
+    if (isPortal) {
+	BlankPortalAssignName(intoRelationName);
+	return;			/* XXX see previous comment */
+    }
+
+    /* ----------------
+     *	if we are retrieveing into a result relation, then
+     *  open it..  This should probably be done in InitPlan
+     *  so I am going to move it there soon. -cim 8/29/89
+     * ----------------
+     */
+    if (isInto) {
+	char		archiveMode;
+	/*
+	 * Archive mode must be set at create time.  Unless this
+	 * mode information is made specifiable in POSTQUEL, users
+	 * will have to COPY, rename, etc. to change archive mode.
+	 */
+	archiveMode = 'n';
+
+	intoRelationId =
+	    RelationNameCreateHeapRelation(intoRelationName,
+					   archiveMode,
+					   numatts,
+					   tupleDesc);
+
+	setheapoverride(true);	/* XXX change "amopen" args instead */
+
+	intoRelation = ObjectIdOpenHeapRelation(intoRelationId);
+
+	setheapoverride(false);	/* XXX change "amopen" args instead */
+    }
+
+    /* ----------------
+     *   Now we get to the important call to ExecMain() where we
+     *   actually run the plan..
+     * ----------------
+     */
+
+    if (isInto) {
+	/* ----------------
+	 *  XXX hack - we are passing the relation
+	 *  descriptor as an integer.. we should either
+	 *  think of a better way to do this or come up
+	 *  with a node type suited to handle it..
+	 * ----------------
+	 */
+	feature = lispCons(lispInteger(EXEC_RESULT),
+			   lispCons(lispInteger(intoRelation),
+				    LispNil));
+	
+    } else if (IsUnderPostmaster) {
+	feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
+    } else {
+	feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
+    }
+
+    queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+			      parser_output,
+			      plan,
+			      state,
+			      feature);
+
+    (void) ExecMain(queryDesc);
+
+    /* ----------------
+     *   final call to ExecMain.. we close down all the scans
+     *   and free allocated resources...
+     * ----------------
+     */
+    
+    feature = lispCons(lispInteger(EXEC_END), LispNil);
+    queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
 			     parser_output,
 			     plan,
 			     state,
 			     feature);
 
-   attinfo = ExecMain(queryDesc);
+    (void) ExecMain(queryDesc);
 
-   /* ----------------
-    *   display the result of the first call to ExecMain()
-    * ----------------
-    */
+    /* ----------------
+     *   close result relation
+     *   XXX this will be moved to moved to EndPlan soon
+     *		-cim 8/29/89
+     * ----------------
+     */
+    if (isInto) {
+	RelationCloseHeapRelation(intoRelation);
+    }
 
-   showatts("blank", CInteger(CAR(attinfo)), CADR(attinfo));
-
-	if (isPortal) {
-		BlankPortalAssignName(CString(CADR(resultDesc)));
-		return;
-	}
-	if (isInto) {
-		ObjectId	relationId;
-		/*
-		 * Archive mode must be set at create time.  Unless this
-		 * mode information is made specifiable in POSTQUEL, users
-		 * will have to COPY, rename, etc. to change archive mode.
-		 */
-		relationId = RelationNameCreateHeapRelation(
-			CString(CADR(resultDesc)),
-			'n',	/* XXX */
-			CInteger(CAR(attinfo)), CADR(attinfo));
-
-		setheapoverride(true);	/* XXX change "amopen" args instead */
-		intoRelation = ObjectIdOpenHeapRelation(relationId);
-		setheapoverride(false);	/* XXX change "amopen" args instead */
-	}
-   /* (showatts "blank" (car attinfo) (cadr attinfo)) */
-
-   /* ----------------
-    *   second call to ExecMain we have feature = '(debug) meaning
-    *   run the plan and generate debugging output
-    *
-    *   (ExecMain (list (cadar partree) partree plan state '(debug)))
-    *
-    *	'(debug) == EXEC_DEBUG	("DEBUG" is already used)
-    *
-    * ----------------
-    */
-
-	if (isInto) {
-		feature = lispCons(lispInteger(EXEC_RESULT),
-			lispCons(lispInteger(intoRelation)));	/* XXX hack */
-	} else if (IsUnderPostmaster) {
-		feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
-	} else {
-		feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
-	}
-   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
-			     parser_output,
-			     plan,
-			     state,
-			     feature);
-
-   (void) ExecMain(queryDesc);
-
-   /* ----------------
-    *   final call to ExecMain we have feature = '(end) meaning
-    *   close relations, end scans and free resources
-    *
-    *   (ExecMain (list (cadar partree) partree plan state '(end)))
-    *
-    * ----------------
-    */
-
-   feature = lispCons(lispInteger(EXEC_END), LispNil);
-   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
-			     parser_output,
-			     plan,
-			     state,
-			     feature);
-
-   (void) ExecMain(queryDesc);
-	if (isInto) {
-		RelationCloseHeapRelation(intoRelation);
-	}
-	if (IsUnderPostmaster) {
-		int	commandType;
-		String	tag;
-
-		commandType = root_command_type(parseRoot);
-		switch (commandType) {
-		case RETRIEVE:
-			tag = "RETRIEVE";
-			break;
-		case APPEND:
-			tag = "APPEND";
-			break;
-		case DELETE:
-			tag = "DELETE";
-			break;
-		case EXECUTE:
-			tag = "EXECUTE";
-			break;
-		case REPLACE:
-			tag = "REPLACE";
-			break;
-		default:
-			elog(WARN, "ProcessQuery: unknown command type %d",
-				commandType);
-		}
-		EndCommand(tag);
-	}
+    /* ----------------
+     *   not certain what this does.. -cim 8/29/89
+     * ----------------
+     */
+    if (IsUnderPostmaster) {
+	EndCommand(tag);
+    }
 }
 
 /* ----------------
@@ -338,136 +405,214 @@ ProcessQuery(parser_output, plan)
  */
 
 main(argc, argv)
-	int	argc;
-	char	*argv[];
+    int	argc;
+    char	*argv[];
 {
-	register int	i;
-	int		flagC, flagQ;
-	int		flag, errs = 0;
-	char		*dat;
-	extern	int	Noversion;		/* util/version.c */
-	extern	int	Quiet;
-/*	
-        extern	char	Blanks[];
-	extern  char    Buf[];
-*/  
-	extern	jmp_buf	Warn_restart;
-	extern	int	optind;
-	extern	char	*optarg;
-	int		setjmp(), chdir();
-	char		*getenv();
-	char		*parser_input = malloc(8192);
-	LispValue	parser_output;
+    register 	int	i;
+    int			flagC;
+    int			flagQ;
+    int			flag;
+    int			errs = 0;
+    char		*DatabaseName;
+    extern	int	Noversion;		/* util/version.c */
+    extern	int	Quiet;
 
-	flagC = flagQ = 0;
-	while ((flag = getopt(argc, argv, "CQO")) != EOF)
-		switch (flag) {
-		case 'C':
-			flagC = 1;
-			break;
-		case 'Q':
-			flagQ = 1;
-			break;
-		case 'O':
-			override = true;
-			break;
-		default:
-			errs += 1;
-		}
-	if (errs || argc - optind > 1) {
-		goto usage;
-	} else if (argc - optind == 1) {
-		dat = argv[optind];
-	} else if ((dat = getenv("USER")) == NULL) {
-		fputs("amiint: failed getenv(\"USER\")\n");
-		exit(1);
-	}
-	Noversion = flagC;
-	Quiet = flagQ;
+    extern	jmp_buf	Warn_restart;
 
-	/* initialize the dynamic function manager */
-	DynamicLinkerInit(argv[0]);
+    extern	int	optind;
+    extern	char	*optarg;
 
-	/* various initiailization routines */
+    int		setjmp(), chdir();
+    char	*getenv();
 
-	signal(SIGHUP, die);
-	signal(SIGINT, die);
-	signal(SIGTERM, die);
+    char	*parser_input = malloc(8192);
+    List	parser_output;
 
-	/* XXX the -C version flag should be removed and combined with -O */
-	SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-	InitPostgres(NULL, dat);
-
-	signal(SIGHUP, handle_warn);
-
-	if (setjmp(Warn_restart) != 0) {
-		Warnings++;
-		AbortCurrentTransaction();
+    bool	watch_parser =  true;
+    bool	watch_planner = true;
+    
+    /* ----------------
+     *	process arguments
+     * ----------------
+     */
+    flagC = flagQ = 0;
+    while ((flag = getopt(argc, argv, "CQO")) != EOF)
+	switch (flag) {
+	case 'C':
+	    flagC = 1;
+	    break;
+	case 'Q':
+	    flagQ = 1;
+	    break;
+	case 'O':
+	    override = true;
+	    break;
+	default:
+	    errs += 1;
 	}
 
-	/*** new code for handling input */
-
-	puts("POSTGRES backend interactive interface:  $Revision$ ($Date$)");
-
-	parser_output = lispList();
-	for (;;) {
-/*
-		StartTransactionCommand();
-		startmmgr(0);
-*/
-	  /* OverrideTransactionSystem(true); */
-
-	  StartTransactionCommand();
-	  printf("> ");
-	  parser_input = gets(parser_input);
-	  printf("input string is %s\n",parser_input);
-	  parser(parser_input,parser_output);
-	  printf("parser outputs :\n");
-	  lispDisplay(parser_output,0);
-	  printf("\n");
-
-	  if (lispIntegerp(CAR(parser_output))) {
-		  ProcessUtility(LISPVALUE_INTEGER(CAR(parser_output)),
-			  CDR(parser_output));
-	  } else {
-	      Node plan;
-	      extern Node planner();
-#ifdef NOTYET	      
-	      extern void init_planner();
-
-	      init_planner();
-#endif NOTYET
-	      
-	      /* ----------------
-	       *   generate the plan
-	       * ----------------
-	       */
-	      plan = planner(parser_output);
-	      printf("\nPlan is :\n");
-	      (*(plan->printFunc))(plan);
-	      printf("\n");
-	      /* ----------------
-	       *   call the executor
-	       * ----------------
-	       */
-	      ProcessQuery(parser_output, plan);
-	  }
-	  CommitTransactionCommand();
-     }
-
- usage:
-	fputs("Usage: amiint [-C] [-Q] [datname]\n", stderr);
+    if (errs || argc - optind > 1) {
+	fputs("Usage: amiint [-C] [-O] [-Q] [datname]\n", stderr);
+	fputs("	-C  =  ??? \n", stderr);
+	fputs(" -O  =  Override Transaction System\n", stderr);
+	fputs(" -Q  =  Quiet mode (less debugging output)\n", stderr);
 	exit(1);
+    } else if (argc - optind == 1) {
+	DatabaseName = argv[optind];
+    } else if ((DatabaseName = getenv("USER")) == NULL) {
+	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
+	exit(1);
+    }
+    Noversion = flagC;
+    Quiet = flagQ;
+
+    /* ----------------
+     * 	print flags
+     * ----------------
+     */
+    if (! Quiet) {
+	puts("\t---debug info---");
+	printf("\tQuiet =        %c\n", Quiet 	     ? 't' : 'f');
+	printf("\tNoversion =    %c\n", Noversion   ? 't' : 'f');
+	printf("\toverride  =    %c\n", override    ? 't' : 'f');
+	printf("\tDatabaseName = [%s]\n", DatabaseName);
+	puts("\t----------------\n");
+    }
+
+    if (! Quiet && ! override)
+	puts("\t**** Transaction System Active ****");
+    
+    /* ----------------
+     * 	initialize the dynamic function manager
+     * ----------------
+     */
+    if (! Quiet)
+	puts("\tDynamicLinkerInit()..");
+    DynamicLinkerInit(argv[0]);
+
+    /* ----------------
+     * 	various initalization stuff
+     * ----------------
+     */
+    signal(SIGHUP, die);
+    signal(SIGINT, die);
+    signal(SIGTERM, die);
+	
+    /* XXX the -C version flag should be removed and combined with -O */
+    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
+
+    if (! Quiet)
+	puts("\tInitPostgres()..");
+    InitPostgres(NULL, DatabaseName);
+
+    signal(SIGHUP, handle_warn);
+
+    if (setjmp(Warn_restart) != 0) {
+	Warnings++;
+	if (! Quiet)
+	    puts("\tAbortCurrentTransaction()..");
+	AbortCurrentTransaction();
+    }
+
+    /* ----------------
+     *   new code for handling input
+     * ----------------
+     */
+    puts("\nPOSTGRES backend interactive interface");
+    puts("$Revision$ $Date$");
+
+    parser_output = lispList();
+
+    for (;;) {
+	/* ----------------
+	 *   start the current transaction
+	 * ----------------
+	 */
+	if (! Quiet)
+	    puts("\tStartTransactionCommand()..");
+	StartTransactionCommand();
+
+	/* ----------------
+	 *   get input from the user
+	 * ----------------
+	 */
+	printf("\n> ");
+	
+	parser_input = gets(parser_input);
+	if (! Quiet)
+	    printf("\ninput string is %s\n",parser_input);
+
+	if (parser_input == NULL) {
+	    if (! Quiet)
+		puts("EOF");
+	    AbortCurrentTransaction();
+	    exit(0);
+	}
+	    
+	/* ----------------
+	 *   parse the input
+	 * ----------------
+	 */
+	parser(parser_input, parser_output);
+
+	if (! Quiet) {
+	    printf("---- \tparser outputs :\n");
+	    lispDisplay(parser_output,0);
+	    printf("\n");
+	}
+	
+	/* ----------------
+	 *   process the request
+	 * ----------------
+	 */
+	if (lispIntegerp(CAR(parser_output))) {
+	    /* ----------------
+	     *   process utility functions (create, destroy, etc..)
+	     * ----------------
+	     */
+	    if (! Quiet)
+		puts("\tProcessUtility()..");
+	    ProcessUtility(LISPVALUE_INTEGER(CAR(parser_output)),
+			   CDR(parser_output));
+	} else {
+	    /* ----------------
+	     *   process queries (retrieve, append, delete, replace)
+	     * ----------------
+	     */
+	    Node plan;
+	    extern Node planner();
+	    extern void init_planner();
+
+	    if (! Quiet)
+		puts("\tinit_planner()..");
+	    init_planner();
+	      
+	    /* ----------------
+	     *   generate the plan
+	     * ----------------
+	     */
+	    plan = planner(parser_output);
+	    if (! Quiet) {
+		printf("\nPlan is :\n");
+		(*(plan->printFunc))(plan);
+		printf("\n");
+	    }
+	    
+	    /* ----------------
+	     *   call the executor
+	     * ----------------
+	     */
+	    if (! Quiet)
+		puts("\tProcessQuery()..");
+	    ProcessQuery(parser_output, plan);
+	}
+
+	/* ----------------
+	 *   commit the current transaction
+	 * ----------------
+	 */
+	if (! Quiet)
+	    puts("\tCommitTransactionCommand()..");
+	CommitTransactionCommand();
+     }
 }	
-
-void
-handle_warn()
-{
-	longjmp(Warn_restart);
-}
-
-void
-die()
-{
-	ExitPostgres(0);
-}

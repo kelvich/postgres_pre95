@@ -1,7 +1,3 @@
-/*
- *  equalfuncs -- functions for computing equality of various nodes.
- */
-
 #include "c.h"
 #include "postgres.h"
 #include "log.h"
@@ -11,8 +7,6 @@
 #include "relation.h"
 #include "execnodes.h"
 #include "plannodes.h"
-
-RcsId("$Header$");
 
 extern bool	_equalLispValue();
 extern bool	_equalHeapTuple();
@@ -418,7 +412,7 @@ _equalEState(a, b)
 	if (!_equalRelation(a->relation_relation_descriptor,
 			    b->relation_relation_descriptor))
 		return (false);
-	if (a->result_relation_oid != b->result_relation_oid)
+	if (a->result_relation_index != b->result_relation_index)
 		return (false);
 	if (!_equalRelation(a->result_relation_descriptor,
 			    b->result_relation_descriptor))
