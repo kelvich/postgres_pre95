@@ -10,242 +10,306 @@ RcsId("$Header$");
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/daemon.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_user.h"
+#include "catalog/pg_database.h"
 
 
 extern int NStriping;
 extern char *PostgresHomes[];
 extern char *GetDataHome();
-extern char *PG_usename;
-
-int user_sysid;
+extern char *PG_username;
+extern char *DBName;
 
 createdb(dbname)
-
-char *dbname;
-
+    char *dbname;
 {
+    ObjectId db_id, user_id;
     char *path;
     char buf[512];
     int i;
 
-    if (check_security("createdb", dbname))
-    {
-		/* Free up file descriptors so we can do the system's below */
-		closeAllVfds();
-        if (NStriping == 0)
-        {
-            path = GetDataHome();
-            sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
-            system(buf);
-            sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
+    /*
+     *  If this call returns, the database does not exist and we're allowed
+     *  to create databases.
+     */
+    check_permissions("createdb", dbname, &db_id, &user_id);
+
+    /* close virtual file descriptors so we can do system() calls */
+    closeAllVfds();
+
+    if (NStriping == 0) {
+	path = GetDataHome();
+	sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
+	system(buf);
+	sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
                     path, path, dbname);
-            system(buf);
-        }
-        else
-        {
-            for (i = 0; i < NStriping; i++)
-            {
-                path = PostgresHomes[i];
-                sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
-                system(buf);
-                sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
-                        path, path, dbname);
-                system(buf);
-            }
-        }
+	system(buf);
+    } else {
+	for (i = 0; i < NStriping; i++)
+	{
+	    path = PostgresHomes[i];
+	    sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
+	    system(buf);
+	    sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
+		    path, path, dbname);
+	    system(buf);
+	}
     }
-    sprintf(buf,
-            "append pg_database (datname = \"%s\"::char16, \
-            datdba = \"%d\"::oid, \
-             datpath = \"%s\"::text)", dbname, user_sysid, dbname);
+
+    sprintf(buf, "append pg_database (datname = \"%s\"::char16, \
+                  datdba = \"%d\"::oid, datpath = \"%s\"::text)",
+		  dbname, user_id, dbname);
     pg_eval(buf);
 }
 
 destroydb(dbname)
-
-char *dbname;
-
+    char *dbname;
 {
-    char buf[512];
-    char filename[256];
+    ObjectId user_id, db_id;
     char *path;
     int i;
-    FILE *file, *fopen();
+    char buf[512];
 
-    if (check_security("destroydb", dbname) != 0)
-    {
-        if (NStriping == 0)
-        {
-            path = GetDataHome();
-            sprintf(filename, "%s/data/base/%s/%s.vacuum",
-                    path, dbname, dbname);
-            /* stop the vacuum daemon, if one is running */
+    /*
+     *  If this call returns, the database exists and we're allowed to
+     *  remove it.
+     */
+    check_permissions("destroydb", dbname, &db_id, &user_id);
 
-            if ((file = fopen(filename, "r")) != (FILE *) NULL) {
-                int pid;
-                fscanf(file, "%d", &pid);
-                fclose(file);
-                if (kill(pid, SIGKILLDAEMON1) < 0) {
-                    elog(WARN, "can\'t kill vacuum daemon on database %s",
-                         dbname);
-                }
-            }
-            sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
-            system(buf);
-        }
-        else
-        {
-            for (i = 0; i < NStriping; i++)
-            {
-                path = PostgresHomes[i];
-                sprintf(filename, "%s/data/base/%s/%s.vacuum",
-                        path, dbname, dbname);
-                /* stop the vacuum daemon, if one is running */
-
-                if ((file = fopen(filename, "r")) != (FILE *) NULL) {
-                    int pid;
-                    fscanf(file, "%d", &pid);
-                    fclose(file);
-                    if (kill(pid, SIGKILLDAEMON1) < 0) {
-                        elog(WARN, "can\'t kill vacuum daemon on database %s",
-                             dbname);
-                    }
-                }
-                sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
-                system(buf);
-            }
-        }
+    if (!ObjectIdIsValid(db_id)) {
+	elog(FATAL, "impossible: pg_database instance with invalid OID.");
     }
 
-    sprintf(buf, "delete pg_database where \
-            pg_database.datname = \"%s\"::char16", dbname);
+    /* stop the vacuum daemon */
+    stop_vacuum(dbname);
+
+    /* remove the data directory */
+    if (NStriping == 0) {
+	path = GetDataHome();
+	sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
+	system(buf);
+    } else {
+	for (i = 0; i < NStriping; i++) {
+	    path = PostgresHomes[i];
+	    sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
+	    system(buf);
+	}
+    }
+
+    /* remove the pg_database tuple */
+    sprintf(buf, "delete pg_database where pg_database.oid = \"%d\"::oid",
+		  db_id);
     pg_eval(buf);
 
+    /* drop pages for this database that are in the shared buffer cache */
+    DropBuffers(db_id);
+}
+
+HeapTuple
+get_pg_usertup(command, username)
+    char *command;
+    char *username;
+{
+    Relation urel;
+    HeapTuple usertup;
+    HeapTuple tup;
+    Buffer buf;
+    HeapScanDesc scan;
+    static ScanKeyEntryData scanKey[1] =
+	{ 0, Anum_pg_user_usename, NameEqualRegProcedure };
+
+    urel = heap_openr(Name_pg_user);
+    if (!RelationIsValid(urel))
+	elog(FATAL, "%s: cannot open %s.", command, Name_pg_user);
+
+    scanKey[0].argument = NameGetDatum(username);
+    scan = heap_beginscan(urel, 0, NowTimeQual, 1, (ScanKey) scanKey);
+    if (!HeapScanIsValid(scan))
+	elog(WARN, "%s: cannot begin scan of pg_user.", command);
+
+    /*
+     *  since we want to return the tuple out of this proc, and we're
+     *  going to close the relation, copy the tuple and return the copy.
+     */
+    tup = heap_getnext(scan, 0, &buf);
+
+    if (HeapTupleIsValid(tup)) {
+	usertup = (HeapTuple) palloctup(tup, buf, urel);
+	ReleaseBuffer(buf);
+    } else {
+	elog(WARN, "go away, you don't exist.");
+    }
+
+    heap_endscan(scan);
+    heap_close(urel);
+    return (usertup);
+}
+
+HeapTuple
+get_pg_dbtup(command, dbname)
+    char *command;
+    char *dbname;
+{
+    Relation dbrel;
+    HeapTuple dbtup;
+    HeapTuple tup;
+    Buffer buf;
+    HeapScanDesc scan;
+    static ScanKeyEntryData scanKey[1] =
+	{ 0, Anum_pg_database_datname, NameEqualRegProcedure };
+
+    dbrel = heap_openr("pg_database");
+    if (!RelationIsValid(dbrel))
+	elog(FATAL, "%s: cannot open %s.", command, Name_pg_database);
+
+    scanKey[0].argument = NameGetDatum(dbname);
+    scan = heap_beginscan(dbrel, 0, NowTimeQual, 1, (ScanKey) scanKey);
+    if (!HeapScanIsValid(scan))
+	elog(WARN, "%s: cannot begin scan of pg_database.", command);
+
+    /*
+     *  since we want to return the tuple out of this proc, and we're
+     *  going to close the relation, copy the tuple and return the copy.
+     */
+    tup = heap_getnext(scan, 0, &buf);
+
+    if (HeapTupleIsValid(tup)) {
+	dbtup = (HeapTuple) palloctup(tup, buf, dbrel);
+	ReleaseBuffer(buf);
+    } else
+	dbtup = tup;
+
+    heap_endscan(scan);
+    heap_close(dbrel);
+    return (dbtup);
 }
 
 /*
- * Returns true if user is OK to use the database - does an elog(warn)
- * otherwise.
+ *  check_permissions() -- verify that the user is permitted to do this.
  *
- * Check_security also sets the user_sysid variable as a side-effect.
+ *  If the user is not allowed to carry out this operation, this routine
+ *  elog(WARN, ...)s, which will abort the xact.  As a side effect, the
+ *  user's pg_user tuple OID is returned in userIdP and the target database's
+ *  OID is returned in dbIdP.
  */
 
-int
-check_security(command, dbname)
-
-char *command, *dbname;
-
+check_permissions(command, dbname, dbIdP, userIdP)
+    char *command;
+    char *dbname;
+    ObjectId *dbIdP;
+    ObjectId *userIdP;
 {
-    extern char *DBName;
-    extern char *PG_username;
-    Relation r, amopenr();
-    HeapScanDesc s, ambeginscan();
-    char dummy, use_createdb;
-    int n, done = 0;
-    int dbfound = 0;
+    Relation urel, dbrel;
+    HeapTuple dbtup, utup;
+    ObjectId dbowner;
+    ObjectId dbid;
+    char use_createdb;
+    bool dbfound;
 
-    HeapTuple u, amgetnext();
-    int value;
-    char *value2;
+    utup = get_pg_usertup(command, PG_username);
+    *userIdP = utup->t_oid;
 
-    /*
-     * We don't have a cache for pg_user or pg_database, so we have to open
-     * them "by hand" and scan them using direct access method calls.
-     *
-     * This code "knows" the layout of pg_user: at least as much as 
-     * the following: username:char16, sysid:int2, usecreatedb:bool
-     */
+    /* need the reldesc to get attributes out of the pg_user tuple */
+    urel = heap_openr(Name_pg_user);
 
-    r = amopenr("pg_user");
-    if (r == NULL) elog(FATAL, "%s: can\'t open pg_user!", command);
-    s = ambeginscan(r, 0, NULL, NULL, NULL);
-    n = strlen(PG_username);
-    while (!done)
-    {
-        u = amgetnext(s, NULL, NULL);
-        if (u == NULL) elog(FATAL, "User %s is not in pg_user!!", PG_username);
-        value2 = (char *) HeapTupleGetAttributeValue(u, InvalidBuffer, 1,
-                                                     &(r->rd_att), &dummy);
-        if (!strncmp(PG_username, value2, n))
-        {
-            done = true;
-        }
-    }
-
-    user_sysid = (int2) HeapTupleGetAttributeValue(u, InvalidBuffer, 2,
-                                                   &(r->rd_att), &dummy);
-    use_createdb = (char) HeapTupleGetAttributeValue(u, InvalidBuffer, 3,
-                                                     &(r->rd_att), &dummy);
-    amclose(r);
+    use_createdb = (char) heap_getattr(utup, InvalidBuffer,
+				       Anum_pg_user_usecreatedb,
+				       &(urel->rd_att),
+				       (char *) NULL);
+    heap_close(urel);
 
     /* Check to make sure user has permission to use createdb */
-
-    if (!use_createdb)
-    {
-        elog(WARN, "User %s is not allowed to use the createdb query",
+    if (!use_createdb) {
+        elog(WARN, "User %s is not allowed to create/destroy databases",
              PG_username);
     }
 
     /* Check to make sure database is not the currently open database */
-
-    if (!strcmp(dbname, DBName))
-    {
+    if (!strcmp(dbname, DBName)) {
         elog(WARN, "%s cannot be executed on an open database", command);
     }
 
     /* Make sure we are not mucking with the template database */
-
-    if (!strcmp(dbname, "template1"))
-    {
+    if (!strcmp(dbname, "template1")) {
         elog(WARN, "%s cannot be executed on the template database.", command);
     }
+
     /* Check to make sure database is owned by this user */
+    dbtup = get_pg_dbtup(command, dbname);
+    dbfound = HeapTupleIsValid(dbtup);
 
-    r = amopenr("pg_database");
-    if (r == NULL) elog(FATAL, "%s: can\'t open pg_database!", command);
-    s = ambeginscan(r, 0, NULL, NULL, NULL);
-    done = 0;
-    n = strlen(dbname);
-    while (!done)
-    {
-
-        u = amgetnext(s, NULL, NULL);
-        if (u == NULL) 
-        {
-            done = 1;
-            dbfound = 0;
-        }
-
-        if (!done) 
-        {
-            value2 = (char *) HeapTupleGetAttributeValue(u, InvalidBuffer,
-                                                         1, &(r->rd_att),
-                                                         &dummy);
-            
-            if (!strncmp(value2, dbname, n))
-            {
-                done = 1;
-                dbfound = 1;
-                value = (int) HeapTupleGetAttributeValue(u, InvalidBuffer, 2,
-                                                         &(r->rd_att), &dummy);
-            }
-        }
+    if (dbfound) {
+	/* need the reldesc to get the database owner out of dbtup */
+	dbrel = heap_openr(Name_pg_database);
+	dbowner = (ObjectId) heap_getattr(dbtup, InvalidBuffer,
+				          Anum_pg_database_datdba,
+				          &(dbrel->rd_att),
+				          (char *) NULL);
+	*dbIdP = dbtup->t_oid;
+	heap_close(dbrel);
+    } else {
+	*dbIdP = InvalidObjectId;
     }
 
-    amclose(r);
+    /*
+     *  Now be sure that the user is allowed to do this.
+     */
 
-    if (dbfound && !strcmp(command, "createdb"))
-    {
+    if (dbfound && !strcmp(command, "createdb")) {
+
         elog(WARN, "createdb: database %s already exists.", dbname);
-    }
-    else if (!dbfound && !strcmp(command, "destroydb"))
-    {
-        elog(WARN, "destroydb: database %s does not exist.", dbname);
-    }
-    else if (dbfound && !strcmp(command, "destroydb") && value != user_sysid)
-    {
-        elog(WARN, "database %s is not owned by you.", dbname);
-    }
 
-    return(1);
+    } else if (!dbfound && !strcmp(command, "destroydb")) {
+
+        elog(WARN, "destroydb: database %s does not exist.", dbname);
+
+    } else if (dbfound && !strcmp(command, "destroydb")
+	       && dbowner != *userIdP) {
+
+        elog(WARN, "%s: database %s is not owned by you.", command, dbname);
+
+    }
+}
+
+/*
+ *  stop_vacuum() -- stop the vacuum daemon on the database, if one is
+ *		     running.
+ */
+stop_vacuum(dbname)
+    char *dbname;
+{
+    int i;
+    char *path;
+    char buf[512];
+    char filename[256];
+    FILE *fp;
+    int pid;
+
+    if (NStriping == 0) {
+	path = GetDataHome();
+	sprintf(filename, "%s/data/base/%s/%s.vacuum", path, dbname, dbname);
+	if ((fp = fopen(filename, "r")) != (FILE *) NULL) {
+	    fscanf(fp, "%d", &pid);
+	    fclose(fp);
+	    if (kill(pid, SIGKILLDAEMON1) < 0) {
+		elog(WARN, "can't kill vacuum daemon (pid %d) on %s",
+			   pid, dbname);
+	    }
+	}
+    } else {
+	for (i = 0; i < NStriping; i++) {
+	    path = PostgresHomes[i];
+	    sprintf(filename, "%s/data/base/%s/%s.vacuum",
+			 path, dbname, dbname);
+	    if ((fp = fopen(filename, "r")) != (FILE *) NULL) {
+		fscanf(fp, "%d", &pid);
+		fclose(fp);
+		if (kill(pid, SIGKILLDAEMON1) < 0) {
+		    elog(WARN, "can't kill vacuum daemon (pid %d) on %s",
+			       pid, dbname);
+		}
+	    }
+	}
+    }
 }
