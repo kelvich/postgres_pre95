@@ -65,8 +65,8 @@ InitializeExecutor()
     datumTrue  = Int32GetDatum((int32) true);
     datumFalse = Int32GetDatum((int32) false);
     
-    ConstTrue =  MakeConst(boolType, boolLen, datumTrue,  false, true);
-    ConstFalse = MakeConst(boolType, boolLen, datumFalse, false, true);
+    ConstTrue =  MakeConst(boolType, boolLen, datumTrue,  false, true, false);
+    ConstFalse = MakeConst(boolType, boolLen, datumFalse, false, true, false);
     
 #ifdef EXEC_DEBUGVARIABLEFILE
     /* ----------------
