@@ -740,12 +740,11 @@ formrdesc(relationName, natts, att)
     relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
     relation->rd_rel->relpages = 1;			/* XXX */
     relation->rd_rel->reltuples = 1;			/* XXX */
-    relation->rd_rel->relhasindex = '\0';
     relation->rd_rel->relkind = 'r';
     relation->rd_rel->relarch = 'n';
     relation->rd_rel->relnatts = (uint16) natts;
     relation->rd_isnailed = true;
-    
+
     /* ----------------
      *	initialize tuple desc info
      * ----------------
@@ -771,6 +770,13 @@ formrdesc(relationName, natts, att)
      * ----------------
      */
     RelationCacheInsert(relation);
+    /*
+     * Determining this requires a scan on pg_relation, but to do the
+     * scan the rdesc for pg_relation must already exist.  Therefore
+     * we must do the check (and possible set) after cache insertion.
+     */
+    relation->rd_rel->relhasindex =
+	CatalogHasIndex(relationName, relation->rd_id);
 }
  
 
