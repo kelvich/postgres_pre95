@@ -2,6 +2,6 @@
 
 PROG= pmkdir
 
-SRCS= mkdir.c
+SRCS= pmkdir.c
 
 .include <postgres.prog.mk>
