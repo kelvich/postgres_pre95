@@ -13,6 +13,7 @@
 #include "pg_lisp.h"
 #include "primnodes.h"
 #include "nodes.h"
+#include "rulenodes.h"
 
 /*
  *  These #defines indicate that we have supplied print routines for the
@@ -20,6 +21,7 @@
  *  are automatically generated from this .h file.  When time permits, this
  *  system ought to be redesigned.
  */
+
 
 #define	PrintRelExists
 #define	PrintSortKeyExists
@@ -35,6 +37,7 @@
 #define	PrintJInfoExists
 #define PrintHInfoExists
 #define PrintJoinMethodExists
+#define PrintRuleLockNodeExists
 
 extern void     PrintRel();
 extern void	PrintSortKey();
@@ -50,6 +53,7 @@ extern void	PrintCInfo();
 extern void	PrintJInfo();
 extern void     PrintHInfo();
 extern void     PrintJoinMethod();
+extern void	PrintRuleLockNode();
 
 #define EqualCInfoExists 1
 #define EqualJInfoExists 1
@@ -179,7 +183,7 @@ class (Path) public (Node) {
 	List		p_ordering; \
 	List		keys; \
 	SortKey		sortpath; \
-	Relid		joinid
+        Relid		joinid
 /* private: */
 	PathDefs;
  /* public: */
@@ -259,11 +263,11 @@ class (CInfo) public (Node) {
 	Cost		selectivity;
 	bool		notclause;
 	List		indexids;
+	Relid		cinfojoinid;
 /* mergesort only */
 	MergeOrder	mergesortorder;
 /* hashjoin only */
 	ObjectId	hashjoinoperator;
-	Relid		cinfojoinid;
 };
 
 class (JoinMethod) public (Node) {
@@ -293,6 +297,15 @@ class (JInfo) public (Node) {
 	bool		mergesortable;
 	bool		hashjoinable;
 	bool		inactive;
+};
+
+class (RuleLockNode) public (Node) {
+    	inherits(Node);
+	LockType	rltype;
+	Index		rlrelation;
+	AttributeNumber	rlattribute;
+	Var		rlvar;
+	List		rlplan;
 };
 
 #endif /* RelationIncluded */
