@@ -8,7 +8,8 @@ monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
 .b monitor
-[-h hostname] [-p port] [-t path] [-d path] [-q] [-o options]
+[-h hostname] [-p port] [-t path] [-N] [-A] [-c query] [-d path] [-q]
+[-o options] 
 dbname
 .uh DESCRIPTION
 .lp
@@ -43,6 +44,24 @@ communication between the terminal monitor and the postmaster.
 .sp
 \fI-t path\fR specifies the path name of the file or tty which you 
 want the backend debugging messages to be sent to; default is /dev/null. 
+\fI-N\fR specifies that query results will be dumped to the screen without
+any attempt at formatting.  This is useful in conjunction with the
+.b -c
+option in shell scripts.
+.sp
+\fI-A\fR specifies that attribute names will not be printed - only the
+data itself.  This is useful in conjunction with the 
+.b -c
+option in shell scripts.
+.sp
+\fI-c query\fR specifies that the monitor is to run one query and exit.
+This is useful for shell scripts, typically in conjunction with the
+.b -N
+and
+.b -A
+options.  Examples of shell scripts in the POSTGRES distribution using 
+.b monitor -c
+are createdb, destroydb, createuser, and destroyuser.
 .sp
 \fI-d path\fR specifies the path name of the file or tty which you want
 the frontend debugging messages to be written to; the default is not
@@ -124,6 +143,15 @@ tty:		PGTTY
 options:		PGOPTION
 .)l
 .sp
+.uh "RETURN VALUE"
+.lp
+When executed with the
+.b -c query
+option
+.i monitor
+returns 0 to the shell on successful query completion, 1 otherwise.
+.sp
 .uh "SEE ALSO"
 .lp
-backend(unix), postmaster(unix)
+backend(unix), postmaster(unix), createdb(unix), destroydb(unix),
+createuser(unix), destroyuser(unix)
