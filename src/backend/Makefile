@@ -36,6 +36,11 @@ ${IDFILE}:
 	cd ${.CURDIR}; ./makeID ${PORTNAME}
 
 #
+# We just want the vanilla LDFLAGS for pg_id
+#
+IDLDFLAGS:= ${LDFLAGS}
+
+#
 # This part pulls in the subdirectory partial makefiles.
 #
 .undef SRCS
@@ -296,7 +301,7 @@ CLEANFILES+= .purify* .pure .lock.*.o *_pure_*.o *.pure_*link*
 #
 .PATH: ${.CURDIR}/../bin/pg_id
 pg_id:	pg_id.c
-	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
+	${CC} ${IDLDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
 
 CLEANFILES+= pg_id
 
