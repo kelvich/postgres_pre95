@@ -21,7 +21,7 @@
  * ----------------
  */
 
-#include "ipci.h"
+#include "storage/ipci.h"
 
 /* XXX These should *not* be used directly; fix the interface in ipc*.h. */
 #ifndef sequent
@@ -32,13 +32,12 @@
 #include "/usr/att/usr/include/sys/sem.h"
 #endif
 
-#include "ipc.h"
-#include "log.h"
-#include "pladt.h"
-#include "pldebug.h"
-#include "plm.h"
-
-#include "sinvaladt.h"
+#include "storage/ipc.h"
+#include "storage/pladt.h"
+#include "storage/pldebug.h"
+#include "storage/plm.h"
+#include "storage/sinvaladt.h"
+#include "utils/log.h"
 
 /* ----------------
  *	global variable notes
