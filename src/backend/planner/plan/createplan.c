@@ -276,8 +276,9 @@ create_join_node(best_path,origtlist,tlist)
      ** into this path node.  Put them in the qpqual of the plan node.
      **        -- JMH, 6/15/92
      */
-     nappend1(get_qpqual((Plan) retval), 
-	      fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
+     if (get_locclauseinfo(best_path) != LispNil)
+       nappend1(get_qpqual((Plan) retval), 
+		fix_opids(get_actual_clauses(get_locclauseinfo(best_path))));
 
      set_parallel((Plan)retval, 1);
      return(retval);
