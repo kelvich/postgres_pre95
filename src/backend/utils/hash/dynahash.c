@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.5  1991/07/29 16:54:33  mer
-    cleanup
+    Revision 1.6  1991/07/31 23:00:03  mer
+    fixes for expanding tables
 
+ * Revision 1.5  91/07/29  16:54:33  mer
+ * cleanup
+ * 
  * Revision 1.4  91/04/01  08:49:32  hong
  * for debugging memory leaks.
  * 
@@ -439,13 +442,13 @@ HTAB	*hashp;
 char    *k;
 int     len;
 {
-        int     n, bucket;
+        int     hash_val, bucket;
 	HHDR	*hctl;
 
 	hctl = hashp->hctl;
-        n = hashp->hash(k, len);
+        hash_val = hashp->hash(k, len);
 
-        bucket = n & hctl->high_mask;
+        bucket = hash_val & hctl->high_mask;
         if ( bucket > hctl->max_bucket ) {
             bucket = bucket & hctl->low_mask;
         }
@@ -470,7 +473,7 @@ char	*keyPtr;
 ACTION 	action;			       /* HASH_FIND/HASH_ENTER/HASH_REMOVE */
 Boolean	*foundPtr;
 {
-	int bucket;
+	uint32 bucket;
 	int segment_num;
 	int segment_ndx;
 	SEGMENT segp;
@@ -479,7 +482,6 @@ Boolean	*foundPtr;
 	BUCKET_INDEX	currIndex;
 	BUCKET_INDEX	*prevIndexPtr;
 	char *		destAddr;
-	int 		hash_val;
 
 	if ((hashp == NULL) || (keyPtr == NULL)) {
 	  return(NULL);
@@ -492,11 +494,7 @@ Boolean	*foundPtr;
 	hash_accesses++;
 	hashp->hctl->accesses++;
 # endif
-	hash_val = hashp->hash(keyPtr,hctl->keysize);
-	bucket = hash_val & hctl->high_mask;
-	if ( bucket > hctl->max_bucket ) {
-	    bucket = bucket & hctl->low_mask;
-	}
+	bucket = call_hash(hashp, keyPtr, hctl->keysize);
 	segment_num = bucket >> hctl->sshift;
 	segment_ndx = bucket & ( hctl->ssize - 1 );
 
@@ -651,7 +649,7 @@ HTAB *	hashp;
 	if ( new_bucket > hctl->high_mask ) {
 	    /* Starting a new doubling */
 	    hctl->low_mask = hctl->high_mask;
-	    hctl->high_mask = new_bucket & hctl->low_mask;
+	    hctl->high_mask = new_bucket | hctl->low_mask;
 	}
 
 	/*
@@ -671,7 +669,7 @@ HTAB *	hashp;
 
 	  chain = GET_BUCKET(hashp,chainIndex);
 	  nextIndex = chain->next;
-	  if ( hashp->hash(&(chain->key),hctl->keysize) == old_bucket ) {
+	  if ( call_hash(hashp, &(chain->key), hctl->keysize) == old_bucket ) {
 		*old = chainIndex;
 		old = &chain->next;
 	    } else {
