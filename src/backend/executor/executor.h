@@ -4,9 +4,10 @@
  *     
  *      DESCRIPTION
  *     	support for the POSTGRES executor module
+ *
+ *	$Header$"
  * ----------------------------------------------------------------
  */
-static char *RCS_ID = "$Header$";
 
 #ifndef ExecutorIncluded
 #define ExecutorIncluded
@@ -18,13 +19,19 @@ static char *RCS_ID = "$Header$";
 #include <stdio.h>
 #include <string.h>
 
+#include "c.h"
 #include "pg_lisp.h"
+
 #include "parse.h"
 #include "buf.h"
 #include "rel.h"
+#include "anum.h"
 #include "catname.h"
+#include "catalog.h"
 #include "log.h"
 #include "strings.h"
+#include "syscache.h"
+#include "tqual.h"
 
 #include "printtup.h"
 #include "primnodes.h"
@@ -198,36 +205,36 @@ static char *RCS_ID = "$Header$";
 #define parse_tree_root(parse_tree) \
     CAR(parse_tree)
 
+#define parse_tree_target_list(parse_tree) \
+    CAR(CDR(parse_tree))
+
+#define parse_tree_qualification(parse_tree) \
+    CAR(CDR(CDR(parse_tree)))
+
+#define parse_tree_root_num_levels(parse_tree_root) \
+    CAR(parse_tree_root)
+
+#define parse_tree_root_command_type(parse_tree_root) \
+    CAR(CDR(parse_tree_root))
+
+#define parse_tree_root_result_relation(parse_tree_root) \
+    CAR(CDR(CDR(parse_tree_root)))
+
 #define parse_tree_root_range_table(parse_tree_root) \
     CAR(CDR(CDR(CDR(parse_tree_root))))
+
+#define parse_tree_root_priority(parse_tree_root) \
+    CAR(CDR(CDR(CDR(CDR(parse_tree_root)))))
+
+#define parse_tree_root_rule_info(parse_tree_root) \
+    CAR(CDR(CDR(CDR(CDRCDR((parse_tree_root))))))
+
 
 #define parse_tree_range_table(parse_tree)	\
     parse_tree_root_range_table(parse_tree_root(parse_tree))
 
 #define parse_tree_result_relation(parse_tree) \
-    CAR(CDR(CDR(CAR(CDR(parse_tree)))))
-
-/* ----------------
- *    Retrieve/Construct the components in relation ID.
- *    Relation ID which is the relation name
- *	 is changed into (RelDesc ScanDesc)
- *    after initialization.
- * ----------------
- */
-#define ExecMakeRelID(relDesc,scanDesc)	\
-    lispList(relDesc,scanDesc)
-
-#define ExecGetRelDesc(relID) \
-    (CAR(relID))
-
-#define ExecSetRelDesc(relID,relDesc) \
-   (ExecGetRelDesc(relID) = (relDesc)))
-
-#define ExecGetScanDesc(relID) \
-   (CAR(CDR(relID)))
-
-#define ExecSetScanDesc(relID,relDesc) \
-   (ExecGetScanDesc(relID) = (relDesc))
+    parse_tree_root_result_relation(parse_tree_root(parse_tree))
 
 /* ----------------
  * 	macros to determine node types
@@ -246,25 +253,6 @@ static char *RCS_ID = "$Header$";
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsHash(node)	IsA(node,Hash)
 
-#ifdef TIMETODIE
-/* ----------------
- *	result node accessors
- * ----------------
- */
-
-#define ResGetLoop(node) 		get_Loop(get_resstate(node))
-#define ResSetLoop(node,value)		set_Loop(get_resstate(node), value)
-#define ResGetLeftTuple(node)		get_LeftTuple(get_resstate(node))
-#define ResSetLeftTuple(node,value)	set_LeftTuple(get_resstate(node), value)
-#define ResGetTupType(node) 		get_TupType(get_resstate(node))
-#define ResSetTupType(node,value) 	set_TupType(get_resstate(node), value)
-#define ResGetTupValue(node) 		get_TupValue(get_resstate(node))
-#define ResSetTupValue(node,value)	set_TupValue(get_resstate(node), value)
-#define ResGetLevel(node)		get_Level(get_resstate(node))
-#define ResSetLevel(node,value)		set_Level(get_resstate(node), value)
-
-#endif TIMETODIE
-
 
 #ifdef NOTYET
 /* ----------------
@@ -276,7 +264,6 @@ static char *RCS_ID = "$Header$";
 #define SGetQual(node)		get_qpqual(node)
 #define SGetTarget(node)	get_qptargetlist(node)
 #endif NOTYET
-
 
 
 
@@ -522,8 +509,6 @@ static char *RCS_ID = "$Header$";
 #endif NOTYET
 
 
-
-
 /* ----------------------------------------------------------------
  *	externs
  * ----------------------------------------------------------------
@@ -533,113 +518,38 @@ static char *RCS_ID = "$Header$";
  *	miscellany
  */
 
-extern Relation	amopenr();
-extern Bool ExprTrue;
-extern Bool ExprFalse;
+extern Relation		amopen();
+extern Relation		amopenr();
+extern HeapScanDesc 	ambeginscan();
+extern HeapTuple 	amgetnext();
+extern char *		amgetattr();
+
+extern Const		ConstTrue;
+extern Const		ConstFalse;
 
 /* 
  *	public executor functions
  */
-extern List ExecMain();			/* main */
 
-extern List ExecGetSPlanTuple();	/* einternal */
-extern void ExecSetSPlanTuple();	/* einternal */		
-extern List ExecGetSPlanType();		/* einternal */
-extern void ExecSetSPlanType();		/* einternal */
-extern List ExecInitSPlanInfo();	/* einternal */
-
-extern List make_const();		/* einternal */
-extern Expr ExecEvalVar();		/* einternal */
-extern Expr ExecEvalOper();		/* einternal */
-extern Expr ExecEvalFunc();		/* einternal */
-extern Expr ExecEvalNot();		/* einternal */
-extern Expr ExecEvalParam();		/* einternal */
-extern Expr ExecEvalOr();		/* einternal */
-extern List ExecQual();			/* einternal */
-extern Expr ExecEvalExpr();		/* einternal */
-
-extern List LispOr();			/* einternal */
-extern Expr ExecMakeVarConst();		/* einternal */
-
-extern List ExecOpenR();		/* eutils */
-extern List ExecBeginScan();		/* eutils */
-extern List GetIDFromRangeTbl();	/* eutils */
-
-extern List ExecIndexScan(); 		/* indexscan */
-extern List IndexNext();		/* indexscan */
-extern List UseNextIndex();		/* indexscan */
-extern List OpenScanIndices();		/* indexscan */
-extern List MakeSkeys();		/* indexscan */
-
-extern List InitPlan();			/* main */
-extern List EndPlan();			/* main */
-extern List ExecutePlan();		/* main */
-extern List ExecAppend();		/* main */
-extern List ExecRetrieve();		/* main */
-extern List ExecDel();			/* main */
-extern List ExecReplace();		/* main */
-
-extern List GetMJOuterTuple();		/* mergejoin */
-extern List GetMJTupType();		/* mergejoin */
-extern List GetMJTupValue();		/* mergejoin */
-extern List GetMJBufferPage();		/* mergejoin */
-extern List GetMJOSortopI();		/* mergejoin */
-extern List GetMJISortopO();		/* mergejoin */
-extern List GetMJMarkFlag();		/* mergejoin */
-extern List GetMJFrwdMarkPos();		/* mergejoin */
-extern List GetMJBkwdarkPos();		/* mergejoin */
-
-extern List ExecMergeJoin();		/* mergejoin */
-extern List ExecInitMergeJoin();	/* mergejoin */
-extern List ExecEndMergeJoin();		/* mergejoin */
-extern List MergeSync();		/* mergejoin */
-extern List RevScan();			/* mergejoin */
-extern List DirScan();			/* mergejoin */
-extern List SkipInner();		/* mergejoin */
-extern List SkipOuter();		/* mergejoin */
-extern List InnerSkipQual();		/* mergejoin */
-extern List OuterSkipQual();		/* mergejoin */
-extern List MJFormOSortopI();		/* mergejoin */
-extern List MJFormISortopO();		/* mergejoin */
-extern List Compare();			/* mergejoin */
-
-extern List GetNLOuterTuple();		/* nestloop */
-extern List GetNLTupType();		/* nestloop */
-extern List GetNLTupValue();		/* nestloop */
-extern List GetNLPortalFlag();		/* nestloop */
-
-extern List ExecProcNode();		/* procnode */
-
-extern List ExecRuleLocks ();		/* rulelocks */
-extern List exec_make_intermediate_locks (); /* rulelocks */
-extern List exec_set_lock();		/* rulelocks */
-extern List exec_run_plan();		/* rulelocks */
-extern List exec_set_rule_default();	/* rulelocks */
-extern List exec_determine_always();	/* rulelocks */
-
-extern List GetRes();			/* result */
-extern List ExecResult();		/* result */
-extern List ExecInitResult();		/* result */
-extern List ExecEndResult();		/* result */
-
-extern List GetScanTupType();		/* scan */
-extern List GetScanTupValue();		/* scan */
-extern List GetScanRuleFlag();		/* scan */
-extern List GetScanRuleDesc();		/* scan */
-extern List GetScanProcLeftFlag();	/* scan */
-extern List GetScanOldRelId();		/* scan */
-
-extern List GetScanLispIndexPtr();	/* scan */
-extern List GetScanSkeys();		/* scan */
-extern List GetScanSkeysCount();	/* scan */
-
-extern List GetSortFlag();		/* sort */
-extern List GetSortKeys();		/* sort */
-
-extern AttributePtr ExecGetTupType(); 	/* tuples */
-extern AttributePtr ExecTypeFromTL(); 	/* tuples */
-
-extern List ExecTargetList();		/* qual */
+#include "executor/append.h"
+#include "executor/endnode.h"
+#include "executor/error.h"
+#include "executor/eutils.h"
+#include "executor/exist.h"
+#include "executor/indexscan.h"
+#include "executor/initnode.h"
+#include "executor/main.h"
+#include "executor/mergejoin.h"
+#include "executor/nestloop.h"
+#include "executor/procnode.h"
+#include "executor/qual.h"
+#include "executor/result.h"
+#include "executor/rulelocks.h"
+#include "executor/rulemgr.h"
+#include "executor/scan.h"
+#include "executor/seqscan.h"
+#include "executor/sort.h"
+#include "executor/tuples.h"
 
 /* ----------------------------------------------------------------
  *	shit whose time is to die
@@ -647,6 +557,44 @@ extern List ExecTargetList();		/* qual */
  */
 
 #ifdef TIMETODIE
+
+/* ----------------
+ *	result node accessors
+ * ----------------
+ */
+
+#define ResGetLoop(node) 		get_Loop(get_resstate(node))
+#define ResSetLoop(node,value)		set_Loop(get_resstate(node), value)
+#define ResGetLeftTuple(node)		get_LeftTuple(get_resstate(node))
+#define ResSetLeftTuple(node,value)	set_LeftTuple(get_resstate(node), value)
+#define ResGetTupType(node) 		get_TupType(get_resstate(node))
+#define ResSetTupType(node,value) 	set_TupType(get_resstate(node), value)
+#define ResGetTupValue(node) 		get_TupValue(get_resstate(node))
+#define ResSetTupValue(node,value)	set_TupValue(get_resstate(node), value)
+#define ResGetLevel(node)		get_Level(get_resstate(node))
+#define ResSetLevel(node,value)		set_Level(get_resstate(node), value)
+
+/* ----------------
+ *    Retrieve/Construct the components in relation ID.
+ *    Relation ID which is the relation name
+ *	 is changed into (RelDesc ScanDesc)
+ *    after initialization.
+ * ----------------
+ */
+#define ExecMakeRelID(relDesc,scanDesc)	\
+    lispList(relDesc,scanDesc)
+
+#define ExecGetRelDesc(relID) \
+    (CAR(relID))
+
+#define ExecSetRelDesc(relID,relDesc) \
+   (ExecGetRelDesc(relID) = (relDesc)))
+
+#define ExecGetScanDesc(relID) \
+   (CAR(CDR(relID)))
+
+#define ExecSetScanDesc(relID,relDesc) \
+   (ExecGetScanDesc(relID) = (relDesc))
 
 /* ----------------
  *     Things for tuple tid.
