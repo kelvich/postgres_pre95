@@ -108,7 +108,6 @@ MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
     Assert ( rulelocks != NULL );
 
     nlocks = prs2GetNumberOfLocks ( rulelocks );
-    Assert (nlocks <= 16 );
 
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
@@ -191,7 +190,6 @@ MatchLocks ( locktype, rulelocks , current_varno , user_parsetree )
     }
 
     nlocks = prs2GetNumberOfLocks ( rulelocks );
-    Assert (nlocks <= 16 );
 
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
