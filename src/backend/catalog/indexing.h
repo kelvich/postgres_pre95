@@ -47,7 +47,7 @@ HeapTuple AttributeNameIndexScan ARGS((Relation heapRelation , ObjectId relid , 
 HeapTuple AttributeNumIndexScan  ARGS((Relation heapRelation , ObjectId relid , AttributeNumber relname ));
 
 HeapTuple ProcedureOidIndexScan  ARGS((Relation heapRelation, ObjectId procId));
-HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName));
+HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName , int nargs , ObjectId *argTypes));
 
 HeapTuple TypeOidIndexScan  ARGS((Relation heapRelation, ObjectId typeId));
 HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
@@ -65,7 +65,7 @@ HeapTuple ClassOidIndexScan ARGS((Relation heapRelation, ObjectId relId));
  * normal specification of the 'define index' POSTQUEL command.
  */
 DECLARE_INDEX(pg_attnameind on pg_attribute using btree (mkoidchar16(attrelid, attname) oidchar16_ops));
-DECLARE_INDEX(pg_attnumind  on pg_attribute using btree (mkoidint4(attrelid, attnum) oidint4_ops));
+DECLARE_INDEX(pg_attnumind  on pg_attribute using btree (mkoidint2(attrelid, attnum) oidint2_ops));
 DECLARE_INDEX(pg_attrelidind on pg_attribute using btree (attrelid oid_ops))
 
 DECLARE_INDEX(pg_procidind on pg_proc using btree (oid oid_ops));
