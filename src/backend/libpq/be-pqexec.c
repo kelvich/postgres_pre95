@@ -380,4 +380,5 @@ pqtest(vlena)
 	return pqtest_PQexec(q);
 	break;
     }
+    return(0);
 }

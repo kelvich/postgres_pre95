@@ -501,6 +501,7 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 	pqdebug("Protocol Error, bad form, got '%c'", id[0]);
 	PQreset();
 	libpq_raise(ProtocolError, form("Unexpected identifier: %s", id));
+	return(NULL);
     }
 }
 

@@ -159,5 +159,5 @@ AtomValueGetString ( atomval )
 	return(ScanKeywords[i].name);
     
     elog(WARN,"AtomGetString called with bogus atom # : %d", atomval );
+    return(NULL);
 }
-
