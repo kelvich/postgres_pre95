@@ -35,8 +35,6 @@ int		Noversion = 0;
 
 char		OutputFileName[MAXPGPATH] = "";
 
-char		*PG_username = (char *) NULL;
-
 BackendId	MyBackendId;
 BackendTag	MyBackendTag;
 NameData	MyDatabaseNameData;
