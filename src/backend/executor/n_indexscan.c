@@ -1271,6 +1271,19 @@ ExecInitIndexScan(node, estate, parent)
 		 */
 		run_keys[ j ] = NO_OP;
 		scanvalue = get_constvalue(leftop);
+	    } else if (consp(leftop) && 
+		       ExactNodeType(CAR((List)leftop),Func) &&
+		       var_is_rel(CADR((List)leftop))) {
+		/* ----------------
+		 *  if the leftop is a func node then it means
+		 *  it identifies the value to place in our scan key.
+		 *  Since functional indices have only one attribute
+		 *  the attno must always be set to 1.
+		 * ----------------
+		 */
+		varattno = 	1;
+		scanvar = 	LEFT_OP;
+
 	    } else {
 		/* ----------------
 		 *  otherwise, the leftop contains information usable
@@ -1316,6 +1329,24 @@ ExecInitIndexScan(node, estate, parent)
 		 */
 		run_keys[ j ] = NO_OP;
 		scanvalue = get_constvalue(rightop);
+
+	    } else if (consp(rightop) &&
+		       ExactNodeType(CAR((List)rightop),Func) &&
+		       var_is_rel(CADR((List)rightop))) {
+		/* ----------------
+		 *  if the rightop is a func node then it means
+		 *  it identifies the value to place in our scan key.
+		 *  Since functional indices have only one attribute
+		 *  the attno must always be set to 1.
+		 * ----------------
+		 */
+		if (scanvar == LEFT_OP)
+		    elog(WARN, "ExecInitIndexScan: %s",
+			 "both left and right ops are rel-vars");
+
+		varattno = 	1;
+		scanvar = 	RIGHT_OP;
+
 	    } else {
 		/* ----------------
 		 *  otherwise, the leftop contains information usable
