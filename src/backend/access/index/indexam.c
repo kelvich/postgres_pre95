@@ -256,6 +256,8 @@ index_beginscan(relation, scanFromEnd, numberOfKeys, key)
     RELATION_CHECKS;
     GET_REL_PROCEDURE(beginscan,ambeginscan);
     
+    RelationSetRIntentLock(relation);
+
     scandesc = (IndexScanDesc)
 	fmgr(procedure, relation, scanFromEnd, numberOfKeys, key);
     
@@ -292,6 +294,8 @@ index_endscan(scan)
     
     SCAN_CHECKS;
     GET_SCAN_PROCEDURE(endscan,amendscan);
+
+    RelationUnsetRIntentLock(scan->relation);
 
     (void) fmgr(procedure, scan);
 }
