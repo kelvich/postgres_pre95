@@ -18,6 +18,7 @@
 #define HASHJOIN_H
 
 #include "access/htup.h"
+#include "storage/ipci.h"
 #include "storage/ipc.h"
 
 /* -----------------

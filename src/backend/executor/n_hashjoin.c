@@ -21,7 +21,9 @@
 #include "executor/executor.h"
 #include "planner/clauses.h"
 
- RcsId("$Header$");
+#include "utils/palloc.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *   	ExecHashJoin

@@ -8,6 +8,7 @@
 
 #include "utils/log.h"
 #include "utils/geo-decls.h"
+#include "utils/palloc.h"
 
 RcsId("$Header$");
 

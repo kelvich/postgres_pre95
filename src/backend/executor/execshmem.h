@@ -22,10 +22,10 @@ typedef struct memoryheaderdata MemoryHeaderData;
 typedef MemoryHeaderData *MemoryHeader;
 
 /* ex_shmem.c */
-char *ExecSMReserve ARGS((int size ));
-void ExecSMInit ARGS((void ));
-MemoryHeader ExecGetSMSegment ARGS((void ));
-void ExecSMSegmentFree ARGS((MemoryHeader mp ));
-void ExecSMSegmentFreeUnused ARGS((MemoryHeader mp , int usedsize ));
+extern char *ExecSMReserve ARGS((int size));
+extern void ExecSMInit ARGS((void));
+extern MemoryHeader ExecGetSMSegment ARGS((void));
+extern void ExecSMSegmentFree ARGS((MemoryHeader mp));
+extern void ExecSMSegmentFreeUnused ARGS((MemoryHeader mp, int usedsize));
 
 #endif /* ExecShMemIncluded */

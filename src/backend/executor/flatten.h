@@ -1,16 +1,23 @@
-
-/*
- * flatten.h -
- *    header file for target list flattening routines
+/* ----------------------------------------------------------------
+ *   FILE
+ *	ex_flatten.h
  *
- * $Header$
+ *   DESCRIPTION
+ *	prototypes for ex_flatten.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#ifndef _FLATTEN_INCL_
-#define _FLATTEN_INCL_
+#ifndef ex_flattenIncluded		/* include this file only once */
+#define ex_flattenIncluded	1
 
-Datum ExecEvalIter ARGS((Iter iterNode , ExprContext econtext, bool *funcIsDone , bool *resultIsNull ));
-void ExecEvalFjoin ARGS((List tlist , ExprContext econtext, bool *isNullVect , bool *fj_isDone ));
-bool FjoinBumpOuterNodes ARGS((List tlist , ExprContext econtext, DatumPtr results , String nulls ));
+extern Datum ExecEvalIter ARGS((Iter iterNode, ExprContext econtext, bool *resultIsNull, bool *iterIsDone));
+extern void ExecEvalFjoin ARGS((List tlist, ExprContext econtext, bool *isNullVect, bool *fj_isDone));
+extern bool FjoinBumpOuterNodes ARGS((List tlist, ExprContext econtext, DatumPtr results, String nulls));
 
-#endif _FLATTEN_INCL_
+#endif /* ex_flattenIncluded */

@@ -12,6 +12,9 @@
  * ----------------------------------------------------------------
  */
 
+#ifndef bootstrapIncluded		/* include this file only once */
+#define bootstrapIncluded	1
+
 #include <sys/file.h>
 #include <stdio.h>
 #include <strings.h>
@@ -67,35 +70,41 @@ extern struct attribute *attrtypes[MAXATTR];
 extern Portal BlankPortal;
 
 
-/* 
- * bootstrap.c - prototypes
+/*
+ *	prototypes for bootstrap.c.
+ *	Automatically generated using mkproto
  */
-void err ARGS((void ));
-void BootstrapMain ARGS((int ac , char *av []));
-void createrel ARGS((char *name ));
-void boot_openrel ARGS((char *name ));
-void closerel ARGS((char *name ));
-void printrel ARGS((void ));
-void randomprintrel ARGS((void ));
-void showtup ARGS((HeapTuple tuple , Buffer buffer , Relation relation ));
-void showtime ARGS((AbsoluteTime time ));
-void DefineAttr ARGS((char *name , char *type , int attnum ));
-void InsertOneTuple ARGS((ObjectId objectid ));
-void InsertOneValue ARGS((ObjectId objectid , char *value , int i ));
-void InsertOneNull ARGS((int i ));
-void defineindex ARGS((char *heapName , char *indexName , char *accessMethodName, List attributeList ));
-void cleanup ARGS((void ));
-int gettype ARGS((char *type ));
-struct attribute *AllocateAttribute ARGS((void ));
-unsigned char MapEscape ARGS((char **s ));
-int EnterString ARGS((char *str ));
-char *LexIDStr ARGS((int ident_num ));
-int CompHash ARGS((char *str , int len ));
-hashnode *FindStr ARGS((char *str , int length , hashnode *mderef ));
-hashnode *AddStr ARGS((char *str , int strlength , int mderef ));
-void printhashtable ARGS((void ));
-void printstrtable ARGS((void ));
-char *emalloc ARGS((unsigned size ));
-int LookUpMacro ARGS((char *xmacro ));
-void DefineMacro ARGS((int indx1 , int indx2 ));
-void printmacros ARGS((void ));
+extern void err ARGS((void));
+extern void BootstrapMain ARGS((int ac, char *av[]));
+extern void createrel ARGS((char *name));
+extern void boot_openrel ARGS((char *name));
+extern void closerel ARGS((char *name));
+extern void printrel ARGS((void));
+extern void randomprintrel ARGS((void));
+extern void showtup ARGS((HeapTuple tuple, Buffer buffer, Relation relation));
+extern void showtime ARGS((AbsoluteTime time));
+extern void DefineAttr ARGS((char *name, char *type, int attnum));
+extern void InsertOneTuple ARGS((ObjectId objectid));
+extern void InsertOneValue ARGS((ObjectId objectid, char *value, int i));
+extern void InsertOneNull ARGS((int i));
+extern void defineindex ARGS((char *heapName, char *indexName, char *accessMethodName, List attributeList));
+extern bool BootstrapAlreadySeen ARGS((ObjectId id));
+extern void cleanup ARGS((void));
+extern int gettype ARGS((char *type));
+extern struct attribute *AllocateAttribute ARGS((void));
+extern unsigned char MapEscape ARGS((char **s));
+extern int EnterString ARGS((char *str));
+extern char *LexIDStr ARGS((int ident_num));
+extern int CompHash ARGS((char *str, int len));
+extern hashnode *FindStr ARGS((char *str, int length, hashnode *mderef));
+extern hashnode *AddStr ARGS((char *str, int strlength, int mderef));
+extern void printhashtable ARGS((void));
+extern void printstrtable ARGS((void));
+extern char *emalloc ARGS((unsigned size));
+extern int LookUpMacro ARGS((char *xmacro));
+extern void DefineMacro ARGS((int indx1, int indx2));
+extern void printmacros ARGS((void));
+extern int index_register ARGS((Name heap, Name ind, AttributeNumber natts, AttributeNumber *attnos, uint16 nparams, Datum *params, FuncIndexInfo *finfo, LispValue predInfo));
+extern int build_indices ARGS((void));
+
+#endif /* bootstrapIncluded */

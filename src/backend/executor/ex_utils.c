@@ -50,10 +50,18 @@
  */
  
 #include "executor/executor.h"
-#include "nodes/relation.h"	/* needed before including keys.h */
-#include "planner/keys.h"	/* needed for definition of INNER */
 
- RcsId("$Header$");
+#include "nodes/relation.h"	/* needed before including keys.h */
+
+#include "planner/keys.h"	/* needed for definition of INNER */
+#include "planner/clauses.h"
+
+#include "utils/palloc.h"
+
+#include "lib/lisplist.h"
+
+RcsId("$Header$");
+
 /* ----------------------------------------------------------------
  *      global counters for number of tuples processed, retrieved,
  *      appended, replaced, deleted.
@@ -1017,7 +1025,7 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
      */
     if (is_clause(expr)) {
 	List opargs;
-	opargs = (List) get_opargs(expr);
+	opargs = (List) get_opargs((LispValue) expr);
 	return ExecCollect(opargs, 		      /* list */
 			   ExecGetVarAttlistFromExpr, /* apply function */
 			   ExecUniqueCons,	      /* collect function */
@@ -1029,9 +1037,9 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
      *  from which we get attribute numbers
      * ----------------
      */
-    if (is_funcclause(expr)) {
+    if (is_funcclause((LispValue) expr)) {
 	List funcargs;
-	funcargs = (List) get_funcargs(expr);
+	funcargs = (List) get_funcargs((LispValue) expr);
 	return ExecCollect(funcargs, 		      /* list */
 			   ExecGetVarAttlistFromExpr, /* apply function */
 			   ExecUniqueCons,	      /* collect function */
@@ -1042,9 +1050,9 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
      *  because they may contain var nodes also..
      * ----------------
      */
-    if (or_clause(expr)) {
+    if (or_clause((LispValue) expr)) {
 	List clauseargs;
-	clauseargs = (List) get_orclauseargs(expr);
+	clauseargs = (List) get_orclauseargs((LispValue) expr);
 	return ExecCollect(clauseargs, 		      /* list */
 			   ExecGetVarAttlistFromExpr, /* apply function */
 			   ExecUniqueCons,	      /* collect function */
@@ -1055,9 +1063,9 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
      *  attributes from the not clause's argument..
      * ----------------
      */
-    if (not_clause(expr)) {
+    if (not_clause((LispValue) expr)) {
 	List notclausearg;
-	notclausearg = (List) get_notclausearg(expr);
+	notclausearg = (List) get_notclausearg((LispValue) expr);
 	return
 	    ExecGetVarAttlistFromExpr((Node) notclausearg, relationNum);
     }

@@ -24,8 +24,9 @@
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "utils/palloc.h"
 
+RcsId("$Header$");
 
 extern int NBuffers;
 static int HashTBSize;

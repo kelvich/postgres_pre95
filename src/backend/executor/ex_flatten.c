@@ -21,6 +21,7 @@
 #include "nodes/relation.h"
 #include "nodes/execnodes.h"
 #include "parser/parsetree.h"
+#include "executor/executor.h"
 #include "executor/flatten.h"
 
 Datum

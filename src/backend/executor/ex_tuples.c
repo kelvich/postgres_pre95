@@ -118,7 +118,9 @@
 #include "executor/executor.h"
 #undef ExecStoreTuple
 
- RcsId("$Header$");
+#include "utils/palloc.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *		  tuple table create/delete functions

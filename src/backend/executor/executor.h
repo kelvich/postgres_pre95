@@ -41,8 +41,6 @@
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "executor/execdefs.h"
-#include "executor/recursion.h"
-#include "executor/recursion_a.h"
 #include "executor/tuptable.h"
 #include "parse.h"
 #include "storage/buf.h"

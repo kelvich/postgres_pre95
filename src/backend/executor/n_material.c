@@ -19,7 +19,9 @@
 
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "lib/catalog.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *   	ExecMaterial
@@ -337,8 +339,7 @@ ExecEndMaterial(node)
      *  but it doesn't yet -cim 1/25/90
      * ----------------
      */
-    if (FileNameUnlink((char *) relpath((char *)
-					&(tempRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink(relpath((char *) &(tempRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndMaterial: unlink: %m");
     amclose(tempRelation);
     

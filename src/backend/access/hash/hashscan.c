@@ -24,6 +24,7 @@
 #include "storage/page.h"
 
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
