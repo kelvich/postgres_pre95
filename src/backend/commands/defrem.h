@@ -54,8 +54,16 @@ RemoveIndex ARGS((
 extern
 void
 DefineFunction ARGS((
-	Name		name,
-	LispValue	parameters
+	LispValue	nameargsexe
+));
+
+extern
+void
+DefineCFunction ARGS((
+	Name            name,
+	LispValue       parameters,
+        String          filename,
+        String          languageName
 ));
 
 /*
