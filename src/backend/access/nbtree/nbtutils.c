@@ -15,6 +15,7 @@
 
 #include "access/heapam.h"
 #include "access/genam.h"
+#include "access/iqual.h"
 #include "access/ftup.h"
 #include "access/nbtree.h"
 
