@@ -1,18 +1,18 @@
 =============== destroying old regression database... =================
-WARN:Sep 27 18:29:21:destroydb: database regression does not exist.
+WARN:Jan  6 17:01:46:destroydb: database regression does not exist.
 destroydb: database destroy failed on regression.
 =============== creating new regression database... =================
 Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
-Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (any)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
-NOTICE:Sep 27 18:29:31:ProcedureDefine: type 'circle' is not yet defined
-NOTICE:Sep 27 18:29:31:ProcedureDefine: creating a shell for type 'circle'
+Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (any)        as "/private/postgres/src/regress/regress/obj/regress.so" "
+NOTICE:Jan  6 17:01:49:ProcedureDefine: type 'circle' is not yet defined
+NOTICE:Jan  6 17:01:49:ProcedureDefine: creating a shell for type 'circle'
 DEFINE
 Go 
 * 
-Query sent to backend is "define function circle_out ( language = "c",  			     returntype = any )        arg is (any)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function circle_out ( language = "c",  			     returntype = any )        arg is (any)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
@@ -116,27 +116,27 @@ Query sent to backend is "define function user_relns ( language = "postquel", 		
 DEFINE
 Go 
 * 
-Query sent to backend is "define function pt_in_circle ( language = "c", 			       returntype = int4 )        arg is (point, circle)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function pt_in_circle ( language = "c", 			       returntype = int4 )        arg is (point, circle)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function overpaid ( language = "c", 			   returntype = bool )         arg is (emp)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function overpaid ( language = "c", 			   returntype = bool )         arg is (emp)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function boxarea ( language = "c",  			  returntype = int4 )        arg is (box)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function boxarea ( language = "c",  			  returntype = int4 )        arg is (box)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function interpt_pp ( language = "c", 			     returntype = point )        arg is (path, path)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function interpt_pp ( language = "c", 			     returntype = point )        arg is (path, path)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function reverse_c16 ( language = "c", 			      returntype = char16 )        arg is (char16)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is "define function reverse_c16 ( language = "c", 			      returntype = char16 )        arg is (char16)        as "/private/postgres/src/regress/regress/obj/regress.so" "
 DEFINE
 Go 
 * 
-Query sent to backend is " define function ufp0 ( language = "c", 		       returntype = int4 )        arg is ( )        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp1.o" "
+Query sent to backend is " define function ufp0 ( language = "c", 		       returntype = int4 )        arg is ( )        as "/private/postgres/src/regress/regress/obj/ufp1.so" "
 DEFINE
 Go 
 * 
@@ -144,7 +144,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool, 		  pronar
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp1 ( language = "c", 		       returntype = int4 )        arg is (int4)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp1.o" "
+Query sent to backend is "define function ufp1 ( language = "c", 		       returntype = int4 )        arg is (int4)        as "/private/postgres/src/regress/regress/obj/ufp1.so" "
 DEFINE
 Go 
 * 
@@ -152,7 +152,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp2 ( language = "c", 		       returntype = char16 )        arg is (char16, char16)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp2.o" "
+Query sent to backend is "define function ufp2 ( language = "c", 		       returntype = char16 )        arg is (char16, char16)        as "/private/postgres/src/regress/regress/obj/ufp2.so" "
 DEFINE
 Go 
 * 
@@ -160,7 +160,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp3 ( language = "c", 		       returntype = text )        arg is (text, char)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp3.o" "
+Query sent to backend is "define function ufp3 ( language = "c", 		       returntype = text )        arg is (text, char)        as "/private/postgres/src/regress/regress/obj/ufp3.so" "
 DEFINE
 Go 
 * 
@@ -168,15 +168,15 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is " load "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+Query sent to backend is " load "/private/postgres/src/regress/regress/obj/regress.so" "
 LOAD
 Go 
 * 
-Query sent to backend is " copy onek from "/faerie/aoki/postgres/src/regress/regress/../data/onek.data" "
+Query sent to backend is " copy onek from "/private/postgres/src/regress/regress/../data/onek.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy tenk1 from "/faerie/aoki/postgres/src/regress/regress/../data/tenk.data" "
+Query sent to backend is "copy tenk1 from "/private/postgres/src/regress/regress/../data/tenk.data" "
 COPY
 Go 
 * 
@@ -188,7 +188,7 @@ Query sent to backend is "retrieve into onek2 (onek.all) "
 RETRIEVE
 Go 
 * 
-Query sent to backend is "copy slow_emp4000 from "/faerie/aoki/postgres/src/regress/regress/../data/rect.data" "
+Query sent to backend is "copy slow_emp4000 from "/private/postgres/src/regress/regress/../data/rect.data" "
 COPY
 Go 
 * 
@@ -196,19 +196,19 @@ Query sent to backend is "append fast_emp4000 (slow_emp4000.all) "
 APPEND 0
 Go 
 * 
-Query sent to backend is "copy person from "/faerie/aoki/postgres/src/regress/regress/../data/person.data" "
+Query sent to backend is "copy person from "/private/postgres/src/regress/regress/../data/person.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy emp from "/faerie/aoki/postgres/src/regress/regress/../data/emp.data" "
+Query sent to backend is "copy emp from "/private/postgres/src/regress/regress/../data/emp.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy student from "/faerie/aoki/postgres/src/regress/regress/../data/student.data" "
+Query sent to backend is "copy student from "/private/postgres/src/regress/regress/../data/student.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy stud_emp from "/faerie/aoki/postgres/src/regress/regress/../data/stud_emp.data" "
+Query sent to backend is "copy stud_emp from "/private/postgres/src/regress/regress/../data/stud_emp.data" "
 COPY
 Go 
 * 
@@ -225,30 +225,30 @@ APPEND 0
 Go 
 * 
 Query sent to backend is "append hobbies_r (name = "skywalking") "
-APPEND 52066
+APPEND 702594
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "advil", hobby = "posthacking") "
-APPEND 52067
+APPEND 702595
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "peet's coffee", hobby = "posthacking") "
-APPEND 52068
+APPEND 702596
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "hightops", hobby = "basketball") "
-APPEND 52069
+APPEND 702597
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "guts", hobby = "skywalking") "
-APPEND 52070
+APPEND 702598
 Go 
 * 
-Query sent to backend is "copy road from "/faerie/aoki/postgres/src/regress/regress/../data/streets.data" "
+Query sent to backend is "copy road from "/private/postgres/src/regress/regress/../data/streets.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy real_city from "/faerie/aoki/postgres/src/regress/regress/../data/real_city.data" "
+Query sent to backend is "copy real_city from "/private/postgres/src/regress/regress/../data/real_city.data" "
 COPY
 Go 
 * 
@@ -272,12 +272,12 @@ Query sent to backend is "create hasham_heap (seqno = int4, random = int4) "
 CREATE
 Go 
 * 
-Query sent to backend is "copy hasham_heap from "/faerie/aoki/postgres/src/regress/regress/../data/hash.data" "
+Query sent to backend is "copy hasham_heap from "/private/postgres/src/regress/regress/../data/hash.data" "
 COPY
 Go 
 * 
 Query sent to backend is "   append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}",  					d = "{}", e[0:4] = "/floatarr") "
-APPEND 68313
+APPEND 718841
 Go 
 * 
 Query sent to backend is "replace arrtest (e[0] = "1.1") "
@@ -289,11 +289,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{11,12,23}", b[2][2][1] = "{{3,4},{4,5}}", c = "{"foobar"}",  				d = "{{"elt1", "elt2"}}", e = "{"3.4", "6.7"}") "
-APPEND 68314
+APPEND 718842
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{}", b[1][2][2] = "{3,4}", c = "{foo,bar}",  				d[2][1] = "{bar,foo}") "
-APPEND 68315
+APPEND 718843
 Go 
 * 
 Query sent to backend is "create iportaltest (i = int4, d = float4, p = polygon) "
@@ -301,11 +301,11 @@ CREATE
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon) "
-APPEND 68382
+APPEND 718910
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon) "
-APPEND 68383
+APPEND 718911
 Go 
 * 
 Query sent to backend is " define index onek_unique1 on onek using btree(unique1 int4_ops) "
@@ -397,15 +397,15 @@ DEFINE
 Go 
 * 
 Query sent to backend is " define view street ( road.name, 		     road.thepath, 		     cname = real_city.cname )        where real_city.outline ## road.thepath "
-APPEND 149742DEFINE
+APPEND 800270DEFINE
 Go 
 * 
 Query sent to backend is "define view iexit ( ihighway.name, 		    ihighway.thepath,  		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )        where ihighway.thepath ## ramp.thepath "
-APPEND 149811DEFINE
+APPEND 800339DEFINE
 Go 
 * 
 Query sent to backend is "define view toyemp ( emp.name, 		     emp.age, 		     emp.location, 		     annualsal = 12*emp.salary ) "
-APPEND 149884DEFINE
+APPEND 800412DEFINE
 Go 
 * 
 Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 basetype = int4, 			 stype1 = int4, 			 sfunc2 = int4inc, 			 stype2 = int4, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
@@ -470,7 +470,7 @@ Query sent to backend is "     retrieve (one = 1) "
 
 Go 
 * 
-Query sent to backend is "   retrieve (true="t"::bool) "
+Query sent to backend is "    retrieve (true="t"::bool)  "
 ---------------
 | true        |
 ---------------
@@ -533,893 +533,3586 @@ Query sent to backend is "retrieve (true = "t"::bool != "f"::bool) "
 
 Go 
 * 
-Query sent to backend is " retrieve (true = "2"::int2 = "2"::int4) "
+Query sent to backend is "create BOOLTBL1 (f1 = bool) "
+CREATE
+Go 
+* 
+Query sent to backend is "append BOOLTBL1 (f1 = "t"::bool) "
+APPEND 800507
+Go 
+* 
+Query sent to backend is "append BOOLTBL1 (f1 = "True"::bool) "
+APPEND 800508
+Go 
+* 
+Query sent to backend is "append BOOLTBL1 (f1 = "true"::bool) "
+APPEND 800509
+Go 
+* 
+Query sent to backend is " retrieve (BOOLTBL1.all) "
 ---------------
-| true        |
+| f1          |
+---------------
+| t           |
+---------------
+| t           |
 ---------------
 | t           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "1"::int2 = "2"::int4) "
+Query sent to backend is "retrieve (BOOLTBL1.all) where BOOLTBL1.f1 = "true"::bool "
 ---------------
-| false       |
+| f1          |
+---------------
+| t           |
+---------------
+| t           |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all) where BOOLTBL1.f1 != "false"::bool "
+---------------
+| f1          |
+---------------
+| t           |
+---------------
+| t           |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all) where booleq("false"::bool,BOOLTBL1.f1) "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "append BOOLTBL1 (f1 = "f"::bool) "
+APPEND 800510
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all) where BOOLTBL1.f1 = "false"::bool "
+---------------
+| f1          |
 ---------------
 | f           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int2 != "2"::int4) "
+Query sent to backend is "create BOOLTBL2 (f1 = bool) "
+CREATE
+Go 
+* 
+Query sent to backend is "append BOOLTBL2 (f1 = "f"::bool) "
+APPEND 800569
+Go 
+* 
+Query sent to backend is "append BOOLTBL2 (f1 = "false"::bool) "
+APPEND 800570
+Go 
+* 
+Query sent to backend is "append BOOLTBL2 (f1 = "False"::bool) "
+APPEND 800571
+Go 
+* 
+Query sent to backend is "append BOOLTBL2 (f1 = "XXX"::bool)   "
+APPEND 800572
+Go 
+* 
+Query sent to backend is " retrieve (BOOLTBL2.all) "
 ---------------
-| false       |
+| f1          |
+---------------
+| f           |
+---------------
+| f           |
+---------------
+| f           |
 ---------------
 | f           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int2 != "2"::int4) "
+Query sent to backend is " retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 != BOOLTBL1.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all, BOOLTBL2.all) where boolne(BOOLTBL2.f1,BOOLTBL1.f1) "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 = BOOLTBL1.f1 and BOOLTBL1.f1 = "false"::bool "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| f           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 = BOOLTBL1.f1 or BOOLTBL1.f1 = "true"::bool "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| t           | f           |
+-----------------------------
+| f           | f           |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "  create ABSTIME_TBL (f1 = abstime) "
+CREATE
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "Jan 14, 1973 03:14:21") "
+APPEND 800631
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "now"::abstime) "
+APPEND 800632
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "epoch"::abstime) "
+APPEND 800633
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "current"::abstime) "
+APPEND 800634
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "infinity"::abstime) "
+APPEND 800635
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "-infinity"::abstime) "
+APPEND 800636
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "May 10, 1943 23:59:12") "
+APPEND 800637
+Go 
+* 
+Query sent to backend is " append ABSTIME_TBL (f1 = "Feb 35, 1946 10:00:00") "
+APPEND 800638
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "Feb 28, 1984 25:08:10") "
+APPEND 800639
+Go 
+* 
+Query sent to backend is " append ABSTIME_TBL (f1 = "bad date format") "
+APPEND 800640
+Go 
+* 
+Query sent to backend is "append ABSTIME_TBL (f1 = "Jun 10, 1843") "
+APPEND 800641
+Go 
+* 
+Query sent to backend is "create RELTIME_TBL (f1 = reltime) "
+CREATE
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 1 minute") "
+APPEND 800700
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 5 hour") "
+APPEND 800701
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 10 day") "
+APPEND 800702
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 34 year") "
+APPEND 800703
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 3 months") "
+APPEND 800704
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 14 seconds ago") "
+APPEND 800705
+Go 
+* 
+Query sent to backend is " append RELTIME_TBL (f1 = "badly formatted reltime") "
+APPEND 800706
+Go 
+* 
+Query sent to backend is "append RELTIME_TBL (f1 = "@ 30 eons ago") "
+APPEND 800707
+Go 
+* 
+Query sent to backend is "create TINTERVAL_TBL(f1 = tinterval) "
+CREATE
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['-infinity' 'infinity']") "
+APPEND 800766
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['May 10, 1943 23:59:12' 'Jan 14, 1973 03:14:21']") "
+APPEND 800767
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['Sep 4, 1983 23:59:12' 'Oct 4, 1983 23:59:12']") "
+APPEND 800768
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['epoch' 'now']") "
+APPEND 800769
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['Feb 15 1990 12:15:03' 'current']") "
+APPEND 800770
+Go 
+* 
+Query sent to backend is " append TINTERVAL_TBL(f1 = "['bad time specifications' '']") "
+APPEND 800771
+Go 
+* 
+Query sent to backend is "append TINTERVAL_TBL(f1 = "['' 'infinity']") "
+APPEND 800772
+Go 
+* 
+Query sent to backend is "  retrieve (ABSTIME_TBL.all) "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
+---------------
+| Thurs Jan 6 17:10:53 1994 PDT|
+---------------
+| epoch       |
+---------------
+| current     |
+---------------
+| infinity    |
+---------------
+| -infinity   |
+---------------
+| Mon May 10 23:59:12 1943 PDT|
+---------------
+| Thurs Mar 7 10:00:00 1946 PDT|
+---------------
+| Wed Dec 31 15:59:59 1969 PDT|
+---------------
+| Invalid Abstime|
+---------------
+| Invalid Abstime|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "2"::int2 <= "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 < "Jun 30, 2001"::abstime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int2 <= "2"::int4) "
+| Thurs Jan 6 17:10:53 1994 PDT|
 ---------------
-| true        |
+| epoch       |
 ---------------
-| t           |
+| current     |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int2 < "2"::int4) "
+| -infinity   |
 ---------------
-| false       |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| f           |
+| Thurs Mar 7 10:00:00 1946 PDT|
+---------------
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int2 > "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 > "-infinity"::abstime "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int2 < "2"::int4) "
+| Thurs Jan 6 17:10:53 1994 PDT|
 ---------------
-| true        |
+| epoch       |
 ---------------
-| t           |
+| current     |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int2 > "2"::int4) "
+| infinity    |
 ---------------
-| true        |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| t           |
+| Thurs Mar 7 10:00:00 1946 PDT|
+---------------
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "2"::int2 >= "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where "May 10, 1943 23:59:12"::abstime != ABSTIME_TBL.f1 "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int2 >= "2"::int4) "
+| Thurs Jan 6 17:10:53 1994 PDT|
 ---------------
-| true        |
+| epoch       |
 ---------------
-| t           |
+| current     |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int2 <= "2"::int4) "
+| infinity    |
 ---------------
-| true        |
+| -infinity   |
 ---------------
-| t           |
+| Thurs Mar 7 10:00:00 1946 PDT|
+---------------
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int2 <= "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where "current"::abstime = ABSTIME_TBL.f1 "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "2"::int4 = "2"::int2) "
----------------
-| true        |
----------------
-| t           |
+| current     |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "1"::int4 = "2"::int2) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where "epoch"::abstime >= ABSTIME_TBL.f1 "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| epoch       |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int4 != "2"::int2) "
+| -infinity   |
 ---------------
-| false       |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| f           |
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int4 != "2"::int2) "
----------------
-| true        |
----------------
-| t           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "2"::int4 <= "2"::int2) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <= "Jan 14, 1973 03:14:21"::abstime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int4 <= "2"::int2) "
+| epoch       |
 ---------------
-| true        |
+| -infinity   |
 ---------------
-| t           |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int4 < "2"::int2) "
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-| false       |
----------------
-| f           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int4 > "2"::int2) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <?> "['Apr 1 1945 00:00:00' 'Dec 30 1999 23:00:00']"::tinterval  "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int4 < "2"::int2) "
+| Thurs Jan 6 17:10:53 1994 PDT|
 ---------------
-| true        |
+| epoch       |
 ---------------
-| t           |
+| current     |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int4 > "2"::int2) "
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-| true        |
----------------
-| t           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "2"::int4 >= "2"::int2) "
+Query sent to backend is "   retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 + "@ 3 year"::reltime) < "Jan 14 14:00:00 1977"::abstime  "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int4 >= "2"::int2) "
+| epoch       |
 ---------------
-| true        |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| t           |
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int4 <= "2"::int2) "
----------------
-| true        |
----------------
-| t           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int4 <= "2"::int2) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 + "@ 3 year ago"::reltime) < "Jan 14 14:00:00 1971"::abstime  "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "2"::int4 = "2"::int4) "
+| epoch       |
 ---------------
-| true        |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| t           |
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "1"::int4 = "2"::int4) "
----------------
-| false       |
----------------
-| f           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int4 != "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@ 3 year"::reltime) < "Jan 14 14:00:00 1971"::abstime  "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| Sun Jan 14 03:14:21 1973 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int4 != "2"::int4) "
+| epoch       |
 ---------------
-| true        |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-| t           |
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int4 <= "2"::int4) "
----------------
-| true        |
----------------
-| t           |
+| Wed Dec 31 15:59:59 1969 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int4 <= "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@ 3 year ago"::reltime) < "Jan 14 14:00:00 1971"::abstime  "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| Mon May 10 23:59:12 1943 PDT|
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int4 < "2"::int4) "
----------------
-| false       |
----------------
-| f           |
+| Thurs Mar 7 10:00:00 1946 PDT|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int4 > "2"::int4) "
+Query sent to backend is "retrieve (ABSTIME_TBL.all, RELTIME_TBL.all) where (ABSTIME_TBL.f1 + RELTIME_TBL.f1) < "Jan 14 14:00:00 1971"::abstime "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| epoch       | @ 1 minute  |
+-----------------------------
+| Mon May 10 23:59:12 1943 PDT| @ 1 minute  |
+-----------------------------
+| Thurs Mar 7 10:00:00 1946 PDT| @ 1 minute  |
+-----------------------------
+| Wed Dec 31 15:59:59 1969 PDT| @ 1 minute  |
+-----------------------------
+| epoch       | @ 5 hours   |
+-----------------------------
+| Mon May 10 23:59:12 1943 PDT| @ 5 hours   |
+-----------------------------
+| Thurs Mar 7 10:00:00 1946 PDT| @ 5 hours   |
+-----------------------------
+| Wed Dec 31 15:59:59 1969 PDT| @ 5 hours   |
+-----------------------------
+| epoch       | @ 10 days   |
+-----------------------------
+| Mon May 10 23:59:12 1943 PDT| @ 10 days   |
+-----------------------------
+| Thurs Mar 7 10:00:00 1946 PDT| @ 10 days   |
+-----------------------------
+| Wed Dec 31 15:59:59 1969 PDT| @ 10 days   |
+-----------------------------
+| epoch       | @ 3 months  |
+-----------------------------
+| Mon May 10 23:59:12 1943 PDT| @ 3 months  |
+-----------------------------
+| Thurs Mar 7 10:00:00 1946 PDT| @ 3 months  |
+-----------------------------
+| Wed Dec 31 15:59:59 1969 PDT| @ 3 months  |
+-----------------------------
+| epoch       | @ 14 seconds ago|
+-----------------------------
+| Mon May 10 23:59:12 1943 PDT| @ 14 seconds ago|
+-----------------------------
+| Thurs Mar 7 10:00:00 1946 PDT| @ 14 seconds ago|
+-----------------------------
+| Wed Dec 31 15:59:59 1969 PDT| @ 14 seconds ago|
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "  retrieve (RELTIME_TBL.all) "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| @ 1 minute  |
+---------------
+| @ 5 hours   |
+---------------
+| @ 10 days   |
+---------------
+| @ 34 years  |
+---------------
+| @ 3 months  |
+---------------
+| @ 14 seconds ago|
+---------------
+| Undefined RelTime|
+---------------
+| Undefined RelTime|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int4 < "2"::int4) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 != "@ 10 days"::reltime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| @ 1 minute  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int4 > "2"::int4) "
+| @ 5 hours   |
 ---------------
-| true        |
+| @ 34 years  |
 ---------------
-| t           |
+| @ 3 months  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int4 >= "2"::int4) "
----------------
-| true        |
----------------
-| t           |
+| @ 14 seconds ago|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "3"::int4 >= "2"::int4) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 <= "@ 5 hours"::reltime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| @ 1 minute  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int4 <= "2"::int4) "
+| @ 5 hours   |
 ---------------
-| true        |
----------------
-| t           |
+| @ 14 seconds ago|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int4 <= "2"::int4) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 < "@ 1 day"::reltime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| @ 1 minute  |
 ---------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "2"::int2 = "2"::int2) "
+| @ 5 hours   |
 ---------------
-| true        |
----------------
-| t           |
+| @ 14 seconds ago|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "1"::int2 = "2"::int2) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 = "@ 34 years"::reltime "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int2 != "2"::int2) "
----------------
-| false       |
----------------
-| f           |
+| @ 34 years  |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int2 != "2"::int2) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 >= "@ 1 month"::reltime "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| @ 34 years  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "2"::int2 < "2"::int2) "
----------------
-| false       |
----------------
-| f           |
+| @ 3 months  |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "2"::int2 > "2"::int2) "
+Query sent to backend is "retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 > "@ 3 seconds ago"::reltime "
 ---------------
-| false       |
+| f1          |
 ---------------
-| f           |
+| @ 1 minute  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "1"::int2 < "2"::int2) "
+| @ 5 hours   |
 ---------------
-| true        |
+| @ 10 days   |
 ---------------
-| t           |
+| @ 34 years  |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "3"::int2 > "2"::int2) "
----------------
-| true        |
----------------
-| t           |
+| @ 3 months  |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "2"::int2 >= "2"::int2) "
+Query sent to backend is "retrieve (r1.all, r2.all) from r1 in RELTIME_TBL, r2 in RELTIME_TBL where r1.f1 > r2.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| @ 5 hours   | @ 1 minute  |
+-----------------------------
+| @ 10 days   | @ 1 minute  |
+-----------------------------
+| @ 34 years  | @ 1 minute  |
+-----------------------------
+| @ 3 months  | @ 1 minute  |
+-----------------------------
+| @ 10 days   | @ 5 hours   |
+-----------------------------
+| @ 34 years  | @ 5 hours   |
+-----------------------------
+| @ 3 months  | @ 5 hours   |
+-----------------------------
+| @ 34 years  | @ 10 days   |
+-----------------------------
+| @ 3 months  | @ 10 days   |
+-----------------------------
+| @ 34 years  | @ 3 months  |
+-----------------------------
+| @ 1 minute  | @ 14 seconds ago|
+-----------------------------
+| @ 5 hours   | @ 14 seconds ago|
+-----------------------------
+| @ 10 days   | @ 14 seconds ago|
+-----------------------------
+| @ 34 years  | @ 14 seconds ago|
+-----------------------------
+| @ 3 months  | @ 14 seconds ago|
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "  retrieve (TINTERVAL_TBL.all) "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| ['-infinity' 'infinity']|
+---------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+---------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+---------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+---------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+---------------
+| ['Undefined Range']|
+---------------
+| ['Undefined Range']|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "3"::int2 >= "2"::int2) "
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #= "@ 1 months" "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "2"::int2 <= "2"::int2) "
----------------
-| true        |
----------------
-| t           |
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "1"::int2 <= "2"::int2) "
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #!= "@ 1 months" "
 ---------------
-| true        |
+| f1          |
 ---------------
-| t           |
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
 ---------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::int4 + "2"::int2) "
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
 ---------------
-| three       |
----------------
-| 3           |
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (neg_one = "1"::int4 - "2"::int2) "
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #< "@ 1 month" "
 ---------------
-| neg_one     |
----------------
-| -1          |
+| f1          |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::int4 * "2"::int2) "
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #<= "@ 1 month" "
 ---------------
-| two         |
+| f1          |
+---------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #> "@ 1 year" "
+---------------
+| f1          |
+---------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+---------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+---------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #>= "@ 3 years" "
+---------------
+| f1          |
+---------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+---------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+---------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1 && "['Aug 15 14:23:19 1983' 'Sep 16 14:23:19 1983']"::tinterval "
+---------------
+| f1          |
+---------------
+| ['-infinity' 'infinity']|
+---------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+---------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL    where t1.f1 && t2.f1 and 	 t1.f1 = t2.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| ['-infinity' 'infinity']| ['-infinity' 'infinity']|
+-----------------------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+-----------------------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+-----------------------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+-----------------------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL    where t1.f1 && t2.f1 and  	not t1.f1 = t2.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['-infinity' 'infinity']|
+-----------------------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['-infinity' 'infinity']|
+-----------------------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['-infinity' 'infinity']|
+-----------------------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['-infinity' 'infinity']|
+-----------------------------
+| ['-infinity' 'infinity']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+-----------------------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+-----------------------------
+| ['-infinity' 'infinity']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+-----------------------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+-----------------------------
+| ['-infinity' 'infinity']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+-----------------------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+-----------------------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+-----------------------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+-----------------------------
+| ['-infinity' 'infinity']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+-----------------------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where not t1.f1 << "['Aug 15 14:23:19 1980' 'Sep 16 14:23:19 1990']"::tinterval "
+---------------
+| f1          |
+---------------
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+---------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+---------------
+| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+---------------
+| ['Undefined Range']|
+---------------
+| ['Undefined Range']|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1 &&  ("Aug 15 14:23:19 1983'"::abstime <> "Sep 16 14:23:19 1983"::abstime) "
+---------------
+| f1          |
+---------------
+| ['-infinity' 'infinity']|
+---------------
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+---------------
+| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+---------------
+
+Go 
+* 
+Query sent to backend is "      create BOX_TBL(f1=box) "
+CREATE
+Go 
+* 
+Query sent to backend is "append BOX_TBL(f1 = "(2.0,2.0,0.0,0.0)") "
+APPEND 800832
+Go 
+* 
+Query sent to backend is "append BOX_TBL(f1 = "(1.0,1.0,3.0,3.0)") "
+APPEND 800833
+Go 
+* 
+Query sent to backend is "  append BOX_TBL(f1=  "(2.5, 2.5, 2.5,3.5)") "
+APPEND 800834
+Go 
+* 
+Query sent to backend is "append BOX_TBL(f1 = "(3.0, 3.0,3.0,3.0)") "
+APPEND 800835
+Go 
+* 
+Query sent to backend is " append BOX_TBL(f1="(2.3, 4.5)") "
+WARN:Jan  6 17:11:10:Bad box external representation '(2.3, 4.5)'
+
+Go 
+* 
+Query sent to backend is "append BOX_TBL(f1="asdfasdf(ad") "
+WARN:Jan  6 17:11:10:Bad box external representation 'asdfasdf(ad'
+
+Go 
+* 
+Query sent to backend is "retrieve (BOX_TBL.all) "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 && "(2.5,2.5,1.0,1.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b1.all) from b1 in BOX_TBL     where b1.f1 &< "(2.0,2.0,2.5,2.5)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b1.all) from b1 in BOX_TBL     where b1.f1 &> "(2.0,2.0,2.5,2.5)"::box "
+---------------
+| f1          |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 << "(3.0,3.0,5.0,5.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 <= "(3.0,3.0,5.0,5.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 < "(3.0,3.0,5.0,5.0)"::box "
+---------------
+| f1          |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 = "(3.0,3.0,5.0,5.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 > "(3.5,3.0,4.5,3.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 >= "(3.5,3.0,4.5,3.0)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where "(3.0,3.0,5.0,5.0)"::box >> b.f1 "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (2.5,3.5,2.5,2.5)|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where b.f1 @ "(0,0,3,3)"::box "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where "(0,0,3,3)"::box ~ b.f1 "
+---------------
+| f1          |
+---------------
+| (2,2,0,0)   |
+---------------
+| (3,3,1,1)   |
+---------------
+| (3,3,3,3)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (b.f1) from b in BOX_TBL where "(1,1,3,3)"::box ~= b.f1 "
+---------------
+| f1          |
+---------------
+| (3,3,1,1)   |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (p = @@(b1.f1)) from b1 in BOX_TBL "
+---------------
+| p           |
+---------------
+| (1,1)       |
+---------------
+| (2,2)       |
+---------------
+| (2.5,3)     |
+---------------
+| (3,3)       |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (b1.all, b2.all) from b1, b2 in BOX_TBL   where b1.f1 ~ b2.f1 and not b1.f1 ~= b2.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| (3,3,1,1)   | (3,3,3,3)   |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is " create CHAR_TBL(f1 = char) "
+CREATE
+Go 
+* 
+Query sent to backend is "append CHAR_TBL(f1 = "a") "
+APPEND 800895
+Go 
+* 
+Query sent to backend is "append CHAR_TBL(f1 = "A") "
+APPEND 800896
+Go 
+* 
+Query sent to backend is " append CHAR_TBL(f1 = "1") "
+APPEND 800897
+Go 
+* 
+Query sent to backend is "append CHAR_TBL(f1 = 2) "
+APPEND 800898
+Go 
+* 
+Query sent to backend is "append CHAR_TBL(f1 = '3') "
+APPEND 800899
+Go 
+* 
+Query sent to backend is " append CHAR_TBL(f1 = "") "
+APPEND 800900
+Go 
+* 
+Query sent to backend is "  append CHAR_TBL(f1 = "cd") "
+APPEND 800901
+Go 
+* 
+Query sent to backend is "retrieve (CHAR_TBL.all) "
+---------------
+| f1          |
+---------------
+| a           |
+---------------
+| A           |
+---------------
+| 1           |
 ---------------
 | 2           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "2"::int4 / "2"::int2) "
----------------
-| one         |
----------------
-| 1           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (zero = "27"::int4 % "3"::int2) "
----------------
-| zero        |
----------------
-| 0           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::int2 + "2"::int4) "
----------------
-| three       |
----------------
 | 3           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_one = "1"::int2 - "2"::int4) "
+|             |
 ---------------
-| neg_one     |
----------------
-| -1          |
+| c           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::int2 * "2"::int4) "
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 != "a" "
 ---------------
-| two         |
+| f1          |
+---------------
+| A           |
+---------------
+| 1           |
 ---------------
 | 2           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "2"::int2 / "2"::int4) "
----------------
-| one         |
----------------
-| 1           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (zero = "27"::int2 % "3"::int4) "
----------------
-| zero        |
----------------
-| 0           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::int2 + "2"::int2) "
----------------
-| three       |
----------------
 | 3           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_one = "1"::int2 - "2"::int2) "
+|             |
 ---------------
-| neg_one     |
----------------
-| -1          |
+| c           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::int2 * "2"::int2) "
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 = "a" "
 ---------------
-| two         |
+| f1          |
+---------------
+| a           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 < "a" "
+---------------
+| f1          |
+---------------
+| A           |
+---------------
+| 1           |
 ---------------
 | 2           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "2"::int2 / "2"::int2) "
----------------
-| one         |
----------------
-| 1           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (zero = "27"::int2 % "3"::int2) "
----------------
-| zero        |
----------------
-| 0           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_seven = - "7"::int2) "
----------------
-| neg_seven   |
----------------
-| -7          |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::int4 + "2"::int4) "
----------------
-| three       |
----------------
 | 3           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_one = "1"::int4 - "2"::int4) "
----------------
-| neg_one     |
----------------
-| -1          |
+|             |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::int4 * "2"::int4) "
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 <= "a" "
 ---------------
-| two         |
+| f1          |
+---------------
+| a           |
+---------------
+| A           |
+---------------
+| 1           |
 ---------------
 | 2           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "2"::int4 / "2"::int4) "
----------------
-| one         |
----------------
-| 1           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (zero = "27"::int4 % "3"::int4) "
----------------
-| zero        |
----------------
-| 0           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_seven = - "7"::int4) "
----------------
-| neg_seven   |
----------------
-| -7          |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::float8 + "2"::float8) "
----------------
-| three       |
----------------
 | 3           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_one = "1"::float8 - "2"::float8) "
----------------
-| neg_one     |
----------------
-| -1          |
+|             |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::float8 * "2"::float8) "
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 > "a" "
 ---------------
-| two         |
+| f1          |
 ---------------
-| 2           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "2"::float8 / "2"::float8) "
----------------
-| one         |
----------------
-| 1           |
+| c           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (neg_seven = - "7"::float8) "
+Query sent to backend is "retrieve (c.all) from c in CHAR_TBL where c.f1 >= "a" "
 ---------------
-| neg_seven   |
+| f1          |
 ---------------
-| -7          |
+| a           |
 ---------------
-
-Go 
-* 
-Query sent to backend is " retrieve (one = % "1.1"::float8) "
----------------
-| one         |
----------------
-| 1           |
+| c           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (neg_one = % "-1.1"::float8) "
+Query sent to backend is "retrieve (x= (c.f1 * "3"::char)) from c in CHAR_TBL "
 ---------------
-| neg_one     |
+| x           |
 ---------------
-| -1          |
+| S           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = "0.9"::float8 % ) "
+| ó           |
 ---------------
-| one         |
+| Ã           |
 ---------------
-| 1           |
+| ö           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_one = "-0.9"::float8 % ) "
+| )           |
 ---------------
-| neg_one     |
+|             |
 ---------------
-| -1          |
+| ¹           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (pos_3 = @ "-3"::float8) "
+Query sent to backend is "retrieve (x= (c.f1 + "3"::char)) from c in CHAR_TBL "
 ---------------
-| pos_3       |
+| x           |
 ---------------
-| 3           |
+| ”           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (pos_3 = @ "3"::float8) "
+| t           |
 ---------------
-| pos_3       |
----------------
-| 3           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (onek = "2.0"::float8 ^ "10.0"::float8) "
----------------
-| onek        |
----------------
-| 1024        |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (e = : "1.0"::float8) "
+| d           |
 ---------------
 | e           |
 ---------------
-| 2.71828182845905|
+| f           |
+---------------
+| 3           |
+---------------
+| –           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (zero = ; "1.0"::float8) "
+Query sent to backend is "retrieve (x= (c.f1 - "3"::char)) from c in CHAR_TBL "
 ---------------
-| zero        |
+| x           |
+---------------
+| .           |
+---------------
+|            |
+---------------
+| þ           |
+---------------
+| ÿ           |
+---------------
+|             |
+---------------
+| Í           |
 ---------------
 | 0           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (one = : (; "1.0"::float8)) "
+Query sent to backend is "retrieve (x= (c.f1 / "3"::char)) from c in CHAR_TBL "
 ---------------
-| one         |
+| x           |
 ---------------
-| 1           |
+|            |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (one = : ; "1.0"::float8) "
+|            |
 ---------------
-| one         |
+|             |
 ---------------
-| 1           |
+|             |
 ---------------
-
-Go 
-* 
-Query sent to backend is " retrieve (three = "1"::float4 + "2"::float4) "
+|            |
 ---------------
-| three       |
+|             |
 ---------------
-| 3           |
+|            |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (neg_one = "1"::float4 - "2"::float4) "
+Query sent to backend is " create CHAR2_TBL(f1 = char2) "
+CREATE
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "AB") "
+APPEND 800960
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "ab") "
+APPEND 800961
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "ZY") "
+APPEND 800962
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "34") "
+APPEND 800963
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "d") "
+APPEND 800964
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "") "
+APPEND 800965
+Go 
+* 
+Query sent to backend is "append CHAR2_TBL(f1 = "12345") "
+APPEND 800966
+Go 
+* 
+Query sent to backend is "retrieve (CHAR2_TBL.all) "
 ---------------
-| neg_one     |
+| f1          |
 ---------------
-| -1          |
+| AB          |
+---------------
+| ab          |
+---------------
+| ZY          |
+---------------
+| 34          |
+---------------
+| d           |
+---------------
+|             |
+---------------
+| 12          |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (two = "1"::float4 * "2"::float4) "
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 != "AB" "
 ---------------
-| two         |
+| f1          |
+---------------
+| ab          |
+---------------
+| ZY          |
+---------------
+| 34          |
+---------------
+| d           |
+---------------
+|             |
+---------------
+| 12          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 = "AB" "
+---------------
+| f1          |
+---------------
+| AB          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 < "AB" "
+---------------
+| f1          |
+---------------
+| 34          |
+---------------
+|             |
+---------------
+| 12          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 <= "AB" "
+---------------
+| f1          |
+---------------
+| AB          |
+---------------
+| 34          |
+---------------
+|             |
+---------------
+| 12          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 > "AB" "
+---------------
+| f1          |
+---------------
+| ab          |
+---------------
+| ZY          |
+---------------
+| d           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 >= "AB" "
+---------------
+| f1          |
+---------------
+| AB          |
+---------------
+| ab          |
+---------------
+| ZY          |
+---------------
+| d           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ ".*" "
+---------------
+| f1          |
+---------------
+| AB          |
+---------------
+| ab          |
+---------------
+| ZY          |
+---------------
+| 34          |
+---------------
+| d           |
+---------------
+|             |
+---------------
+| 12          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 !~ ".*" "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ "34" "
+---------------
+| f1          |
+---------------
+| 34          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ "3.*" "
+---------------
+| f1          |
+---------------
+| 34          |
+---------------
+
+Go 
+* 
+Query sent to backend is " create CHAR4_TBL(f1 = char4) "
+CREATE
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "ABCD") "
+APPEND 801025
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "abcd") "
+APPEND 801026
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "ZYWZ") "
+APPEND 801027
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "343f") "
+APPEND 801028
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "d34a") "
+APPEND 801029
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "") "
+APPEND 801030
+Go 
+* 
+Query sent to backend is "append CHAR4_TBL(f1 = "12345678") "
+APPEND 801031
+Go 
+* 
+Query sent to backend is "retrieve (CHAR4_TBL.all) "
+---------------
+| f1          |
+---------------
+| ABCD        |
+---------------
+| abcd        |
+---------------
+| ZYWZ        |
+---------------
+| 343f        |
+---------------
+| d34a        |
+---------------
+|             |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 != "ABCD" "
+---------------
+| f1          |
+---------------
+| abcd        |
+---------------
+| ZYWZ        |
+---------------
+| 343f        |
+---------------
+| d34a        |
+---------------
+|             |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 = "ABCD" "
+---------------
+| f1          |
+---------------
+| ABCD        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 < "ABCD" "
+---------------
+| f1          |
+---------------
+| 343f        |
+---------------
+|             |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 <= "ABCD" "
+---------------
+| f1          |
+---------------
+| ABCD        |
+---------------
+| 343f        |
+---------------
+|             |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 > "ABCD" "
+---------------
+| f1          |
+---------------
+| abcd        |
+---------------
+| ZYWZ        |
+---------------
+| d34a        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 >= "ABCD" "
+---------------
+| f1          |
+---------------
+| ABCD        |
+---------------
+| abcd        |
+---------------
+| ZYWZ        |
+---------------
+| d34a        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 ~ ".*" "
+---------------
+| f1          |
+---------------
+| ABCD        |
+---------------
+| abcd        |
+---------------
+| ZYWZ        |
+---------------
+| 343f        |
+---------------
+| d34a        |
+---------------
+|             |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 !~ ".*" "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR4_TBL where c.f1 ~ ".*34.*" "
+---------------
+| f1          |
+---------------
+| 343f        |
+---------------
+| d34a        |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is " create CHAR8_TBL(f1 = char8) "
+CREATE
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "ABCDEFGH") "
+APPEND 801091
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "abcdefgh") "
+APPEND 801092
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "ZYWZ410-") "
+APPEND 801093
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "343f%2a") "
+APPEND 801094
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "d34aas") "
+APPEND 801095
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "") "
+APPEND 801096
+Go 
+* 
+Query sent to backend is "append CHAR8_TBL(f1 = "1234567890") "
+APPEND 801097
+Go 
+* 
+Query sent to backend is "retrieve (CHAR8_TBL.all) "
+---------------
+| f1          |
+---------------
+| ABCDEFGH    |
+---------------
+| abcdefgh    |
+---------------
+| ZYWZ410-    |
+---------------
+| 343f%2a     |
+---------------
+| d34aas      |
+---------------
+|             |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 != "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| abcdefgh    |
+---------------
+| ZYWZ410-    |
+---------------
+| 343f%2a     |
+---------------
+| d34aas      |
+---------------
+|             |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 = "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| ABCDEFGH    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 < "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| 343f%2a     |
+---------------
+|             |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 <= "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| 343f%2a     |
+---------------
+|             |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 > "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| abcdefgh    |
+---------------
+| ZYWZ410-    |
+---------------
+| d34aas      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 >= "ABCDEFGH" "
+---------------
+| f1          |
+---------------
+| ABCDEFGH    |
+---------------
+| abcdefgh    |
+---------------
+| ZYWZ410-    |
+---------------
+| d34aas      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ ".*" "
+---------------
+| f1          |
+---------------
+| ABCDEFGH    |
+---------------
+| abcdefgh    |
+---------------
+| ZYWZ410-    |
+---------------
+| 343f%2a     |
+---------------
+| d34aas      |
+---------------
+|             |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 !~ ".*" "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ "[0-9]" "
+---------------
+| f1          |
+---------------
+| ZYWZ410-    |
+---------------
+| 343f%2a     |
+---------------
+| d34aas      |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ ".*34.*" "
+---------------
+| f1          |
+---------------
+| 343f%2a     |
+---------------
+| d34aas      |
+---------------
+| 12345678    |
+---------------
+
+Go 
+* 
+Query sent to backend is " create CHAR16_TBL(f1 = char16) "
+CREATE
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "ABCDEFGHIJKLMNOP") "
+APPEND 801156
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "abcdefghijklmnop") "
+APPEND 801157
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "asdfghjkl;") "
+APPEND 801158
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "343f%2a") "
+APPEND 801159
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "d34aaasdf") "
+APPEND 801160
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "") "
+APPEND 801161
+Go 
+* 
+Query sent to backend is "append CHAR16_TBL(f1 = "1234567890ABCDEFGHIJKLMNOPQRSTUV") "
+APPEND 801162
+Go 
+* 
+Query sent to backend is "retrieve (CHAR16_TBL.all) "
+---------------
+| f1          |
+---------------
+| ABCDEFGHIJKLMNOP|
+---------------
+| abcdefghijklmnop|
+---------------
+| asdfghjkl;  |
+---------------
+| 343f%2a     |
+---------------
+| d34aaasdf   |
+---------------
+|             |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 != "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| abcdefghijklmnop|
+---------------
+| asdfghjkl;  |
+---------------
+| 343f%2a     |
+---------------
+| d34aaasdf   |
+---------------
+|             |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 = "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| ABCDEFGHIJKLMNOP|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 < "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| 343f%2a     |
+---------------
+|             |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 <= "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| ABCDEFGHIJKLMNOP|
+---------------
+| 343f%2a     |
+---------------
+|             |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 > "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| abcdefghijklmnop|
+---------------
+| asdfghjkl;  |
+---------------
+| d34aaasdf   |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 >= "ABCDEFGHIJKLMNOP" "
+---------------
+| f1          |
+---------------
+| ABCDEFGHIJKLMNOP|
+---------------
+| abcdefghijklmnop|
+---------------
+| asdfghjkl;  |
+---------------
+| d34aaasdf   |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ ".*" "
+---------------
+| f1          |
+---------------
+| ABCDEFGHIJKLMNOP|
+---------------
+| abcdefghijklmnop|
+---------------
+| asdfghjkl;  |
+---------------
+| 343f%2a     |
+---------------
+| d34aaasdf   |
+---------------
+|             |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 !~ ".*" "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ "[0-9]" "
+---------------
+| f1          |
+---------------
+| 343f%2a     |
+---------------
+| d34aaasdf   |
+---------------
+| 1234567890ABCDEF|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ ".*asdf.*" "
+---------------
+| f1          |
+---------------
+| asdfghjkl;  |
+---------------
+| d34aaasdf   |
+---------------
+
+Go 
+* 
+Query sent to backend is "  create FLOAT4_TBL(f1=float4) "
+CREATE
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="0.0") "
+APPEND 801221
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="1004.30") "
+APPEND 801222
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="-34.84") "
+APPEND 801223
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="1.2345678901234e+20") "
+APPEND 801224
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="1.2345678901234e-20")  append FLOAT4_TBL(f1="10e40")  "
+WARN:Jan  6 17:11:37:	float4 overflow
+
+
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="-10e40") "
+WARN:Jan  6 17:11:37:	float4 underflow
+
+
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="10e-40") "
+APPEND 801225
+Go 
+* 
+Query sent to backend is "append FLOAT4_TBL(f1="-10e-40") "
+APPEND 801226
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT4_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.23457e+20 |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where f.f1 != "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 1.23457e+20 |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where f.f1 = "1004.3" "
+---------------
+| f1          |
+---------------
+| 1004.3      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where "1004.3" > f.f1 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where  f.f1 < "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where "1004.3" >= f.f1 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where  f.f1 <= "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 * "-10") from f in FLOAT4_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| -10043      |
+---------------
+| -1.23457e+21|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 + "-10") from f in FLOAT4_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 994.3       |
+---------------
+| 1.23457e+20 |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 / "-10") from f in FLOAT4_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| -100.43     |
+---------------
+| -1.23457e+19|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 - "-10") from f in FLOAT4_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 1014.3      |
+---------------
+| 1.23457e+20 |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT4_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.23457e+20 |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = @f.f1) from f in FLOAT8_TBL "
+WARN:Jan  6 17:11:40:FLOAT8_TBL: no such class
+
+
+Go 
+* 
+Query sent to backend is "replace FLOAT4_TBL(f1= FLOAT4_TBL.f1 * "-1") where FLOAT4_TBL.f1 > "0.0" "
+REPLACE
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT4_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+| -1004.3     |
+---------------
+| -1.23457e+20|
+---------------
+
+Go 
+* 
+Query sent to backend is "  create FLOAT8_TBL(f1=float8) "
+CREATE
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="0.0") "
+APPEND 801285
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="1004.30") "
+APPEND 801286
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="-34.84") "
+APPEND 801287
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="1.2345678901234e+200") "
+APPEND 801288
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="1.2345678901234e-200") "
+APPEND 801289
+Go 
+* 
+Query sent to backend is "    retrieve (FLOAT8_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where f.f1 != "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where f.f1 = "1004.3" "
+---------------
+| f1          |
+---------------
+| 1004.3      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where "1004.3" > f.f1 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where  f.f1 < "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where "1004.3" >= f.f1 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (f.all) from f in FLOAT8_TBL where  f.f1 <= "1004.3" "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 * "-10") from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| -10043      |
+---------------
+| -1.2345678901234e+201|
+---------------
+| -1.2345678901234e-199|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 + "-10") from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 994.3       |
+---------------
+| 1.2345678901234e+200|
+---------------
+| -10         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 / "-10") from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| -100.43     |
+---------------
+| -1.2345678901234e+199|
+---------------
+| -1.2345678901234e-201|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x= f.f1 - "-10") from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 1014.3      |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 10          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = f.f1 ^ "2.0") from f in FLOAT8_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 1008618.49  |
+---------------
+| 1213.8256   |
+---------------
+| 1.79769313486232e+308|
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = @f.f1) from f in FLOAT8_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| 34.84       |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = %f.f1) from f in FLOAT8_TBL "
+---------------
+| x           |
+---------------
+| -0          |
+---------------
+| 1004        |
+---------------
+| -34         |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = f.f1 %) from f in FLOAT8_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 1004        |
+---------------
+| -35         |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = |/f.f1) from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 31.6906926399535|
+---------------
+| 1.11111110611109e+100|
+---------------
+| 1.11111110611109e-100|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = : ( ; f.f1) ) from f in FLOAT8_TBL where f.f1 > "0.0" "
+---------------
+| x           |
+---------------
+| 1004.3      |
+---------------
+| 1.23456789012338e+200|
+---------------
+| 1.23456789012339e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (x = ||/f.f1) from f in FLOAT8_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 10.014312837827|
+---------------
+| -3.26607421344208|
+---------------
+| 4.97933859234765e+66|
+---------------
+| 2.3112042409018e-67|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT8_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| -34.84      |
+---------------
+| 1.2345678901234e+200|
+---------------
+| 1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is "replace FLOAT8_TBL(f1= FLOAT8_TBL.f1 * "-1") where FLOAT8_TBL.f1 > "0.0" "
+REPLACE
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT8_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -34.84      |
+---------------
+| -1004.3     |
+---------------
+| -1.2345678901234e+200|
+---------------
+| -1.2345678901234e-200|
+---------------
+
+Go 
+* 
+Query sent to backend is " create INT2_TBL(f1=int2) "
+CREATE
+Go 
+* 
+Query sent to backend is "append INT2_TBL(f1="0") "
+APPEND 801348
+Go 
+* 
+Query sent to backend is "append INT2_TBL(f1="1234") "
+APPEND 801349
+Go 
+* 
+Query sent to backend is "append INT2_TBL(f1="-1234") "
+APPEND 801350
+Go 
+* 
+Query sent to backend is " append INT2_TBL(f1="34.5") "
+APPEND 801351
+Go 
+* 
+Query sent to backend is " append INT2_TBL(f1="32767") "
+APPEND 801352
+Go 
+* 
+Query sent to backend is "append INT2_TBL(f1="-32767") "
+APPEND 801353
+Go 
+* 
+Query sent to backend is " append INT2_TBL(f1="100000") "
+APPEND 801354
+Go 
+* 
+Query sent to backend is "append INT2_TBL(f1="asdf") "
+APPEND 801355
+Go 
+* 
+Query sent to backend is "retrieve (INT2_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1234        |
+---------------
+| -1234       |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 != "0"::int2 "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| -1234       |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 != "0"::int4 "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| -1234       |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 = "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 = "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 < "0"::int2 "
+---------------
+| f1          |
+---------------
+| -1234       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 < "0"::int4 "
+---------------
+| f1          |
+---------------
+| -1234       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 <= "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -1234       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 <= "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -1234       |
+---------------
+| -32767      |
+---------------
+| -31072      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 > "0"::int2 "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 > "0"::int4 "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 >= "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1234        |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where i.f1 >= "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1234        |
+---------------
+| 34          |
+---------------
+| 32767       |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where (i.f1 % "2"::int2) = "1"::int2 "
+---------------
+| f1          |
+---------------
+| 32767       |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT2_TBL where (i.f1 % "2"::int4) = "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 1234        |
+---------------
+| -1234       |
+---------------
+| 34          |
+---------------
+| -31072      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 * "2"::int2) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 2468        |
+---------------
+| -2468       |
+---------------
+| 68          |
+---------------
+| -2          |
+---------------
+| 2           |
+---------------
+| 3392        |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 * "2"::int4) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 2468        |
+---------------
+| -2468       |
+---------------
+| 68          |
+---------------
+| 65534       |
+---------------
+| -65534      |
+---------------
+| -62144      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 + "2"::int2) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| 2           |
+---------------
+| 1236        |
+---------------
+| -1232       |
+---------------
+| 36          |
+---------------
+| -32767      |
+---------------
+| -32765      |
+---------------
+| -31070      |
 ---------------
 | 2           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (one = "2"::float4 / "2"::float4) "
+Query sent to backend is "retrieve (x = i.f1 + "2"::int4) from i in INT2_TBL "
 ---------------
-| one         |
+| x           |
 ---------------
-| 1           |
+| 2           |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (neg_seven = - "7"::float4) "
+| 1236        |
 ---------------
-| neg_seven   |
+| -1232       |
 ---------------
-| -7          |
+| 36          |
 ---------------
-
-Go 
-* 
-Query sent to backend is "retrieve (pos_3 = @ "-3"::float4) "
+| 32769       |
 ---------------
-| pos_3       |
+| -32765      |
 ---------------
-| 3           |
+| -31070      |
+---------------
+| 2           |
 ---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (pos_3 = @ "3"::float4) "
+Query sent to backend is "retrieve (x = i.f1 - "2"::int2) from i in INT2_TBL "
 ---------------
-| pos_3       |
+| x           |
 ---------------
-| 3           |
+| -2          |
+---------------
+| 1232        |
+---------------
+| -1236       |
+---------------
+| 32          |
+---------------
+| 32765       |
+---------------
+| 32767       |
+---------------
+| -31074      |
+---------------
+| -2          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 - "2"::int4) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| -2          |
+---------------
+| 1232        |
+---------------
+| -1236       |
+---------------
+| 32          |
+---------------
+| 32765       |
+---------------
+| -32769      |
+---------------
+| -31074      |
+---------------
+| -2          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 / "2"::int2) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 617         |
+---------------
+| -617        |
+---------------
+| 17          |
+---------------
+| 16383       |
+---------------
+| -16383      |
+---------------
+| -15536      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 / "2"::int4) from i in INT2_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 617         |
+---------------
+| -617        |
+---------------
+| 17          |
+---------------
+| 16383       |
+---------------
+| -16383      |
+---------------
+| -15536      |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is " create INT4_TBL(f1=int4) "
+CREATE
+Go 
+* 
+Query sent to backend is "append INT4_TBL(f1="0") "
+APPEND 801414
+Go 
+* 
+Query sent to backend is "append INT4_TBL(f1="123456") "
+APPEND 801415
+Go 
+* 
+Query sent to backend is "append INT4_TBL(f1="-123456") "
+APPEND 801416
+Go 
+* 
+Query sent to backend is " append INT4_TBL(f1="34.5") "
+APPEND 801417
+Go 
+* 
+Query sent to backend is " append INT4_TBL(f1="2147483647") "
+APPEND 801418
+Go 
+* 
+Query sent to backend is "append INT4_TBL(f1="-2147483647") "
+APPEND 801419
+Go 
+* 
+Query sent to backend is " append INT4_TBL(f1="1000000000000") "
+APPEND 801420
+Go 
+* 
+Query sent to backend is "append INT4_TBL(f1="asdf") "
+APPEND 801421
+Go 
+* 
+Query sent to backend is "retrieve (INT4_TBL.all) "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 123456      |
+---------------
+| -123456     |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 != "0"::int2 "
+---------------
+| f1          |
+---------------
+| 123456      |
+---------------
+| -123456     |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 != "0"::int4 "
+---------------
+| f1          |
+---------------
+| 123456      |
+---------------
+| -123456     |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 = "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 = "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 < "0"::int2 "
+---------------
+| f1          |
+---------------
+| -123456     |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 < "0"::int4 "
+---------------
+| f1          |
+---------------
+| -123456     |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 <= "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -123456     |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 <= "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| -123456     |
+---------------
+| -2147483647 |
+---------------
+| -727379968  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 > "0"::int2 "
+---------------
+| f1          |
+---------------
+| 123456      |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 > "0"::int4 "
+---------------
+| f1          |
+---------------
+| 123456      |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 >= "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 123456      |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where i.f1 >= "0"::int4 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 123456      |
+---------------
+| 34          |
+---------------
+| 2147483647  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where (i.f1 % "2"::int2) = "1"::int2 "
+---------------
+| f1          |
+---------------
+| 2147483647  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (i.all) from i in INT4_TBL where (i.f1 % "2"::int4) = "0"::int2 "
+---------------
+| f1          |
+---------------
+| 0           |
+---------------
+| 123456      |
+---------------
+| -123456     |
+---------------
+| 34          |
+---------------
+| -727379968  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 * "2"::int2) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 246912      |
+---------------
+| -246912     |
+---------------
+| 68          |
+---------------
+| -2          |
+---------------
+| 2           |
+---------------
+| -1454759936 |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 * "2"::int4) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 246912      |
+---------------
+| -246912     |
+---------------
+| 68          |
+---------------
+| -2          |
+---------------
+| 2           |
+---------------
+| -1454759936 |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 + "2"::int2) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 2           |
+---------------
+| 123458      |
+---------------
+| -123454     |
+---------------
+| 36          |
+---------------
+| -2147483647 |
+---------------
+| -2147483645 |
+---------------
+| -727379966  |
+---------------
+| 2           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 + "2"::int4) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 2           |
+---------------
+| 123458      |
+---------------
+| -123454     |
+---------------
+| 36          |
+---------------
+| -2147483647 |
+---------------
+| -2147483645 |
+---------------
+| -727379966  |
+---------------
+| 2           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 - "2"::int2) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| -2          |
+---------------
+| 123454      |
+---------------
+| -123458     |
+---------------
+| 32          |
+---------------
+| 2147483645  |
+---------------
+| 2147483647  |
+---------------
+| -727379970  |
+---------------
+| -2          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 - "2"::int4) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| -2          |
+---------------
+| 123454      |
+---------------
+| -123458     |
+---------------
+| 32          |
+---------------
+| 2147483645  |
+---------------
+| 2147483647  |
+---------------
+| -727379970  |
+---------------
+| -2          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 / "2"::int2) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 61728       |
+---------------
+| -61728      |
+---------------
+| 17          |
+---------------
+| 1073741823  |
+---------------
+| -1073741823 |
+---------------
+| -363689984  |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (x = i.f1 / "2"::int4) from i in INT4_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 61728       |
+---------------
+| -61728      |
+---------------
+| 17          |
+---------------
+| 1073741823  |
+---------------
+| -1073741823 |
+---------------
+| -363689984  |
+---------------
+| 0           |
 ---------------
 
 Go 
@@ -1532,7 +4225,904 @@ Query sent to backend is "retrieve (three = ||/"27"::float8) "
 
 Go 
 * 
-Query sent to backend is "  retrieve (false = "char 16 string"::char16 = "char 16 string "::char16) "
+Query sent to backend is " create OID_TBL(f1=oid) "
+CREATE
+Go 
+* 
+Query sent to backend is "append OID_TBL(f1="1234") "
+APPEND 801480
+Go 
+* 
+Query sent to backend is "append OID_TBL(f1="1235") "
+APPEND 801481
+Go 
+* 
+Query sent to backend is "append OID_TBL(f1="987") "
+APPEND 801482
+Go 
+* 
+Query sent to backend is "append OID_TBL(f1="-1040") "
+APPEND 801483
+Go 
+* 
+Query sent to backend is " append OID_TBL(f1="") "
+APPEND 801484
+Go 
+* 
+Query sent to backend is "append OID_TBL(f1="asdfasd") "
+APPEND 801485
+Go 
+* 
+Query sent to backend is "retrieve (OID_TBL.all) "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| 1235        |
+---------------
+| 987         |
+---------------
+| -1040       |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 = "1234" "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 != "1234" "
+---------------
+| f1          |
+---------------
+| 1235        |
+---------------
+| 987         |
+---------------
+| -1040       |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 <= "1234" "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| 987         |
+---------------
+| -1040       |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 < "1234" "
+---------------
+| f1          |
+---------------
+| 987         |
+---------------
+| -1040       |
+---------------
+| 0           |
+---------------
+| 0           |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 >= "1234" "
+---------------
+| f1          |
+---------------
+| 1234        |
+---------------
+| 1235        |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OID_TBL where o.f1 > "1234" "
+---------------
+| f1          |
+---------------
+| 1235        |
+---------------
+
+Go 
+* 
+Query sent to backend is "    create OIDCHAR16_TBL(f1=oidchar16) "
+CREATE
+Go 
+* 
+Query sent to backend is "append OIDCHAR16_TBL(f1="1234,abcd") "
+APPEND 801544
+Go 
+* 
+Query sent to backend is "append OIDCHAR16_TBL(f1="1235,efgh") "
+APPEND 801545
+Go 
+* 
+Query sent to backend is "append OIDCHAR16_TBL(f1="987,XXXX") "
+APPEND 801546
+Go 
+* 
+Query sent to backend is " append OIDCHAR16_TBL(f1="123456") "
+WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+
+Go 
+* 
+Query sent to backend is " append OIDCHAR16_TBL(f1="123456,abcdefghijklmnopqrsutvwyz") "
+APPEND 801547
+Go 
+* 
+Query sent to backend is " append OIDCHAR16_TBL(f1="") "
+WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+
+Go 
+* 
+Query sent to backend is "append OIDCHAR16_TBL(f1="asdfasd") "
+WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+
+Go 
+* 
+Query sent to backend is "retrieve (OIDCHAR16_TBL.all) "
+---------------
+| f1          |
+---------------
+| 1234,abcd   |
+---------------
+| 1235,efgh   |
+---------------
+| 987,XXXX    |
+---------------
+| 123456,abcdefghijklmnop|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 = "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 1234,abcd   |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 != "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 1235,efgh   |
+---------------
+| 987,XXXX    |
+---------------
+| 123456,abcdefghijklmnop|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 <= "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 1234,abcd   |
+---------------
+| 987,XXXX    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 < "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 987,XXXX    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 >= "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 1234,abcd   |
+---------------
+| 1235,efgh   |
+---------------
+| 123456,abcdefghijklmnop|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 > "1234,abcd" "
+---------------
+| f1          |
+---------------
+| 1235,efgh   |
+---------------
+| 123456,abcdefghijklmnop|
+---------------
+
+Go 
+* 
+Query sent to backend is "    create OIDINT2_TBL(f1=oidint2) "
+CREATE
+Go 
+* 
+Query sent to backend is "append OIDINT2_TBL(f1="1234/9873") "
+APPEND 801607
+Go 
+* 
+Query sent to backend is "append OIDINT2_TBL(f1="1235/9873") "
+APPEND 801608
+Go 
+* 
+Query sent to backend is "append OIDINT2_TBL(f1="987/-1234") "
+APPEND 801609
+Go 
+* 
+Query sent to backend is " append OIDINT2_TBL(f1="123456") "
+APPEND 801610
+Go 
+* 
+Query sent to backend is " append OIDINT2_TBL(f1="123456/123456") "
+APPEND 801611
+Go 
+* 
+Query sent to backend is " append OIDINT2_TBL(f1="") "
+APPEND 801612
+Go 
+* 
+Query sent to backend is "append OIDINT2_TBL(f1="asdfasd") "
+APPEND 801613
+Go 
+* 
+Query sent to backend is "retrieve (OIDINT2_TBL.all) "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 1235/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 123456/0    |
+---------------
+| 123456/-7616|
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 = "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1235/9873   |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 != "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 123456/0    |
+---------------
+| 123456/-7616|
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 <= "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 1235/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 < "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 >= "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1235/9873   |
+---------------
+| 123456/0    |
+---------------
+| 123456/-7616|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT2_TBL where o.f1 > "1235/9873" "
+---------------
+| f1          |
+---------------
+| 123456/0    |
+---------------
+| 123456/-7616|
+---------------
+
+Go 
+* 
+Query sent to backend is "    create OIDINT4_TBL(f1=oidint4) "
+CREATE
+Go 
+* 
+Query sent to backend is "append OIDINT4_TBL(f1="1234/9873") "
+APPEND 801673
+Go 
+* 
+Query sent to backend is "append OIDINT4_TBL(f1="1235/9873") "
+APPEND 801674
+Go 
+* 
+Query sent to backend is "append OIDINT4_TBL(f1="987/-1234") "
+APPEND 801675
+Go 
+* 
+Query sent to backend is " append OIDINT4_TBL(f1="123456") "
+APPEND 801676
+Go 
+* 
+Query sent to backend is " append OIDINT4_TBL(f1="123456/1234568901234567890") "
+APPEND 801677
+Go 
+* 
+Query sent to backend is " append OIDINT4_TBL(f1="") "
+APPEND 801678
+Go 
+* 
+Query sent to backend is "append OIDINT4_TBL(f1="asdfasd") "
+APPEND 801679
+Go 
+* 
+Query sent to backend is "retrieve (OIDINT4_TBL.all) "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 1235/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 123456/0    |
+---------------
+| 123456/2147483647|
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 = "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1235/9873   |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 != "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 123456/0    |
+---------------
+| 123456/2147483647|
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 <= "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 1235/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 < "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1234/9873   |
+---------------
+| 987/-1234   |
+---------------
+| 0/0         |
+---------------
+| 0/0         |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 >= "1235/9873" "
+---------------
+| f1          |
+---------------
+| 1235/9873   |
+---------------
+| 123456/0    |
+---------------
+| 123456/2147483647|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (o.all) from o in OIDINT4_TBL where o.f1 > "1235/9873" "
+---------------
+| f1          |
+---------------
+| 123456/0    |
+---------------
+| 123456/2147483647|
+---------------
+
+Go 
+* 
+Query sent to backend is "  create POINT_TBL(f1=point) "
+CREATE
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(0.0,0.0)") "
+APPEND 801738
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(-10.0,0.0)") "
+APPEND 801739
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(-3.0,4.0)") "
+APPEND 801740
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(5.1, 34.5)") "
+APPEND 801741
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(-5.0,-12.0)") "
+APPEND 801742
+Go 
+* 
+Query sent to backend is " append POINT_TBL(f1="asdfasdf") "
+WARN:Jan  6 17:12:19:Bad point external representation 'asdfasdf'
+
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="10.0,10.0") "
+WARN:Jan  6 17:12:19:Bad point external representation '10.0,10.0'
+
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(10.0 10.0)") "
+WARN:Jan  6 17:12:19:Bad point external representation '(10.0 10.0)'
+
+Go 
+* 
+Query sent to backend is "append POINT_TBL(f1="(10.0,10.0") "
+WARN:Jan  6 17:12:19:Bad point external representation '(10.0,10.0'
+
+Go 
+* 
+Query sent to backend is "retrieve (POINT_TBL.all) "
+---------------
+| f1          |
+---------------
+| (0,0)       |
+---------------
+| (-10,0)     |
+---------------
+| (-3,4)      |
+---------------
+| (5.1,34.5)  |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where p.f1 !< "(0.0, 0.0)" "
+---------------
+| f1          |
+---------------
+| (-10,0)     |
+---------------
+| (-3,4)      |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where "(0.0,0.0)" !> p.f1 "
+---------------
+| f1          |
+---------------
+| (-10,0)     |
+---------------
+| (-3,4)      |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where "(0.0,0.0)" !^ p.f1 "
+---------------
+| f1          |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where p.f1 !| "(0.0, 0.0)" "
+---------------
+| f1          |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where p.f1 =|= "(5.1, 34.5)" "
+---------------
+| f1          |
+---------------
+| (5.1,34.5)  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where p.f1 ---> "(0,0,100,100)" "
+---------------
+| f1          |
+---------------
+| (0,0)       |
+---------------
+| (5.1,34.5)  |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where not on_pb(p.f1,"(0,0,100,100)"::box) "
+---------------
+| f1          |
+---------------
+| (-10,0)     |
+---------------
+| (-3,4)      |
+---------------
+| (-5,-12)    |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POINT_TBL where on_ppath(p.f1,"(0,3,0,0,-10,0,-10,10)"::path) "
+---------------
+| f1          |
+---------------
+| (0,0)       |
+---------------
+| (-10,0)     |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.f1, dist= p.f1 <---> "(0,0)") from p in POINT_TBL "
+-----------------------------
+| f1          | dist        |
+-----------------------------
+| (0,0)       | 0           |
+-----------------------------
+| (-10,0)     | 10          |
+-----------------------------
+| (-3,4)      | 5           |
+-----------------------------
+| (5.1,34.5)  | 34          |
+-----------------------------
+| (-5,-12)    | 13          |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p1.f1, p2.f1) from p1, p2 in POINT_TBL    where (p1.f1 <---> p2.f1) > 3 and  	p1.f1 !< p2.f1 and 	p1.f1 !^ p2.f1 "
+-----------------------------
+| f1          | f1          |
+-----------------------------
+| (-3,4)      | (0,0)       |
+-----------------------------
+| (-10,0)     | (-5,-12)    |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "   create POLYGON_TBL(f1=polygon) "
+CREATE
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(2.0,2.0,0.0,0.0,4.0,0.0)") "
+APPEND 801801
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(3.0,3.0,1.0,1.0,3.0,0.0)") "
+APPEND 801802
+Go 
+* 
+Query sent to backend is " append POLYGON_TBL(f1="(0.0,0.0)") "
+APPEND 801803
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(0.0,0.0,1.0,1.0)") "
+APPEND 801804
+Go 
+* 
+Query sent to backend is " append POLYGON_TBL(f1="0.0") "
+WARN:Jan  6 17:12:23:Bad input polyon
+
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(0.0 0.0") "
+WARN:Jan  6 17:12:23:Bad input polyon
+
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(0,1,2)") "
+WARN:Jan  6 17:12:23:Bad input polyon
+
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="(0,1,2,3") "
+WARN:Jan  6 17:12:23:Bad input polyon
+
+Go 
+* 
+Query sent to backend is "append POLYGON_TBL(f1="asdf") "
+WARN:Jan  6 17:12:23:Bad input polyon
+
+Go 
+* 
+Query sent to backend is "retrieve (POLYGON_TBL.all) "
+---------------
+| f1          |
+---------------
+| (           2,           2,           0,           0,           4,           0)|
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+| (           0,           0)|
+---------------
+| (           0,           0,           1,           1)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 && "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           2,           2,           0,           0,           4,           0)|
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+| (           0,           0,           1,           1)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 &< "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           2,           2,           0,           0,           4,           0)|
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+| (           0,           0)|
+---------------
+| (           0,           0,           1,           1)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 &> "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           2,           2,           0,           0,           4,           0)|
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 << "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           0,           0)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 >> "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 @ "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 ~= "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (p.all) from p in POLYGON_TBL   where p.f1 ~ "(3.0,3.0,1.0,1.0,3.0,0.0)" "
+---------------
+| f1          |
+---------------
+| (           3,           3,           1,           1,           3,           0)|
+---------------
+
+Go 
+* 
+Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| true        |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| true        |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| true        |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is "     retrieve (false = "char 16 string"::char16 = "char 16 string "::char16) "
 ---------------
 | false       |
 ---------------
@@ -1564,78 +5154,6 @@ Query sent to backend is "retrieve (false = "this is a text string"::text = "thi
 | false       |
 ---------------
 | f           |
----------------
-
-Go 
-* 
-Query sent to backend is "  retrieve (false = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| t           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box &> "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~ "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~= "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| t           |
 ---------------
 
 Go 
@@ -1712,7 +5230,7 @@ Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon
 
 Go 
 * 
-Query sent to backend is "            retrieve (onek.all) where onek.unique1 < 10 "
+Query sent to backend is "       retrieve (onek.all) where onek.unique1 < 10 "
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | unique1     | unique2     | two         | four        | ten         | twenty      | hundred     | thousand    | twothousand | fivethous   | tenthous    | odd         | even        | stringu1    | stringu2    | string4     |
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2620,14 +6138,14 @@ REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek     where o.stringu1 = "JBAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Sep 27 18:51:09:Non-functional update, only first update is performed
-NOTICE:Sep 27 18:51:11:Non-functional update, only first update is performed
+NOTICE:Jan  6 17:13:33:Non-functional update, only first update is performed
+NOTICE:Jan  6 17:13:33:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek2     where o.stringu1 = "JCAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Sep 27 18:51:33:Non-functional update, only first update is performed
-NOTICE:Sep 27 18:51:44:Non-functional update, only first update is performed
+NOTICE:Jan  6 17:13:41:Non-functional update, only first update is performed
+NOTICE:Jan  6 17:13:44:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
@@ -2669,7 +6187,7 @@ Query sent to backend is "retrieve (hasham_heap.all) where hasham_heap.random = 
 
 Go 
 * 
-Query sent to backend is "         copy onek to "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
+Query sent to backend is "         copy onek to "/private/postgres/src/regress/regress/obj/onek.data" "
 COPY
 Go 
 * 
@@ -2677,7 +6195,7 @@ Query sent to backend is "delete onek "
 DELETE
 Go 
 * 
-Query sent to backend is "copy onek from "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
+Query sent to backend is "copy onek from "/private/postgres/src/regress/regress/obj/onek.data" "
 COPY
 Go 
 * 
@@ -2696,7 +6214,7 @@ Query sent to backend is "delete onek2 "
 DELETE
 Go 
 * 
-Query sent to backend is "copy onek2 from "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
+Query sent to backend is "copy onek2 from "/private/postgres/src/regress/regress/obj/onek.data" "
 COPY
 Go 
 * 
@@ -2711,7 +6229,7 @@ Query sent to backend is "retrieve (onek2.unique1) where onek2.unique1 < 2 "
 
 Go 
 * 
-Query sent to backend is "copy binary stud_emp to "/faerie/aoki/postgres/src/regress/regress/obj/stud_emp.data" "
+Query sent to backend is "copy binary stud_emp to "/private/postgres/src/regress/regress/obj/stud_emp.data" "
 COPY
 Go 
 * 
@@ -2719,7 +6237,7 @@ Query sent to backend is "delete stud_emp "
 DELETE
 Go 
 * 
-Query sent to backend is "copy binary stud_emp from "/faerie/aoki/postgres/src/regress/regress/obj/stud_emp.data" "
+Query sent to backend is "copy binary stud_emp from "/private/postgres/src/regress/regress/obj/stud_emp.data" "
 COPY
 Go 
 * 
@@ -2760,7 +6278,7 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "append xacttest (a = 777, b = 777.777) "
-APPEND 176802
+APPEND 828687
 Go 
 * 
 Query sent to backend is "end "
@@ -4353,14 +7871,14 @@ ADD
 Go 
 * 
 Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['current' 'infinity']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
-APPEND 177050
+APPEND 828934
 Go 
 * 
 Query sent to backend is "retrieve (temp.all) "
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | initial     | a           | b           | c           | d           | e           | f           | g           | h           | i           | j           | k           | l           | m           | n           | o           | p           | q           | r           | s           | t           | u           | v           | w           | x           | y           | z           |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Mon Sep 27 18:54:28 1993 PDT| c           | {Mon Sep 27 18:54:28 1993 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
+| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Thurs Jan 6 17:14:40 1994 PDT| c           | {Thurs Jan 6 17:14:40 1994 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Go 
@@ -5851,27 +9369,69 @@ Query sent to backend is "retrieve (user_relns = user_relns()) "
 ---------------
 | onek        |
 ---------------
+| BOOLTBL1    |
+---------------
 | tenk2       |
+---------------
+| BOOLTBL2    |
+---------------
+| ABSTIME_TBL |
+---------------
+| RELTIME_TBL |
+---------------
+| TINTERVAL_TBL|
+---------------
+| BOX_TBL     |
+---------------
+| CHAR_TBL    |
+---------------
+| CHAR2_TBL   |
+---------------
+| CHAR4_TBL   |
+---------------
+| CHAR8_TBL   |
+---------------
+| CHAR16_TBL  |
+---------------
+| fast_emp4000|
+---------------
+| FLOAT4_TBL  |
+---------------
+| road        |
+---------------
+| FLOAT8_TBL  |
+---------------
+| ihighway    |
+---------------
+| INT2_TBL    |
+---------------
+| shighway    |
+---------------
+| INT4_TBL    |
+---------------
+| hasham_heap |
+---------------
+| OID_TBL     |
+---------------
+| street      |
+---------------
+| OIDCHAR16_TBL|
+---------------
+| iexit       |
+---------------
+| OIDINT2_TBL |
+---------------
+| toyemp      |
+---------------
+| OIDINT4_TBL |
+---------------
+| POINT_TBL   |
+---------------
+| POLYGON_TBL |
 ---------------
 | xacttest    |
 ---------------
 | onek2       |
----------------
-| fast_emp4000|
----------------
-| road        |
----------------
-| ihighway    |
----------------
-| shighway    |
----------------
-| hasham_heap |
----------------
-| street      |
----------------
-| iexit       |
----------------
-| toyemp      |
 ---------------
 
 Go 
@@ -5962,7 +9522,7 @@ Query sent to backend is "retrieve (arrtest.a[1:3],           arrtest.b[1:1][1:2
 Go 
 * 
 Query sent to backend is "    retrieve (forty_two = ufp0()) "
-NOTICE:Sep 27 18:55:55:ufp_start: forked UFP[959]
+NOTICE:Jan  6 17:15:11:ufp_start: forked UFP[656]
 ---------------
 | forty_two   |
 ---------------
@@ -5998,11 +9558,11 @@ Query sent to backend is "  retrieve (postgres = ufp3("postgres rules ok"::text,
 
 Go 
 * 
-Query sent to backend is " replace pg_class (relacl="{}") 	where pg_class.relname !~ "pg_*"::char16 "
+Query sent to backend is " replace pg_class (relacl="{}") 	where pg_class.relname !~ "pg_*"::text "
 REPLACE
 Go 
 * 
-Query sent to backend is "replace pg_user (usesuper="f"::bool) where pg_user.usename = "postgres" "
+Query sent to backend is "replace pg_user (usesuper="f"::bool) where pg_user.usename = "jolly" "
 REPLACE
 Go 
 * 
@@ -6011,7 +9571,7 @@ CREATE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=5) "
-APPEND 177235
+APPEND 829160
 Go 
 * 
 Query sent to backend is "retrieve (myclass0.a) "
@@ -6028,11 +9588,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append myclass0 (a=10) "
-APPEND 177236
+APPEND 829161
 Go 
 * 
 Query sent to backend is "append myclass0 (a=20) "
-APPEND 177237
+APPEND 829162
 Go 
 * 
 Query sent to backend is "replace myclass0 (a=10) where myclass0.a < 10 "
@@ -6055,7 +9615,7 @@ Query sent to backend is "remove rule foo "
 REMOVE
 Go 
 * 
-Query sent to backend is "change acl postgres-arR myclass0 "
+Query sent to backend is "change acl jolly-arR myclass0 "
 CHANGE
 Go 
 * 
@@ -6064,7 +9624,7 @@ REPLACE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=100) "
-APPEND 177246
+APPEND 829171
 Go 
 * tuple 0: got
 	 i=(4 bytes) 1,
@@ -6086,8 +9646,8 @@ export DATABASE
 export PGHOST
 #
 SMGR=d
-HERE=/faerie/aoki/postgres/src/regress/regress
-THERE=/faerie/aoki/postgres/src/regress/regress/obj
+HERE=/private/postgres/src/regress/regress
+THERE=/private/postgres/src/regress/regress/obj
 #
 
 #
@@ -6097,14 +9657,14 @@ prm -rf / \
 	|| exit 1
 pls -dl / \
 	|| exit 1
-drwx------ 1 postgres  system   0 Dec 31  1969 /
+drwx------ 1 jolly  system   0 Dec 31  1969 /
 
 #
 # - simple icopy "in"
 #
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /dept.data1 \
 	|| exit 1
-/faerie/aoki/postgres/src/regress/regress/../data/dept.data -> /dept.data1
+/private/postgres/src/regress/regress/../data/dept.data -> /dept.data1
 #
 # - recursive icopy "in"
 #
@@ -6116,11 +9676,12 @@ icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
 rm -f $THERE/.dept.data
 cp $HERE/../data/dept.data $THERE/.dept.data \
 	|| exit 1
+touch $THERE/.emptyfile
 icopy in -d $DATABASE -s $SMGR -R -a $THERE /data2 \
 	|| exit 1
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
 	|| exit 1
-/faerie/aoki/postgres/src/regress/regress/../data/dept.data -> /data2/dept.data
+/private/postgres/src/regress/regress/../data/dept.data -> /data2/dept.data
 
 #
 # - absolute pls
@@ -6199,10 +9760,15 @@ onek.data
 queries.pq
 regress.o
 regress.out
+regress.so
+so_locations
 stud_emp.data
 ufp1.o
+ufp1.so
 ufp2.o
+ufp2.so
 ufp3.o
+ufp3.so
 #
 # - relative pmkdir
 #
@@ -6237,10 +9803,15 @@ onek.data
 queries.pq
 regress.o
 regress.out
+regress.so
+so_locations
 stud_emp.data
 ufp1.o
+ufp1.so
 ufp2.o
+ufp2.so
 ufp3.o
+ufp3.so
 
 #
 # - more complex pcat
@@ -6257,7 +9828,7 @@ shoe	bob
 #
 prm -rf / \
 	|| exit 1
-rm -f $THERE/.dept.data
+rm -f $THERE/.dept.data $THERE/.emptyfile
 exit 0
 =============== running error queries ... =================
 Welcome to the POSTGRES terminal monitor
@@ -6265,333 +9836,333 @@ Welcome to the POSTGRES terminal monitor
 Go 
 * 
 Query sent to backend is "  retrieve (1) "
-WARN:Sep 27 18:59:01:parser: syntax error at or near "1"
+WARN:Jan  6 17:16:39:parser: syntax error at or near "1"
 
 
 Go 
 * 
 Query sent to backend is "  attachas nonesuch "
-WARN:Sep 27 18:59:01:parser: syntax error at or near "nonesuch"
+WARN:Jan  6 17:16:39:parser: syntax error at or near "nonesuch"
 
 
 Go 
 * 
 Query sent to backend is " notify pg_class "
-WARN:Sep 27 18:59:01:notify is turned off for 4.0.1 - see the release notes
+WARN:Jan  6 17:16:39:notify is turned off for 4.0.1 - see the release notes
 
 Go 
 * 
 Query sent to backend is "  retrieve "
-WARN:Sep 27 18:59:01:parser: syntax error at or near ""
+WARN:Jan  6 17:16:39:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " retrieve (nonesuch.all) "
-WARN:Sep 27 18:59:01:nonesuch: no such class
+WARN:Jan  6 17:16:39:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  delete "
-WARN:Sep 27 18:59:01:parser: syntax error at or near ""
+WARN:Jan  6 17:16:39:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " delete nonesuch "
-WARN:Sep 27 18:59:01:nonesuch: no such class
+WARN:Jan  6 17:16:39:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  destroy "
-WARN:Sep 27 18:59:02:parser: syntax error at or near ""
+WARN:Jan  6 17:16:39:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " destroy nonesuch "
-WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
+WARN:Jan  6 17:16:39:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "     rename "
-WARN:Sep 27 18:59:02:parser: syntax error at or near ""
+WARN:Jan  6 17:16:39:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to newnonesuch "
-WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
+WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to stud_emp "
-WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
+WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to pg_stud_emp "
-WARN:Sep 27 18:59:02:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
+WARN:Jan  6 17:16:40:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to aggtest "
-WARN:Sep 27 18:59:02:renamerel: relation "aggtest" exists
+WARN:Jan  6 17:16:40:renamerel: relation "aggtest" exists
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to stud_emp "
-WARN:Sep 27 18:59:02:renamerel: relation "stud_emp" exists
+WARN:Jan  6 17:16:40:renamerel: relation "stud_emp" exists
 
 Go 
 * 
 Query sent to backend is "   rename nonesuchatt in nonesuchrel to newnonesuchatt "
-WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuchrel" not found
+WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuchrel" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuchatt in emp to newnonesuchatt "
-WARN:Sep 27 18:59:03:renameatt: attribute "nonesuchatt" nonexistent
+WARN:Jan  6 17:16:40:renameatt: attribute "nonesuchatt" nonexistent
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to manager "
-WARN:Sep 27 18:59:03:renameatt: attribute "manager" exists
+WARN:Jan  6 17:16:40:renameatt: attribute "manager" exists
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to oid "
-WARN:Sep 27 18:59:03:renameatt: attribute "oid" exists
+WARN:Jan  6 17:16:40:renameatt: attribute "oid" exists
 
 Go 
 * 
 Query sent to backend is "  abort "
-NOTICE:Sep 27 18:59:03:UserAbortTransactionBlock and not inprogress state
+NOTICE:Jan  6 17:16:40:UserAbortTransactionBlock and not inprogress state
 ABORT
 Go 
 * 
 Query sent to backend is " end "
-NOTICE:Sep 27 18:59:03:EndTransactionBlock and not inprogress/abort state 
+NOTICE:Jan  6 17:16:40:EndTransactionBlock and not inprogress/abort state 
 END
 Go 
 * 
 Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4,  			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Sep 27 18:59:04:AggregateDefine: Aggregate must have final function with both transition functions
+WARN:Jan  6 17:16:40:AggregateDefine: Aggregate must have final function with both transition functions
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int2inc, 			  stype2 = int2, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Sep 27 18:59:04:AggregateDefine: "int4div"("int4", "int2") does not exist
+WARN:Jan  6 17:16:41:AggregateDefine: "int4div"("int4", "int2") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Sep 27 18:59:04:AggregateDefine: "int2div"("int4", "int4") does not exist
+WARN:Jan  6 17:16:41:AggregateDefine: "int2div"("int4", "int4") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc, 			  stype2 = int4) "
-WARN:Sep 27 18:59:05:AggregateDefine: transition function 2 MUST have an initial value
+WARN:Jan  6 17:16:41:AggregateDefine: transition function 2 MUST have an initial value
 
 Go 
 * 
 Query sent to backend is "  remove index "
-WARN:Sep 27 18:59:05:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove index 314159 "
-WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove index nonesuch "
-WARN:Sep 27 18:59:05:pg_ownercheck: class "nonesuch" not found
+WARN:Jan  6 17:16:41:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove aggregate "
-WARN:Sep 27 18:59:05:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate 314159 "
-WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate nonesuch "
-WARN:Sep 27 18:59:05:RemoveAggregate: aggregate "nonesuch" does not exist
+WARN:Jan  6 17:16:41:RemoveAggregate: aggregate "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is "  remove function () "
-WARN:Sep 27 18:59:05:parser: syntax error at or near "("
+WARN:Jan  6 17:16:41:parser: syntax error at or near "("
 
 
 Go 
 * 
 Query sent to backend is " remove function 314159() "
-WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove function nonesuch() "
-WARN:Sep 27 18:59:06:RemoveFunction: function nonesuch() does not exist
+WARN:Jan  6 17:16:41:RemoveFunction: function nonesuch() does not exist
 
 Go 
 * 
 Query sent to backend is "  remove type "
-WARN:Sep 27 18:59:06:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove type 314159 "
-WARN:Sep 27 18:59:06:parser: syntax error at or near "314159"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove type nonesuch "
-WARN:Sep 27 18:59:06:pg_ownercheck: type "nonesuch" not found
+WARN:Jan  6 17:16:41:pg_ownercheck: type "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove operator "
-WARN:Sep 27 18:59:06:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator equals "
-WARN:Sep 27 18:59:06:parser: syntax error at or near "equals"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "equals"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === "
-WARN:Sep 27 18:59:06:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator int4, int4 "
-WARN:Sep 27 18:59:06:parser: syntax error at or near "int4"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "int4"
 
 
 Go 
 * 
 Query sent to backend is " remove operator (int4, int4) "
-WARN:Sep 27 18:59:06:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === () "
-WARN:Sep 27 18:59:07:parser: syntax error at or near ")"
+WARN:Jan  6 17:16:41:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4) "
-WARN:Sep 27 18:59:07:RemoveOperator: operator "===" taking "int4" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4, int4) "
-WARN:Sep 27 18:59:07:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch) "
-WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = ( , int4) "
-WARN:Sep 27 18:59:07:parser: syntax error at or near ","
+WARN:Jan  6 17:16:41:parser: syntax error at or near ","
 
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch, int4) "
-WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, nonesuch) "
-WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, ) "
-WARN:Sep 27 18:59:07:parser: syntax error at or near ")"
+WARN:Jan  6 17:16:41:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is "  remove rule "
-WARN:Sep 27 18:59:07:parser: syntax error at or near ""
+WARN:Jan  6 17:16:41:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove rule 314159 "
-WARN:Sep 27 18:59:08:parser: syntax error at or near "314159"
+WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove rule nonesuch "
-WARN:Sep 27 18:59:08:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Jan  6 17:16:42:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove tuple rule nonesuch "
-WARN:Sep 27 18:59:08:parser: syntax error at or near "tuple"
+WARN:Jan  6 17:16:42:parser: syntax error at or near "tuple"
 
 
 Go 
 * 
 Query sent to backend is " remove instance rule nonesuch "
-WARN:Sep 27 18:59:08:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Jan  6 17:16:42:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove rewrite rule nonesuch "
-WARN:Sep 27 18:59:08:RewriteGetRuleEventRel: rule "nonesuch" not found
+WARN:Jan  6 17:16:42:RewriteGetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  retrieve (myclass0.a) "
-WARN:Sep 27 18:59:08:read on "myclass0": permission denied
+WARN:Jan  6 17:16:42:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = 10) where myclass0.a < 15 "
-WARN:Sep 27 18:59:09:read on "myclass0": permission denied
+WARN:Jan  6 17:16:42:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = myclass0.a + 1) "
-WARN:Sep 27 18:59:09:read on "myclass0": permission denied
+WARN:Jan  6 17:16:42:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " delete myclass0 where myclass0.a >= 100 "
-WARN:Sep 27 18:59:09:read on "myclass0": permission denied
+WARN:Jan  6 17:16:42:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " define rule foo is on retrieve to myclass0 do instead nothing "
-WARN:Sep 27 18:59:09:define rule on "myclass0": permission denied
+WARN:Jan  6 17:16:42:define rule on "myclass0": permission denied
 
 Go 
 * Welcome to the POSTGRES terminal monitor
