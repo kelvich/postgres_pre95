@@ -79,7 +79,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	 * Find the RELATION relation tuple for the given relation.
 	 */
 	relation = RelationNameOpenHeapRelation(RelationRelationName->data);
-	key[0].argument.name.value = relationName;
+	key[0].argument = NameGetDatum(relationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1, 
 				     (ScanKey) key);
 	oldTuple = HeapScanGetNextTuple(scan, 0, &buffer);

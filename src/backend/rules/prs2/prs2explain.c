@@ -167,10 +167,10 @@ ObjectId tupleOid;
     for (i=0; i<4; i++) {
 	null[i] = ' ';
     }
-    data[0] = NameGetDatum(ruleName);
+    data[0] = NameGetDatum(&ruleName);
     data[1] = Int32GetDatum(0); /* XXXX THIS IS THE RECURSION DEPTH */
     data[2] = ObjectIdGetDatum(tupleOid);
-    data[3] = NameGetDatum(relName);
+    data[3] = NameGetDatum(&relName);
 
     explainTupleDesc = RelationGetTupleDescriptor(explainRelation);
     explainTuple = FormHeapTuple((AttributeNumber) 4,
