@@ -501,6 +501,14 @@ ExceptionalCondition ARGS((
 ));
 
 /*
+ * NO_ASSERT_CHECKING, if defined, turns off all the assertions.
+ * - plai  9/5/90
+ *
+ */
+
+#define NO_ASSERT_CHECKING 1
+
+/*
  * Trap --
  *	Generates an exception if the given condition is true.
  *
@@ -526,6 +534,16 @@ ExceptionalCondition ARGS((
 			(String)NULL, __FILE__, __LINE__); \
 	else
 
+#ifdef NO_ASSERT_CHECKING
+
+#define Assert(condition)
+
+#define AssertArg(condition)
+
+#define AssertState(condition)
+
+#else
+
 #define Assert(condition) \
 	Trap(!(condition), FailedAssertion)
 
@@ -534,6 +552,8 @@ ExceptionalCondition ARGS((
 
 #define AssertState(condition) \
 	Trap(!(condition), BadState)
+
+#endif   /* NO_ASSERT_CHECKING */
 
 extern
 String
@@ -569,6 +589,16 @@ form ARGS((
 			form printArgs, __FILE__, __LINE__); \
 	else
 
+#ifdef NO_ASSERT_CHECKING
+
+#define LogAssert(condition, printArgs)
+
+#define LogAssertArg(condition, printArgs)
+
+#define LogAssertState(condition, printArgs)
+
+#else
+
 #define LogAssert(condition, printArgs) \
 	LogTrap(!(condition), FailedAssertion, printArgs)
 
@@ -577,6 +607,8 @@ form ARGS((
 
 #define LogAssertState(condition, printArgs) \
 	LogTrap(!(condition), BadState, printArgs)
+
+#endif   /* NO_ASSERT_CHECKING */
 
 /*
  * Max --
