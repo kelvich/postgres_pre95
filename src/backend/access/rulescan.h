@@ -24,43 +24,72 @@
  *------------------------------------------------------------------------
  *
  *
- * SCAN STATE RULE INFORMATION
+ * GENERIC RULE INFORMATION FOR A RELATION
  *
  * NOTE: These definitions normally would go to 'prs2.h', but as
  * doing so creates circular dependencies, I decided to put them
  * here.
  *
- * In every scan node we have to stroe some information about rules.
+ * When we retrieve a tuple from a relation we have to call the
+ * rule manager. Therfore, in every scan node we have to store some
+ * information about rules.
  * So, `CommonScanState' (see execnodes.h) contain a field called
  * 'css_ruleInfo' where all this information is stored.
  * This information should be correctly initialized at the same time the
  * rest of `ScanState' is also initialized (this happens when the
  * executor is called to perform the EXEC_START operation).
- * 
+ *
+ * Similarly when we update a relation (i.e. append. delete or replace a
+ * tuple of this relation) we must store some information about the rules
+ * defined in this relation (which is called the "result relation").
+ * This information is stored in the EState.
+ *
+ * We use the same structure for both these cases, because they
+ * share a lot of information.
+ * However some of the fields of this structure apply only to one
+ * of these cases and are given null values in the other.
+ *
  * The scan state rule information contains the current fields:
  * 
  * ruleList: this is a linked list of records containing information
- * about all the 'view' like rules, i.e. rules of the form
- *       ON retrieve to <relation>
- *       DO [ instead ] retrieve ......
- * These rules are processed first by the executor (i.e. before we even
- * call the access methods for the first time) to retrieve (one by one)
- * all the tuples returned by the action pat of the rule.
- * Then if none of these 'view' rules was an "instead" rule, we process
- * the "real" tuples (the ones returned by the access methods).
+ *	about all the 'view' like rules, i.e. rules of the form
+ *         ON retrieve to <relation>
+ *         DO [ instead ] retrieve ......
+ *	These rules are processed first by the executor (i.e. before we even
+ *	 call the access methods for the first time) to retrieve (one by one)
+ *	all the tuples returned by the action pat of the rule.
+ *	Then if none of these 'view' rules was an "instead" rule, we process
+ *	the "real" tuples (the ones returned by the access methods).
+ *	
+ *	Each record in ruleList can be either a ruleId - plan number pair, 
+ *	or a plan (a LispValue) corresponding to a rule (NOTE: each rule
+ *	can have more than one plans!) or a query descriptor - EState
+ *	pair (in which case we have started retrieving tuples, one by one).
+ *	A NULL ruleList means that there are no (more) rules to be processed.
+ *
+ *	This field only makes sense if we are retrieving tuples from a
+ *	relation.
  * 
- * Each record in ruleList can be either a ruleId - plan number pair, 
- * or a plan (a LispValue) corresponding to a rule (NOTE: each rule
- * can have more than one plans!) or a query descriptor - EState
- * pair (in which case we have started retrieving tuples, one by one).
- * A NULL ruleList means that there are no (more) rules to be processed.
- * 
- * insteadRuleFound: True if there was at least one "instead"
- * rule was encountered, false otherwise.
+ * insteadViewRuleFound: True if there was at least one "instead" view
+ *	rule was encountered, false otherwise.
+ *	This field is only used on retrieve operations.
  *
  * relationLock: the (relation level) rule locks for the scanned
- * relation (found in the Relation relation)
- * 
+ *	relation (found in the Relation relation)
+ *	This is used in both retrieve/update operations.
+ *
+ * relationStubs: the (relation level) rule stubs.
+ *	Normally we would only use them in append & replace operetions
+ *	(not on delete and/or retrieves).
+ *	But we also have to use them when we run "rule plans"
+ *	that add/delete rule locks and/or rule stubs.
+ *	These "rule plans" run when import/export locks are broken,
+ *	and for the time being they look
+ *
+ * relationStubsHaveChanged: a boolean flag showing whether
+ *	the stubs of a relation have been updated.
+ *	This only happens when we run "rule plans" that update
+ *	rule locks and/or rule stubs.
  */
 
 #include "rules/prs2stub.h"
@@ -88,30 +117,31 @@ typedef struct Prs2RuleListItem {
 	} rulePlan;
 	struct {
 	    LispValue queryDesc;
-	    struct EState *estate; /* XXXXX THIS IS A HACK! */
+	    Pointer estate; /* THIS IS AN ESTATE */
 	} queryDesc;
     } data;
 } Prs2RuleListItem;
 
 typedef Prs2RuleListItem *Prs2RuleList;
 
-typedef struct ScanStateRuleInfoData {
+typedef struct RelationRuleInfoData {
     Prs2RuleList ruleList;
-    bool insteadRuleFound;
+    bool insteadViewRuleFound;
     RuleLock relationLocks;
     Prs2Stub relationStubs;
     bool relationStubsHaveChanged;
-} ScanStateRuleInfoData;
+} RelationRuleInfoData;
 
-typedef ScanStateRuleInfoData *ScanStateRuleInfo;
+typedef RelationRuleInfoData *RelationRuleInfo;
 
 /*-------------
- * Create and initialize a 'ScanStateRuleInfo'
+ * Create and initialize a 'RelationRuleInfo'
  */
 extern
-ScanStateRuleInfo
-prs2MakeScanStateRuleInfo ARGS((
-    Relation relation
+RelationRuleInfo
+prs2MakeRelationRuleInfo ARGS((
+    Relation relation,
+    int operation
 ));
 
 /*-------------
@@ -121,7 +151,7 @@ prs2MakeScanStateRuleInfo ARGS((
 extern
 HeapTuple
 prs2GetOneTupleFromViewRules ARGS((
-    ScanStateRuleInfo	scanStateRuleInfo,
+    RelationRuleInfo	scanStateRuleInfo,
     Prs2EStateInfo	prs2EStateInfo,
     Relation		explainRel
 ));
