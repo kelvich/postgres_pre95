@@ -1,0 +1,845 @@
+/*#define FSDB 1*/
+/*
+ * inv_api.c - routines for manipulating inversion fs large objects
+ *
+ * $Header$
+ */
+
+/*
+ * This file contains the user-level large object application interface
+ * routines.
+ */
+
+#include <sys/file.h>
+#include "tmp/c.h"
+#include "tmp/libpq-fs.h"
+#include "access/genam.h"
+#include "access/heapam.h"
+#include "access/relscan.h"
+#include "access/tupdesc.h"
+#include "catalog/pg_naming.h"
+#include "catalog/pg_lobj.h"
+#include "storage/itemptr.h"
+#include "storage/bufpage.h"
+#include "storage/page.h"
+#include "storage/bufmgr.h"
+#include "utils/rel.h"
+#include "utils/large_object.h"
+#include "utils/log.h"
+#include "nodes/pg_lisp.h"
+
+/* a little omniscience is a dangerous thing */
+#define Int4GEProcedure	150
+
+/*
+ *  Warning, Will Robinson...  In order to pack data into an inversion
+ *  file as densely as possible, we violate the class abstraction here.
+ *  When we're appending a new tuple to the end of the table, we check
+ *  the last page to see how much data we can put on it.  If it's more
+ *  than IMINBLK, we write enough to fill the page.  This limits external
+ *  fragmentation.  In no case can we write more than IMAXBLK, since
+ *  the 8K postgres page size less overhead leaves only this much space
+ *  for data.
+ */
+
+#define IFREESPC(p)	(PageGetFreeSpace(p) - sizeof(HeapTupleData) - sizeof(struct varlena) - sizeof(int32))
+#define IMAXBLK		8092
+#define IMINBLK		512
+
+extern LargeObject *NewLargeObject();
+
+HeapTuple	inv_fetchtup();
+HeapTuple	inv_newtuple();
+
+/*
+ *  inv_create -- create a new large object.
+ *
+ *	Arguments:
+ *	  path -- pathname to object in the filesystem/object namespace.
+ *	  flags -- storage manager to use, archive mode, etc.
+ *
+ *	Returns:
+ *	  large object descriptor, appropriately filled in.
+ */
+
+LargeObjectDesc *
+inv_create(path, flags)
+char *path;
+int flags;
+{
+    int file_oid;
+    LargeObjectDesc *retval;
+    LargeObject *newobj;
+    Relation r;
+    Relation indr;
+    int smgr;
+    char archchar;
+    TupleDescriptor tupdesc;
+    AttributeNumber attNums[1];
+    ObjectId classObjectId[1];
+    NameData objname;
+    NameData indname;
+
+    /* parse flags */
+    smgr = flags & INV_SMGRMASK;
+    if (flags & INV_ARCHIVE)
+	archchar = 'h';
+    else
+	archchar = 'n';
+
+    /* be sure this is a genuinely new large object */
+    if ((file_oid = FilenameToOID(path)) == InvalidObjectId) {
+
+	/* enter it in system relation */
+        file_oid = LOcreatOID(path,0);
+
+	/* come up with some table names */
+	sprintf(&(objname.data[0]), ",inv%d", file_oid);
+	sprintf(&(indname.data[0]), ",inx%d", file_oid);
+
+	newobj = NewLargeObject(&(objname.data[0]), CLASS_FILE);
+
+        /* enter cookie into table */
+        LOputOIDandLargeObjDesc(file_oid, Inversion, newobj);
+    }
+
+    /* this is pretty painful...  want a tuple descriptor */
+    tupdesc = CreateTemplateTupleDesc(2);
+    (void) TupleDescInitEntry(tupdesc, 1, "olastbyte", "int4", 0);
+    (void) TupleDescInitEntry(tupdesc, 2, "odata", "bytea", 0);
+
+    /*
+     *  First create the table to hold the inversion large object.  It
+     *  will be located on whatever storage manager the user requested.
+     */
+
+    (void) heap_create(&objname, archchar, 2, smgr, tupdesc);
+
+    pfree(tupdesc);
+
+    /*
+     *  Now create a btree index on the relation's olastbyte attribute to
+     *  make seeks go faster.  The hardwired constants are embarassing
+     *  to me, and are symptomatic of the pressure under which this code
+     *  was written.
+     */
+
+    attNums[0] = 1;
+    classObjectId[0] = 23; /* XXX 23 == int4 */
+    index_create(&objname, &indname, NULL, 403 /* XXX 403 == btree */,
+		 1, &attNums[0], &classObjectId[0],
+		 0, (Datum) NULL, (LispValue) NULL);
+
+    /* make the new relations visible in this transaction */
+    CommandCounterIncrement();
+    r = heap_openr(&objname);
+
+    if (!RelationIsValid(r)) {
+	elog(WARN, "cannot create %s on %s under inversion",
+		   path, smgrout(smgr));
+    }
+
+    indr = index_openr(&indname);
+
+    if (!RelationIsValid(indr)) {
+	elog(WARN, "cannot create index for %s on %s under inversion",
+		   path, smgrout(smgr));
+    }
+
+    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+    retval->ofs.i_fs.heap_r = r;
+    retval->ofs.i_fs.index_r = indr;
+    retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
+    retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
+    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
+    ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
+
+    if (flags & INV_WRITE) {
+	RelationSetLockForWrite(r);
+	retval->ofs.i_fs.flags = IFS_WRLOCK|IFS_RDLOCK;
+    } else if (flags & INV_READ) {
+	RelationSetLockForRead(r);
+	retval->ofs.i_fs.flags = IFS_RDLOCK;
+    }
+
+    retval->object = newobj;
+
+    return(retval);
+}
+
+LargeObjectDesc *
+inv_open(object, flags)
+    LargeObject *object;
+    int flags;
+{
+    LargeObjectDesc *retval;
+    Relation r;
+    Relation indrel;
+
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == CLASS_FILE);
+
+    r = heap_openr(object->lo_ptr.object_relname);
+
+    if (!RelationIsValid(r))
+	return ((LargeObjectDesc *) NULL);
+
+    /*
+     *  hack hack hack...  we know that the fourth character of the relation
+     *  name is a 'v', and that the fourth character of the index name is an
+     *  'x', and that they're otherwise identical.
+     */
+
+    object->lo_ptr.object_relname[3] = 'x';
+    indrel = index_openr(object->lo_ptr.object_relname);
+
+    if (!RelationIsValid(indrel))
+	return ((LargeObjectDesc *) NULL);
+
+    /* put it back */
+    object->lo_ptr.object_relname[3] = 'v';
+
+    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+    retval->ofs.i_fs.heap_r = r;
+    retval->ofs.i_fs.index_r = indrel;
+    retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
+    retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
+    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
+    ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
+
+    if (flags & INV_WRITE) {
+	RelationSetLockForWrite(r);
+	retval->ofs.i_fs.flags = IFS_WRLOCK|IFS_RDLOCK;
+    } else if (flags & INV_READ) {
+	RelationSetLockForRead(r);
+	retval->ofs.i_fs.flags = IFS_RDLOCK;
+    }
+
+    retval->object = object;
+
+    return(retval);
+}
+
+/*
+ * Closes an existing large object descriptor.
+ */
+
+void
+inv_close(obj_desc)
+    LargeObjectDesc *obj_desc;
+{
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+
+    if (obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
+	index_endscan(obj_desc->ofs.i_fs.iscan);
+
+    heap_close(obj_desc->ofs.i_fs.heap_r);
+    index_close(obj_desc->ofs.i_fs.index_r);
+
+    pfree(obj_desc);
+}
+
+/*
+ * Destroys an existing large object, and frees its associated pointers.
+ */
+
+void
+inv_destroy(object)
+    LargeObject *object;
+{
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == CLASS_FILE);
+
+    /* XXX not implemented */
+    pfree(object);
+}
+
+int
+inv_stat(obj_desc, stbuf)
+    LargeObjectDesc *obj_desc;
+    struct pgstat *stbuf;
+{
+    int ret;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+    Assert(stbuf != NULL);
+
+    /* need read lock for stat */
+    if (!(obj_desc->ofs.i_fs.flags & IFS_RDLOCK)) {
+	RelationSetLockForRead(obj_desc->ofs.i_fs.heap_r);
+	obj_desc->ofs.i_fs.flags |= IFS_RDLOCK;
+    }
+
+    return (-1);
+}
+
+int
+inv_seek(obj_desc, offset, whence)
+    LargeObjectDesc *obj_desc;
+    int offset;
+    int whence;
+{
+    int ret;
+    ScanKeyEntryData skey[1];
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+
+    obj_desc->ofs.i_fs.offset = offset;
+
+    /* try to avoid doing any work, if we can manage it */
+    if (offset >= obj_desc->ofs.i_fs.lowbyte && offset <= obj_desc->ofs.i_fs.hibyte)
+	 return (offset);
+
+    /*
+     *  To do a seek on an inversion file, we start an index scan that
+     *  will bring us to the right place.  Each tuple in an inversion file
+     *  stores the offset of the last byte that appears on it, and we have
+     *  an index on this.
+     */
+
+    /* end any active index scan */
+    if (obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
+	index_endscan(obj_desc->ofs.i_fs.iscan);
+
+    /* right now, just assume that the operation is L_SET */
+    ScanKeyEntryInitialize(&skey[0], 0x0, 1, Int4GEProcedure,
+			   Int32GetDatum(offset));
+
+    obj_desc->ofs.i_fs.iscan = index_beginscan(obj_desc->ofs.i_fs.index_r,
+					   (Boolean) 0, (uint16) 1,
+					   (ScanKey) &skey[0]);
+    return (offset);
+}
+
+int
+inv_tell(obj_desc)
+    LargeObjectDesc *obj_desc;
+{
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+
+    return (obj_desc->ofs.i_fs.offset);
+}
+
+int inv_read(obj_desc, buf, nbytes)
+     LargeObjectDesc *obj_desc;
+     char *buf;
+     int nbytes;
+{
+    HeapTuple htup;
+    Buffer b;
+    int nread;
+    int off;
+    int ncopy;
+    Datum d;
+    struct varlena *fsblock;
+    bool isNull;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+    Assert(buf != NULL);
+
+    /* make sure we obey two-phase locking */
+    if (!(obj_desc->ofs.i_fs.flags & IFS_RDLOCK)) {
+	RelationSetLockForRead(obj_desc->ofs.i_fs.heap_r);
+	obj_desc->ofs.i_fs.flags |= IFS_RDLOCK;
+    }
+
+    nread = 0;
+
+    /* fetch a block at a time */
+    while (nread < nbytes) {
+
+	/* fetch an inversion file system block */
+	htup = inv_fetchtup(obj_desc, &b);
+
+	if (!HeapTupleIsValid(htup))
+	    break;
+
+	/* copy the data from this block into the buffer */
+	d = (Datum) heap_getattr(htup, b, 2, obj_desc->ofs.i_fs.hdesc, &isNull);
+	fsblock = (struct varlena *) DatumGetPointer(d);
+
+	off = obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
+	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset;
+	bcopy(fsblock->vl_dat, buf, ncopy);
+
+	/* be a good citizen */
+	ReleaseBuffer(b);
+
+	/* move pointers past the amount we just read */
+	buf += ncopy;
+	nread += ncopy;
+	obj_desc->ofs.i_fs.offset += (ncopy + 1);
+    }
+
+    /* that's it */
+    return (nread);
+}
+
+int
+inv_write(obj_desc, buf, nbytes)
+     LargeObjectDesc *obj_desc;
+     char *buf;
+     int nbytes;
+{
+    HeapTuple htup;
+    Buffer b;
+    int nwritten;
+    int tuplen;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
+    Assert(buf != NULL);
+
+    /*
+     *  Make sure we obey two-phase locking.  A write lock entitles you
+     *  to read the relation, as well.
+     */
+
+    if (!(obj_desc->ofs.i_fs.flags & IFS_WRLOCK)) {
+	RelationSetLockForRead(obj_desc->ofs.i_fs.heap_r);
+	obj_desc->ofs.i_fs.flags |= (IFS_WRLOCK|IFS_RDLOCK);
+    }
+
+    nwritten = 0;
+
+    /* write a block at a time */
+    while (nwritten < nbytes) {
+
+	/* fetch an inversion file system block */
+	htup = inv_fetchtup(obj_desc, &b);
+
+	/* either append or replace a block, as required */
+	if (!HeapTupleIsValid(htup)) {
+	    tuplen = inv_wrnew(obj_desc, buf, nbytes - nwritten);
+	} else {
+	    tuplen = inv_wrold(obj_desc, buf, nbytes - nwritten, htup, b);
+	}
+
+	/* move pointers past the amount we just wrote */
+	buf += tuplen;
+	nwritten += tuplen;
+	obj_desc->ofs.i_fs.offset += (tuplen + 1);
+    }
+
+    /* that's it */
+    return (nwritten);
+}
+
+/*
+ *  inv_fetchtup -- Fetch an inversion file system block.
+ *
+ *	This routine finds the file system block containing the offset
+ *	recorded in the obj_desc structure.  Later, we need to think about
+ *	the effects of non-functional updates (can you rewrite the same
+ *	block twice in a single transaction?), but for now, we won't bother.
+ *
+ *	Parameters:
+ *		obj_desc -- the object descriptor.
+ *		bufP -- pointer to a buffer in the buffer cache; caller
+ *		        must free this.
+ *
+ *	Returns:
+ *		A heap tuple containing the desired block, or NULL if no
+ *		such tuple exists.
+ */
+
+HeapTuple
+inv_fetchtup(obj_desc, bufP)
+    LargeObjectDesc *obj_desc;
+    Buffer *bufP;
+{
+    HeapTuple htup;
+    IndexTuple itup;
+    RetrieveIndexResult res;
+    Datum d;
+    int firstbyte, lastbyte;
+    struct varlena *fsblock;
+    bool isNull;
+
+    /*
+     *  If we've exhausted the current block, we need to get the next one.
+     *  When we support time travel and non-functional updates, we will
+     *  need to loop over the blocks, rather than just have an 'if', in
+     *  order to find the one we're really interested in.
+     */
+
+    if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.hibyte
+	|| !ItemPointerIsValid(&(obj_desc->ofs.i_fs.htid))) {
+
+	do {
+	    res = index_getnext(obj_desc->ofs.i_fs.iscan, ForwardScanDirection);
+
+	    if (res == (RetrieveIndexResult) NULL) {
+		ItemPointerSetInvalid(&(obj_desc->ofs.i_fs.htid));
+		return ((HeapTuple) NULL);
+	    }
+
+	    /*
+	     *  For time travel, we need to use the actual time qual here,
+	     *  rather that NowTimeQual.  We currently have no way to pass
+	     *  a time qual in.
+	     */
+
+	    htup = heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
+			      &(res->heapItemData), bufP);
+
+	    /* remember this tid -- we may need it for later reads/writes */
+	    ItemPointerCopy(&(res->heapItemData), &(obj_desc->ofs.i_fs.htid));
+
+	} while (htup == (HeapTuple) NULL);
+
+    } else {
+	heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
+		   &(obj_desc->ofs.i_fs.htid, bufP));
+    }
+
+    /*
+     *  By here, we have the heap tuple we're interested in.  We cache
+     *  the upper and lower bounds for this block in the object descriptor
+     *  and return the tuple.
+     */
+
+    d = (Datum)heap_getattr(htup, *bufP, 1, obj_desc->ofs.i_fs.hdesc, &isNull);
+    lastbyte = (int32) DatumGetInt32(d);
+    d = (Datum)heap_getattr(htup, *bufP, 2, obj_desc->ofs.i_fs.hdesc, &isNull);
+    fsblock = (struct varlena *) DatumGetPointer(d);
+    firstbyte = lastbyte - fsblock->vl_len - sizeof(fsblock->vl_len);
+
+    obj_desc->ofs.i_fs.lowbyte = firstbyte;
+    obj_desc->ofs.i_fs.hibyte = lastbyte;
+
+    /* done */
+    return (htup);
+}
+
+/*
+ *  inv_wrnew() -- append a new filesystem block tuple to the inversion
+ *		    file.
+ *
+ *	In response to an inv_write, we append one or more file system
+ *	blocks to the class containing the large object.  We violate the
+ *	class abstraction here in order to pack things as densely as we
+ *	are able.  We examine the last page in the relation, and write
+ *	just enough to fill it, assuming that it has above a certain
+ *	threshold of space available.  If the space available is less than
+ *	the threshold, we allocate a new page by writing a big tuple.
+ *
+ *	By the time we get here, we know all the parameters passed in
+ *	are valid, and that we hold the appropriate lock on the heap
+ *	relation.
+ *
+ *	Parameters:
+ *		obj_desc: large object descriptor for which to append block.
+ *		buf: buffer containing data to write.
+ *		nbytes: amount to write
+ *
+ *	Returns:
+ *		number of bytes actually written to the new tuple.
+ */
+
+int
+inv_wrnew(obj_desc, buf, nbytes)
+    LargeObjectDesc *obj_desc;
+    char *buf;
+    int nbytes;
+{
+    Relation hr;
+    HeapTuple ntup;
+    Buffer buffer;
+    Page page;
+    int nblocks;
+    int nwritten;
+
+    hr = obj_desc->ofs.i_fs.heap_r;
+
+    /* get the last block in the relation */
+    nblocks = RelationGetNumberOfBlocks(hr);
+    buffer = ReadBuffer(hr, nblocks);
+    page = BufferSimpleGetPage(buffer);
+
+    /*
+     *  If the last page is too small to hold all the data, and it's too
+     *  small to hold IMINBLK, then we allocate a new page.  If it will
+     *  hold at least IMINBLK, but less than all the data requested, then
+     *  we write IMINBLK here.  The caller is responsible for noticing that
+     *  less than the requested number of bytes were written, and calling
+     *  this routine again.
+     */
+
+    nwritten = IFREESPC(page);
+    if (nwritten < nbytes && nwritten < IMINBLK) {
+       nwritten = IMAXBLK;
+       ReleaseBuffer(buffer);
+       buffer = ReadBuffer(hr, P_NEW);
+       page = BufferSimpleGetPage(buffer);
+       BufferSimpleInitPage(buffer);
+    }
+
+    /*
+     *  Insert a new file system block tuple, index it, and write the
+     *  class block out.
+     */
+
+    ntup = inv_newtuple(obj_desc, buffer, page, buf, nwritten);
+    inv_indextup(obj_desc, ntup);
+
+    /* new tuple is inserted */
+    WriteBuffer(buffer);
+
+    return (nwritten);
+}
+
+int
+inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
+    LargeObjectDesc *obj_desc;
+    char *dbuf;
+    int nbytes;
+    HeapTuple htup;
+    Buffer buffer;
+{
+    Relation hr;
+    HeapTuple ntup;
+    Buffer newbuf;
+    Page page;
+    Page newpage;
+    PageHeader ph;
+    int tupbytes;
+    Datum d;
+    struct varlena *fsblock;
+    int nwritten, nblocks, freespc;
+    int loc, sz;
+    char *dptr;
+    bool isNull;
+
+    /*
+     *  Since we're using a no-overwrite storage manager, the way we
+     *  overwrite blocks is to mark the old block invalid and append
+     *  a new block.  First mark the old block invalid.  This violates
+     *  the tuple abstraction.
+     */
+
+    TransactionIdStore(GetCurrentTransactionId(), (Pointer)htup->t_xmax);
+    htup->t_cmax = GetCurrentCommandId();
+
+    /*
+     *  If we're overwriting the entire block, we're lucky.  All we need
+     *  to do is to insert a new block.
+     */
+
+    if (obj_desc->ofs.i_fs.offset == obj_desc->ofs.i_fs.lowbyte
+	&& obj_desc->ofs.i_fs.lowbyte + nbytes >= obj_desc->ofs.i_fs.hibyte) {
+	WriteBuffer(buffer);
+	return (inv_wrnew(obj_desc, dbuf, nbytes));
+    }
+
+    /*
+     *  By here, we need to overwrite part of the data in the current
+     *  tuple.  In order to reduce the degree to which we fragment blocks,
+     *  we guarantee that no block will be broken up due to an overwrite.
+     *  This means that we need to allocate a tuple on a new page, if
+     *  there's not room for the replacement on this one.
+     */
+
+    newbuf = buffer;
+    newpage = page;
+    hr = obj_desc->ofs.i_fs.heap_r;
+    freespc = IFREESPC(page);
+    d = (Datum)heap_getattr(htup, buffer, 2, obj_desc->ofs.i_fs.hdesc, &isNull);
+    fsblock = (struct varlena *) DatumGetPointer(d);
+    tupbytes = fsblock->vl_len - sizeof(fsblock->vl_len);
+
+    if (freespc < tupbytes) {
+
+	/*
+	 *  First see if there's enough space on the last page of the
+	 *  table to put this tuple.
+	 */
+
+	nblocks = RelationGetNumberOfBlocks(hr);
+	newbuf = ReadBuffer(hr, nblocks);
+        newpage = BufferSimpleGetPage(newbuf);
+	freespc = IFREESPC(newpage);
+
+	/*
+	 *  If there's no room on the last page, allocate a new last
+	 *  page for the table, and put it there.
+	 */
+
+	if (freespc < tupbytes) {
+	    ReleaseBuffer(newbuf);
+	    newbuf = ReadBuffer(hr, P_NEW);
+	    newpage = BufferSimpleGetPage(newbuf);
+	    BufferSimpleInitPage(newbuf);
+	}
+    }
+
+    /*
+     *  By here, we have a page (newpage) that's guaranteed to have
+     *  enough space on it to put the new tuple.  Call inv_newtuple
+     *  to do the work.  Passing NULL as a buffer to inv_newtuple()
+     *  keeps it from copying any data into the new tuple.  When it
+     *  returns, the tuple is ready to receive data from the old
+     *  tuple and the user's data buffer.
+     */
+
+    ntup = inv_newtuple(obj_desc, newbuf, newpage, (char *) NULL, tupbytes);
+    dptr = ((char *) ntup) + ntup->t_hoff + sizeof(int4)
+		+ sizeof(fsblock->vl_len);
+
+    if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.lowbyte) {
+	bcopy(fsblock->vl_dat, dptr,
+		obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte);
+	dptr += obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
+    }
+
+    nwritten = nbytes;
+    if (nwritten > obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset)
+	nwritten = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset;
+
+    bcopy(dbuf, dptr, nwritten);
+    dptr += nwritten;
+
+    if (obj_desc->ofs.i_fs.offset + nwritten < obj_desc->ofs.i_fs.hibyte) {
+	loc = (obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset)
+		+ nwritten;
+	sz = obj_desc->ofs.i_fs.hibyte - (obj_desc->ofs.i_fs.lowbyte + loc);
+	bcopy(dptr, fsblock->vl_dat, sz);
+    }
+
+    /* index the new tuple */
+    inv_indextup(obj_desc, ntup);
+
+    /*
+     *  Okay, by here, a tuple for the new block is correctly placed,
+     *  indexed, and filled.  Write the changed pages out.
+     */
+
+    WriteBuffer(buffer);
+    if (newbuf != buffer)
+	WriteBuffer(newbuf);
+
+    /* done */
+    return (nwritten);
+}
+
+HeapTuple
+inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
+    LargeObjectDesc *obj_desc;
+    Buffer buffer;
+    Page page;
+    char *dbuf;
+    int nwrite;
+{
+    HeapTuple ntup;
+    PageHeader ph;
+    int off, limit;
+    int i;
+    int lower, upper;
+    int tupsize;
+    ItemId itemId;
+    struct varlena *fsblock;
+
+    /* compute tuple size */
+    tupsize = sizeof(HeapTupleData) + sizeof(struct varlena) + sizeof(int4);
+    tupsize += nwrite;
+    tupsize = LONGALIGN(tupsize);
+
+    /*
+     *  Allocate the tuple on the page, violating the page abstraction.
+     *  This code was swiped from PageAddItem().
+     */
+
+    ph = (PageHeader) page;
+    limit = PageGetMaxOffsetIndex(page) + 1;
+    for (i = 0; i < limit; i++) {
+	itemId = &(ph->pd_linp[i]);
+	if (!((*itemId).lp_flags & LP_USED) && (*itemId).lp_len == 0)
+	    break;
+    }
+
+    off = i + 1;
+
+    if (off > limit)
+	lower = (Offset) (((char *) (&(ph->pd_linp[off]))) - ((char *) page));
+    else if (off == limit)
+	lower = ph->pd_lower + sizeof (ItemIdData);
+    else
+	lower = ph->pd_lower;
+
+    upper = ph->pd_upper - tupsize;
+
+    itemId = &(ph->pd_linp[i]);
+    (*itemId).lp_off = upper;
+    (*itemId).lp_len = tupsize;
+    (*itemId).lp_flags = LP_USED;
+
+    ph->pd_lower = lower;
+    ph->pd_upper = upper;
+
+    ntup = (HeapTuple) (((char *) page) + upper);
+
+    /*
+     *  Tuple is now allocated on the page.  Next, fill in the tuple
+     *  header.  This block of code violates the tuple abstraction.
+     */
+
+    ntup->t_len = tupsize;
+    ItemPointerSimpleSet(&(ntup->t_ctid), BufferGetBlockNumber(buffer), off);
+    ItemPointerSetInvalid(&(ntup->t_chain));
+    ItemPointerSetInvalid(&(ntup->t_lock.l_ltid));
+    LastOidProcessed = ntup->t_oid = newoid();
+    TransactionIdStore(GetCurrentTransactionId(), (Pointer)ntup->t_xmin);
+    ntup->t_cmin = GetCurrentCommandId();
+    PointerStoreInvalidTransactionId((Pointer)ntup->t_xmax);
+    ntup->t_cmin = 0;
+    ntup->t_tmin = ntup->t_tmax = InvalidTime;
+    ntup->t_natts = 2;
+    ntup->t_locktype = 'd';
+    ntup->t_hoff = sizeof(HeapTupleData);
+    ntup->t_vtype = 'r';
+    ntup->t_infomask = 0x0;
+    ntup->t_bits[0] = 0x0;
+
+    /*
+     *  Finally, copy the user's data buffer into the tuple.  This violates
+     *  the tuple and class abstractions.
+     */
+
+    *((int32 *) (((char *)ntup)+ntup->t_hoff)) =
+	obj_desc->ofs.i_fs.offset + nwrite - 1;
+    fsblock = (struct varlena *) ((char *)ntup) + ntup->t_hoff + sizeof(int32);
+    fsblock->vl_len = nwrite + sizeof(fsblock->vl_len);
+
+    /*
+     *  If a data buffer was passed in, then copy the data from the buffer
+     *  to the tuple.  Some callers (eg, inv_wrold()) may not pass in a
+     *  buffer, since they have to copy part of the old tuple data and
+     *  part of the user's new data into the new tuple.
+     */
+
+    if (dbuf != (char *) NULL)
+	bcopy(dbuf, fsblock->vl_dat, nwrite);
+
+    /* new tuple is filled -- return it */
+    return (ntup);
+}
+
+inv_indextup(obj_desc, htup)
+    LargeObjectDesc *obj_desc;
+    HeapTuple htup;
+{
+    return;
+}
