@@ -992,11 +992,13 @@ char *blk1, *blk2, *blk3, *resblk;
 {
     int i;
     char c1, c2, c3;
+    char t;
     for (i=0; i<BLCKSZ; i++) {
 	c1 = (blk1 == NULL)?0:blk1[i];
 	c2 = (blk2 == NULL)?0:blk2[i];
 	c3 = (blk3 == NULL)?0:blk3[i];
-	resblk[i] = XOR(XOR(c1, c2), c3);
+	t = XOR(c1, c2);
+	resblk[i] = XOR(t, c3);
       }
     return resblk;
 }
