@@ -510,6 +510,12 @@ to prevent the \f(CWinstall\fP program from complaining.
 If you absolutely insist on having a \*(PG user other than
 .q postgres ,
 set the variable POSTGRESLOGIN to the name of that user.
+.sh 3 "On HP-UX only: installing bsdinst"
+.lp
+We told you about this above, but in case you missed it, you will 
+have to install \f(CWbsdinst\fP from \f(CWsrc/tools/bsdinst\fP
+if you don't have it installed already.  You can just copy the 
+shell script into some convenient place (probably \f(CW/usr/local/bin\fP).
 .sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
 .lp
 Because the \f(CWbmake\fP program is normally installed into
