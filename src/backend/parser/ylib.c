@@ -410,37 +410,6 @@ int4varout ( an_array )
     return(output_string);
 }
 
-List 
-ParseArrayList( arraylist, typename)
-LispValue arraylist; 
-List typename;
-{
-        Type tp;
-        LispValue temp, list;
-	char delim; /* array delimiter */
- 	TypeTupleForm type_struct; 
-        HeapTuple type_tuple;
-	oid typelem;
-        char *s;
-
-
-	type_tuple =  SearchSysCacheTuple(TYPNAME,
-					CString(typename),
-					NULL,
-					NULL,
-					NULL);
-	type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-
-	typelem = type_struct->typelem;
-	s = (char *) palloc(strlen(arraylist->val.str) + 3);
-        sprintf(s, "{%s}", arraylist->val.str);
-
-	list = (LispValue) array_in(s, typelem);
-	pfree(s);
-
-/* make a list and return */
-    return ( lispCons (lispInteger(type_tuple->t_oid), list));
-}
  
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
 List
