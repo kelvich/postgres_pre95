@@ -254,7 +254,7 @@ be_printtup(tuple, typeinfo)
      *  the tuples we allocate are returned to the user.
      * ----------------
      */
-    savecxt = MemoryContextSwitchTo(entry->portalcxt);
+    savecxt = MemoryContextSwitchTo((MemoryContext)entry->portalcxt);
     
     /* ----------------
      *	If no tuple block yet, allocate one.

@@ -122,12 +122,13 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
  * ----------------
  */
 void
-ExcRaise(arg1, string)
-    int arg1;
-    char *string;
-    
+ExcRaise(arg1, string,ignore,ignore2)
+     Exception *arg1;
+     ExcDetail string;
+     ExcData ignore;
+     ExcMessage ignore2;
 {
-    fprintf(stderr, "Error: %s\n", string);
+    fprintf(stderr, "Error: %s\n", (char *)string);
     exit(1);
 }
 

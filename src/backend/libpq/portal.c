@@ -68,7 +68,7 @@ Exception PostquelError = {"Postquel Error"};
 Exception ProtocolError = {"Protocol Error"};
 
 int	PQtracep = 0;		/* 1 to print out debugging message */
-FILE    *debug_port = (FILE *)NULL;
+FILE    *debug_port;
 
 /* ----------------------------------------------------------------
  *			PQ utility routines
@@ -79,11 +79,6 @@ pqdebug (target, msg)
 char *target, *msg;
 {
     if (PQtracep) {
-	/*
-	 * if nothing else was suggested default to stdout
-	 */
-	if (!debug_port)
-	    debug_port = stdout;
 	fprintf(debug_port, target, msg);
 	fprintf(debug_port, "\n");
     }
@@ -146,7 +141,8 @@ PQnportals(rule_p)
  */
 void
 PQpnames(pnames, rule_p)
-    char *pnames[MAXPORTALS];
+     char *pnames[MAXPORTALS];
+     int rule_p;
 {
     int i;
 
@@ -295,7 +291,7 @@ PQgroup(portal, tuple_index)
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
 	libpq_raise(PortalError, 
-		     form("tuple index %d out of bound.", tuple_index));
+		     form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;
 
@@ -322,7 +318,7 @@ PQgetgroup(portal, tuple_index)
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
 	libpq_raise(PortalError, 
-		     form("tuple index %d out of bound.", tuple_index));
+		     form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;
 
@@ -426,7 +422,7 @@ PQgetvalue(portal, tuple_index, field_number)
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
 	libpq_raise(PortalError, 
-		    form("tuple index %d out of bound.", tuple_index));
+		    form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;
 

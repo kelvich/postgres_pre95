@@ -102,7 +102,7 @@ read_initstr()
     if ((PQdatabase == NULL) 
 	&& ((PQdatabase = getenv ("PGDATABASE")) == NULL)) 
 	libpq_raise(ProtocolError,
-		    form("Fatal Error -- No database is specified."));
+		    form((int)"Fatal Error -- No database is specified."));
     
     if ((PQhost == NULL) && ((PQhost = getenv("PGHOST")) == NULL))
 	PQhost = DefaultHost;
@@ -158,7 +158,7 @@ EstablishComm()
 	if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
 			(char *) NULL, (short)atoi(PQport) ) == -1 ) {
 	    libpq_raise(ProtocolError,
-	      form("Failed to connect to backend (host=%s, port=%s)",
+	      form((int)"Failed to connect to backend (host=%s, port=%s)",
 		   PQhost, PQport));
 	}
 
@@ -199,7 +199,7 @@ process_portal(rule_p)
         /* Read in the identifier following the portal name. */
         pq_getnchar(id, 0, 1);
         read_remark(id);
-        pqdebug("Identifier is: %c", id[0]);
+        pqdebug("Identifier is: %c", (char *)id[0]);
 
         switch (id[0]) {
         case 'E':
@@ -235,7 +235,7 @@ process_portal(rule_p)
 	     * no tuple returned.
 	     */
 	    PQxactid = pq_getint (4);
-	    pqdebug("Transaction Id is: %d", PQxactid);
+	    pqdebug("Transaction Id is: %d", (char *)PQxactid);
 	    pq_getstr(command, command_length);
 	    pqdebug("Query command: %s", command);
 	
@@ -261,7 +261,7 @@ process_portal(rule_p)
 
 	        PQreset();
 	        sprintf(s, "Unexpected identifier in process_portal: %c", id[0]);
-	        libpq_raise(ProtocolError, form (s));
+	        libpq_raise(ProtocolError, form ((int)s));
 	    }
 	}
     }
@@ -417,7 +417,7 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 	if (args[i].isint)
 	    pq_putint(args[i].u.integer, 4);
 	else
-	    pq_putnchar(args[i].u.ptr, args[i].len);
+	    pq_putnchar((char *)args[i].u.ptr, args[i].len);
     }
 
     pq_flush();
@@ -429,10 +429,10 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
     pq_getnchar(id, 0, 1);
     read_remark(id);
     fnid = pq_getint(4);
-    pqdebug("The Identifier is: %c", id[0]);
+    pqdebug("The Identifier is: %c", (char *)id[0]);
     
     /* Read in the transaction id. */
-    pqdebug("The Transaction Id is: %d", PQxactid);
+    pqdebug("The Transaction Id is: %d", (char *)PQxactid);
 
     if (id[0] == 'V')
 	pq_getnchar(id, 0, 1);
@@ -440,16 +440,16 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
     switch (id[0]) {
     case 'G':		/* PQFN: simple return value	*/
 	actual_len = pq_getint(4);
-	pqdebug2("LENGTH act/usr %ld/%ld\n", actual_len, result_len);
+	pqdebug2("LENGTH act/usr %ld/%ld\n", (char*)actual_len, (char*)result_len);
 	if (actual_len < 0 || actual_len > result_len) {
-	    pqdebug("RESET CALLED FROM CASE G", 0);
+	    pqdebug("RESET CALLED FROM CASE G", (char *)0);
 	    PQreset();
-	    libpq_raise(ProtocolError, form ("Buffer Too Small: %s", id));
+	    libpq_raise(ProtocolError, form ((int)"Buffer Too Small: %s", id));
 	}
 	if (result_is_int)
 	    *(int *)result_buf = pq_getint(4);
 	else
-	    pq_getnchar(result_buf, 0, actual_len);
+	    pq_getnchar((char *)result_buf, 0, actual_len);
 	if (actual_len != result_len)	/* if wouldn't overflow the buf */
 	    ((char *)result_buf)[actual_len] = 0;	/* add a \0 */
 	pq_getnchar(id, 0, 1);
@@ -460,10 +460,10 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 
     default:
 	/* The backend violates the protocol. */
-	pqdebug("RESET CALLED FROM CASE G", 0);
-	pqdebug("Protocol Error, bad form, got '%c'", id[0]);
+	pqdebug("RESET CALLED FROM CASE G", (char *)0);
+	pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
 	PQreset();
-	libpq_raise(ProtocolError, form("Unexpected identifier: %s", id));
+	libpq_raise(ProtocolError, form((int)"Unexpected identifier: %s", id));
 	return(NULL);
     }
 }
@@ -514,11 +514,11 @@ PQexec(query)
     	pq_getnchar(id,0,1); 
 
     	read_remark(id);
-    	pqdebug("The Identifier is: %c", id[0]);
+    	pqdebug("The Identifier is: %c", (char *)id[0]);
 
     	/* Read in the transaction id. */
     	PQxactid = pq_getint(4);
-    	pqdebug("The Transaction Id is: %d", PQxactid);
+    	pqdebug("The Transaction Id is: %d", (char *)PQxactid);
 
     	switch (id[0]) {
     	case 'I':
@@ -573,10 +573,10 @@ PQexec(query)
 	    /* The backend violates the protocol. */
 	    if (id[0] == '?')
 	    	libpq_raise(ProtocolError, 
-			form("No response from the backend, exiting...\n"));
+			form((int)"No response from the backend, exiting...\n"));
 	    else
 	    	libpq_raise(ProtocolError, 
-		   form("Unexpected response from the backend, exiting...\n"));
+		   form((int)"Unexpected response from the backend, exiting...\n"));
 	    exit(1);
     	}
     }
@@ -618,10 +618,10 @@ PQendcopy()
                 /* The backend violates the protocol. */
                 if (id[0] == '?')
                     libpq_raise(ProtocolError, 
-                        form("No response from the backend, exiting...\n"));
+                        form((int)"No response from the backend, exiting...\n"));
                 else
                     libpq_raise(ProtocolError, 
-                    form("Unexpected response from the backend, exiting...\n"));
+                    form((int)"Unexpected response from the backend, exiting...\n"));
                 exit(1);
         }
     }
