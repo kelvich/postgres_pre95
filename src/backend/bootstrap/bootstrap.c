@@ -1155,7 +1155,7 @@ gettype(type)
 struct attribute * /* XXX */
 AllocateAttribute()
 {
-    struct attribute	*attribute = new(struct attribute); /* XXX */
+    struct attribute	*attribute = newv(struct attribute, 1); /* XXX */
 
     if (!PointerIsValid(attribute)) {
 	elog(FATAL, "AllocateAttribute: malloc failed");
@@ -1331,7 +1331,7 @@ AddStr(str, strlength, mderef)
 	elog(FATAL, stroverflowmesg);
     }
 
-    strtable[strtable_end] = new(macro);
+    strtable[strtable_end] = newv(macro, 1);
 
     /*
      *  Some of the utilites (eg, define type, create relation) assume
@@ -1350,7 +1350,7 @@ AddStr(str, strlength, mderef)
 
     /* Now put a node in the hash table */
 
-    newnode = new(hashnode);
+    newnode = newv(hashnode, 1);
     newnode->strnum = strtable_end;
     newnode->next = NULL;
 

@@ -502,15 +502,6 @@ free ARGS((
 #endif /* PALLOC_DEBUG */
 
 /*
- * new --
- *	Allocate a new instance of the given type.
- *
- * Note:
- *	Does NOT work with arrays.  Use newv instead.
- */
-#define new(type)	LintCast(type *, malloc(sizeof (type)))
-
-/*
  * newv --
  *	Allocate a new array.
  */
