@@ -31,12 +31,15 @@
 #include "parser/parsetree.h"
 #include "storage/lmgr.h"
 #include "catalog/pg_relation.h"
+#include "utils/lsyscache.h"
 
  RcsId("$Header$");
 
 extern ScanTemps RMakeScanTemps();
 extern Fragment RMakeFragment();
 extern Relation CopyRelDescUsing();
+
+int AdjustParallelismEnabled = 0;
 
 /* ------------------------------------
  *	FingFragments
@@ -59,7 +62,7 @@ int fragmentNo;
 
     set_fragment(node, fragmentNo);
     if (get_lefttree(node) != NULL) 
-       if (ExecIsHash(get_lefttree(node)) || ExecIsSort(get_lefttree(node))) {
+      if (ExecIsHash(get_lefttree(node))||ExecIsMergeJoin(get_lefttree(node))) {
 	  /* -----------------------------
 	   * detected a blocking edge, fragment boundary
 	   * -----------------------------
@@ -275,35 +278,6 @@ int memsize;
     return fireFragments;
 }
 
-/* -----------------------------
- *	set_plan_parallel
- *
- *	set the degree of parallelism for each node in plan
- * -----------------------------
- */
-void
-set_plan_parallel(plan, nparallel)
-Plan plan;
-int nparallel;
-{
-    if (plan == NULL)
-       return;
-    if (ExecIsNestLoop(plan))  {
-       /* --------------------
-	* inner path of nestloop join plan should have parallelism 1
-	* --------------------
-	*/
-       set_parallel(plan, nparallel);
-       set_plan_parallel(get_outerPlan(plan), nparallel);
-       set_plan_parallel(get_innerPlan(plan), 1);
-      }
-    else  {
-       set_parallel(plan, nparallel);
-       set_plan_parallel(get_lefttree(plan), nparallel);
-       set_plan_parallel(get_righttree(plan), nparallel);
-      }
-}
-
 /* ------------------------------
  *	SetParallelDegree
  *
@@ -327,15 +301,42 @@ int nfreeslaves;
        fragmentno = get_fragment(plan);
        if (fragmentno < 0) {
            set_frag_parallel(fragment, 1);  /* YYY */
-           set_plan_parallel(plan, 1);
 	  }
        else {
            set_frag_parallel(fragment, nfreeslaves);  /* YYY */
-           set_plan_parallel(plan, nfreeslaves);
 	 }
      }
 }
 
+bool
+plan_is_parallelizable(plan)
+Plan plan;
+{
+    if (plan == NULL)
+	return true;
+    if (ExecIsMergeJoin(plan))
+	return false;
+    if (ExecIsSort(plan))
+	return false;
+    if (ExecIsIndexScan(plan)) {
+	List indxqual;
+	LispValue x;
+	NameData opname;
+	Oper op;
+	indxqual = get_indxqual(plan);
+	if (length(CAR(indxqual)) < 2)
+	    return false;
+	foreach (x, CAR(indxqual)) {
+	    op = (Oper)CAR(CAR(x));
+	    opname = get_opname(get_opno(op));
+	    if (strcmp(&opname, "=") == 0)
+		return false;
+	 }
+      }
+    if (plan_is_parallelizable(get_outerPlan(plan)))
+	return true;
+    return false;
+}
 
 /* ----------------------------------------------------------------
  *	ParallelOptimize
@@ -360,23 +361,31 @@ List fragmentlist;
     List parsetree;
     LispValue k;
     int parallel;
+    Plan plan;
 
     fireFragmentList = LispNil;
     nfreeslaves = NumberOfFreeSlaves;
     foreach (x, fragmentlist) {
 	fragment = (Fragment)CAR(x);
-	parsetree = get_frag_parsetree(fragment);
-	k = parse_parallel(parsetree);
-	if (lispNullp(k)) {
-	    if (lispNullp(CDR(x)))
-		parallel = nfreeslaves;
-	    else
-	        parallel = 1;
+	plan = get_frag_root(fragment);
+	if (!plan_is_parallelizable(plan)) {
+	    parallel = 1;
+	    elog(NOTICE, "nonparallelizable fragment, running sequentially\n");
 	  }
 	else {
-	    parallel = CInteger(k);
-	    if (parallel > nfreeslaves || parallel == 0)
-		parallel = nfreeslaves;
+	    parsetree = get_frag_parsetree(fragment);
+	    k = parse_parallel(parsetree);
+	    if (lispNullp(k)) {
+		if (lispNullp(CDR(x)))
+		    parallel = nfreeslaves;
+		else
+		    parallel = 1;
+	      }
+	    else {
+		parallel = CInteger(k);
+		if (parallel > nfreeslaves || parallel == 0)
+		    parallel = nfreeslaves;
+	      }
 	  }
         memAvail = GetCurrentMemSize();
         loadAvg = GetCurrentLoadAverage();
@@ -430,8 +439,52 @@ Plan plan;
 	   sizeof(RuleLock) + sizeof(RelationTupleFormD) +
 	   sizeof(LockInfoData) + 
 	   natts * (sizeof(AttributeTupleFormData) + sizeof(RuleLock)) +
-	   12; /* some extra for possible LONGALIGN() */
+	   48; /* some extra for possible LONGALIGN() */
     return size;
+}
+
+/* ------------------------
+ *	AdjustParallelism
+ *
+ *	dynamically adjust degrees of parallelism of the fragments that
+ *	are already in process to take advantage of the extra processors
+ * ------------------------
+ */
+void
+AdjustParallelism()
+{
+    int i;
+    int slave;
+    int max_curpage;
+    int m;
+    extern MasterCommunicationData *MasterDataP;
+
+    for (i=0; i<GetNumberSlaveBackends(); i++) {
+	/* ---------------
+	 * for now we only adjust the parallelism of the
+	 * first fragment in process, will become
+	 * more elaborate later.
+	 * ---------------
+	 */
+	if (ProcGroupInfoP[i].status == WORKING)
+	    break;
+      };
+    signalProcGroup(i, SIGPARADJ);
+    max_curpage = getProcGroupMaxPage(i);
+    MasterDataP->data[0] = max_curpage + 1; /* page on which to adjust par. */
+    m = ProcGroupInfoP[i].nprocess;
+    ProcGroupInfoP[i].nprocess += NumberOfFreeSlaves;
+    MasterDataP->data[1] = ProcGroupInfoP[i].nprocess;
+    OneSignalM(&(MasterDataP->m1lock), m);
+    set_frag_parallel(ProcGroupLocalInfoP[i].fragment,
+		      get_frag_parallel(ProcGroupLocalInfoP[i].fragment)+
+		      NumberOfFreeSlaves);
+    for (i=0; i<NumberOfFreeSlaves; i++) {
+	slave = getFreeSlave();
+	SlaveInfoP[slave].isAddOnSlave = true;
+        addSlaveToProcGroup(slave, i);
+	V_Start(slave);
+      }
 }
 
 /* ----------------------------------------------------------------
@@ -472,6 +525,7 @@ CommandDest	destination;
     Relation		shmTempRelationDesc;
     List		fraglist;
     CommandDest		dest;
+    int			size;
     
     fraglist = fragmentlist;
     while (!lispNullp(fraglist)) {
@@ -481,6 +535,15 @@ CommandDest	destination;
 	 * ------------
 	 */
         currentFragmentList = ParallelOptimize(fraglist);
+	/* ------------
+	 * if there are extra processors lying around,
+	 * dynamically adjust degrees of parallelism of
+	 * fragments that are already in process.
+	 * ------------
+	 */
+	if (lispNullp(currentFragmentList) && NumberOfFreeSlaves > 0 &&
+	    AdjustParallelismEnabled)
+	    AdjustParallelism();
 	foreach (x, currentFragmentList) {
 	   fragment = (Fragment)CAR(x);
 	   nparallel = get_frag_parallel(fragment);
@@ -528,14 +591,16 @@ CommandDest	destination;
 	   ProcGroupSMBeginAlloc(groupid);
 	   ProcGroupInfoP[groupid].queryDesc = (List)
 			CopyObjectUsing(fragQueryDesc, ProcGroupSMAlloc);
+	   size = sizeofTmpRelDesc(plan);
 	   for (p = ProcGroupLocalInfoP[groupid].memberProc;
 		p != NULL;
 		p = p->next) {
 	       SlaveInfoP[p->pid].resultTmpRelDesc = 
-		 (Relation)ProcGroupSMAlloc(sizeofTmpRelDesc(plan));
+		 (Relation)ProcGroupSMAlloc(size);
 	      }
 	   ProcGroupSMEndAlloc();
 	   ProcGroupInfoP[groupid].countdown = nparallel;
+	   ProcGroupInfoP[groupid].nprocess = nparallel;
 	   wakeupProcGroup(groupid);
 	   set_frag_is_inprocess(fragment, true);
 	   /* ---------------

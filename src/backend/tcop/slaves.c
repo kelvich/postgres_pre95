@@ -54,11 +54,15 @@ static ProcessNode *SlaveArray, *FreeSlaveP;
 int NumberOfFreeSlaves;
 ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
 static ProcGroupLocalInfo FreeProcGroupP;
+SlaveLocalInfoData SlaveLocalInfoD;
+extern int AdjustParallelismEnabled;
 
 /*
  *	shared data structures
  */
 int 	*MasterProcessIdP;	/* master backend process id */
+MasterCommunicationData *MasterDataP; /* communication data area for 
+					master backend */
 int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
 SlaveInfo	SlaveInfoP;	/* slave backend info */
 extern ProcGroupInfo  ProcGroupInfoP; /* process group info */
@@ -278,6 +282,19 @@ SlaveMain()
 	
 	SLAVE1_elog(DEBUG, "Slave Backend %d starting task.", MyPid);
 
+	/* ------------------
+	 * initialize slave local info
+	 * ------------------
+	 */
+	SlaveLocalInfoD.startpage = SlaveInfoP[MyPid].groupPid +
+				    (SlaveInfoP[MyPid].isAddOnSlave ? 
+				     MasterDataP->data[0] : 0);
+	SlaveLocalInfoD.nparallel = 
+			    ProcGroupInfoP[SlaveInfoP[MyPid].groupId].nprocess;
+	SlaveLocalInfoD.paradjpending = false;
+	SlaveLocalInfoD.paradjpage = -1;
+	SlaveLocalInfoD.newparallel = -1;
+
 	/* ----------------
 	 *  get the query descriptor to execute.
 	 * ----------------
@@ -351,6 +368,7 @@ SlaveBackendsInit()
     int nslaves;		/* number of slaves */
     int i;			/* counter */
     int p;			/* process id returned by fork() */
+    int paradj_handler(); 	/* intr handler for adjusting parallelism */
     
     /* ----------------
      *  first initialize shared memory and get the number of
@@ -388,6 +406,13 @@ SlaveBackendsInit()
     SearchSysCacheTuple(RULOID, NULL, NULL, NULL, NULL);
     SearchSysCacheTuple(PRS2STUB, NULL, NULL, NULL, NULL);
     
+    /* --------------------
+     * set signal for dynamically adjusting degrees of parallelism
+     * --------------------
+     */
+    if (AdjustParallelismEnabled)
+        signal(SIGPARADJ, paradj_handler);
+
     /* ----------------
      *	initialize Start, Finished, and Abort semaphores
      * ----------------
@@ -403,6 +428,8 @@ SlaveBackendsInit()
      * ----------------
      */
     MasterProcessIdP = (int*)ExecSMReserve(sizeof(int));
+    MasterDataP = 
+       (MasterCommunicationData*)ExecSMReserve(sizeof(MasterCommunicationData));
     SlaveAbortFlagP = (int*)ExecSMReserve(sizeof(int));
     SlaveInfoP = (SlaveInfo)ExecSMReserve(nslaves * sizeof(SlaveInfoData));
     ProcGroupInfoP = (ProcGroupInfo)ExecSMReserve(nslaves *
@@ -428,7 +455,7 @@ SlaveBackendsInit()
      */
     (*MasterProcessIdP) = getpid();
     (*SlaveAbortFlagP) = CONDITION_NORMAL;
-    
+    InitMWaitOneLock(&(MasterDataP->m1lock));
     /* ----------------
      *	fork several slave processes and save the process id's
      * ----------------
@@ -443,6 +470,10 @@ SlaveBackendsInit()
 		SlaveInfoP[i].groupId = -1;
 		SlaveInfoP[i].groupPid = -1;
 		SlaveInfoP[i].resultTmpRelDesc = NULL;
+#ifdef sequent
+		S_INIT_LOCK(&(SlaveInfoP[i].comdata.lock));
+		S_LOCK(&(SlaveInfoP[i].comdata.lock));
+#endif
 		ProcGroupInfoP[i].status = IDLE;
 		ProcGroupInfoP[i].queryDesc = NULL;
 		ProcGroupInfoP[i].countdown = 0;
@@ -480,7 +511,6 @@ SlaveBackendsInit()
 	    ProcGroupLocalInfoP[i].id = i;
 	    ProcGroupLocalInfoP[i].fragment = NULL;
 	    ProcGroupLocalInfoP[i].memberProc = NULL;
-	    ProcGroupLocalInfoP[i].nmembers = 0;
 	    ProcGroupLocalInfoP[i].nextfree = ProcGroupLocalInfoP + i + 1;
 	  }
 	ProcGroupLocalInfoP[nslaves - 1].nextfree = NULL;
@@ -503,7 +533,7 @@ SlaveBackendsInit()
  *	also decrements NumberOfFreeSlaves
  * ----------------------
  */
-static int
+int
 getFreeSlave()
 {
     ProcessNode *p;
@@ -553,18 +583,37 @@ int nproc;
     pid = getFreeSlave();
     SlaveInfoP[pid].groupId = p->id;
     SlaveInfoP[pid].groupPid = 0;
+    SlaveInfoP[pid].isAddOnSlave = false;
     p->memberProc = SlaveArray + pid;
     slavep = p->memberProc;
     for (i=1; i<nproc; i++) {
 	pid = getFreeSlave();
 	SlaveInfoP[pid].groupId = p->id;
 	SlaveInfoP[pid].groupPid = i;
+        SlaveInfoP[pid].isAddOnSlave = false;
 	slavep->next = SlaveArray + pid;
 	slavep = slavep->next;
       }
     slavep->next = NULL;
-    p->nmembers = nproc;
     return p->id;
+}
+
+/* --------------------------
+ *	addSlaveToProcGroup
+ *
+ *	add a free slave to an existing process group
+ * --------------------------
+ */
+void
+addSlaveToProcGroup(slave, group)
+int slave;
+int group;
+{
+    SlaveInfoP[slave].groupId = group;
+    SlaveInfoP[slave].groupPid = ++(ProcGroupInfoP[group].nprocess);
+    SlaveInfoP[slave].isAddOnSlave = true;
+    SlaveArray[slave].next = ProcGroupLocalInfoP[group].memberProc;
+    ProcGroupLocalInfoP[group].memberProc = SlaveArray + slave;
 }
 
 /* -------------------------
@@ -587,7 +636,6 @@ int gid;
       }
     ProcGroupInfoP[gid].status = IDLE;
     ProcGroupLocalInfoP[gid].fragment = NULL;
-    ProcGroupLocalInfoP[gid].nmembers = 0;
     ProcGroupLocalInfoP[gid].nextfree = FreeProcGroupP;
     FreeProcGroupP = ProcGroupLocalInfoP + gid;
 }
@@ -628,6 +676,26 @@ int groupid;
 	 p = p->next) {
       V_Start(p->pid);
      }
+}
+
+/* ---------------------------------
+ *	signalProcGroup
+ *
+ *	send a signal to a process group
+ * ---------------------------------
+ */
+void
+signalProcGroup(groupid, sig)
+int groupid;
+int sig;
+{
+    ProcessNode *p;
+
+    for (p = ProcGroupLocalInfoP[groupid].memberProc;
+	 p != NULL;
+	 p = p->next) {
+	kill(SlaveInfoP[p->pid].unixPid, sig);
+      }
 }
 
 /* ------------------------------
@@ -767,4 +835,60 @@ int size;
     SlaveTmpRelDescMemoryP = (char*)LONGALIGN(SlaveTmpRelDescMemoryP + size);
 
     return retP;
+}
+
+/* ---------------------------------
+ *	getProcGroupMaxPage
+ *
+ *	find out the largest page number the slaves are scanning
+ *	used only after SIGPARADJ signal has been sent to the
+ *	process group.
+ * ---------------------------------
+ */
+int
+getProcGroupMaxPage(groupid)
+int groupid;
+{
+    ProcessNode *p;
+    int maxpage = -1;
+    int page;
+
+    for (p = ProcGroupLocalInfoP[groupid].memberProc;
+	 p != NULL;
+	 p = p->next) {
+#ifdef HAS_TEST_AND_SET
+	S_LOCK(&(SlaveInfoP[p->pid].comdata.lock));
+#endif
+	page = SlaveInfoP[p->pid].comdata.data;
+	if (maxpage < page)
+	    maxpage = page;
+      }
+    return maxpage;
+}
+
+/* ---------------------------------------
+ *	paradj_handler
+ *
+ *	signal handler for dynamically adjusting degrees of parallelism
+ * ---------------------------------------
+ */
+int
+paradj_handler()
+{
+    BlockNumber curpage;
+    HeapTuple curtuple;
+    ItemPointer tid;
+
+    curtuple = SlaveLocalInfoD.heapscandesc->rs_ctup;
+    tid = &(curtuple->t_ctid);
+    curpage = ItemPointerGetBlockNumber(tid);
+    SlaveInfoP[MyPid].comdata.data = curpage;
+#ifdef HAS_TEST_AND_SET
+    S_UNLOCK(&(SlaveInfoP[MyPid].comdata.lock));
+#endif
+    MWaitOne(&(MasterDataP->m1lock));
+    SlaveLocalInfoD.paradjpending = true;
+    SlaveLocalInfoD.paradjpage = MasterDataP->data[0];
+    SlaveLocalInfoD.newparallel = MasterDataP->data[1];
+    return;
 }
