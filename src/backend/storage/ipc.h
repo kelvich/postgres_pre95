@@ -27,14 +27,12 @@
 typedef unsigned char   slock_t;
 #endif
 
-#if defined(sequent) || defined(mips)
-#if !sprite
+#if defined(sequent) || defined(mips) || PORTNAME == bsd44
 union semun {
     int val;
     struct semid_ds *buf;
     unsigned short *array;
 };
-#endif /* sprite */
 #endif
 
 typedef uint16	SystemPortAddress;
