@@ -12,8 +12,12 @@
  *    $Header$
  */
 
+/* ----------------
+ *	these include files need cleaning up..
+ * ----------------
+ */
+#include <stdio.h>
 #include <ctype.h>
-
 
 #include "palloc.h"
 #include "pg_lisp.h"
@@ -21,24 +25,14 @@
 #include "atoms.h"
 #include "params.h"
 
-/*
- * 	Global declaration for LispNil.
- * 	Relies on the definition of "nil" in the LISP image.
- *	XXX Do *NOT* move this below the inclusion of c.h, or this
- *	    will break when used with Franz LISP!
- */
-
-extern bool _equalLispValue();
-extern void lispDisplayFp();
-extern void lispDisplay();
-
-#include "c.h"
 #include "name.h"
 #include "nodes.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 
-#define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
+extern bool _equalLispValue();
+extern void lispDisplayFp();
+extern void lispDisplay();
 
 #define RIGHT_PAREN (1000000 + 1)
 #define LEFT_PAREN  (1000000 + 2)

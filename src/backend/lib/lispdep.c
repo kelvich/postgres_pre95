@@ -10,6 +10,9 @@
  *		util/{plancat,rlockutils,syscache}.c
  */
 
+#include <strings.h>
+#include <stdio.h>
+
 #include "c.h"
 
 RcsId("$Header$");
@@ -31,10 +34,17 @@ extern bool _equalLispValue();
 extern void lispDisplayFp();
 extern void lispDisplay();
 
-#include "c.h"
-#include "nodes.h"
-
-#define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
+/* ----------------
+ *	_copy function extern declarations
+ * ----------------
+ */
+extern bool	_copyLispValue();
+extern bool	_copyLispSymbol();
+extern bool	_copyLispList();
+extern bool	_copyLispInt();
+extern bool	_copyLispFloat();
+extern bool	_copyLispVector();
+extern bool	_copyLispStr();
 
 /*
  *	Allocation and manipulation routines.
@@ -53,7 +63,6 @@ extern void lispDisplay();
  */
 
 /* ===================== PGLISP ==================== */
-#include <strings.h>
 
 extern char		*malloc();
 
@@ -108,6 +117,10 @@ CInteger(lval)
     return(0);
 }
 
+/* ----------------
+ *	lispAtom actually returns a node with type T_LispSymbol
+ * ----------------
+ */
 LispValue
 lispAtom(atomName)
 	char *atomName; 
@@ -124,11 +137,16 @@ lispAtom(atomName)
 	newobj->type = PGLISP_ATOM;
 	newobj->equalFunc = _equalLispValue;
 	newobj->printFunc = lispDisplayFp;
+	newobj->copyFunc = _copyLispSymbol;
 	newobj->val.name = (char *)keyword;
 	newobj->cdr = LispNil;
 	return(newobj);
 }
 
+/* ----------------
+ *	lispDottedPair actually returns a node of type T_LispList
+ * ----------------
+ */
 LispValue
 lispDottedPair()
 {
@@ -137,11 +155,16 @@ lispDottedPair()
 	newobj->type = PGLISP_DTPR;
 	newobj->equalFunc = _equalLispValue;
 	newobj->printFunc = lispDisplayFp;
+	newobj->copyFunc = _copyLispList;
 	newobj->val.car = LispNil;
 	newobj->cdr = LispNil;
 	return(newobj);
 }
 
+/* ----------------
+ *	lispFloat returns a node of type T_LispFloat
+ * ----------------
+ */
 LispValue
 lispFloat(floatValue)
 	double	floatValue;
@@ -151,11 +174,16 @@ lispFloat(floatValue)
 	newobj->type = PGLISP_FLOAT;
 	newobj->equalFunc = _equalLispValue;
 	newobj->printFunc = lispDisplayFp;
+	newobj->copyFunc = _copyLispFloat;
 	newobj->val.flonum = floatValue;
 	newobj->cdr = LispNil;
 	return(newobj);
 }
 
+/* ----------------
+ *	lispInteger returns a node of type T_LispInt
+ * ----------------
+ */
 LispValue
 lispInteger(integerValue)
 	int	integerValue;
@@ -165,11 +193,16 @@ lispInteger(integerValue)
 	newobj->type = PGLISP_INT;
 	newobj->equalFunc = _equalLispValue;
 	newobj->printFunc = lispDisplayFp;
+	newobj->copyFunc = _copyLispInt;
 	newobj->val.fixnum = integerValue;
 	newobj->cdr = LispNil;
 	return(newobj);
 }
 
+/* ----------------
+ *	lispString returns a node of type T_LispStr
+ * ----------------
+ */
 LispValue
 lispString(string)
 	char	*string;
@@ -180,6 +213,7 @@ lispString(string)
     newobj->type = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
     newobj->printFunc = lispDisplayFp;
+    newobj->copyFunc = _copyLispStr;
     newobj->cdr = LispNil;
 
     if(string) {
@@ -192,6 +226,10 @@ lispString(string)
     return(newobj);
 }
 
+/* ----------------
+ *	lispVectori returns a node of type T_LispVector
+ * ----------------
+ */
 LispValue
 lispVectori(nBytes)
 	int	nBytes;
@@ -201,6 +239,7 @@ lispVectori(nBytes)
 	newobj->type = PGLISP_VECI;
 	newobj->equalFunc = _equalLispValue;
 	newobj->printFunc = lispDisplayFp;
+	newobj->copyFunc = _copyLispVector;
 	newobj->val.veci = (struct vectori *)
 		palloc((unsigned) (sizeof(struct vectori) + nBytes));
 	newobj->val.veci->size = nBytes;
@@ -485,48 +524,13 @@ append(list,lispObject)
 
 }
 
-/* XXX -- Only makes copies of the internal nodes, not the leaf nodes.  */
-LispValue
-lispCopy (lispObject)
-     LispValue lispObject;
-{
-     LispValue newnode;
-     if (lispObject == LispNil)
-	 return(LispNil);
-     newnode = lispAlloc();
-     newnode->type = lispObject->type;
-     newnode->printFunc = lispObject->printFunc;
-     newnode->equalFunc = lispObject->equalFunc;
-     switch (lispObject->type) {
-     case T_LispSymbol:
-	  newnode->val.name = lispObject->val.name;
-	  newnode->cdr = LispNil;
-	  break;
-     case T_LispStr:
-	  newnode->val.str = lispObject->val.str;
-	  newnode->cdr = LispNil;
-	  break;
-     case T_LispInt:
-	  newnode->val.fixnum = lispObject->val.fixnum;
-	  newnode->cdr = LispNil;
-	  break;
-     case T_LispFloat:
-	  newnode->val.flonum = lispObject->val.flonum;
-	  newnode->cdr = LispNil;
-	  break;
-     case T_LispVector:
-	  newnode->val.veci = lispObject->val.veci;
-	  newnode->cdr = LispNil;
-	  break;
-     case T_LispList:
-	  newnode->val.car = lispCopy(lispObject->val.car);
-	  newnode->cdr = lispCopy(lispObject->cdr);
-	  break;
-     default:
-	  newnode = lispObject;
-     }
-     return (newnode);
-}
+/* ----------------
+ *	lispCopy has been moved to copyfuncs.c with the other
+ *	copy functions.
+ * ----------------
+ */
+
+
 
 int
 length (list)

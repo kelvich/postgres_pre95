@@ -1194,40 +1194,6 @@ _copyConst(from, to, alloc)
 }
 
 /* ----------------
- *	_copyArrayRef
- * ----------------
- */
-bool
-_copyArrayRef(from, to, alloc)
-    ArrayRef	from;
-    ArrayRef	*to;
-    char *	(*alloc)();
-{
-    ArrayRef	newnode;
-
-    COPY_CHECKARGS();
-    COPY_CHECKNULL();
-    COPY_NEW(ArrayRef);
-    
-    /* ----------------
-     *	copy node superclass fields
-     * ----------------
-     */
-    CopyNodeFields(from, newnode, alloc);
-    CopyExprFields(from, newnode, alloc);
-
-    /* ----------------
-     *	copy remainder of node
-     * ----------------
-     */
-    Node_Copy(from, newnode, alloc, arraydesc);
-    Node_Copy(from, newnode, alloc, dimension_expression);
-    
-    (*to) = newnode;
-    return true;
-}
-
-/* ----------------
  *	_copyParam
  * ----------------
  */
