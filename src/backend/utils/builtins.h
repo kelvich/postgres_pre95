@@ -17,6 +17,9 @@
 #ifndef C_H
 #include "c.h"
 #endif
+#ifndef DATUM_H
+#include "datum.h"
+#endif
 #include "postgres.h"
 #include "oid.h"
 #include "tim.h"
@@ -275,5 +278,6 @@ extern bool oidnotin();
 /* rule locks */
 extern RuleLock		StringToRuleLock();
 extern char		*RuleLockToString();
+extern Datum GetAttribute();
 
 #endif !BuiltinsIncluded
