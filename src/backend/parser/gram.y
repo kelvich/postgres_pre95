@@ -794,7 +794,7 @@ AppendStmt:
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),0,0)) == 0)
                       p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           ($5,0,$5));
+                                           (CString($5),0,CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),0,0);
                   CurrentRelationPtr = amopenr(VarnoGetRelname(x));
@@ -837,7 +837,7 @@ DeleteStmt:
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),0,0)) == 0)
                       p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           ($5,0,$5));
+                                           (CString($5),0,CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),0,0);
                   CurrentRelationPtr = amopenr(VarnoGetRelname(x));
@@ -851,7 +851,7 @@ DeleteStmt:
                         x= RangeTablePosn(CString($5),0,0);
                         if (x == 0)
                           p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                               ($5,0,$5));
+                                               (CString($5),0,CString($5)));
                         StripRangeTable();
                         root = MakeRoot(NumLevels,KW(delete),
                                         lispInteger ( x ) ,
@@ -897,7 +897,7 @@ ReplaceStmt:
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),0,0)) == 0)
                       p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           ($5,0,$5));
+                                           (CString($5),0,CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),0,0);
                   CurrentRelationPtr = amopenr(CString(VarnoGetRelname(x)));
@@ -1467,7 +1467,6 @@ Abort:			ABORT_TRANS	{ $$ = yylval ; } ;
 Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
 All:			ALL		{ $$ = yylval ; } ;
 And:			AND		{ $$ = yylval ; } ;
-Append:			APPEND		{ $$ = yylval ; } ;
 Archive:		ARCHIVE		{ $$ = yylval ; } ;
 Attachas:		ATTACH_AS	{ $$ = yylval ; } ;
 Begin:			BEGIN_TRANS	{ $$ = yylval ; } ;
@@ -1477,7 +1476,6 @@ Cluster:		CLUSTER		{ $$ = yylval ; } ;
 Copy:			COPY		{ $$ = yylval ; } ;
 Create:			CREATE		{ $$ = yylval ; } ;
 Define:			DEFINE		{ $$ = yylval ; } ;
-Delete:			DELETE		{ $$ = yylval ; } ;
 Destroy:		DESTROY		{ $$ = yylval ; } ;
 End:			END_TRANS	{ $$ = yylval ; } ;
 Fetch:			FETCH		{ $$ = yylval ; } ;
