@@ -14,21 +14,24 @@
  *     		create_plan
  */
 
+#include "tmp/c.h"
+
+#include "nodes/execnodes.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "utils/log.h"
+#include "utils/lsyscache.h"
+
 #include "planner/internal.h"
-#include "c.h"
-#include "log.h"
-#include "planner/tlist.h"
-#include "planner/createplan.h"
-#include "planner/clauses.h"
 #include "planner/clause.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
 #include "planner/clauseinfo.h"
-#include "relation.a.h"
-#include "relation.h"
+#include "planner/clauses.h"
+#include "planner/createplan.h"
 #include "planner/setrefs.h"
-#include "lsyscache.h"
-#include "execnodes.h"
+#include "planner/tlist.h"
 
 /* "Print out the total cost at each query processing operator"  */
 
@@ -106,6 +109,8 @@ create_plan (best_path,origtlist)
 
      set_plan_size(plan_node, size);
      set_plan_width(plan_node, width);
+     set_fragment(plan_node, 0);
+     set_parallel(plan_node, 1);
 
      /*    Attach a SORT node to the path if a sort path is specified. */
 
@@ -175,7 +180,7 @@ create_scan_node (best_path,tlist)
 	  break;
 
 	case T_IndexScan:
-	  ((Scan)create_indexscan_node (best_path,tlist,scan_clauses));
+	  return((Scan)create_indexscan_node (best_path,tlist,scan_clauses));
 	  break;
 	  
 	  default :
@@ -342,7 +347,10 @@ create_indexscan_node (best_path,tlist,scan_clauses)
      else 
        qpqual = set_difference(scan_clauses, CAR (indxqual));
      
+     /*  XXX
      fixed_indxqual = fix_indxqual_references (indxqual,best_path);
+     */
+     fixed_indxqual = indxqual;
      scan_node = make_indexscan (tlist,
 				 qpqual,
 				 CInteger(CAR(get_relids 
@@ -368,6 +376,7 @@ fix_indxqual_references (clause,index_path)
      LispValue clause;
      Path index_path ;
 {
+    LispValue newclause;
     if(IsA (clause,Var) && 
        CInteger(CAR(get_relids (get_parent(index_path)))) ==
        get_varno (clause)) {
@@ -381,8 +390,9 @@ fix_indxqual_references (clause,index_path)
 	    }
 	    pos++;
 	}
-	set_varattno (clause, pos + 1);
-	return (clause);
+	newclause = (LispValue)CopyObject(clause);
+	set_varattno (newclause, pos + 1);
+	return (newclause);
     } 
     else 
       if(IsA (clause,Const))
@@ -825,7 +835,9 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
 	     set_reskeyop (resdom,get_opcode (CAR(ops)));
 	 }
 	 keyno += 1;
+	 /*
 	 ops = CDR (ops);
+	 */
      }
      return(tlist);
 } /* function end  */
@@ -897,12 +909,13 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
     set_lefttree (node, lefttree);
     set_righttree (node , righttree);
     set_nlstate (node, (NestLoopState)NULL);
+    set_ruleinfo(node, (JoinRuleInfo)NULL);
 
     return(node);
 }
 
 HashJoin
-make_hashjoin(tlist,qpqual,hashclauses,righttree,lefttree)
+make_hashjoin(tlist,qpqual,hashclauses,lefttree,righttree)
      LispValue tlist, qpqual,hashclauses;
      Plan righttree,lefttree;
 {
@@ -915,6 +928,7 @@ make_hashjoin(tlist,qpqual,hashclauses,righttree,lefttree)
     set_qptargetlist (node,tlist);
     set_lefttree(node,lefttree);
     set_righttree(node,righttree);
+    set_ruleinfo(node, (JoinRuleInfo) NULL);
     set_hashclauses(node,hashclauses);
 
     return(node);
@@ -958,6 +972,7 @@ make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
     set_qptargetlist (node,tlist);
     set_lefttree(node,lefttree);
     set_righttree(node,righttree);
+    set_ruleinfo(node, (JoinRuleInfo) NULL);
     set_mergeclauses(node,mergeclauses);
     set_mergesortop(node,opcode);
     set_mergerightorder(node, rightorder);
