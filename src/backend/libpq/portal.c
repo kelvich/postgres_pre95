@@ -40,6 +40,9 @@
  *	the portals[] array should be organized as a hash table for
  *	quick portal-by-name lookup.
  *
+ *	Do not confuse "PortalEntry" (or "PortalBuffer") with "Portal"
+ *	see utils/mmgr/portalmem.c for why. -cim 2/22/91
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------

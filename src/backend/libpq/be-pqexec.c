@@ -26,6 +26,7 @@ RcsId ("$Header$");
 #include "tmp/libpq-be.h"
 #include "utils/exception.h"
 #include "utils/builtins.h"
+#include "utils/log.h"
 
 /* ----------------------------------------------------------------
  *			PQ interface routines
@@ -63,10 +64,12 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
  *	PQexec -  Send a query to the POSTGRES backend
  *
  * 	The return value is a string.  
+ * 	If 0 or more tuples fetched from the backend, return "P portal-name".
+ * 	If a query is does not return tuples, return "C query-command".
  * 	If there is an error: return "E error-message".
- * 	If tuples are fetched from the backend, return "P portal-name".
- * 	If a query is executed successfully but no tuples fetched, 
- * 	return "C query-command".
+ *
+ *	Note: if we get a serious error or an elog(WARN), then PQexec never
+ *	returns because the system longjmp's back to the main loop.
  * ----------------
  */
 
@@ -75,8 +78,15 @@ PQexec(query)
     char *query;
 {
     PortalEntry *entry = NULL;
-    char *pname = NULL;
+    char *result = NULL;
 
+    /* ----------------
+     *	create a new portal and put it on top of the portal stack.
+     * ----------------
+     */
+    entry = (PortalEntry *) be_newportal();
+    be_portalpush(entry);
+    
     /* ----------------
      *	pg_eval will put the query results in a portal which will
      *  end up on the top of the portal stack.
@@ -85,39 +95,59 @@ PQexec(query)
     pg_eval(query, Local);
     
     /* ----------------
-     *	pop the portal off the portal stack and return it's name.
+     *	pop the portal off the portal stack and return the
+     *  result.  Note if result is null, we return E.
      * ----------------
      */
     entry = (PortalEntry *) be_portalpop();
-    pname = entry->name;
-
-    return pname;
+    result = entry->result;
+    if (result == NULL) {
+	char *PQE = "Enull PQexec result";
+	result = strcpy(palloc(strlen(PQE)), PQE);
+    }
+    
+    return result;
 }
 
 /* ----------------
  *	pqtest takes a text query and returns the number of
- *	tuples it returns.
+ *	tuples it returns.  Note: there is no need to PQclear()
+ *	here - the memory will go away at end transaction.
  * ----------------
  */
 int
 pqtest(vlena)
     struct varlena	*vlena;
 {
-    char *pname;
     PortalBuffer *a;
-    char *q;
-    int g, k, t;
+    char 	 *q;
+    char 	 *res;
+    int 	 t;
 
+    /* ----------------
+     *	get the query text and
+     *	execute the postgres query
+     * ----------------
+     */
     q = textout(vlena);
-    
-    pname = PQexec(q);
-    a = PQparray(pname);
-    g = PQngroups(a);
-    
-    t = 0;
-    for (k=0; k < g-1; k++) {
-	t += PQntuplesGroup(a,k);
-    }
+    res = PQexec(q);
 
+    /* ----------------
+     *	return number of tuples in portal or 0 if command returns no tuples.
+     * ----------------
+     */
+    t = 0;
+    switch(res[0]) {
+    case 'P':
+	a = PQparray(&res[1]);
+	t = PQntuples(a);
+	break;
+    case 'C':
+	break;
+    default:
+	elog(NOTICE, "pqtest: PQexec(%s) returns %s", q, res);
+	break;
+    }
+    
     return t;
 }

@@ -38,6 +38,7 @@ RcsId("$Header$");
 #include "tmp/simplelists.h"
 #include "utils/memutils.h"
 #include "utils/fmgr.h"
+#include "utils/mcxt.h"
 #include "utils/log.h"
 #include "utils/exc.h"
 
@@ -51,8 +52,8 @@ extern ObjectId typtoout();
  * ----------------
  */
 typedef struct PortalStackElement {
-    PortalEntry *entry;
-    SLNode 	 Node;
+    PortalEntry   *entry;
+    SLNode 	  Node;
 } PortalStackElement;
 
 SLList be_portalstack;
@@ -143,24 +144,32 @@ ObjectId be_portaloid;
 u_int	 be_portalcnt = 0;
 
 PortalEntry *
-be_newportal(pname)   
-    String pname;
+be_newportal()   
 {
     PortalEntry *entry;
-
-    if (pname == NULL) {
-	char buf[32];
-	
-	if (be_portalcnt == 0)
-	    be_portaloid = newoid();
-	be_portalcnt++;
-	
-	sprintf(buf, "be_%d_%d", be_portaloid, be_portalcnt);
-	pname = palloc(strlen(buf));
-	strcpy(pname, buf);
-    }
+    char 	buf[PortalNameLength];
     
-    entry = pbuf_setup(pname);
+    /* ----------------
+     *	generate a new name
+     * ----------------
+     */
+    if (be_portalcnt == 0)
+	be_portaloid = newoid();
+    be_portalcnt++;
+    sprintf(buf, "be_%d_%d", be_portaloid, be_portalcnt);
+    
+    /* ----------------
+     *	initialize the new portal entry and keep track
+     *  of the current memory context for be_printtup().
+     *  This is important - otherwise whatever we allocate
+     *  will go away and the contents of the portal after
+     *  PQexec() returns will be meaningless.
+     * ----------------
+     */
+    entry = pbuf_setup(buf);
+    entry->portalcxt = (Pointer) CurrentMemoryContext;
+    
+    return entry;
 }
 
 /* ----------------
@@ -179,7 +188,7 @@ be_typeinit(entry, attrs, natts)
     PortalBuffer 	*portal;
     GroupBuffer 	*group;
     TypeBlock 		*types, *type;
-    int 	i;
+    int 		i;
 
     /* ----------------
      *	add a new portal group to the portal
@@ -215,7 +224,7 @@ be_typeinit(entry, attrs, natts)
  * ----------------
  */
 void
-be_printtup( tuple, typeinfo) 
+be_printtup(tuple, typeinfo) 
     HeapTuple		tuple;
     struct attribute 	*typeinfo[];
 {
@@ -230,11 +239,7 @@ be_printtup( tuple, typeinfo)
     TupleBlock 	 *tuples = NULL;
     char 	 **values;
     
-    /* ----------------
-     *	for debugging 
-     * ----------------
-     */
-    debugtup(tuple, typeinfo);
+    MemoryContext savecxt;
     
     /* ----------------
      *  get the current portal and group
@@ -245,6 +250,13 @@ be_printtup( tuple, typeinfo)
     group = portal->groups;
     
     /* ----------------
+     *	switch to the portal's memory context so that
+     *  the tuples we allocate are returned to the user.
+     * ----------------
+     */
+    savecxt = MemoryContextSwitchTo(entry->portalcxt);
+    
+    /* ----------------
      *	If no tuple block yet, allocate one.
      *  If the current block is full, allocate another one.
      * ----------------
@@ -252,10 +264,13 @@ be_printtup( tuple, typeinfo)
     if (group->tuples == NULL) {
 	tuples = group->tuples = pbuf_addTuples();
 	tuples->tuple_index = 0;
-    } else if (tuples->tuple_index == TupleBlockSize) {
-	tuples->next = pbuf_addTuples();
-	tuples = tuples->next;
-	tuples->tuple_index = 0;
+    } else {
+	tuples = group->tuples;
+	if (tuples->tuple_index == TupleBlockSize) {
+	    tuples->next = pbuf_addTuples();
+	    tuples = tuples->next;
+	    tuples->tuple_index = 0;
+	}
     }
 
     /* ----------------
@@ -294,6 +309,13 @@ be_printtup( tuple, typeinfo)
      *	increment tuple group counters
      * ----------------
      */
+    portal->no_tuples++;
     group->no_tuples++;
     tuples->tuple_index++;
+
+    /* ----------------
+     *	return to the original memory context
+     * ----------------
+     */
+    MemoryContextSwitchTo(savecxt);
 }

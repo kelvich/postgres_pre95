@@ -23,7 +23,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <varargs.h>
+
 #include "tmp/c.h"
+#undef palloc
+#undef pfree
 #include "utils/exc.h"
 
 RcsId("$Header$");
@@ -52,6 +55,7 @@ Exception FailedAssertion;
 
 /* ----------------
  *	palloc (frontend version)
+ *	pfree (frontend version)
  * ----------------
  */
 Pointer
@@ -62,13 +66,28 @@ palloc(size)
 	malloc(size);
 }
 
-/* ----------------
- *	pfree (frontend version)
- * ----------------
- */
 void
 pfree(pointer)
     Pointer	pointer;
+{
+    free(pointer);
+}
+
+Pointer
+palloc_debug(file, line, size)
+    String file;
+    int	   line;
+    Size   size;
+{
+    return
+	malloc(size);
+}
+
+void
+pfree_debug(file, line, pointer)
+    String  file;
+    int	    line;
+    Pointer pointer;
 {
     free(pointer);
 }

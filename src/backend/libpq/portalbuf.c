@@ -36,6 +36,9 @@
  *	the portals[] array should be organized as a hash table for
  *	quick portal-by-name lookup.
  *
+ *	Do not confuse "PortalEntry" (or "PortalBuffer") with "Portal"
+ *	see utils/mmgr/portalmem.c for why. -cim 2/22/91
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -315,6 +318,20 @@ pbuf_getIndex(pname)
 }
 
 /* --------------------------------
+ *	pbuf_setportalname - assign a user given name to a portal
+ * --------------------------------
+ */
+
+void
+pbuf_setportalinfo(entry, pname)
+    PortalEntry *entry;
+    char *pname;
+{
+    if (entry)
+	strncpy(entry->name, pname, PortalNameLength-1);
+}
+
+/* --------------------------------
  *	pbuf_setup - Set up a portal for dumping data
  * --------------------------------
  */
@@ -325,9 +342,9 @@ pbuf_setup(pname)
     int i;
 
     /* If a portal with the same name already exists, close it. */
+    /* else look for an empty entry in the portal table. */
     if ((i = pbuf_getIndex(pname)) != -1) 
 	pbuf_freePortal(portals[i]->portal);
-    /* Look for an empty entry in the portal table. */
     else {
 	for (i = 0; i < MAXPORTALS; i++)
 	    if (portals[i] == NULL)
@@ -337,10 +354,12 @@ pbuf_setup(pname)
 	    libpq_raise(PortalError, form("Portal Table overflows!"));
 	
 	portals[i] = pbuf_addEntry();
-	strcpy(portals[i]->name, pname);
+	strncpy(portals[i]->name, pname, PortalNameLength-1);
     }
     portals[i]->portal = pbuf_addPortal();
-
+    portals[i]->portalcxt = NULL;
+    portals[i]->result = NULL;
+    
     return (PortalEntry *)
 	portals[i];
 }

@@ -200,18 +200,14 @@ CreateOperationTag(operationType)
     
     return tag;
 }
- 
-/* ----------------------------------------------------------------
+
+/* ----------------
  *	ProcessPortal
- *
- *	Function to alleviate ProcessFragments of the code
- *	that deals with portal query processing.
- * ----------------------------------------------------------------
+ * ----------------
  */
  
 void
-ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
-    int		operation;
+ProcessPortal(portalName, parseTree, plan, state, attinfo, dest)
     String 	portalName;
     List	parseTree;
     Plan	plan;
@@ -223,14 +219,8 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
     MemoryContext 	portalContext;
 
     /* ----------------
-     *	sanity check
-     * ----------------
-     */
-    AssertArg(operation == RETRIEVE);
-    
-    /* ----------------
-     *   initialize the portal
-     *   Note: "BeginCommand" is not called since no tuples are returned.
+     *   convert the current blank portal into the user-specified
+     *   portal and initialize the state and query descriptor.
      * ----------------
      */
     portal = BlankPortalAssignName(portalName);
@@ -241,15 +231,14 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
 		   PortalCleanup);
 
     /* ----------------
-     * Return blank portal for now.
+     *	now create a new blank portal and switch to it. 
+     *	Otherwise, the new named portal will be cleaned.
      *
-     * Otherwise, this named portal will be cleaned.
-     * Note: portals will only be supported within a BEGIN...END
-     * block in the near future.  Later, someone will fix it to
-     * do what is possible across transaction boundries. -hirohama
+     *  Note: portals will only be supported within a BEGIN...END
+     *  block in the near future.  Later, someone will fix it to
+     *  do what is possible across transaction boundries. -hirohama
      * ----------------
      */
-
     portalContext = (MemoryContext)
 	PortalGetHeapMemory(GetPortalByName(NULL));
     
@@ -258,6 +247,7 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
     StartPortalAllocMode(DefaultAllocMode, 0);
 }
 
+ 
 /* ----------------------------------------------------------------
  *	ProcessQueryDesc
  *
@@ -279,9 +269,9 @@ ProcessQueryDesc(queryDesc)
     List 	attinfo;
     
     List	parseRoot;
-    bool	isIntoPortal;
-    bool	isIntoRelation;
-    bool	isIntoTemp;
+    bool	isRetrieveIntoPortal;
+    bool	isRetrieveIntoRelation;
+    bool	isRetrieveIntoTemp;
     String	intoName;
     CommandDest dest;
 
@@ -300,9 +290,9 @@ ProcessQueryDesc(queryDesc)
      *	initialize portal/into relation status
      * ----------------
      */
-    isIntoPortal =   false;
-    isIntoRelation = false;
-    isIntoTemp =     false;
+    isRetrieveIntoPortal =   false;
+    isRetrieveIntoRelation = false;
+    isRetrieveIntoTemp =     false;
     
     if (operation == RETRIEVE) {
 	List	resultDesc;
@@ -313,12 +303,12 @@ ProcessQueryDesc(queryDesc)
 	if (!lispNullp(resultDesc)) {
 	    resultDest = CAtom(CAR(resultDesc));
 	    if (resultDest == PORTAL) {
-		isIntoPortal = true;
+		isRetrieveIntoPortal = true;
 		intoName = CString(CADR(resultDesc));
 	    } else if (resultDest == INTO || resultDest == INTOTEMP) {
-		isIntoRelation = true;
+		isRetrieveIntoRelation = true;
 		if (resultDest == INTOTEMP)
-		   isIntoTemp = true;
+		   isRetrieveIntoTemp = true;
 	    }
 	}
     }
@@ -331,7 +321,7 @@ ProcessQueryDesc(queryDesc)
      *  and EndCommand() messages.
      * ----------------
      */
-    if (isIntoRelation)
+    if (isRetrieveIntoRelation)
     	QdSetDest(queryDesc, None);
     
     /* ----------------
@@ -356,41 +346,44 @@ ProcessQueryDesc(queryDesc)
     attinfo = ExecMain(queryDesc, state, feature_start);
     
     /* ----------------
-     *  Named portals do not do a "fetch all" initially, so now
-     *  we return since ExecMain has been called with EXEC_START
-     *  to initialize the query plan.
-     * ----------------
-     */
-    if (isIntoPortal) {
-	/* ----------------
-	 * set executor portal memory context
-	 *
-	 * temporary hack till the executor-rule manager interface
-	 * allocation is fixed.
-	 * ----------------
-	 */
-	extern MemoryContext PortalExecutorHeapMemory;
-	PortalExecutorHeapMemory = NULL;
-
-   	ProcessPortal(operation,
-		      intoName,
-		      parseTree,
-		      plan,
-		      state,
-		      attinfo,
-		      dest);
-	
-	EndCommand(tag, dest);
-	return;
-    }
-
-    /* ----------------
      *   report the query's result type information
      *   back to the front end or to whatever destination
      *   we're dealing with.
      * ----------------
      */
-    BeginCommand(NULL, attinfo, operation, isIntoRelation, dest);
+    BeginCommand(NULL,
+		 operation,
+		 attinfo,
+		 isRetrieveIntoRelation,
+		 isRetrieveIntoPortal,
+		 tag,
+		 dest);
+
+    /* ----------------
+     *  Named portals do not do a "fetch all" initially, so now
+     *  we return since ExecMain has been called with EXEC_START
+     *  to initialize the query plan.  
+     *
+     *  Note: ProcessPortal transforms the current "blank" portal
+     *        into a named portal and creates a new blank portal so
+     *	      everything we allocated in the current "blank" memory
+     *	      context will be preserved across queries.  -cim 2/22/91
+     * ----------------
+     */
+    if (isRetrieveIntoPortal) {
+	extern MemoryContext PortalExecutorHeapMemory;
+	PortalExecutorHeapMemory = NULL;
+	
+	ProcessPortal(intoName,
+		      parseTree,
+		      plan,
+		      state,
+		      attinfo,
+		      dest);
+
+	EndCommand(tag, dest);
+	return;
+    }
     
     /* ----------------
      *   Now we get to the important call to ExecMain() where we
