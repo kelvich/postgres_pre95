@@ -134,6 +134,8 @@ ExecAgg(node)
     /* the first time we call this we aggregate the tuples below.
      * subsequent calls return tuples from the temp relation
       */
+ if(get_agg_Flag(aggstate) == false) {
+    SO1_printf("ExecAgg: %s\n", "aggstate == false -> aggregating subplan");
 
     set_es_direction(estate, EXEC_FRWD);
     /* ---------------
@@ -204,17 +206,15 @@ ExecAgg(node)
 				&nulls);
 
 	slot = (TupleTableSlot) get_css_ScanTupleSlot(aggstate);
+	ExecSetSlotDescriptor(slot, &tempRelation->rd_att);
 		/* for now, */
-    	 set_agg_Flag(aggstate, true);
-
-   slot = (TupleTableSlot) get_css_ScanTupleSlot(aggstate);
-   return (TupleTableSlot)
-	ExecStoreTuple(heapTuple,
-			slot,
-			buffer,
-			false);
-
-
+	set_agg_Flag(aggstate, true);
+	return (TupleTableSlot) 
+		ExecStoreTuple(heapTuple, slot, buffer, false);
+   }
+   else {
+	return (NULL); 
+   }
 }
 
 /*-----------------
