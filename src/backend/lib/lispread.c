@@ -453,9 +453,15 @@ Param paramNode;
 	case PARAM_NUM:
 	    match = (paramList[i].id == get_paramid(paramNode));
 	    break;
-	case PARAM_NAMED: 	
 	case PARAM_NEW:	
-	case PARAM_OLD:
+	case PARAM_OLD: {
+	    match = NameIsEqual(paramList[i].name, get_paramname(paramNode));
+	    if (match && (paramList[i].id != get_paramid(paramNode))) {
+		elog(WARN, "param node: same name, different id");
+	    }
+	    break;
+	}
+	case PARAM_NAMED:
 	default: elog(WARN, "unexpected kind of parameter node");
 		break;
 	}
