@@ -268,8 +268,8 @@ extern float64	areasel();
 extern float64	areajoinsel();
 extern long	pointdist();
 
-extern long	textregexeq();
-extern long	char16regexeq();
+extern bool	textregexeq();
+extern bool	char16regexeq();
 #endif /* FMGR_ADT */
 
 extern bool int4notin();
