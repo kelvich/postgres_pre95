@@ -1,3 +1,4 @@
+/*#define FSDB 1*/
 /*
  * large_object.c - routines for manipulating and accessing large objects
  *
@@ -14,6 +15,7 @@
 #include "utils/large_object.h"
 #include "catalog/pg_naming.h"
 #include "catalog/pg_lobj.h"
+#include "tmp/libpq-fs.h"
 #include "utils/log.h"
 
 LargeObject *NewLargeObject();
@@ -46,12 +48,17 @@ int open_mode;
     int fd;
     int obj_len, filename_len;
 
+#if FSDB
+    elog(NOTICE,"LOGregCreate(%s,%d)",path,open_mode);
+#endif
+
     file_oid = newoid();
     sprintf(filename, "LO%d", file_oid);
 
     fd = (int) FileNameOpenFile(filename, O_CREAT | O_RDWR, 0666);
     if (fd == -1) return(NULL);
 
+    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
     newobj = (LargeObject *) NewLargeObject(filename, PURE_FILE);
 
     retval->object = newobj;
@@ -63,7 +70,7 @@ int open_mode;
       if ((oidf = FilenameToOID(path)) == InvalidObjectId) { /* new file */
         oidf = LOcreatOID(path,0); /* enter it in system relation */
         /* enter cookie into table */
-        if (LOputOIDandLargeObjDesc(oidf,newobj) < 0)
+        if (LOputOIDandLargeObjDesc(oidf, Unix,newobj) < 0)
           elog(NOTICE,"LOputOIDandLargeObjDesc failed");
       }
     }
@@ -255,6 +262,24 @@ LargeObject *object;
 }
 
 /*
+ * Destroys an existing large object, but doesn't touch memory
+ * Currently deletes the large object file.
+ */
+
+void
+LODestroyRef(object)
+
+LargeObject *object;
+
+{
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == PURE_FILE);
+
+    FileNameUnlink(object->lo_ptr.filename);
+
+}
+
+/*
  * To be called at the end of the use of a large object, just before the
  * large object is closed.
  */
@@ -282,7 +307,7 @@ int
 LOUnixStat(obj_desc, stbuf)
 
 LargeObjectDesc *obj_desc;
-struct stat *stbuf;
+struct pgstat *stbuf;
 {
     int ret;
 
@@ -291,11 +316,89 @@ struct stat *stbuf;
     Assert(obj_desc->object->lo_storage_type == PURE_FILE);
     Assert(stbuf != NULL);
 
-    ret = stat(obj_desc->object->lo_ptr.filename,stbuf);
-#if 0
-    elog(NOTICE,"LOUnixStat: fd %d, ret %d, size %d blocks %d",obj_desc->fd,
-         ret, stbuf->st_size,stbuf->st_blocks);
+    ret = FileStat(obj_desc->fd,stbuf);
+
+#if FSDB
+    elog(NOTICE,"LOUnixStat: fd %d, ret %d, size %d",obj_desc->fd,
+         ret, stbuf->st_size);
 #endif
 
     return ret;
 }
+
+/*
+ * Handles your standard unix seek(2).
+ */
+int
+LOSeek(obj_desc,offset,whence)
+	LargeObjectDesc *obj_desc;
+	int offset, whence;
+{
+    int ret;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+
+    ret = FileSeek(obj_desc->fd,offset,whence);
+
+    return ret;
+}
+
+/*
+ * Handles your standard unix tell(2).
+ */
+int
+LOTell(obj_desc)
+	LargeObjectDesc *obj_desc;
+{
+    int ret;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+
+    ret = FileTell(obj_desc->fd);
+
+    return ret;
+}
+
+/* byte oriented read.
+ * maybe do partial block reads
+ */
+
+int LORead(obj_desc,buf,n)
+     LargeObjectDesc *obj_desc;
+     char *buf;
+     int n;
+{
+    int ret;
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(buf != NULL);
+
+    ret = FileRead(obj_desc->fd,buf,n);
+
+    return ret;
+}
+/* byte oriented write.
+ * maybe do partial block writes
+ */
+
+int LOWrite (obj_desc,buf,n)
+     LargeObjectDesc *obj_desc;
+     char *buf;
+     int n;
+{
+    int ret;
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(buf != NULL);
+
+    ret = FileWrite(obj_desc->fd,buf,n);
+
+    return ret;
+}
+
