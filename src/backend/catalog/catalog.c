@@ -77,7 +77,7 @@ char    relname[];
         static  char    path[1 + 6 + 16] = "../../";
         static  char    *appnd = path + 6;
 
-        if (NameIsSharedSystemRelationName(relname)) {
+        if (NameIsSharedSystemRelationName((Name)relname)) {
                 strncpy(appnd, relname, 16);
                 return(path);
         }

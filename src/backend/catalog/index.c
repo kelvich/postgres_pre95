@@ -53,6 +53,8 @@ RcsId("$Header$");
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
 
+#include "lib/heap.h"
+
 void	 index_build();
 
 /* ----------------------------------------------------------------
@@ -520,7 +522,7 @@ ConstructIndexReldesc(indexRelation, amoid)
     if (!CacheCxt)
 	CacheCxt = CreateGlobalMemory("Cache");
 
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
    
     indexRelation->rd_am =
 	AccessMethodObjectIdGetAccessMethodTupleForm(amoid);
@@ -568,7 +570,7 @@ UpdateRelationRelation(indexRelation)
     tuple->t_oid = indexRelation->rd_id;
     heap_insert(pg_relation, tuple, (double *)NULL);
    
-    pfree(tuple);
+    pfree((Pointer)tuple);
     heap_close(pg_relation);
 
     return(tuple->t_oid);
@@ -688,7 +690,7 @@ AppendAttributeTuples(indexRelation, numatts)
 	 *  so we free the original and use the copy..
 	 * ----------------
 	 */
-	pfree(tuple);
+	pfree((Pointer)tuple);
 	tuple = newtuple;
     }
 
@@ -697,7 +699,7 @@ AppendAttributeTuples(indexRelation, numatts)
      * ----------------
      */
     heap_close(pg_attribute);
-    pfree(tuple);
+    pfree((Pointer)tuple);
 }
 
 /* ----------------------------------------------------------------
@@ -776,7 +778,7 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
      * ----------------
      */
     heap_close(pg_index);
-    pfree(tuple);
+    pfree((Pointer)tuple);
 }
  
 /* ----------------------------------------------------------------
@@ -823,11 +825,12 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
 	CacheCxt = CreateGlobalMemory("Cache");
 
     strategy = (IndexStrategy)
-	MemoryContextAlloc(CacheCxt, strsize);
+	MemoryContextAlloc((MemoryContext)CacheCxt, strsize);
 
     if (amsupport > 0) {
         strsize = numatts * (amstrategies * sizeof(RegProcedure));
-        support = (RegProcedure *) MemoryContextAlloc(CacheCxt, strsize);
+        support = (RegProcedure *) MemoryContextAlloc((MemoryContext)CacheCxt,
+						      strsize);
     } else {
 	support = (RegProcedure *) NULL;
     }
@@ -925,10 +928,10 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      *	create the index relation
      * ----------------
      */
-    indexRelation = heap_creatr(indexRelationName,
+    indexRelation = heap_creatr((char*)indexRelationName,
 				numatts,
 				DEFAULT_SMGR,
-				indexTupDesc);
+				(struct attribute **)(indexTupDesc));
 
     /* ----------------
      *    construct the index relation descriptor
@@ -1238,7 +1241,7 @@ UpdateStats(whichRel, reltuples)
  */
 void
 DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
-		indexStrategy, parameterCount, parameter)
+		indexStrategy, parameterCount, parameter, funcInfo)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
@@ -1246,6 +1249,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     IndexStrategy	indexStrategy; 		/* not used */
     uint16		parameterCount;		/* not used */
     Datum		parameter[]; 		/* not used */
+    FuncIndexInfoPtr       funcInfo;
 {
     HeapScanDesc		scan;
     HeapTuple			heapTuple;
@@ -1315,7 +1319,8 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 		       heapDescriptor,	    /* heap tuple's descriptor */
 		       buffer,		    /* buffer used in the scan */
 		       datum,		/* return: array of attributes */
-		       null);		/* return: array of char's */
+		       null,		/* return: array of char's */
+		       funcInfo);
 		
 	indexTuple = FormIndexTuple(numberOfAttributes,
 				    indexDescriptor,
@@ -1329,13 +1334,13 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 			 indexTuple,
 			 (double *) NULL);
 
-	pfree(indexTuple);
+	pfree((Pointer)indexTuple);
     }
 
     heap_endscan(scan);
 
     pfree(null);
-    pfree(datum);
+    pfree((Pointer)datum);
 
     /*
      *  Okay, now update the reltuples and relpages statistics for both

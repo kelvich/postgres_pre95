@@ -58,6 +58,8 @@ RcsId("$Header$");
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
+#include "lib/catalog.h"
+
 #ifdef sprite
 #include "sprite_file.h"
 #endif /* sprite */
@@ -182,9 +184,9 @@ heap_creatr(relname, natts, smgr, att)
     extern GlobalMemory	CacheCxt;
     MemoryContext	oldcxt;
 
-    int			issystem();
+    /* int			issystem(); */
     File		smgrcreate();		/* XXX */
-    OID			newoid();
+    /* OID			newoid(); */
     extern		bcopy(), bzero();
 
     /* ----------------
@@ -210,7 +212,7 @@ heap_creatr(relname, natts, smgr, att)
     if (!CacheCxt)
 	CacheCxt = CreateGlobalMemory("Cache");
 	
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
 
     /* ----------------
      *	real ugly stuff to assign the proper relid in the relation
@@ -364,7 +366,8 @@ CheckAttributeNames(natts, tupdesc)
      */
     for (i = 0; i < natts; i += 1) {
 	for (j = 0; j < sizeof HeapAtt / sizeof HeapAtt[0]; j += 1) {
-	    if (NameIsEqual(HeapAtt[j]->attname, tupdesc[i]->attname)) {
+	    if (NameIsEqual((Name)(HeapAtt[j]->attname),
+			    (Name)(tupdesc[i]->attname))) {
 		elog(WARN,
 		     "create: system attribute named \"%s\"",
 		     HeapAtt[j]->attname);
@@ -378,7 +381,8 @@ CheckAttributeNames(natts, tupdesc)
      */
     for (i = 1; i < natts; i += 1) {
 	for (j = 0; j < i; j += 1) {
-	    if (NameIsEqual(tupdesc[j]->attname, tupdesc[i]->attname)) {
+	    if (NameIsEqual((Name)(tupdesc[j]->attname),
+			    (Name)(tupdesc[i]->attname))) {
 		elog(WARN,
 		     "create: repeated attribute \"%s\"",
 		     tupdesc[j]->attname);
@@ -400,7 +404,7 @@ RelationAlreadyExists(pg_relation_desc, relname)
     Relation		pg_relation_desc;
     char		relname[];
 {
-    struct skey		key;
+    ScanKeyEntryData	key;
     HeapScanDesc	pg_relation_scan;
     HeapTuple		tup;
 
@@ -408,8 +412,11 @@ RelationAlreadyExists(pg_relation_desc, relname)
      *	form the scan key
      * ----------------
      */
-	ScanKeyEntryInitialize(&key, 0, Anum_pg_relation_relname,
-						   F_CHAR16EQ, (DATUM) relname);
+	ScanKeyEntryInitialize(&key,
+			       0,
+			       (AttributeNumber)Anum_pg_relation_relname,
+			       (RegProcedure)F_CHAR16EQ,
+			       (Datum) relname);
 
     /* ----------------
      *	begin the scan
@@ -458,8 +465,6 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
     Relation	rdesc;
     int		i;
 
-    extern	fillatt();
-
     /* ----------------
      *	open pg_attribute
      * ----------------
@@ -473,7 +478,7 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
      * ----------------
      */
     setheapoverride(true);
-    fillatt(natts, tupdesc);
+    fillatt(natts, (AttributeTupleForm*)tupdesc);
     setheapoverride(false);
 
     /* ----------------
@@ -547,8 +552,6 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
     RelationTupleForm	new_rel_reltup;
     HeapTuple		tup;
     bool		isBootstrap;
-
-    extern		fillatt();
 
     /* ----------------
      *	first we munge some of the information in our
@@ -891,7 +894,7 @@ DeletePgRelationTuple(rdesc)
 {
     Relation		pg_relation_desc;
     HeapScanDesc	pg_relation_scan;
-    struct	skey	key;
+    ScanKeyEntryData	key;
     HeapTuple		tup;
 
     /* ----------------
@@ -949,7 +952,7 @@ DeletePgAttributeTuples(rdesc)
 {
     Relation		pg_attribute_desc;
     HeapScanDesc	pg_attribute_scan;
-    struct	skey	key;
+    ScanKeyEntryData	key;
     HeapTuple		tup;
 
     /* ----------------
@@ -1021,8 +1024,8 @@ DeletePgTypeTuple(rdesc)
     HeapScanDesc	pg_type_scan;
     Relation		pg_attribute_desc;
     HeapScanDesc	pg_attribute_scan;
-    struct	skey	key;
-    struct	skey	attkey;
+    ScanKeyEntryData	key;
+    ScanKeyEntryData	attkey;
     HeapTuple		tup;
     HeapTuple		atttup;
     ObjectId		typoid;
@@ -1125,14 +1128,14 @@ void
 UnlinkRelationFile(rdesc)
     Relation		rdesc;
 {
-    char	*relpath();
+/*     char	*relpath();*/
     int 	i;
 
     /* ----------------
      *	unlink the unix file
      * ----------------
      */
-    if (FileNameUnlink(relpath(&rdesc->rd_rel->relname)) < 0)
+    if (FileNameUnlink((FileName)(relpath((char*)(&rdesc->rd_rel->relname)))) < 0)
 	elog(WARN, "amdestroyr: unlink: %m");
 
 }
@@ -1147,7 +1150,7 @@ heap_destroy(relname)
     char	relname[];
 {
     Relation	rdesc;
-    int		issystem();
+/*     int		issystem(); */
 
     /* ----------------
      *	first open the relation.  if the relation does exist,
@@ -1162,7 +1165,7 @@ heap_destroy(relname)
      *	prevent deletion of system relations
      * ----------------
      */
-    if (issystem(RelationGetRelationName(rdesc)) || 0 /* is not owned etc. */)
+    if (issystem((char*)(RelationGetRelationName(rdesc))) || 0 /* is not owned etc. */)
 	elog(WARN, "amdestroy: cannot destroy %s relation",
 	     &rdesc->rd_rel->relname);
 
