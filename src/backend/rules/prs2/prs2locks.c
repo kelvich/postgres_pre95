@@ -17,6 +17,18 @@
 
 /*-----------------------------------------------------------------------
  *
+ * prs2FreeLocks
+ *
+ */
+void
+prs2FreeLocks(lock)
+RuleLock lock;
+{
+    pfree(lock);
+}
+
+/*-----------------------------------------------------------------------
+ *
  * prs2MakeLocks
  *
  * Create an empty prs2 locks, i.e. return a pointer to a 'Prs2LocksData'
@@ -137,6 +149,7 @@ TupleDescriptor tupleDescriptor;
     Boolean isNull;
     RuleLock locks;
     RuleLock t;
+    int n;
     Size size;
 
     lockDatum = HeapTupleGetAttributeValue(
@@ -155,7 +168,8 @@ TupleDescriptor tupleDescriptor;
 	/*
 	 * Make a copy of the locks
 	 */
-	size = prs2LockSize(prs2GetNumberOfLocks(t));
+	n = prs2GetNumberOfLocks(t);
+	size = prs2LockSize(n);
 	locks = (RuleLock) palloc(size);
 	if (locks == NULL) {
 	    elog(WARN,"prs2MakeLocks: palloc(%d) failed",size);
@@ -193,7 +207,7 @@ RuleLock   newLocks;
     if (prs2GetNumberOfLocks(newLocks) == 0) {
 	newTuple->t_lock.l_lock = (RuleLock) NULL;
     } else {
-	newTuple->t_lock.l_lock = (RuleLock) newLocks;
+	newTuple->t_lock.l_lock = newLocks;
     }
 
     return(newTuple);
@@ -262,11 +276,11 @@ RuleLock locks;
      */
     for (i=0; i < numberOfLocks; i++) {
 	oneLock = prs2GetOneLockFromLocks(locks, i);
-	prs2AddLock( newLocks,
-	    prs2OneLockGetRuleId(oneLock),
-	    prs2OneLockGetLockType(oneLock),
-	    prs2OneLockGetAttributeNumber(oneLock),
-	    prs2OneLockGetPlanNumber(oneLock));
+	newLocks = prs2AddLock(newLocks,
+		prs2OneLockGetRuleId(oneLock),
+		prs2OneLockGetLockType(oneLock),
+		prs2OneLockGetAttributeNumber(oneLock),
+		prs2OneLockGetPlanNumber(oneLock));
     }
 
     return(newLocks);
