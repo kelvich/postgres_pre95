@@ -289,7 +289,9 @@ CatalogIndexFetchTuple(heapRelation, idesc, skey)
     }
 
     index_endscan(sd);
-
+	if (sd->opaque)
+		pfree(sd->opaque);
+	pfree(sd);
     return (tuple);
 }
 
