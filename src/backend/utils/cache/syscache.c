@@ -13,7 +13,6 @@
 RcsId("$Header$");
 
 #include "anum.h"
-#include "catalog.h"		/* for struct amop, ... */
 #include "cat.h"
 #include "catcache.h"
 #include "catname.h"
@@ -21,9 +20,8 @@ RcsId("$Header$");
 #include "log.h"
 #include "palloc.h"
 #include "pg_lisp.h"
-#include "tuple.h"
+#include "htup.h"
 
-/* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
 #ifndef PG_STANDALONE
