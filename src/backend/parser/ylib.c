@@ -653,11 +653,11 @@ char *relname;
     extern int p_last_resno;
     Index vararrayindex = 0;
     
-    vnum = RangeTablePosn ( relname,0,0) ;
+    vnum = RangeTablePosn ( relname,0) ;
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
 			     MakeRangeTableEntry ( relname , 0 , relname) );
-		vnum = RangeTablePosn (relname,0,0);
+		vnum = RangeTablePosn (relname,0);
     }
 
     vartype = RELATION;
