@@ -381,9 +381,9 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     values[i++] = (char *) passedByValue;
     values[i++] = (char *) typeType;
     values[i++] = (char *) (Boolean) 1;
+    values[i++] = (char *) typDelim;
     values[i++] = (char *) (typeType == 'c' ? relationOid : InvalidObjectId);
     values[i++] = (char *) elementObjectId;
-	values[i++] = (char *) typDelim;
     
     /* ----------------
      *	initialize the various procedure id's in value[]
