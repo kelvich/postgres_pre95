@@ -7,7 +7,7 @@
 #ifndef TUPMACS_H
 #define TUPMACS_H
 
-#define att_isnull(ATT, BITS) (!((BITS)[(ATT) >> 3] & ((ATT) & 0x07)))
+#define att_isnull(ATT, BITS) (!((BITS)[(ATT) >> 3] & (1 << ((ATT) & 0x07))))
 
 #define fetchatt(A, T) \
 ((*(A))->attlen < 0 ? (char *) (LONGALIGN((T) + sizeof(long))) : \
