@@ -128,11 +128,11 @@ PQexec(query)
     be_portalpush(entry);
     
     /* ----------------
-     *	pg_eval will put the query results in a portal which will
+     *	pg_eval_dest will put the query results in a portal which will
      *  end up on the top of the portal stack.
      * ----------------
      */
-    pg_eval(query, Local);
+    pg_eval_dest(query, Local);
     
     /* ----------------
      *	pop the portal off the portal stack and return the
