@@ -113,6 +113,10 @@ LispValue qual;
     tupleTable = ExecCreateTupleTable(1);
     slotnum = ExecAllocTableSlot(tupleTable);
     slot = (TupleTableSlot) ExecGetTableSlot(tupleTable, slotnum);
+    SetSlotContents(slot, NULL);
+    SetSlotShouldFree(slot, false);
+    SetSlotTupleDescriptor(slot, (TupleDescriptor) NULL);
+    SetSlotTupleDescriptorIsNew(slot, true);
 
     econtext = RMakeExprContext();
     (void)ExecStoreTuple(tuple, slot, false);
