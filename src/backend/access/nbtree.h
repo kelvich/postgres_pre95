@@ -34,6 +34,21 @@ typedef struct BTPageOpaqueData {
 typedef BTPageOpaqueData	*BTPageOpaque;
 
 /*
+ *  ScanOpaqueData is used to remember which buffers we're currently
+ *  examining in the scan.  We keep these buffers locked and pinned and
+ *  recorded in the opaque entry of the scan in order to avoid doing a
+ *  ReadBuffer() for every tuple in the index.  This avoids semop() calls,
+ *  which are expensive.
+ */
+
+typedef struct BTScanOpaqueData {
+    Buffer	btso_curbuf;
+    Buffer	btso_mrkbuf;
+} BTScanOpaqueData;
+
+typedef BTScanOpaqueData	*BTScanOpaque;
+
+/*
  *  BTItems are what we store in the btree.  Each item has an index tuple,
  *  including key and pointer values.  In addition, we must guarantee that
  *  all tuples in the index are unique, in order to satisfy some assumptions
@@ -84,13 +99,11 @@ typedef BTStackData	*BTStack;
 
 /*
  *  We need to be able to tell the difference between read and write
- *  requests for pages, in order to do locking correctly.  If the access
- *  type is NONE, it means we still hold a lock from some earlier operation.
+ *  requests for pages, in order to do locking correctly.
  */
 
 #define	BT_READ		0
 #define	BT_WRITE	1
-#define BT_NONE		2
 
 /*
  *  Similarly, the difference between insertion and non-insertion binary
@@ -158,3 +171,8 @@ StrategyNumber		_bt_getstrat();
 bool			_bt_invokestrat();
 BTItem			_bt_formitem();
 bool			_bt_goesonpg();
+void			_bt_regscan();
+void			_bt_dropscan();
+void			_bt_adjscans();
+void			_bt_scandel();
+bool			_bt_scantouched();
