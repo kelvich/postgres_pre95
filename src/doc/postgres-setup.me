@@ -599,9 +599,12 @@ sparc	\- Sparcstation or Sun 4
 The
 .i only
 thing we recommend changing is the
-GCFLAGS variable.  Remember the port name used here for Step 3.
+GCFLAGS variable.  Remember the
+.b port
+.b name
+used here as it is necessary for Step 4.
 .pp
-.sh 2 "Step 3 - Compiling and Installing \*(PG"
+.sh 2 "Step 4 - Compiling and Installing \*(PG"
 Now you are ready to install Postgres.  To do so,
 simply execute the following commands:
 .(l
@@ -613,8 +616,11 @@ simply execute the following commands:
 .lp
 .i Make
 .i install
-will ask you for the port you wish to use.  Use the same port as
-in Step 2.  You will also be asked for the name of the object tree directory;
+will ask you for the port you wish to use.  Use the port name that you
+used in 
+.b Configuring
+\*(PG.
+You will also be asked for the name of the object tree directory;
 the default is ~postgres/obj.<port>.  (throughout the rest of this document
 obj.<port> refers to the object tree directory).  This step will take from
 about 40 minutes on Sparc II or DEC 5000 class machines to several hours
