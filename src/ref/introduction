@@ -66,10 +66,10 @@ will be tuned to run as fast as possible.
 .uh "POSTGRES DOCUMENTATION"
 .lp
 This
-reference manual describes the functionality of Versions 2.1, and 3
+reference manual describes the functionality of Version 3
 and contains
 notations where appropriate to indicate which features are not implemented in
-Version 2.1.
+Version 3.
 Application developers should note that
 this reference manual contains only the specification for
 the low-level call-oriented application program interface,
@@ -83,34 +83,42 @@ The remainder of this manual is structured as follows.
 In Section 2,
 we discuss the \*(PP capabilities that are available directly
 from the operating system.
-Section 3 then describes \*(PQ,
+Section 3 describes *(PP internal data types, functions, and
+operators.
+Section 4 then describes \*(PQ,
 the language by which a user interacts with a
 \*(PP database.
 Then,
-Section 4 describes
+Section 5 describes
 a library of low level routines through which a user can
 formulate \*(PQ queries from a
 C program and get appropriate
 return information back to his program.
 Next,
-Section 5 continues with a description of
+Section 6 continues with a description of
 a method by which applications may execute functions in \*(PP
 with very high performance.
-The manual concludes with Section 6,
+Section 7 describes the internal Postgres interface for accessing
+large objects. 
+The manual concludes with Section 8,
 a collection of
 file format descriptions
 for files used by \*(PP.
+.lp
 .uh ACKNOWLEDGEMENTS
 .lp
 \*(PP has been constructed by a team of undergraduate, graduate, and
 staff programmers.
-The Version 2.1 contributors (in alphabetical order) consisted of 
+The Version 3 contributors (in alphabetical order) consisted of 
 James Bell,
+Jennifer Caetta,
 Ron Choi,
+Adam Glass,
 Jeffrey Goh,
 Wei Hong,
 Anant Jhingran,
 Greg Kemnitz,
+Jeff Meredith,
 Michael Olson,
 Lay-Peng Ong,
 Spyros Potamianos,
