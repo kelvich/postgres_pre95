@@ -178,6 +178,7 @@ heap_creatr(relname, natts, smgr, att)
     ObjectId		relid;
     Relation		rdesc;
     int			len;
+    bool		nailme = false;
 
     File		fd;
 
@@ -220,13 +221,25 @@ heap_creatr(relname, natts, smgr, att)
      * ----------------
      */
     if (! strncmp(relname, RelationRelationName, 16))
+    {
 	relid = RelOid_pg_relation;
+	nailme = true;
+    }
     else if (! strncmp(relname, AttributeRelationName, 16))
+    {
 	relid = RelOid_pg_attribute;
+	nailme = true;
+    }
     else if (! strncmp(relname, ProcedureRelationName, 16))
+    {
 	relid = RelOid_pg_proc;
+	nailme = true;
+    }
     else if (! strncmp(relname, TypeRelationName, 16))
+    {
 	relid = RelOid_pg_type;
+	nailme = true;
+    }
     else  {
 	relid = newoid();
 	if (! strncmp(relname, "temp_", 5))
@@ -250,6 +263,14 @@ heap_creatr(relname, natts, smgr, att)
      * ----------------
      */
     rdesc->rd_fd = fd;
+    /* ----------------
+     *  nail the reldesc if this is a bootstrap create reln and
+     *  we may need it in the cache later on in the bootstrap
+     *  process so we don't ever want it kicked out.  e.g. pg_attribute!!!
+     * ----------------
+     */
+    if (nailme)
+	rdesc->rd_isnailed = true;
 
     RelationSetReferenceCount(rdesc, 1);
 
