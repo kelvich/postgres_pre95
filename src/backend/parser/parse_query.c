@@ -325,21 +325,23 @@ ExpandAll(relname,this_resno)
 	LispValue temp = LispNil;
 	int i,maxattrs,first_resno;
 	int type_id,type_len,vnum;
+	LispValue physical_relname;
 
 	first_resno = *this_resno;
-
+	
 	/* printf("\nExpanding %s.all\n",CString(relname)); */
-
-	if ((vnum= RangeTablePosn (CString(relname),0,0)) == 0 ) {
+	vnum = RangeTablePosn (CString(relname),0,0);
+	if ( vnum == 0 ) {
 		p_rtable = nappend1 ( p_rtable,
 				     MakeRangeTableEntry (relname, 
 							  0 ,  relname));
-		relname = VarnoGetRelname(1);
+		physical_relname = VarnoGetRelname(1);
+		/* printf("first item in range table"); */
 	} else 
-		relname = VarnoGetRelname(vnum);
+		physical_relname = VarnoGetRelname(vnum);
 
 
-	rdesc = amopenr(CString(relname));
+	rdesc = amopenr(CString(physical_relname));
 	
 	if (rdesc == NULL ) {
 		elog(WARN,"Unable to expand all -- amopenr failed ");
@@ -468,14 +470,15 @@ make_var ( relname, attrname )
 	extern LispValue p_rtable;
 	extern int p_last_resno;
 
-	/*
+	/* 
 	printf (" now in make_Var\n"); 
 	printf ("relation = %s, attr = %s\n",CString(relname),
 		CString(attrname)); 
+		*/
 	fflush(stdout);
-	*/
+
 	vnum = RangeTablePosn ( CString (relname),0,0) ;
-	/* printf("vnum = %d\n",vnum); */
+	printf("vnum = %d\n",vnum);
 	if (vnum == 0) {
 		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );

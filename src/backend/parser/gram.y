@@ -703,15 +703,17 @@ OptimizableStmt:
 AppendStmt:
 	  Append opt_star relation_name 
 		{ CurrentRelationPtr = amopenr(CString($3)); 
-		  ResdomNoIsAttrNo = 1; SkipForwardToFromList(); }
+		  ResdomNoIsAttrNo = 1; SkipForwardToFromList(); 
+		  if(RangeTablePosn(CString($3),0,0) == 0)
+		    p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+					       ($3,0,$3));
+		}
 	  from_clause
 	  '(' res_target_list ')'
 	  where_clause
 		{
 			LispValue root;
-			if(RangeTablePosn(CString($3),0,0) == 0)
-			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       ($3,0,$3));
+
 			StripRangeTable();
 		    	root = MakeRoot(1, KW(append), lispInteger(1), 
 					p_rtable,
@@ -792,10 +794,6 @@ ReplaceStmt:
   		{
 		    LispValue root;
 
-		    if(RangeTablePosn(CString($4),0,0) == 0)
-		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					   ($4,0,$4));
-	
 		    StripRangeTable();
 		    root = MakeRoot(1, KW(replace), lispInteger(1),
 				    p_rtable,
@@ -1032,27 +1030,32 @@ from_rel_name:
 
 Relation:
 	  relation_name
-		{ p_rtable = nappend1 (p_rtable, 
+		{ if(RangeTablePosn(CString($1),0,0) == 0 )
+		    p_rtable = nappend1 (p_rtable, 
 		       MakeRangeTableEntry( $1 , 0 ,$1)); $$ = p_rtable ; }
 	| relation_name star
-		{ p_rtable = nappend1 (p_rtable ,
+		{ if(RangeTablePosn(CString($1),1,0) == 0 )
+		    p_rtable = nappend1 (p_rtable ,
 		       MakeRangeTableEntry( $1 , 1 ,$1)); $$ = p_rtable ;}
 	| relation_name '[' date_string ']'
 		{ 
-		    p_trange = MakeTimeRange( $3, LispNil ,0 ); /* snapshot */
+		  p_trange = MakeTimeRange( $3, LispNil ,0 ); /* snapshot */
+		  if(RangeTablePosn(CString($1),0,p_trange) == 0 )
 		    p_rtable = nappend1 (p_rtable ,
-			       MakeRangeTableEntry( $1, 2,$1 )); $$ = p_rtable ;
+			 MakeRangeTableEntry( $1, 2,$1 )); $$ = p_rtable ;
 		}
 	| relation_name '[' date ',' date ']'
 		{
 		    /* inherit & timerange */
 		    p_trange = MakeTimeRange( $3 , $5 , 1 );
+		  if(RangeTablePosn(CString($1),0,p_trange) == 0 )
 		    p_rtable = nappend1( p_rtable,
 					MakeRangeTableEntry ( $1 , 2,$1 ));
 	        }
 	| relation_name star '[' date ',' date ']'
 		{
-		    p_trange = MakeTimeRange( $3 , $5 , 1 );
+		  p_trange = MakeTimeRange( $3 , $5 , 1 );
+		  if(RangeTablePosn(CString($1),1,p_trange) == 0 )
 		    p_rtable = nappend1( p_rtable,
 					MakeRangeTableEntry ( $1 , 3 ,$1));
 	        }
