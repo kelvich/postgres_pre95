@@ -129,6 +129,10 @@ Relation relation;
  * If no attribute has been changed we can use the olt 'tuple'
  * thus avoiding the copy (efficiency!).
  *
+#ifdef CHANGE_LOCKS
+    ---------------------------------------------------
+    XXX Currently we do NOT do that !!!         XXXXXXX
+    ---------------------------------------------------
  * However we must also need change the locks of the tuple!
  * Say, if during a retrieve operation, a rule that had a lock of
  * type `LockTypeTupleRetrieveWrite' has been activated and calculated a new
@@ -147,13 +151,17 @@ Relation relation;
  * Hm.. here comes the tricky question. If no attribute has been
  * changed (i.e. all the 'isChanged' are false) but we must change
  * the locks of the tuple, what shall we do??
- * I thinke that we have the following options, but I don't know
+ * I think that we have the following options, but I don't know
  * which ones are gonna work and which not:
  *    1) We do not copy the tuple, and we just change its
  *       lock so that it points to the new lock:
  *       tuple->t_lcok.l_lock = newLock;
  *    2) We create a new copy of the tuple with the right locks.
  * I decided to do option # 2.
+#else
+ * If a new tuple is created, then it will always have an empty
+ * lock in it.
+#endif CHANGE_LOCKS
  *  
  *
  * This routine returns 0 if no tuple copy has been made and
@@ -265,6 +273,7 @@ HeapTuple *newTupleP;
     }
 
 
+#ifdef CHANGE_LOCKS
     nlocks = prs2GetNumberOfLocks(locks);
 
     newLocks = prs2MakeLocks();
@@ -306,18 +315,30 @@ HeapTuple *newTupleP;
 	return(1);
     } else if (!locksHaveToChange && tupleHasChanged) {
 	/*
-	 * this is impossible!!!
+	 * this is impossible
 	 */
-	elog(WARN,"attributeValuesMakeNewTuple: Internal Error");
+	elog(WARN,"attributeValuesMakeNewTuple: Internal error");
     } else if (locksHaveToChange && !tupleHasChanged) {
 	*newTupleP = prs2PutLocksInTuple(
 			    tuple, buffer,
 			    relation, newLocks);
 	return(1);
     } else if (!locksHaveToChange && !tupleHasChanged) {
-	prs2FreeLocks(newLocks);
+	if (newLocks != InvalidRuleLock)
+	    prs2FreeLocks(newLocks);
 	return(0);
     }
+#else
+    if (tupleHasChanged) {
+	/*
+	 * NOTE: the new tuple, has NO LOCKS IN IT!
+	 * (well, actually it has an empty lock).
+	 */
+	return(1);
+    } else {
+	return(0);
+    }
+#endif CHANGE_LOCKS
 }
 
 /*--------------------------------------------------------------------
