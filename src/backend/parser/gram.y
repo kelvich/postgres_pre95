@@ -410,14 +410,14 @@ FetchStmt:
 
 OptFetchDirn:
 	  /*EMPTY, default is forward*/
-		{ $$ = KW(forward); }
+		{ $$ = KW(FORWARD); }
 	| Backward
 	| Forward
 	;
 
 OptFetchNum:
 	/*EMPTY, default is all*/
-		{ $$ = KW(all) ; }
+		{ $$ = KW(ALL) ; }
 	| NumConst
 	| All
 	;
