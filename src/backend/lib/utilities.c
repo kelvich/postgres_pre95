@@ -154,8 +154,7 @@ copy_seq_tree (seqtree)
 		NodeSetTag(new_elem,classTag(LispSymbol));
 		break;
 	      case PGLISP_DTPR:
-		elog(NOTICE,"sequence is more than one deep !");
-	      new_elem = copy_seq_tree(elem);
+		new_elem = copy_seq_tree(elem);
 		break;
 	      case PGLISP_VECI:
 		elog(WARN,"copying vectors unsupported");
