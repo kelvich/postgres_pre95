@@ -1238,6 +1238,8 @@ res_target_el:
 				elog(WARN, "unequal type in tlist\n");
 		    } else {
 			resdomno = p_last_resno++;
+			attrtype = type_id;
+			attrlen = type_len;
 		    }
 		    $$ = lispCons (lispMakeResdom (  resdomno,
 						   attrtype,
