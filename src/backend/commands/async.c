@@ -224,7 +224,7 @@ void Async_Notify(char *relname)
   INIT_NOTIFY_LIST;
   notify = (PendingNotifyNode *) malloc(sizeof(PendingNotifyNode));
   bzero(notify->relname.data, sizeof(NameData));
-  bcopy(relname, notify->relname.data, strlen(relname));
+  namestrcpy(notify->relname, relname);
   SLNewNode(&notify->node);
   SLAddHead(&pendingNotifies, &notify->node);
   
@@ -437,7 +437,7 @@ void Async_Listen(relname, pid)
 	d = (Datum) heap_getattr(htup,b,Anum_pg_listener_relname,tdesc,
 				 &isnull);
 	relnamei = DatumGetPointer(d);
-	if (!strcmp(relnamei,relname)) {
+	if (!strncmp(relnamei,relname, NAMEDATALEN)) {
 	    d = (Datum) heap_getattr(htup,b,Anum_pg_listener_pid,tdesc,&isnull);
 	    pid = (int) DatumGetPointer(d);
 	    if (pid == ourPid) {
@@ -591,7 +591,7 @@ static int AsyncExistsPendingNotify(char *relname)
   
   for (p = (PendingNotifyNode *)SLGetHead(&pendingNotifies); p != NULL;
        p = (PendingNotifyNode *)SLGetSucc(&p->node)) {
-    if (!strcmp(p->relname.data, relname)) {
+    if (!strncmp(p->relname.data, relname, NAMEDATALEN)) {
       return 1;
     }
   }
