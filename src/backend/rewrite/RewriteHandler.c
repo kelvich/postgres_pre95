@@ -318,6 +318,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
     List k			= NULL;
     List ruletrees		= NULL;
     List additional_queries	= NULL; /* set by locktyperetrieveaction */
+    List action_info		= NULL;
     List user_qual		= parse_qualification(user_parsetree);
 
     foreach ( i , retrieve_locks ) {
@@ -329,7 +330,9 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	char *result_relname =  NULL;
 	List result_rte = NULL;
 	
-	ruletrees = RuleIdGetRuleParsetrees ( this_lock->ruleId );
+	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
+	ruletrees = CDR(action_info);
+
 	foreach ( j , ruletrees ) {
 	    List ruleparse = CAR(j);
 
@@ -551,6 +554,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
     List j		= NULL;
     List new_queries	= NULL;
     List ruletrees	= NULL;
+    List action_info	= NULL;
     int offset_trigger  = 0;
 
     Assert ( update_locks != NULL ); /* otherwise we won't have been called */
@@ -565,7 +569,9 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	PrintRuleLock ( this_lock );
 	printf ("\n");
 
-	ruletrees = RuleIdGetRuleParsetrees ( this_lock->ruleId );
+	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
+	ruletrees = CDR(action_info);
+
 	foreach ( j , ruletrees ) {
 	    List rule_action = CAR(j);
 	    List rule_tlist = parse_targetlist(rule_action);
