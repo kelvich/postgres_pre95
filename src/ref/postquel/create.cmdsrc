@@ -70,7 +70,7 @@ are automatically created as a type.  Therefore, a tuple
 and a set of tuples from the relation are automatically a type and can be used in other create statements. 
 See 
 .b introduction
-(posquel) for a further discussion of this point.
+(commands) for a further discussion of this point.
 .lp
 The relation is created as a heap with
 no initial data.
