@@ -60,18 +60,28 @@ RcsId("$Header$");
 #ifdef FRANZ43
 /* ===================== FRANZ43 ==================== */
 
+void
+lispDisplay(lispObject,iscdr)
+     LispValue lispObject;
+     int iscdr;
+{
+	LispValue l = quote( lispObject);
+	evalList ( l );
+}
+     
+
 char *
 CString ( lstr )
      LispValue lstr;
 {
-	return (lstr->st);
+	return ((char *)lstr);
 }
 
 int
 CInteger (l_int )
      LispValue l_int;
 {
-	return (l_int->i);
+	return ((int)l_int->i);
 }
 
 lispNullp ( lval)
@@ -83,6 +93,7 @@ LispValue
 lispAtom(atomName)
 	char	*atomName;
 {
+/*	MakeUpper(atomName); /* makes atomName all caps*/
 	return(matom(atomName));
 }
 
@@ -567,6 +578,7 @@ lispCons(lispObject1, lispObject2)
 
 LispValue
 nappend1(list, lispObject)
+	LispValue	list, lispObject;
 {
 	LispValue	p;
 	
