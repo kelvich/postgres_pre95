@@ -17,6 +17,7 @@
 
 #include "tmp/postgres.h"
 #include "utils/fmgr.h"
+#include "utils/log.h"
 
 RcsId("$Header$");
 
@@ -128,14 +129,15 @@ int44in(input_string)
     int32 *foo = (int32 *)palloc(4*sizeof(int32));
     register int i = 0;
 
-    char *temp = input_string;
-    
-    while ( sscanf(temp,"%ld", &foo[i]) == 1 
-	   && i < 4) {
-	i = i+1;
-	while (*temp != ' ' && *temp != '\t') temp++;
-	while (*temp == ' ' || *temp == '\t') temp++;
-    }
+    i = sscanf(input_string,
+	       "%ld, %ld, %ld, %ld",
+	       &foo[0],
+	       &foo[1],
+	       &foo[2],
+	       &foo[3]);
+    while (i < 4)
+	foo[i++] = 0;
+
     return(foo);
 }
 
