@@ -208,7 +208,15 @@ Relation explainRel;
 		}
 		tempRuleList->type = PRS2_RULELIST_QUERYDESC;
 		tempRuleList->data.queryDesc.queryDesc = queryDesc;
-		tempRuleList->data.queryDesc.estate = executorState;
+		/*
+		 * NOTE: the following typecast is due to a stupid
+		 * circular dependency in the definitions of `EState' and
+		 * `Prs2RuleList' which obliged me to declare 
+		 * `Prs2RuleList->data.queryDesc.estate' not as an `EState'
+		 * (which is the correct) but as a (struct *). Argh!
+		 */
+		tempRuleList->data.queryDesc.estate =
+			(struct EState *)executorState;
 		tempRuleList->next = scanStateRuleInfo->ruleList->next;
 		tempRuleListItem = scanStateRuleInfo->ruleList;
 		scanStateRuleInfo->ruleList = tempRuleList;
