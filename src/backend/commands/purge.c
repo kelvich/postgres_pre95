@@ -134,7 +134,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 				   nulls, replace);
 	/* XXX What do you do with a RuleLock?? */
 	/* XXX How do you detect an insertion error?? */
-	(void) RelationReplaceHeapTuple(relation, &newTuple->t_ctid, newTuple);
+	RelationReplaceHeapTuple(relation, &newTuple->t_ctid, newTuple, NULL);
 	pfree(newTuple);
 	HeapScanEnd(scan);
 	RelationCloseHeapRelation(relation);
