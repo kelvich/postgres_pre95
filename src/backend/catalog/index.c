@@ -1358,7 +1358,7 @@ index_build(heapRelation, indexRelation,
     AttributeNumber	attributeNumber[];
     uint16		parameterCount;
     Datum		parameter[];
-    FuncIndexInfo	funcInfo;
+    FuncIndexInfo	*funcInfo;
 {
     RegProcedure	procedure;
 
