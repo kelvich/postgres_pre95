@@ -10,6 +10,7 @@ static char *scan_l =
 #include "parse.h"
 #include "pg_lisp.h"
 #include "ctype.h"
+#include "math.h"
 
 #undef input
 #undef unput
@@ -49,7 +50,7 @@ other		.
 			return (ICONST);
 		}
 {real}		{
-			yylval = lispFloat(atof(yytext));
+			yylval = lispFloat((double) atof(yytext));
 			return (FCONST);
 		}
 {string}	{
