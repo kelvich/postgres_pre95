@@ -148,6 +148,7 @@ class (Rel) public (Node) {
 	List	clauseinfo;
 	List	joininfo;
 	List	innerjoin;
+	List	superrels;
 };
 #undef Path
 
@@ -177,7 +178,8 @@ class (Path) public (Node) {
 	Cost		path_cost; \
 	List		p_ordering; \
 	List		keys; \
-	SortKey		sortpath
+	SortKey		sortpath; \
+	Relid		joinid
 /* private: */
 	PathDefs;
  /* public: */
@@ -198,8 +200,7 @@ class (JoinPath) public (Path) {
 	List		pathclauseinfo; \
 	struct path	*outerjoinpath; \
 	struct path	*innerjoinpath; \
-	Cost		outerjoincost; \
-	Relid		joinid
+	Cost		outerjoincost
  /* private: */
 	JoinPathDefs;
  /* public: */
@@ -262,6 +263,7 @@ class (CInfo) public (Node) {
 	MergeOrder	mergesortorder;
 /* hashjoin only */
 	ObjectId	hashjoinoperator;
+	Relid		cinfojoinid;
 };
 
 class (JoinMethod) public (Node) {
@@ -290,6 +292,7 @@ class (JInfo) public (Node) {
 	List		jinfoclauseinfo;
 	bool		mergesortable;
 	bool		hashjoinable;
+	bool		inactive;
 };
 
 #endif /* RelationIncluded */
