@@ -16,7 +16,7 @@
 #include "rules/prs2.h"			/* XXX - temporarily */
 /* #include "rules/prs2locks.h"		 XXX - temporarily */
 
-#include "parser/parse.h"		/* for RETRIEVE,REPLACE,APPEND ... */
+#include "parse.h"			/* for RETRIEVE,REPLACE,APPEND ... */
 #include "parser/parsetree.h"		/* for parsetree manipulation */
 
 #include "./RewriteSupport.h"	
