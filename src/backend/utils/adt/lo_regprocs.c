@@ -7,7 +7,15 @@
 
 #include <sys/file.h>
 #include "tmp/c.h"
+#include "tmp/libpq-fs.h"
+#include "access/relscan.h"
+#include "access/tupdesc.h"
+#include "catalog/pg_naming.h"
+#include "catalog/pg_lobj.h"
+#include "storage/itemptr.h"
+#include "utils/rel.h"
 #include "utils/large_object.h"
+#include "utils/log.h"
 
 /*
  * These routines allow the user to import and export Postgres PURE_FILE
