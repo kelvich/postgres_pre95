@@ -756,6 +756,12 @@ LispValue HandleNestedDots(dots)
     ObjectId functype;
     OID funcrettype;
     LispValue first;
+    Param f;
+    Var varnode;
+    List fargs;
+    ObjectId *oid_array,input_type;
+    int nargs;
+
 
     /*
      *  If this nested dot expression is hanging off a param node,
@@ -766,134 +772,148 @@ LispValue HandleNestedDots(dots)
 
     first = CAR(dots);
     if (IsA(first,Param)) {
-	rd = heap_open(get_paramtype((Param)first));
+	f = (Param)first;
+	rd = heap_open(get_paramtype(f));
 	if (!RelationIsValid(rd)) {
 	    elog(WARN,
 		 "$%d is not a complex type; illegal nested dot expression",
-		 get_paramid((Param)first));
+		 get_paramid(f));
 	}
 	relname = RelationGetRelationName(rd);
 	relid = RelationGetRelationId(rd);
-	retval = first;
+
+	/* set up the function args list to point to the parameter */
+	retval = MakeList(MakeParam(get_paramkind(f),get_paramid(f),
+				    get_paramname(f),get_paramtype(f)),
+			  -1);
     } else {
 	relname = (Name)CString(first);
 	rd = heap_openr(relname);
 	relid = RelationGetRelationId(rd);
-	retval = (LispValue) NULL;
-    }
 
-    vnum = RangeTablePosn(relname, 0);
-    if (vnum == 0) {
-	 p_rtable = nappend1 (p_rtable ,
-			      MakeRangeTableEntry ( relname , 0 , relname) );
-	 vnum = RangeTablePosn (relname, 0);
-    }
+	/* get the range table entry for the var node */
+	vnum = RangeTablePosn(relname, 0);
+	if (vnum == 0) {
+	     p_rtable = nappend1(p_rtable ,
+				  MakeRangeTableEntry(relname, 0, relname));
+	     vnum = RangeTablePosn (relname, 0);
+	}
 
+	/*
+	 *  for relname.func.func...., the param to the first function
+	 *  is the tuple under consideration.  we build a special
+	 *  VarNode to reflect this -- it has varno set to the correct
+	 *  range table entry, but has varattno == 0 to signal that the
+	 *  whole tuple is the argument.
+	 */
+
+	retval = MakeList(MakeVar(vnum, 0, relid,
+				  LispNil /* vardotfields */,
+				  LispNil /* vararraylist */,
+				  lispCons(lispInteger(vnum),
+					   lispCons(lispInteger(0),LispNil)),
+				  0 /* varslot */),
+			   -1);
+    }
 
     /* 
-    ** the producer is the relation associated with the last nesting we've 
-    ** examined. At this point it's the relation at the head of the list
-    */
+     * the producer is the relation associated with the last nesting we've 
+     * examined. At this point it's the relation at the head of the list
+     */
+
     producer_relid = relid;
     producer_type = typeid(type(relname));
     nest = LispNil;
     first_func = 0;
 
     /* 
-    ** walk through the dots after the relation, 
-    ** and build the tree bottom up.
-    */
-    foreach (mutator_iter, CDR(dots))
-     {
-	 mutator_lisp = CAR(mutator_iter);
-	 mutator = CString(mutator_lisp);
+     * walk through the dots after the relation, 
+     * and build the tree bottom up.
+     */
 
-	 attnum = get_attnum(producer_relid, (Name) mutator);
-	 if (attnum) 
-	  {
-	      /* this attribute is actually a field of the previous Rel */
-	      if (CDR(mutator_iter) != LispNil)
+    foreach (mutator_iter, CDR(dots)) {
+
+	mutator_lisp = CAR(mutator_iter);
+	mutator = CString(mutator_lisp);
+
+	attnum = get_attnum(producer_relid, (Name) mutator);
+	if (attnum) {
+	    /* this attribute is actually a field of the previous Rel */
+	    if (CDR(mutator_iter) != LispNil)
 		elog(WARN,
 		     "%s is a projection, cannot put a dot after it", mutator);
 
-	      producer_type = get_atttype(producer_relid, attnum);
+	    /*
+	     *  At the end of the nested dot expression, we're left with
+	     *  a projection of the tuple resulting from the innermost
+	     *  function.  We need to construct a VarNode telling the
+	     *  executor what attribute to project.  The fact that varno
+	     *  is -1 here indicates that the VarNode refers to a result
+	     *  tuple, not to some tuple in the target list.
+	     */
 
+	    producer_type = find_atttype(producer_relid, (Name)mutator);
+	    varnode = MakeVar(-1, attnum, producer_type,
+			      LispNil /* vardotfields */,
+			      LispNil /* vararraylist */,
+			      lispCons(lispInteger(-1),
+				       lispCons(lispInteger(attnum),LispNil)),
+			      0 /* varslot */);
 
-	      /*
-	      ** We build a TLIST for the highest Func in the retval structure
-	      ** The TLIST contains one element which projects to this
-	      ** attribute.
-	      */
-	      tle = lispList();
-	      CAR(tle) = 
-		(LispValue)MakeResdom(0, producer_type, 
-				      tlen(get_id_type(producer_type)), 
-				      get_attname(producer_relid, attnum), 
-				      NULL /* reskey   */, 
-				      NULL /* reskeyop */,
-				      0    /* resjunk  */);
-	      CDR(tle) = (LispValue)
-		MakeVar(producer_relid, attnum, producer_type,
-			LispNil /* vardotfields */,
-			LispNil /* vararraylist */,
-			lispCons(lispInteger(producer_relid),
-				 lispCons(lispInteger(attnum),LispNil)),
-			0 /* varslot */);
-	      Assert(retval != LispNil);
-	      tlist = lispList();
-	      CAR(tlist) = tle;
-	      set_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), tlist);
+	    retval = (LispValue) MakeIter(MakeList(varnode, retval, -1));
 
-	      producer_relid = 0;
-	  }
-	 else  
-	  {
-	      /* this attribute is a PQfunction */
+	    producer_relid = 0;
+
+	} else {
 	
-	      funcid = funcname_get_funcid(mutator);
-	      funcrettype = funcname_get_rettype(mutator);
-	      if (funcid) 
-	       {
-		   ObjectId *oid_array,input_type;
+	    /* this attribute is a PQfunction */
+	    funcid = funcname_get_funcid(mutator);
 
-		   int nargs;
-
-		   /* do type checking */
-		   functype = funcname_get_rettype(mutator);
-		   if (first_func == 0) first_func = funcid;
-		   input_type = producer_type;
-		   producer_type = functype;
-		   producer_relid = typeid_get_relid(functype);
-		   nargs = funcname_get_funcnargs(mutator);
-		   if (nargs != 1)
-		     elog(WARN,
-			  "Functions in nested dot expressions must take only one argument");
-		   oid_array = funcname_get_funcargtypes(mutator);
-		   if (oid_array[0] != input_type)
-		     elog(WARN,
-			  "Type incompatibility in nested dot");
-
-		   
-		   /* put func and an iter onto the retval structure */
-		   retval = (LispValue) 
-		     MakeIter(MakeList
-			      (MakeFunc(funcid, functype, 0, 
-					tlen(get_id_type(funcrettype)),
-					LispNil /* func_fcache */,
-					LispNil /* func_tlist */),
-			       retval, -1));
-	       }
-	      else
+	    if (!funcid)
 		elog(WARN,
 		     "Component of nested dot is not a function or final projection");
-	  }
-     }
+	    /* do type checking */
+	    funcrettype = funcname_get_rettype(mutator);
+	    functype = funcname_get_rettype(mutator);
+
+	    if (first_func == 0)
+		first_func = funcid;
+
+	    input_type = producer_type;
+	    producer_type = functype;
+	    producer_relid = typeid_get_relid(functype);
+	    nargs = funcname_get_funcnargs(mutator);
+
+	    if (nargs != 1)
+		elog(WARN,
+		  "Functions in nested dot expressions take single arguments");
+
+	    oid_array = funcname_get_funcargtypes(mutator);
+	    if (oid_array[0] != input_type)
+		elog(WARN, "Type incompatibility in nested dot");
+
+	    /* put func and an iter onto the retval structure */
+	    retval = (LispValue) 
+		MakeIter(MakeList(MakeFunc(funcid, functype, 0, 
+					   tlen(get_id_type(funcrettype)),
+					   LispNil /* func_fcache */,
+					   LispNil /* func_tlist */),
+				  retval, -1));
+	}
+    }
+
     if (producer_relid != 0)
       elog(WARN, "nested dot must return a base type [temporarily]");
 
     /* be tidy */
     heap_close(rd);
 
+    /*
+     *  Last thing to do is to declare the return type of the nested
+     *  dot expression for use by the typechecking code.
+     */
+
+    retval = lispCons(lispInteger(producer_type), retval);
+
     return(retval);
 }
-

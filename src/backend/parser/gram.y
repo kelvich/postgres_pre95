@@ -1880,36 +1880,37 @@ nested_dots:
 agg_res_target_el:
        attr
 	  {
-	      if (attr_is_nested_dots)
-	       {
-		   $$ = HandleNestedDots($1);
-	       }
-	      else
-	       {
-		   LispValue varnode, temp;
-		   Resdom resnode;
-		   int type_id, type_len;
+	       LispValue varnode, temp;
+	       Resdom resnode;
+	       int type_id, type_len;
 
-		   temp = make_var ( (Name)CString(CAR($1)) ,
-				    (Name)CString(CADR($1)),
-     				    CDR(CDR($1)));
-		   type_id = CInteger(CAR(temp));
-		   type_len = tlen(get_id_type(type_id));
-		   resnode = MakeResdom ( (AttributeNumber)1,
-					 (ObjectId)type_id, (Size)type_len,
-					 (Name)CString(CAR(last ($1) )),
-					 (Index)0 , (OperatorTupleForm)0 ,
-					 0 );
-		   varnode = CDR(temp);
-		   if ( IsA(varnode,Var))
-		   {
-		       set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+	        if (attr_is_nested_dots)
+		    temp = HandleNestedDots($1);
+	        else
+		    temp = make_var ( (Name)CString(CAR($1)) ,
+				     (Name)CString(CADR($1)),
+     				     CDR(CDR($1)));
+
+	        type_id = CInteger(CAR(temp));
+	        type_len = tlen(get_id_type(type_id));
+	        resnode = MakeResdom ( (AttributeNumber)1,
+				     (ObjectId)type_id, (Size)type_len,
+				     (Name)CString(CAR(last ($1) )),
+				     (Index)0 , (OperatorTupleForm)0 ,
+				     0 );
+
+	        varnode = CDR(temp);
+
+		if (!attr_is_nested_dots) {
+		   if (IsA(varnode,Var)) {
+		       set_vardotfields((Var)varnode, CDR(CDR($1)));
+		   } else {
+		       if ( CDR(CDR($1)) != LispNil )
+			   elog(WARN,"cannot mix procedures with unions");
 		   }
-		   else if ( CDR(CDR($1)) != LispNil )
-		       elog(WARN,"cannot mix procedures with unions");
+		}
 
-		   $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
-	       }
+	        $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	 }
 
 agg:
@@ -1998,27 +1999,27 @@ res_target_el:
 	   } 
 	| attr
              {
-		 if (attr_is_nested_dots)
-		  {
-		      $$ = HandleNestedDots($1);
-		  }
-		 else
-		  {
-		      LispValue varnode, temp;
-		      Resdom resnode;
-		      int type_id, type_len;
+		 LispValue varnode, temp;
+		 Resdom resnode;
+		 int type_id, type_len;
 
+		 if (attr_is_nested_dots)
+		      temp = HandleNestedDots($1);
+		 else
 		      temp = make_var ( (Name)CString(CAR($1)) ,
 				       (Name)CString(CADR($1)),
  				       CDR(CDR($1)));
-		      type_id = CInteger(CAR(temp));
-		      type_len = tlen(get_id_type(type_id));
-		      resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
-					    (ObjectId)type_id, (Size)type_len, 
-					    (Name)CString(CAR(last ($1) ))
-					    , (Index)0 , (OperatorTupleForm)0,
-					    0 );
-		      varnode = CDR(temp);
+
+		 type_id = CInteger(CAR(temp));
+		 type_len = tlen(get_id_type(type_id));
+		 resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
+					(ObjectId)type_id, (Size)type_len, 
+					(Name)CString(CAR(last ($1) )),
+					(Index)0 , (OperatorTupleForm)0,
+					0 );
+		 varnode = CDR(temp);
+
+		 if (!attr_is_nested_dots) {
 		      if ( IsA(varnode,Var))
 		      {
 			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
@@ -2026,9 +2027,10 @@ res_target_el:
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
-		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 		  }
-		}
+
+		  $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
+	    }
 	| attr optional_indirection
 		{
 		      LispValue varnode, temp;
