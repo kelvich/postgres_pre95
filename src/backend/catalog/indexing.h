@@ -12,18 +12,35 @@
  * Some definitions for indices on pg_attribute
  */
 #define Num_pg_attr_indices	2
+#define Num_pg_proc_indices	2
+#define Num_pg_type_indices	2
 
 
-#if 0
 /*
  * Names of indices on system catalogs
  */
 extern Name AttributeNameIndex;
 extern Name AttributeNumIndex;
+extern Name ProcedureNameIndex;
+extern Name ProcedureOidIndex;
+extern Name TypeNameIndex;
+extern Name TypeOidIndex;
 
-extern char *Name_pg_attr_inds[];
+extern char *Name_pg_attr_indices[];
+extern char *Name_pg_proc_indices[];
+extern char *Name_pg_type_indices[];
 
-#endif
+/*
+ * Functions for each index to perform the necessary scan on a cache miss.
+ */
+HeapTuple AttributeNameIndexScan ARGS((Relation heapRelation , ObjectId relid , char *relname ));
+HeapTuple AttributeNumIndexScan  ARGS((Relation heapRelation , ObjectId relid , AttributeNumber relname ));
+
+HeapTuple ProcedureOidIndexScan  ARGS((Relation heapRelation, ObjectId procId));
+HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName));
+
+HeapTuple TypeOidIndexScan  ARGS((Relation heapRelation, ObjectId typeId));
+HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
 
 /*
  * What follows are lines processed by genbki.sh to create the statements
@@ -32,8 +49,19 @@ extern char *Name_pg_attr_inds[];
  * The keyword is DEFINE_INDEX every thing after that is just like in a
  * normal specification of the 'define index' POSTQUEL command.
  */
-DEFINE_INDEX(pg_attnameind on pg_attribute using btree (attname char16_ops));
-DEFINE_INDEX(pg_attnumind  on pg_attribute using btree (attnum int4_ops));
+DEFINE_INDEX(pg_attnameind on pg_attribute using btree (mkoidchar16(attrelid, attname) oidchar16_ops));
+DEFINE_INDEX(pg_attnumind  on pg_attribute using btree (mkoidint4(attrelid, attnum) oidint4_ops));
+DEFINE_INDEX(pg_procidind on pg_proc using btree (oid oid_ops));
+DEFINE_INDEX(pg_procnameind on pg_proc using btree (proname char16_ops));
+DEFINE_INDEX(pg_typeidind on pg_type using btree (oid oid_ops));
+DEFINE_INDEX(pg_typenameind on pg_type using btree (typname char16_ops));
 
+
+/* indexing.c prototypes */
+
+void CatalogOpenIndices ARGS((int nIndices, char *names [], Relation idescs[]));
+void CatalogCloseIndices ARGS((int nIndices , Relation *idescs ));
+void CatalogIndexInsert ARGS((Relation *idescs , int nIndices , Relation heapRelation , HeapTuple heapTuple ));
+bool CatalogHasIndex ARGS((char *catName , ObjectId catId ));
 
 #endif /* _INDEXING_H_INCL_ */
