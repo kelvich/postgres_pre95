@@ -207,8 +207,8 @@ invoked the backend server.  (Otherwise, users could circumvent access
 controls \(em the \*(lqnobody\*(rq user may well be allowed greater
 access to a particular object than a given user.)
 .SS "Rules"
-Like \*(PQ functions, rules always run with the permissions of the
-user who invoked the backend server.
+Like \*(PQ functions, rules always run with the idendity and
+permissions of the user who invoked the backend server.
 .SH "SEE ALSO"
 postmaster(unix),
 addattr(commands),
@@ -302,7 +302,9 @@ pages for
 and 
 .IR monitor (unix).
 .PP
-In the Version 5 hooks, the following assumptions are made about user
+In the 
+.IR Kerberos
+Version 5 hooks, the following assumptions are made about user
 and service naming: (1) user principal names (anames) are assumed to
 contain the actual \*(UU/\*(PG user name in the first component; (2)
 the \*(PG service is assumed to be have two components, the service
@@ -316,4 +318,4 @@ host example: postgres_dbms/ucbvax@S2K.ORG
 .)C
 .PP
 Support for Version 4 will disappear sometime after the production
-release of Version 5.
+release of Version 5 by MIT.
