@@ -68,7 +68,6 @@ LispValue ruleQual;
      * NOTE: XXX!
      * We assume the the "varno" of the CURRENT relation is 1
      */
-#define NEW_RULE_SYSTEM
 #ifdef NEW_RULE_SYSTEM
     constQual = prs2FindConstantQual(ruleQual, 1);
 
