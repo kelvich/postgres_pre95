@@ -32,10 +32,13 @@
  *
  * $Header$
  */
+#include <sys/time.h>
+#include <signal.h>
 
+#include "storage/proc.h"
+#include "storage/procq.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
-#include "storage/proc.h"
 #include "storage/lock.h"
 #include "utils/hsearch.h"
 #include "storage/buf.h"	
@@ -72,6 +75,13 @@ IPCKey key;
   int pid;
   int semstat;
   unsigned int location, myOffset;
+  int HandleDeadLock();
+
+  /* ------------------
+   * Routine called if deadlock timer goes off. See ProcSleep()
+   * ------------------
+   */
+  signal(SIGALRM, HandleDeadLock);
 
   /* attach to the free list */
   ProcGlobal = (PROC_HDR *)
@@ -316,14 +326,16 @@ PROC_QUEUE *queue;
  *
  * NOTES: The process queue is now a priority queue for locking.
  */
-ProcSleep(queue,spinlock,token,prio)
+ProcSleep(queue, spinlock, token, prio, lock)
 PROC_QUEUE	*queue;
 SPINLOCK 	spinlock;
 int		token;
 int		prio;
+LOCK *		lock;
 {
   int 	i;
   PROC	*proc;
+  struct itimerval timeval, dummy;
 
   proc = (PROC *) MAKE_PTR(queue->links.prev);
   for (i=0;i<queue->size;i++)
@@ -335,6 +347,7 @@ int		prio;
   }
 
   MyProc->token = token;
+  MyProc->waitLock = lock;
 
   /* -------------------
    * currently, we only need this for the ProcWakeup routines
@@ -351,6 +364,24 @@ int		prio;
   queue->size++;
 
   SpinRelease(spinlock);
+
+  /* --------------
+   * Postgres does not have any deadlock detection code and for this 
+   * reason we must set a timer to wake up the process in the event of
+   * a deadlock.  For now the timer is set for 1 minute and we assume that
+   * any process which sleeps for this amount of time is deadlocked and will 
+   * receive a SIGALRM signal.  The handler should release the processes
+   * semaphore and abort the current transaction.
+   *
+   * Need to zero out struct to set the interval and the micro seconds fields
+   * to 0.
+   * --------------
+   */
+  bzero(&timeval, sizeof(struct itimerval));
+  timeval.it_value.tv_sec = 60;
+
+  if (setitimer(ITIMER_REAL, &timeval, &dummy))
+	elog(FATAL, "ProcSleep: Unable to set timer for process wakeup");
 
   /* --------------
    * if someone wakes us between SpinRelease and IpcSemaphoreLock,
@@ -445,4 +476,75 @@ ProcAddLock(elem)
 SHM_QUEUE	*elem;
 {
   SHMQueueInsertTL(&MyProc->lockQueue,elem);
+}
+
+/* --------------------
+ * We only get to this routine I sleep for a minute 
+ * waiting for a lock to be released by some other process.  After
+ * the one minute deadline we assume we have a deadlock and must abort
+ * this transaction.  We must also indicate that I'm no longer waiting
+ * on a lock so that other processes don't try to wake me up and screw 
+ * up my semaphore.
+ * --------------------
+ */
+int
+HandleDeadLock()
+{
+  LOCK *lock;
+  LOCKT lockt;
+
+  LockLockTable();
+
+  /* ---------------------
+   * Check to see if we've been awoken by anyone in the interim.
+   *
+   * If we have we can return and resume our transaction -- happy day.
+   * Before we are awoken the process releasing the lock grants it to
+   * us so we know that we don't have to wait anymore.
+   * 
+   * Damn these names are LONG! -mer
+   * ---------------------
+   */
+  if (IpcSemaphoreGetCount(MyProc->sem.semId, MyProc->sem.semNum) == 
+                                                IpcSemaphoreDefaultStartValue)
+  {
+	UnlockLockTable();
+	return 1;
+  }
+
+  lock = MyProc->waitLock;
+  lockt = (LOCKT) MyProc->token;
+
+  /* ----------------------
+   * Decrement the holders fields since we can wait no longer.
+   * the name hodlers is misleading, it represents the sum of the number
+   * of active holders (those who have acquired the lock), and the number
+   * of waiting processes trying to acquire the lock.
+   * ----------------------
+   */
+  LockDecrWaitHolders(lock, lockt);
+
+  /* ------------------------
+   * Get this process off the lock's wait queue
+   * ------------------------
+   */
+  SHMQueueDelete(&MyProc->links);
+  lock->waitProcs.size--;
+
+  UnlockLockTable();
+
+  /* ------------------
+   * Unlock my semaphore, so that the count is right for next time.
+   * I was awoken by a signal not by someone unlocking my semaphore.
+   * ------------------
+   */
+  IpcSemaphoreUnlock(MyProc->sem.semId, MyProc->sem.semNum, IpcExclusiveLock);
+
+  elog(NOTICE, "Timeout -- possible deadlock");
+  /* -------------
+   * Set MyProc->errType to STATUS_ERROR so that we abort after
+   * returning from this handler.
+   * -------------
+   */
+  MyProc->errType = STATUS_ERROR;
 }
