@@ -496,9 +496,7 @@ tryAgain:
 	vfdP->fd = open(fileName,fileFlags,fileMode);
 
 	if (vfdP->fd < 0) {
-	    perror("open:");
 	    FreeVfd(file);
-	    elog(WARN, "can't open file %s", fileName);
 	    return -1;
 	}
 	++nfile;
