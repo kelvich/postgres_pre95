@@ -1,16 +1,11 @@
-/*     
- *      FILE
- *     	tlist
- *     
- *      DESCRIPTION
- *     	Target list manipulation routines
- *     
- */
-
-static char *rcsid = "$Header$";
-
-/*     
- *      EXPORTS
+/* ----------------------------------------------------------------
+ *   FILE
+ *	tlist.c
+ *
+ *   DESCRIPTION
+ *	Target list manipulation routines
+ *
+ *   INTERFACE ROUTINES
  *     		tlistentry-member
  *     		matching_tlvar
  *     		add_tl_element
@@ -23,9 +18,17 @@ static char *rcsid = "$Header$";
  *     		copy-vars
  *     		flatten-tlist
  *     		flatten-tlist-vars
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
@@ -38,9 +41,10 @@ static char *rcsid = "$Header$";
 #include "planner/clauses.h"
 #include "utils/log.h"
 
+#include "lib/copyfuncs.h"
+
 /* XXX - find these references */
 extern LispValue copy_seq_tree();
-
 
 static TLE flatten_tlistentry();
 

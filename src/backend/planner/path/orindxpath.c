@@ -1,19 +1,24 @@
-
-/*     
- *      FILE
- *     	orindxpath
+/* ----------------------------------------------------------------
+ *   FILE
+ *	orindxpath
  *     
- *      DESCRIPTION
- *     	Routines to find index paths that match a set of 'or' clauses
- *     
- */
-
-/*  RcsId("$Header$"); */
-
-/*     
- *      EXPORTS
+ *   DESCRIPTION
+ *	Routines to find index paths that match a set of 'or' clauses
+ *
+ *   INTERFACE ROUTINES
  *     		create-or-index-paths
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$"
+ * ----------------------------------------------------------------
  */
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
+
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
@@ -29,7 +34,7 @@
 #include "planner/cfi.h"
 #include "planner/xfunc.h"
 
-/*extern List index_selectivity(); #include "cfi.h" */ 
+#include "lib/copyfuncs.h"
 
 #define INDEX_SCAN 1
 

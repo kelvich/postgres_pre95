@@ -1,15 +1,11 @@
-
-/*     
- *      FILE
- *     	clause
+/* ----------------------------------------------------------------
+ *   FILE
+ *	clause.c
  *     
- *      DESCRIPTION
- *     	Routines to manipulate qualification clauses
- *      $Header$
- */
-
-/*     
- *      EXPORTS
+ *   DESCRIPTION
+ *	Routines to manipulate qualification clauses
+ *
+ *   INTERFACE ROUTINES
  *     		pull-constant-clauses
  *     		pull-relation-level-clauses
  *     		clause-relids-vars
@@ -23,9 +19,15 @@
  *     		fix-opids
  *     		get_relattval
  *     		get_relsatts
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
@@ -36,6 +38,8 @@
 #include "planner/clause.h"
 #include "planner/var.h"
 #include "planner/clauses.h"
+
+#include "lib/copyfuncs.h"
 
 /*    
  *    	pull-constant-clauses

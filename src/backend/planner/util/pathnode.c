@@ -20,7 +20,12 @@
  *	$Header$
  *----------------------------------------------------------------
  */
+
 #include <math.h>
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include "planner/internal.h"
 
@@ -34,6 +39,8 @@
 #include "planner/costsize.h"
 #include "planner/keys.h"
 #include "planner/xfunc.h"
+
+#include "lib/copyfuncs.h"
 
 extern int testFlag;
 

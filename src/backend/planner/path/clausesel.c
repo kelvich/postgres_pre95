@@ -1,21 +1,21 @@
-/* 
- * FILE
- * 	clausesel 
- * 
- * DESCRIPTION 
- * 	Routines to compute and set clause selectivities 
- * 
+/* ----------------------------------------------------------------
+ *   FILE
+ *	clausesel 
+ *
+ *   DESCRIPTION 
+ *	Routines to compute and set clause selectivities 
+ *
+ *   INTERFACE ROUTINES
+ *	set_clause_selectivities
+ *	product_selec
+ *	set_rest_relselec
+ *	compute_clause_selec
+ * ----------------------------------------------------------------
  */ 
  
-/* RcsId ("$Header$"); */
+#include "tmp/c.h"
 
-/*     
- *      EXPORTS
- *     		set_clause_selectivities
- *     		product_selec
- *     		set_rest_relselec
- *     		compute_clause_selec
- */
+RcsId("$Header$");
 
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
@@ -33,8 +33,9 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_operator.h"
 
-/*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
+#include "utils/log.h"
 
+/*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
 
 /*    
  *    	set_clause_selectivities
@@ -223,111 +224,86 @@ compute_clause_selec (clause,or_selectivities)
 /*  .. compute_clause_selec, compute_selec   */
 
 Cost
-compute_selec (clauses,or_selectivities)
-     LispValue clauses,or_selectivities ;
+compute_selec(clauses, or_selectivities)
+    LispValue clauses, or_selectivities;
 {
     Cost s1 = 0;
-    LispValue clause = CAR (clauses);
+    LispValue clause = CAR(clauses);
 
-    if(null (clauses)) 
-     {
-	 s1 = 1.0;
-     }
-    else if (IsA(clause,Const))
-     {
-	 s1 = ((bool)get_constvalue((Const)clause)) ? 1.0 : 0.0;
-     }
-    else if (IsA(clause,Var))
-     {
-	 ObjectId relid;
+    if (null(clauses)) {
+	s1 = 1.0;
+    } else if (IsA(clause,Const)) {
+	s1 = ((bool) get_constvalue((Const) clause)) ? 1.0 : 0.0;
+    } else if (IsA(clause,Var)) {
+	LispValue relid = translate_relid(CAR(get_varid((Var) clause)));
 
-	 relid = (ObjectId)
-		CInteger(translate_relid(CAR(get_varid((Var)clause))));
-	 /*
-	  * we have a bool Var.  This is exactly equivalent to the clause:
-	  *	reln.attribute = 't'
-	  * so we compute the selectivity as if that is what we have. The
-	  * magic #define constants are a hack.  I didn't want to have to
-	  * do system cache look ups to find out all of that info.
-	  */
-	 s1 = restriction_selectivity(EqualSelectivityProcedure,
-				      BooleanEqualOperator,
-				      relid,
-				      CInteger(CADR(get_varid((Var)clause))),
-				      (Datum) 't',
-				      _SELEC_CONSTANT_RIGHT_);
+	/*
+	 * we have a bool Var.  This is exactly equivalent to the clause:
+	 *	reln.attribute = 't'
+	 * so we compute the selectivity as if that is what we have. The
+	 * magic #define constants are a hack.  I didn't want to have to
+	 * do system cache look ups to find out all of that info.
+	 */
+	s1 = restriction_selectivity(EqualSelectivityProcedure,
+				     BooleanEqualOperator,
+				     CInteger(relid),
+				     CInteger(CADR(get_varid((Var) clause))),
+				     (Datum) 't',
+				     _SELEC_CONSTANT_RIGHT_);
+    } else if (or_selectivities) {
+	/* If s1 has already been assigned by an index, use that value. */ 
+	LispValue this_sel = CAR(or_selectivities);
 
-     }
-    /* If s1 has already been assigned by an index, use that value. */ 
-    else if (or_selectivities)
-     {
-	 s1 = (int) CAR (or_selectivities);
-     } 
-    else if (IsA(CAR(clause),Func))  /* this isn't an Oper, it's a Func!! */
-     {
-	 /*
+	Assert(floatp(this_sel));
+	s1 = CDouble(this_sel);
+    } else if (IsA(CAR(clause),Func)) {
+	/* this isn't an Oper, it's a Func!! */
+	/*
 	 ** This is not an operator, so we guess at the selectivity.  
 	 ** THIS IS A HACK TO GET V4 OUT THE DOOR.  FUNCS SHOULD BE
 	 ** ABLE TO HAVE SELECTIVITIES THEMSELVES.
 	 **     -- JMH 7/9/92
 	 */
-	   s1 = 0.1;
-     }
-    else if (1 == NumRelids ((Expr)clause)) {
-
+	s1 = 0.1;
+    } else if (NumRelids((Expr) clause) == 1) {
 	/* ...otherwise, calculate s1 from 'clauses'. 
 	 *    The clause is not a join clause, since there is 
 	 *    only one relid in the clause.  The clause 
 	 *    selectivity will be based on the operator 
 	 *    selectivity and operand values. 
 	 */
+	LispValue relattvals = get_relattval(clause);
+	ObjectId opno = get_opno((Oper) get_op(clause));
+	RegProcedure oprrest = get_oprrest(opno);
+	LispValue relid = translate_relid(CAR(relattvals));
 
-	LispValue relattvals = get_relattval (clause);
-	ObjectId opno = get_opno ((Oper)get_op (clause));
-	RegProcedure oprrest = get_oprrest (opno);
-	LispValue relid = LispNil;
+	s1 = (Cost) restriction_selectivity(oprrest,
+					    opno,
+					    CInteger(relid),
+					    CInteger(CADR(relattvals)),
+					    (char *)
+					    CInteger((CADDR(relattvals))),
+					    CInteger(CADDR 
+						     (CDR(relattvals))));
+    } else {
+	/*    The clause must be a join clause.  The clause 
+	 *    selectivity will be based on the relations to be 
+	 *    scanned and the attributes they are to be joined 
+	 *    on. 
+	 */
+	LispValue relsatts = get_relsatts (clause);
+	ObjectId opno = get_opno((Oper)get_op (clause));
+	RegProcedure oprjoin = get_oprjoin (opno);
+	LispValue relid1 = translate_relid(CAR(relsatts));
+	LispValue relid2 = translate_relid(CADDR(relsatts));
 	
-	if (translate_relid (CAR(relattvals)))
-	  relid = translate_relid(CAR(relattvals));
-	else
-	  relid = lispInteger(_SELEC_VALUE_UNKNOWN_);
-	
-	s1 = (Cost)restriction_selectivity (oprrest,
-					      opno,
-					      CInteger(relid),
-					      CInteger(CADR (relattvals)),
-					      (char*)CInteger((CADDR(relattvals))),
-					      CInteger(CADDR 
-						       (CDR(relattvals))));
+	s1 = (Cost) join_selectivity(oprjoin,
+				     opno,
+				     CInteger(relid1),
+				     CInteger(CADR(relsatts)),
+				     CInteger(relid2),
+				     CInteger(CADDR(CDR(relsatts))));
     }
-     else {
-	 
-	 /*    The clause must be a join clause.  The clause 
-	  *    selectivity will be based on the relations to be 
-	  *    scanned and the attributes they are to be joined 
-	  *    on. 
-	  */
-	 LispValue relsatts = get_relsatts (clause);
-	 ObjectId opno = get_opno((Oper)get_op (clause));
-	 RegProcedure oprjoin = get_oprjoin (opno);
-	 LispValue relid1 = LispNil;
-	 LispValue relid2 = LispNil;
-	 
-	 if(translate_relid (CAR(relsatts)))
-	   relid1 = translate_relid(CAR(relsatts));
-	 else
-	   relid1 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
-	 if (translate_relid (CADDR (relsatts)))
-	    relid2 = translate_relid(CADDR(relsatts));
-	 else
-	   relid2 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
-	 s1 = (Cost)join_selectivity (oprjoin,
-					opno,
-					CInteger(relid1),
-					CInteger(CADR (relsatts)),
-					CInteger(relid2),
-					CInteger(CADDR (CDR (relsatts))));
-     }
     
     /*    A null clause list eliminates no tuples, so return a selectivity 
      *    of 1.0.  If there is only one clause, the selectivity is not 
@@ -336,18 +312,27 @@ compute_selec (clauses,or_selectivities)
     
     if (length (clauses) < 2) {
 	return(s1);
-    } 
-    else {
+    } else {
 	/* Compute selectivity of the 'or'ed subclauses. */
 	/* Added check for taking CDR(LispNil).  -- JMH 3/9/92 */
-	  Cost s2;
-	  if (or_selectivities != LispNil)
-	    s2 = compute_selec (CDR (clauses),CDR (or_selectivities));
-	  else
-	    s2 = compute_selec (CDR (clauses), LispNil);
-	  return (s1 + s2 - s1*s2);
-      }
-} /* end compute_selec */
+	Cost s2;
+
+	if (or_selectivities != LispNil)
+	    s2 = compute_selec(CDR(clauses), CDR(or_selectivities));
+	else
+	    s2 = compute_selec(CDR(clauses), LispNil);
+	return(s1 + s2 - s1 * s2);
+    }
+}
+
+/*
+ *	translate_relid
+ *
+ *	Translates a relid (range table index) into a pg_class oid
+ *	using the information already stored in the range table.
+ *
+ *	RETURNS: a lispInteger storing the oid.
+ */
 
 /*  .. compute_selec */
 
@@ -356,10 +341,12 @@ translate_relid(relid)
     LispValue relid;
 {
     if (integerp(relid))
-	return
-	    getrelid(CInteger(relid),_query_range_table_);
-    
-    return
-	lispInteger(0);
+	return(getrelid(CInteger(relid), _query_range_table_));
+    /*
+     * XXX Since this is used as an oid search key, this should
+     * probably be InvalidObjectId instead of _SELEC_VALUE_UNKNOWN_
+     * (an internal planner code).
+     */
+    elog(NOTICE, "translate_relid: non-integer relid");
+    return(lispInteger(_SELEC_VALUE_UNKNOWN_));
 }
-

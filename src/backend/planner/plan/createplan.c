@@ -1,20 +1,23 @@
-/*     
- *      FILE
- *     	createplan
- *     
- *      DESCRIPTION
- *     	Routines to create the desired plan for processing a query
- *     
- */
-
-/* RcsId("$Header$"); */
-
-/*     
- *      EXPORTS
+/* ----------------------------------------------------------------
+ *   FILE
+ *	createplan.c
+ *
+ *   DESCRIPTION
+ *	Routines to create the desired plan for processing a query
+ *
+ *   INTERFACE ROUTINES
  *     		create_plan
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include "nodes/execnodes.h"
 #include "nodes/plannodes.h"
@@ -37,6 +40,7 @@
 #include "planner/planner.h"
 #include "planner/xfunc.h"
 
+#include "lib/copyfuncs.h"
 #include "lib/lisplist.h"
 #include "lib/lispsort.h"
 

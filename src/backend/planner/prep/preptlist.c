@@ -1,18 +1,23 @@
-/*     
- *      FILE
- *     	preptlist
- *     
- *      DESCRIPTION
- *     	Routines to preprocess the parse tree target list
- *     
- */
-
-/*  RcsId ("$Header$");  */
-
-/*     
- *      EXPORTS
+/* ----------------------------------------------------------------
+ *   FILE
+ *	preptlist.c
+ *
+ *   DESCRIPTION
+ *	Routines to preprocess the parse tree target list
+ *
+ *   INTERFACE ROUTINES
  *     		preprocess-targetlist
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
+
+#include "tmp/c.h"
+
+RcsId ("$Header$");
 
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
@@ -28,6 +33,7 @@
 #include "planner/preptlist.h"
 #include "planner/clause.h"
 
+#include "lib/copyfuncs.h"
 
 #define ISCOMPLEX(type) (typeid_get_relid(type) ? true : false)
 

@@ -1,23 +1,25 @@
-
-/*     
- *      FILE
- *     	prepunion
- *     
- *      DESCRIPTION
- *     	Routines to plan archive, inheritance, union, and version queries
- *     
- */
-
-/* RcsId ("$Header$");  */
-
-/*     
- *      EXPORTS
+/* ----------------------------------------------------------------
+ *   FILE
+ *	prepunion.c
+ *
+ *   DESCRIPTION
+ *	Routines to plan archive, inheritance, union, and version queries
+ *
+ *   INTERFACE ROUTINES
  *     		first-matching-rt-entry
  *     		plan-union-queries
  *     		fix-targetlist
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "tmp/c.h"
+
+RcsId ("$Header$");
 
 #include "nodes/nodes.h"
 #include "nodes/pg_lisp.h"
@@ -39,6 +41,8 @@
 #include "planner/planner.h"
 #include "planner/prepunion.h"
 #include "planner/handleunion.h"
+
+#include "lib/copyfuncs.h"
 
 /*    
  *    	find-all-inheritors

@@ -1,20 +1,26 @@
-
-/*     
- *      FILE
- *     	indxpath
+/* ----------------------------------------------------------------
+ *   FILE
+ *	indxpath.c
  *     
- *      DESCRIPTION
+ *   DESCRIPTION
  *     	Routines to determine which indices are usable for 
  *     	scanning a given relation
- *     
- */
- /* RcsId("$Header$"); */
-
-/*     
- *      EXPORTS
+ *
+ *   INTERFACE ROUTINES
  *     		find-index-paths
+ *     
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
+
 #include <math.h>
+
+#include "tmp/c.h"
+
+RcsId("$Header$");
 
 #include "tmp/postgres.h"
 #include "access/att.h"
@@ -44,6 +50,8 @@
 #include "catalog/pg_proc.h"
 
 #include "executor/x_qual.h"
+
+#include "lib/copyfuncs.h"
 
 /* If Spyros can use a constant PRS2_BOOL_TYPEID, I can use this */
 #define BOOL_TYPEID ((ObjectId) 16)
