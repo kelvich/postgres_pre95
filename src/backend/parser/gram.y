@@ -535,7 +535,7 @@ opt_portal_name:
 
 
 IndexStmt:
-	  Define opt_archive Index index_name ON relation_name
+	  DEFINE opt_archive Index index_name ON relation_name
 	    Using access_method '(' index_list ')' with_clause
 		{
 		    /* should check that access_method is valid,
@@ -738,7 +738,7 @@ opt_support:
 	 ;
 
 RuleStmt:
-	Define newruleTag Rule name opt_support IS
+	DEFINE newruleTag Rule name opt_support IS
 		{
 		    p_ruleinfo = lispCons(lispInteger(0),LispNil);
 		    p_priority = lispInteger(0) ;
@@ -868,7 +868,7 @@ TransactionStmt:
    **************************************************/
 
 ViewStmt:
-	Define VIEW name 
+	DEFINE VIEW name 
 	RetrieveSubStmt
 		{ 
 		    $3 = lispCons ( $3 , $4 );
