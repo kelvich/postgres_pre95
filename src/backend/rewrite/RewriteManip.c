@@ -284,7 +284,7 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 		    if (n == NULL)
 			n = (List) make_null(get_vartype((Var) this_node));
 		    CAR(i) = CAR(n);
-		    *Modified = TRUE;
+		    *modified = TRUE;
 		}
 		break;
 	    }
