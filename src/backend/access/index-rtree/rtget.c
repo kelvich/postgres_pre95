@@ -74,6 +74,7 @@ rtfirst(s, dir)
 	    n = findnext(s, p, 0, dir);
 
 	while (n < 0 || n > maxoff) {
+
 	    ReleaseBuffer(b);
 	    if (so->s_stack == (RTSTACK *) NULL)
 		return ((RetrieveIndexResult) NULL);
@@ -82,6 +83,7 @@ rtfirst(s, dir)
 	    b = ReadBuffer(s->relation, stk->rts_blk);
 	    p = BufferGetPage(b, 0);
 	    po = (RTreePageOpaque) PageGetSpecialPointer(p);
+	    maxoff = PageGetMaxOffsetIndex(p);
 
 	    if (ScanDirectionIsBackward(dir))
 		n = stk->rts_child - 1;
@@ -91,7 +93,6 @@ rtfirst(s, dir)
 	    free (stk);
 
 	    n = findnext(s, p, n, dir);
-	    maxoff = PageGetMaxOffsetIndex(p);
 	}
 	if (po->flags & F_LEAF) {
 	    ItemPointerSet(&(s->currentItemData), 0, BufferGetBlockNumber(b),
@@ -148,7 +149,6 @@ rtnext(s, dir)
     else
 	--n;
 
-
     b = ReadBuffer(s->relation, blk);
     p = BufferGetPage(b, 0);
     po = (RTreePageOpaque) PageGetSpecialPointer(p);
@@ -159,6 +159,7 @@ rtnext(s, dir)
 	n = findnext(s, p, n, dir);
 
 	while (n < 0 || n > maxoff) {
+
 	    ReleaseBuffer(b);
 	    if (so->s_stack == (RTSTACK *) NULL)
 		return ((RetrieveIndexResult) NULL);
@@ -166,6 +167,7 @@ rtnext(s, dir)
 	    stk = so->s_stack;
 	    b = ReadBuffer(s->relation, stk->rts_blk);
 	    p = BufferGetPage(b, 0);
+	    maxoff = PageGetMaxOffsetIndex(p);
 	    po = (RTreePageOpaque) PageGetSpecialPointer(p);
 
 	    if (ScanDirectionIsBackward(dir))
@@ -176,7 +178,6 @@ rtnext(s, dir)
 	    free (stk);
 
 	    n = findnext(s, p, n, dir);
-	    maxoff = PageGetMaxOffsetIndex(p);
 	}
 	if (po->flags & F_LEAF) {
 	    ItemPointerSet(&(s->currentItemData), 0, BufferGetBlockNumber(b),

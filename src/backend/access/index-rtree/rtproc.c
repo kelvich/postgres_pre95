@@ -42,6 +42,11 @@ rt_box_inter(a, b)
 	n->xl = MAX(a->xl, b->xl);
 	n->yl = MAX(a->yl, b->yl);
 
+	if (n->xh < n->xl || n->yh < n->yl) {
+		pfree (n);
+		return ((BOX *) NULL);
+	}
+
 	return (n);
 }
 
@@ -50,6 +55,9 @@ rt_box_size(a)
 	BOX *a;
 {
 	int size;
+
+	if (a == (BOX *) NULL || a->xh <= a->xl || a->yh <= a->yl)
+		return (0);
 
 	size = (int) (fabs(a->xh - a->xl) * fabs(a->yh - a->yl));
 

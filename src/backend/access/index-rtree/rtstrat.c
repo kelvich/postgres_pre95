@@ -225,5 +225,5 @@ RTMapOperator(r, attnum, proc)
 						  RTNStrategies,
 						  attnum);
 
-	return (strategyMap->entry[RTOperMap[procstrat]].procedure);
+	return (strategyMap->entry[RTOperMap[procstrat - 1] - 1].procedure);
 }

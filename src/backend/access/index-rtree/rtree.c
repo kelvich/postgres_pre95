@@ -11,6 +11,7 @@
 
 #include "utils/log.h"
 #include "utils/rel.h"
+#include "utils/excid.h"
 
 #include "access/heapam.h"
 #include "access/genam.h"
@@ -171,16 +172,15 @@ rtdoinsert(r, itup)
     Buffer buffer;
     BlockNumber blk;
     IndexTuple which;
-    RTSTACK *stack;
     OffsetNumber l;
-    bool split;
+    RTSTACK *stack;
     InsertIndexResult res;
     RTreePageOpaque opaque;
+    char *datum;
 
     blk = P_ROOT;
     buffer = InvalidBuffer;
     stack = (RTSTACK *) NULL;
-    split = false;
 
     do {
 	/* let go of current buffer before getting next */
@@ -210,12 +210,20 @@ rtdoinsert(r, itup)
 
     if (nospace(page, itup)) {
 	/* need to do a split */
-	return (dosplit(r, buffer, stack, itup));
+	res = dosplit(r, buffer, stack, itup);
+	freestack(stack);
+	return (res);
     }
 
     /* add the item and write the buffer */
     PageAddItem(page, itup, itup->t_size, PageGetMaxOffsetIndex(page), LP_USED);
     WriteBuffer(buffer);
+
+    datum = (((char *) itup) + sizeof(IndexTupleData));
+
+    /* now expand the page boundary in the parent to include the new child */
+    rttighten(r, stack, datum, (itup->t_size - sizeof(IndexTupleData)));
+    freestack(stack);
 
     pfree(itup);
 
@@ -226,6 +234,46 @@ rtdoinsert(r, itup)
     res->offset = (double) 0;
 
     return (res);
+}
+
+rttighten(r, stk, datum, att_size)
+    Relation r;
+    RTSTACK *stk;
+    char *datum;
+    int att_size;
+{
+    char *oldud;
+    Page p;
+    int old_size, newd_size;
+    RegProcedure union_proc, size_proc;
+    Buffer b;
+
+    if (stk == (RTSTACK *) NULL)
+	return;
+
+    b = ReadBuffer(r, stk->rts_blk);
+    p = BufferGetPage(b, 0);
+
+    union_proc = index_getprocid(r, 1, RT_UNION_PROC);
+    size_proc = index_getprocid(r, 1, RT_SIZE_PROC);
+
+    oldud = (char *) PageGetItem(p, PageGetItemId(p, stk->rts_child));
+    oldud += sizeof(IndexTupleData);
+
+    old_size = (int) fmgr(size_proc, oldud);
+    datum = (char *) fmgr(union_proc, oldud, datum);
+
+    newd_size = (int) fmgr(size_proc, datum);
+
+    /* XXX assume constant-size data items here */
+    if (newd_size != old_size) {
+	bcopy(datum, oldud, att_size);
+	WriteBuffer(b);
+	rttighten(r, stk->rts_parent, datum, att_size);
+    } else {
+	ReleaseBuffer(b);
+    }
+    pfree(datum);
 }
 
 /*
@@ -343,12 +391,16 @@ dosplit(r, buffer, stack, itup)
 			           &(v.spl_ldatum), isnull);
     rtup = (IndexTuple) formituple(r->rd_rel->relnatts, &r->rd_att.data[0],
 				   &(v.spl_rdatum), isnull);
+    pfree (isnull);
 
     /* set pointers to new child pages in the internal index tuples */
     ItemPointerSet(&(ltup->t_tid), 0, lbknum, 0, 1);
     ItemPointerSet(&(rtup->t_tid), 0, rbknum, 0, 1);
 
     rtintinsert(r, stack, ltup, rtup);
+
+    pfree(ltup);
+    pfree(rtup);
 
     return (res);
 }
@@ -360,16 +412,11 @@ rtintinsert(r, stk, ltup, rtup)
     IndexTuple rtup;
 {
     IndexTuple old;
-    OffsetNumber off;
-    OffsetNumber maxoff;
-    char *oldud, *ud;
-    char *isnull;
     IndexTuple it;
     Buffer b;
     Page p;
     RegProcedure union_proc, size_proc;
-    int blank;
-    RTSTACK *oldstk;
+    char *ldatum, *rdatum, *newdatum;
     InsertIndexResult res;
 
     if (stk == (RTSTACK *) NULL) {
@@ -396,49 +443,22 @@ rtintinsert(r, stk, ltup, rtup)
     bcopy(ltup, old, ltup->t_size);
 
     if (nospace(p, rtup)) {
+	newdatum = (((char *) ltup) + sizeof(IndexTupleData));
+	rttighten(r, stk->rts_parent, newdatum,
+		  (ltup->t_size - sizeof(IndexTupleData)));
 	res = dosplit(r, b, stk->rts_parent, rtup);
 	pfree (res);
     } else {
 	PageAddItem(p, rtup, rtup->t_size, PageGetMaxOffsetIndex(p), LP_USED);
-	WriteNoReleaseBuffer(b);
+	WriteBuffer(b);
+	ldatum = (((char *) ltup) + sizeof(IndexTupleData));
+	rdatum = (((char *) rtup) + sizeof(IndexTupleData));
+	newdatum = (char *) fmgr(union_proc, ldatum, rdatum);
 
-	isnull = (char *) palloc(r->rd_rel->relnatts);
-	for (blank = 0; blank < r->rd_rel->relnatts; blank++)
-	    isnull[blank] = ' ';
+	rttighten(r, stk->rts_parent, newdatum,
+		  (rtup->t_size - sizeof(IndexTupleData)));
 
-	while (stk->rts_parent != (RTSTACK *) NULL) {
-	    /* get the new bounding box for this page */
-	    maxoff = PageGetMaxOffsetIndex(p);
-	    oldud = (char *) PageGetItem(p, PageGetItemId(p, 0));
-	    oldud += sizeof(IndexTupleData);
-	    for (off = 1; off < maxoff; off++) {
-		it = (IndexTuple) PageGetItem(p, PageGetItemId(p, off));
-		ud = ((char *) it) + sizeof(IndexTupleData);
-		ud = (char *) fmgr(union_proc, ud, oldud);
-		if (off > 1)
-		    pfree (oldud);
-		oldud = ud;
-	    }
-	    ReleaseBuffer(b);
-	    oldstk = stk;
-	    stk = stk->rts_parent;
-	    pfree (oldstk);
-	    b = ReadBuffer(r, stk->rts_blk);
-	    p = BufferGetPage(b, 0);
-	    old = (IndexTuple) PageGetItem(p, PageGetItemId(p, stk->rts_child));
-	    it = (IndexTuple) formituple(r->rd_rel->relnatts,
-					 &(r->rd_att.data[0]),
-					 &ud, isnull);
-	    pfree(ud);
-	    it->t_tid = old->t_tid;
-	    if (old->t_size != it->t_size)
-		elog(WARN, "Variable-length rtree keys are not supported.");
-
-	    bcopy(it, old, it->t_size);
-	    WriteNoReleaseBuffer(b);
-	}
-	ReleaseBuffer(b);
-	pfree (isnull);
+	pfree(newdatum);
     }
 }
 
@@ -498,8 +518,7 @@ picksplit(r, page, v, itup)
 	item_1 = (IndexTuple) PageGetItem(page, PageGetItemId(page, i));
 	datum_alpha = ((char *) item_1) + sizeof(IndexTupleData);
 	for (j = i + 1; j <= maxoff; j++) {
-	    item_2 = (IndexTuple)
-		PageGetItem(page, PageGetItemId(page, j));
+	    item_2 = (IndexTuple) PageGetItem(page, PageGetItemId(page, j));
 	    datum_beta = ((char *) item_2) + sizeof(IndexTupleData);
 
 	    /* compute the wasted space by unioning these guys */
@@ -510,7 +529,8 @@ picksplit(r, page, v, itup)
 	    size_waste = size_union - size_inter;
 
 	    pfree(union_d);
-	    pfree(inter_d);
+	    if (inter_d != (char *) NULL)
+		    pfree(inter_d);
 
 	    /*
 	     *  are these a more promising split that what we've
@@ -644,12 +664,13 @@ choose(r, p, it)
     which_grow = -1;
     which = -1;
 
-    for (i = 0; i < maxoff; i++) {
+    for (i = 0; i <= maxoff; i++) {
 	datum = (char *) PageGetItem(p, PageGetItemId(p, i));
 	datum += sizeof(IndexTupleData);
 	dsize = (int) fmgr(size_proc, datum);
 	ud = (char *) fmgr(union_proc, datum, id);
 	usize = (int) fmgr(size_proc, ud);
+	pfree(ud);
 	if (which_grow < 0 || usize - dsize < which_grow) {
 	    which = i;
 	    which_grow = usize - dsize;
