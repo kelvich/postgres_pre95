@@ -18,6 +18,23 @@ RcsId("$Header$");
 
 	 /* (see char.c for comparison/operation routines) */
 
+namecpy(n1, n2)
+    Name n1;
+    Name n2;
+{
+    if (!n1 || !n2)
+	return(-1);
+    (void) strncpy(n1->data, n2->data, NAMEDATALEN);
+    return(0);
+}
+
+namecat(n1, n2)
+    Name n1;
+    Name n2;
+{
+    return(namestrcat(n1, n2->data)); /* n2 can't be any longer than n1 */
+}
+
 namestrcpy(name, str)
     Name name;
     char *str;
