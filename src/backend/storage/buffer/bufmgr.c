@@ -793,7 +793,6 @@ BufferSync()
 	      }
 
 	      bufHdr->flags &= ~BM_DIRTY;
-	      RelationDecrementReferenceCount(reln);
 	  }
       }
   }
@@ -987,35 +986,56 @@ ResetBufferUsage()
 	NDirectFileWrite = 0;
 }
 
+/* ----------------------------------------------
+ *	ResetBufferPool
+ *
+ *	this routine is supposed to be called when a transaction aborts.
+ *	it will release all the buffer pins held by the transaciton.
+ *
+ * ----------------------------------------------
+ */
 void
-BufferManagerFlush(StableMainMemoryFlag)
-int StableMainMemoryFlag;
+ResetBufferPool()
 {
     register int i;
-    
-    /* XXX
-     * the following piece of code is completely bogus, unfortunately it has to
-     * be preserved from the past for postgres to work.  what happens is
-     * that postgres seldom bothers to release a buffer after it finishes
-     * using it.  as a last resort, it has to have the following code to
-     * blow away the whole buffer at the end of every transaction, otherwise
-     * we will just keep losing buffers until we run out of them.
-     * the fix for this is to look at every place buffer manager gets called
-     * and carefully watch the use of the buffer pages and release them
-     * at proper times. -- Wei
-     */
     for (i=1; i<=NBuffers; i++) {
-        if (BufferIsValid(i)) {
+	if (BufferIsValid(i)) {
+	    while(PrivateRefCount[i - 1] > 0) {
+		ReleaseBuffer(i);
+	      }
+	  }
+      }
+}
+
+/* -----------------------------------------------
+ *	BufferPoolCheckLeak
+ *
+ *	check if there is buffer leak
+ *
+ * -----------------------------------------------
+ */
+void
+BufferPoolCheckLeak()
+{
+    register int i;
+    for (i=1; i<=NBuffers; i++) {
+	if (BufferIsValid(i)) {
 	    elog(DEBUG, "BUFFER LEAK!!! send mail to wei.");
-            while(PrivateRefCount[i - 1] > 0) {
-                ReleaseBuffer(i);
-	     }
-        }
-    }
-    
-    /* flush dirty shared memory only when main memory is not stable */
-    /* plai 8/7/90                                                   */
- 
+	  }
+      }
+}
+
+/* ------------------------------------------------
+ *	FlushBufferPool
+ *
+ *	flush all dirty blocks in buffer pool to disk
+ *
+ * ------------------------------------------------
+ */
+void
+FlushBufferPool(StableMainMemoryFlag)
+int StableMainMemoryFlag;
+{
     if (!StableMainMemoryFlag) {
         BufferSync();
 	smgrcommit();
