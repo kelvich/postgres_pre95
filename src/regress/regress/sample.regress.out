@@ -10871,7 +10871,6 @@ pls \
 	|| exit 1
 aportal
 aportal.o
-aportal.out
 aportalappend.pq
 aportalcreate.pq
 aportaltest.sh
@@ -10916,7 +10915,6 @@ pls \
 	|| exit 1
 aportal
 aportal.o
-aportal.out
 aportalappend.pq
 aportalcreate.pq
 aportaltest.sh
