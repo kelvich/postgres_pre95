@@ -972,7 +972,33 @@ Relation        relation;
 {
     int i;
 
+#ifdef _xprs_
+        if (relation->rd_fd.is_sys)
+           i = (int)FileSeek(relation->rd_fd.fd[0], 0l, L_XTND) - 1;
+        else
+        {   /* This is extremely awkward.  */
+            int l=0, h=NSTRIPING-1, m, nf;
+            long lsize, hsize, msize;
+            lsize = FileSeek(relation->rd_fd.fd[l], 0l, L_XTND);
+            hsize = FileSeek(relation->rd_fd.fd[h], 0l, L_XTND);
+            if (lsize == hsize)
+               nf = 0;
+            else {
+                while (l + 1 != h) {
+                    m = (l + h) / 2;
+                    msize = FileSeek(relation->rd_fd.fd[m], 0l, L_XTND);
+                    if (msize > hsize)
+                       l = m;
+                    else
+                     h = m;
+                  }
+                nf = l + 1;
+              }
+            i = hsize * NSTRIPING + nf * BLCKSZ - 1;
+        }
+#else /* _xprs_ */
     i = (int) FileSeek(relation->rd_fd, 0l, L_XTND) - 1;
+#endif /* _xprs_ */
 
     return (BlockNumber)
         ((i < 0) ? 0 : 1 + i/BLCKSZ);
