@@ -50,9 +50,13 @@ RcsId("$Header$");
 #define	MAXFLOATWIDTH 	12
 #define MAXDOUBLEWIDTH	24
 
-extern double	atof();
-extern double   cbrt();
-
+extern double	atof ARGS((const char *p));
+#ifndef NEED_CBRT
+extern double   cbrt ARGS((double x));
+#endif /* NEED_CBRT */
+#ifndef NEED_RINT
+extern double   rint ARGS((double x));
+#endif /* NEED_RINT */
 
 char *float8outAd ARGS((float64 num , int precision , char format ));
 float64 float8inAd ARGS((char *num ));
@@ -275,6 +279,7 @@ float4abs(arg1)
 {
 	float64	dblarg1;
 	float32	result;
+	double tmp;
 	
 	if (!arg1)
 		return (float32)NULL;
@@ -282,7 +287,8 @@ float4abs(arg1)
 	dblarg1 = ftod(arg1);
 	result = (float32) palloc(sizeof(float32data));
 
-	*result = (float32data) fabs(*dblarg1);
+	tmp = *dblarg1;
+	*result = (float32data) fabs(tmp);
 	return(result);
 }
 
@@ -350,13 +356,15 @@ float8abs(arg1)
  	float64	arg1;
 {
 	float64	result;
+	double tmp;
 	
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = fabs(*arg1);
+	tmp = *arg1;
+	*result = fabs(tmp);
 	return(result);
 }
 
@@ -766,10 +774,23 @@ float64
 dround(arg1)
 	float64	arg1;
 {
-	float64	result = (float64) palloc(sizeof(float64data));
-	double rint();
+	float64	result;
+	double tmp;
 
-	*result = (float64data) rint((double) *arg1);
+	if (!arg1)
+		return (float64)NULL;
+
+	result = (float64) palloc(sizeof(float64data));
+
+	tmp = *arg1;
+#ifdef NEED_RINT
+	if (tmp < 0.0)
+		*result = (float64data) ((long) (tmp - 0.5));
+	else
+		*result = (float64data) ((long) (tmp + 0.5));
+#else /* NEED_RINT */
+	*result = (float64data) rint(tmp);
+#endif /* NEED_RINT */
 	return(result);
 }
 
@@ -786,16 +807,18 @@ dtrunc(arg1)
  	float64	arg1;
 {
 	float64	result;
+	double tmp;
 
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
+	tmp = *arg1;
 	if (*arg1 > 0)
-		*result = (float64data) floor((double) *arg1);
+		*result = (float64data) floor(tmp);
 	else
-		*result = (float64data) -(floor((double) -(*arg1)));
+		*result = (float64data) -(floor(-tmp));
 	return(result);
 }
 
@@ -808,13 +831,15 @@ dsqrt(arg1)
 	float64	arg1;
 {
 	float64	result;
+	double tmp;
 
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = (float64data) sqrt((double) *arg1);
+	tmp = *arg1;
+	*result = (float64data) sqrt(tmp);
 	return (result);
 }
 
@@ -827,13 +852,19 @@ dcbrt(arg1)
 	float64	arg1;
 {
 	float64	result;
+	double tmp;
 
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = (float64data) cbrt((double) *arg1);
+	tmp = *arg1;
+#ifdef NEED_CBRT
+	*result = (float64data) pow(tmp, 1.0 / 3.0);
+#else /* NEED_CBRT */
+	*result = (float64data) cbrt(tmp);
+#endif /* NEED_CBRT */
 	return(result);
 }
 
@@ -846,13 +877,16 @@ dpow(arg1, arg2)
 	float64	arg1, arg2;
 {
 	float64	result;
+	double tmp1, tmp2;
 
 	if (!arg1 || !arg2)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = (float64data) pow((double) *arg1, (double) *arg2);
+	tmp1 = *arg1;
+	tmp2 = *arg2;
+	*result = (float64data) pow(tmp1, tmp2);
 	return(result);
 }
 
@@ -865,13 +899,15 @@ dexp(arg1)
  	float64	arg1;
 {
 	float64	result;
+	double tmp;
 
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = (float64data) exp((double) *arg1);
+	tmp = *arg1;
+	*result = (float64data) exp(tmp);
 	return(result);
 }
 
@@ -885,13 +921,15 @@ dlog1(arg1)
 	float64	arg1;
 {
 	float64	result;
+	double tmp;
 
 	if (!arg1)
 		return (float64)NULL;
 
 	result = (float64) palloc(sizeof(float64data));
 
-	*result = (float64data) log((double) *arg1);
+	tmp = *arg1;
+	*result = (float64data) log(tmp);
 	return(result);
 }
 
