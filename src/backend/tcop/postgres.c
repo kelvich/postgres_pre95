@@ -516,6 +516,7 @@ pg_eval(query_string, dest)
      * ----------------
      */
     foreach(i,parsetree_list )   {
+	int which_util;
 	LispValue parsetree = CAR(i);
 	Node plan  	= NULL;
 
@@ -531,11 +532,20 @@ pg_eval(query_string, dest)
 		time(&tim);
 		printf("\tProcessUtility() at %s\n", ctime(&tim));
 	    }
-	    ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
-			   CDR(parsetree),
-			   query_string,
-			   dest);
-	    
+	    which_util = LISPVALUE_INTEGER(CAR(parsetree));
+	    ProcessUtility(which_util, CDR(parsetree), query_string, dest);
+
+	    /*
+	     *  XXX -- ugly hack:  vacuum spans transactions (it calls
+	     *  Commit and Start itself), and so if this was a vacuum
+	     *  command, all the memory we were using is gone.  the right
+	     *  thing to do is to allocate the parse tree in a distinguished
+	     *  memory context.  until i get around to doing that, just
+	     *  bounce out of here after vacuuming.  --mao 4 may 91
+	     */
+
+	    if (which_util == VACUUM)
+		return;
 	} else {
 	    /* ----------------
 	     *   process queries (retrieve, append, delete, replace)
