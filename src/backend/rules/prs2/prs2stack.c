@@ -57,14 +57,40 @@
  *     exist, or use the value as stored in the tuple.
  *  3) Ignore the tuple altogether!
  *
+ * MEMORY MANAGEMENT PROBLEMS:
+ * Every time we push an item in the stack we first check if we have
+ * enough space. If not, we allocate some new space, copty there the
+ * contents of the old one and then free the old one.
+ * However, as each recursive call of 'prs2Main' changes the memory
+ * context (we do that to avoid memory leaks - see comments in prs2main.c)
+ * it is possible that we allocate some space under a certain mem cntxt
+ * and when we want to reallocate some more we are under another.
+ * This of course causes bad things to happen and our beloved postgres
+ * dies a horrible death.
+ * So I did an extensive study of all the possible alternatives
+ * carefully examining all the tradeoff involved, taking into account
+ * all possible softawre engineering considerations, and finally after an
+ * extensive period of thought (approximately 10 seconds) I decided
+ * to create (yes!) yet another memory context specially designed and
+ * custom made for the rule stack.
+ *
  *===================================================================
  */
 
 #include "tmp/c.h"
 #include "utils/log.h"
 #include "rules/prs2.h"
+#include "nodes/mnodes.h"
+#include "utils/mcxt.h"
+
 
 #define PRS2_INCREMENT_STACKSIZE 1
+
+/*-----
+ * this is a local static variable :
+ * Rule Stack Memeory Context!
+ */
+static GlobalMemory Prs2RuleStackMemoryContext = NULL;
 
 /*-------------------------------------------------------------------
  * prs2RuleStackPush
@@ -81,14 +107,24 @@ AttributeNumber attributeNumber;
 {
     Prs2Stack temp;
     int newSize;
+    MemoryContext oldMemContext;
 
     /*
-     * remember the stack pointer points always
+     * remember the stack pointer always points
      * to the next free stack entry...
      */
     if (p->prs2StackPointer >= p->prs2MaxStackSize) {
 	/*
 	 * we need to allocate some more stack room!
+	 * switch to `Prs2RuleStackMemoryContext' for all memory
+	 * allocations
+	 */
+	if (Prs2RuleStackMemoryContext == NULL) {
+	    elog(WARN,"prs2RuleStackFree: Prs2RuleStackMemoryContext is NULL!");
+	}
+	oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+	/*
+	 * allocate more room & free the old one
 	 */
 	newSize = p->prs2MaxStackSize + PRS2_INCREMENT_STACKSIZE;
 	temp = (Prs2Stack) palloc(sizeof(Prs2StackData) * newSize);
@@ -105,6 +141,10 @@ AttributeNumber attributeNumber;
 	}
 	p->prs2Stack = temp;
 	p->prs2MaxStackSize = newSize;
+	/*
+	 * switch back to the old mem context
+	 */
+	(void) MemoryContextSwitchTo(oldMemContext);
     }
 
     /*
@@ -179,7 +219,20 @@ Prs2EStateInfo
 prs2RuleStackInitialize()
 {
     Prs2EStateInfo p;
+    MemoryContext oldMemContext;
 
+    /*
+     * switch to `Prs2RuleStackMemoryContext' for all memory
+     * allocations
+     */
+    if (Prs2RuleStackMemoryContext == NULL) {
+	Prs2RuleStackMemoryContext = CreateGlobalMemory("*prs2RuleStack*");
+    }
+    oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+
+    /*
+     * create the stack
+     */
     p = (Prs2EStateInfo) palloc(sizeof(Prs2EStateInfoData));
     if (p==NULL) {
 	elog(WARN,"prs2RuleStackInitialize: palloc(%ld) failed.\n",
@@ -188,6 +241,11 @@ prs2RuleStackInitialize()
     p->prs2StackPointer = 0;
     p->prs2MaxStackSize = 0;
     p->prs2Stack = NULL;
+
+    /*
+     * switch back to the original mem context
+     */
+    (void) MemoryContextSwitchTo(oldMemContext);
 
     return(p);
 }
@@ -201,9 +259,29 @@ void
 prs2RuleStackFree(p)
 Prs2EStateInfo p;
 {
+    MemoryContext oldMemContext;
+
+    /*
+     * switch to `Prs2RuleStackMemoryContext' for all memory
+     * deallocations
+     */
+    if (Prs2RuleStackMemoryContext == NULL) {
+	elog(WARN,"prs2RuleStackFree: Prs2RuleStackMemoryContext is NULL!");
+    }
+    oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+
+    /*
+     * free the Prs2EStateInfo
+     */
     if (p!= NULL && p->prs2Stack != NULL) {
 	pfree(p->prs2Stack);
     }
     if (p!=NULL)
 	pfree(p);
+
+    /*
+     * switch back to the original mem context
+     */
+    (void) MemoryContextSwitchTo(oldMemContext);
+
 }
