@@ -1,4 +1,3 @@
-
 /*    
  *    	nodeFuncs
  *    
@@ -11,7 +10,7 @@
 #include "nodes.h"
 #include "pg_lisp.h"
 #include "nodeFuncs.h"
-#include "planner/keys.h"
+#include "keys.h"
 
 /* XXX - find what this really means */
 extern LispValue last_element();
@@ -228,14 +227,16 @@ constant_p (node)
  */
 
 bool
-non_null (const)
-     Expr const ;
+non_null(c)
+     Expr c;
 {
-/*    if ( IsA(const,Const) && !get_constisnull (const) )
-      return(true);
-    else
-      return(false);
-*/
+   if (! IsA(c,Const))
+      return false;
+   
+   if (!get_constisnull(c))
+      return true;
+
+   return false;
 }
 
 /*    
