@@ -1844,6 +1844,7 @@ attr:
           relation_name '.' nested_func '.' nested_dots
                 {
 		    attr_is_nested_dots = true;
+		    INC_NUM_LEVELS(1);
 		    $$ = MakeList($1, $3, -1);
 		    $$ = nappend1($$, $5);
 		}
