@@ -48,10 +48,9 @@ box_in(str)
 	char	*p, *coord[BOXNARGS];
 	int	i;
 	BOX	*result;
-	double	atof();
 
 	if (str == NULL)
-	  elog (WARN," Bad (Null) box external representation");
+	  elog (WARN," Bad (null) box external representation");
 
 	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
 		elog (WARN, "Bad box external representation '%s'",str);
@@ -679,22 +678,22 @@ PATH *
 path_in(str)
 	char	*str;
 {
-	double	atof(), coord;
-	long	atol(), field[2];
+	double	coord;
+	long	field[2];
 	char	*s;
 	int	ct, i;
 	PATH	*result;
 	long	pathsize;
 
 	if (str == NULL)
-		elog(WARN, "Bad (null) path string representation");
+		elog(WARN, "Bad (null) path external representation");
 
 	/* read the path header information */
 	for (i = 0, s = str; *s && i < 2 && *s != RDELIM; ++s)
 		if (*s == DELIM || (*s == LDELIM && !i))
 			field[i++] = atol(s + 1);
 	if (i < 1)
-		elog(WARN, "Bad path string representation: %s", str);
+		elog(WARN, "Bad path external representation '%s'", str);
 	pathsize = PATHALLOCSIZE(field[1]);
 	result = (PATH *)palloc(pathsize);
 	result->length = pathsize;
@@ -718,7 +717,7 @@ path_in(str)
 	}
 	if (i % 2 || i < --ct) {
 		PFREE(result);
-		elog(WARN, "Bad path string representation: %s", str);
+		elog(WARN, "Bad path external representation '%s'", str);
 	} 
 
 	return(result);
@@ -918,13 +917,12 @@ POINT *
 point_in(str)
 	char	*str;
 {
-	double	atof();
 	char	*coord[POINTNARGS], *p, *r;
 	int	i;
 	POINT	*result;
 
 	if (str == NULL)
-		elog(WARN, "Bad (Null) point external representation");
+		elog(WARN, "Bad (null) point external representation");
 
 	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
 		elog (WARN, "Bad point external representation '%s'",str);
@@ -1104,10 +1102,9 @@ lseg_in(str)
 	char	*coord[LSEGNARGS], *p;
 	int	i;
 	LSEG	*result;
-	extern double	atof();
 
 	if (str == NULL)
-	  elog (WARN," Bad (Null) box external representation");
+	  elog (WARN," Bad (null) box external representation");
 
 	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
 		elog (WARN, "Bad lseg external representation '%s'",str);
@@ -1415,30 +1412,30 @@ double *dist_ppth(pt, path)
     int i;
     LSEG lseg;
 
-    if (path->npts == 0) 
-     {
-	 result = PALLOCTYPE(double);
-	 *result = Abs((double) HUGE_VAL);
-	 goto exit;
-     }
-
-    if (path->npts == 1) 
-      {
-	  result = point_distance(pt, &path->p[0]);
-	  goto exit;
-      }
-
-    /* else */
-    for (i = 0; i < path->npts; i++)
-     {
-	 statlseg_construct(&lseg, &path->p[i], &path->p[i+1]);
-	 if (i = 0) result = tmp = dist_ps(pt, &lseg);
-	 if (*tmp < *result) 
-	   *result = *tmp;
-	 PFREE(tmp);
-     }
-
-  exit:
+    switch (path->npts) {
+    case 0:
+	result = PALLOCTYPE(double);
+	*result = Abs((double) HUGE_VAL);	/* +infinity */
+	break;
+    case 1:
+	result = point_distance(pt, &path->p[0]);
+	break;
+    default:
+	/*
+	 * the distance from a point to a path is the smallest distance
+	 * from the point to any of its constituent segments.
+	 */
+	Assert(path->npts > 1);
+	result = PALLOCTYPE(double);
+	for (i = 0; i < path->npts - 1; ++i) {
+	    statlseg_construct(&lseg, &path->p[i], &path->p[i+1]);
+	    tmp = dist_ps(pt, &lseg);
+	    if (i == 0 || *tmp < *result)
+		*result = *tmp;
+	    PFREE(tmp);
+	}
+	break;
+    }
     return(result);
 }
 
@@ -1898,7 +1895,7 @@ char *s;
 	int i, size;
 
 	if((points = poly_pt_count(s, ',')) < 0)
-		elog(WARN, "Bad input polyon");
+		elog(WARN, "Bad polygon external representation '%s'", s);
 
 	size = offsetof(POLYGON, pts[0]) + 2 * sizeof(double) * points;
 	poly = (POLYGON *) PALLOC(size);
