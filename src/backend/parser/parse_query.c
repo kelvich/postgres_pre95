@@ -155,10 +155,12 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	}    
     }
 
-    new_sort_clause = lispCons ( lispAtom("sort"),
+    if ( sort_clause_elts != LispNil && sort_clause_ops != LispNil ) {
+        new_sort_clause = lispCons ( lispAtom("sort"),
 			         lispCons (sort_clause_elts, 
 			                   lispCons (sort_clause_ops, 
 						     LispNil ))); 
+    }
 
     newroot = lispCons (new_sort_clause,LispNil);
     newroot = lispCons (unique_flag,newroot );
