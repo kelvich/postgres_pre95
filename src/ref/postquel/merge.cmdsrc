@@ -61,4 +61,4 @@ create version(commands).
 .uh BUGS
 .lp
 Merge
-will not work until Version 3.
+will not work until Version 4.
