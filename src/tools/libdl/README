@@ -1,0 +1,30 @@
+
+Ultrix 4.x Dynamic Loader Library Version 1.0
+=============================================
+
+Copyright (c) 1993 Andrew K. Yu, University of California at Berkeley
+All rights reserved.
+
+
+The Dynamic Loader Library implements a simple dlopen/dlsym/dlclose
+interface similar to those on other platforms for shared libraries. Since
+there is no such thing as shared libraries on Ultrix, it works with
+object files and libraries.
+
+The dynamic loader has been compiled and tested on a DECstation/5000 under
+Ultrix 4.2.
+
+A brief summary of the features are listed below:
+
+o   can load in object files as well as libraries
+o   has an automatic library search mechanism by which you can specify
+    libraries like libc_G0.a to be searched for undefined symbols
+o   the dynamically loaded text section has the proper memory protection
+    so that you cannot accidentally overwrite the code in memory
+
+For more information, there are two brief man pages in the man directory.
+The test directory contains sample test suites.
+
+Andrew
+July 93
+

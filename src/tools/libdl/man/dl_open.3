@@ -1,0 +1,79 @@
+.\"
+.\" Ultrix 4.x Dynamic Loader Library Version 1.0
+.\"
+.\" Copyright (c) 1993 Andrew K. Yu, University of California at Berkeley
+.\" All rights reserved.
+.\"
+.TH dl_open 3
+.SH Name
+dl_open, dl_sym, dl_close, dl_error \- interface to dynamic loader
+.SH Syntax
+#include "dl.h"
+.PP
+int dl_init(\fIfilename\fP)
+.br
+char *\fIfilename\fP;
+.PP
+void *dl_open(\fIfilename, mode\fP)
+.br
+char *\fIfilename\fP;
+.br
+int \fImode\fP;
+.PP
+void *dl_sym(\fIhandle, name\fP)
+.br
+void *\fIhandle\fP;
+.br
+char *\fIname\fP;
+.PP
+void dl_close(\fIhandle\fP)
+.br
+void *\fIhandle\fP;
+.PP
+char *dl_error(\fIvoid\fP)
+.SH Description
+The
+.PN dl_init
+function initializes the necessary data structures and reads in the
+symbols from \fIfilename\fR. It must be the same executable from which the
+process is started. It returns 1 if successful, 0 otherwise.
+.PP
+The
+.PN dl_open
+function is an interface for loading in object files or libraries at
+runtime. The
+.PN dl_open
+function loads \fIfilename\fR into the address space of the process.
+You may either specify an object file or a library as the \fIfilename\fR.
+If the specified file is a library, all of its object files are loaded in.
+.PP
+If \fImode\fR is LD_LAZY, symbol resolution will only be performed the
+first time the symbol is accessed through
+.PN dl_sym.
+If \fImode\fR is LD_NOW, symbol resolution will be performed during the
+.PN dl_open
+call. It returns a NULL pointer when there is an error or when
+\fImode\fR is LD_NOW and there are unresolved symbols.
+.PP
+The
+.PN dl_sym
+function returns the address of the symbol \fIname\fR. If the symbol is
+not found, a NULL pointer is returned.
+.PP
+The
+.PN dl_close
+function reclaims resources allocated for the handle and the address
+space corresponding to the object file or the library.
+.PP
+The
+.PN dl_error
+function returns a string in a static buffer containing an error message
+of the last error.
+.SH Warning
+You need to compile the object files to be dynamically loaded in with
+the -G0 flag. 
+.SH Author
+Andrew K. Yu (andrew@CS.Berkeley.edu)
+.SH See Also
+ld(1), dl_misc(3)
+

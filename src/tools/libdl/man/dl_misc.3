@@ -1,0 +1,40 @@
+.\"
+.\" Ultrix 4.x Dynamic Loader Library Version 1.0
+.\"
+.\" Copyright (c) 1993 Andrew K. Yu, University of California at Berkeley
+.\" All rights reserved.
+.\"
+.TH dl_misc 3
+.SH Name
+dl_undefinedSymbols, dl_setLibraries \- miscellaneous functions 
+.SH Syntax
+#include "dl.h"
+.PP
+char **dl_undefinedSymbols(\fIcount\fP)
+.br
+int *\fIcount\fP;
+.PP
+void dl_setLibraries(\fIlibs\fP)
+.br
+char *\fIlibs\fP;
+.SH Description
+The
+.PN dl_undefinedSymbols
+function returns the number of undefined symbols in \fIcount\fR and an
+array of strings containing the names of the undefined symbols. The last
+element of the array is set to NULL.
+.PP
+The
+.PN dl_setLibraries
+takes a string specifying the libraries to be searched automatically
+when there are undefined symbols. The string can contain multiple 
+pathnames, separated by a colon. 
+.SH Example
+.IP
+dl_setLibraries("/usr/lib/libc_G0.a:/usr/lib/libm_G0.a");
+.PP
+specifies that libc_G0.a and libm_G0.a are to be searched for undefined
+symbols during symbol resolution.
+.SH See Also
+ld(1), dl_open(3)
+
