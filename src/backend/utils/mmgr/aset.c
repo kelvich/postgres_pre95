@@ -7,14 +7,12 @@
  *	XXX validity checking of arguments.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "excid.h"	/* for ExhaustedMemory */
-#include "oset.h"
-
-#include "aset.h"
+#include "utils/excid.h"	/* for ExhaustedMemory */
+#include "utils/memutils.h"
 
 extern void bcopy();	/* XXX use header */
 
@@ -183,6 +181,7 @@ AllocSetFree(set, pointer)
 
 	/* free storage */
 	delete(alloc);
+	/* pg_free(alloc); */
 }
 
 AllocPointer
