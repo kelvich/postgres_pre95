@@ -28,17 +28,18 @@
 
  **********************************************************************/
 
-#include "c.h"
 #include <strings.h>
+
+#include "tmp/c.h"
 #include "catalog_utils.h"
-#include "log.h"
-#include "palloc.h"
-#include "pg_lisp.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+#include "nodes/pg_lisp.h"
 /* XXX ORDER DEPENDENCY */
 #include "parse_query.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "params.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "rules/params.h"
 
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
