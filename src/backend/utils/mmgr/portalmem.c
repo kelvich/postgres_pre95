@@ -3,24 +3,25 @@
  *	POSTGRES portal code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
 #include <strings.h>	/* for strlen, strncpy */
 
-#include "enbl.h"
-#include "excid.h"	/* for Unimplemented */
-#include "execnodes.h"	/* for EState */
-#include "hasht.h"
-#include "log.h"
-#include "mcxt.h"
-#include "mnodes.h"
-#include "nodes.h"
-#include "pg_lisp.h"
+#include "tmp/hasht.h"
+#include "utils/module.h"
+#include "utils/excid.h"	/* for Unimplemented */
+#include "utils/log.h"
+#include "utils/mcxt.h"
+
+#include "nodes/mnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/execnodes.h"	/* for EState */
 #include "tags.h"
 
-#include "portal.h"
+#include "tmp/portal.h"
 
 /*
  * Global state
