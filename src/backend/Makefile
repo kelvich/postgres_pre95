@@ -257,7 +257,7 @@ afterinstall: pg_id
 #
 .PATH: ${.CURDIR}/../bin/pg_id
 pg_id:	pg_id.c
-	${CC} -o pg_id ${.ALLSRC} 
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} 
 
 CLEANFILES+= pg_id
 
