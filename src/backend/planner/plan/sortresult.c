@@ -21,6 +21,7 @@
 #include "relation.a.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "parsetree.h"
 #include "c.h"
 #include "pg_lisp.h"
 #include "planner/tlist.h"
@@ -59,72 +60,56 @@
 /*  .. query_planner     */
 
 LispValue
-relation_sortkeys (tlist)
-     LispValue tlist ;
+  relation_sortkeys (tlist)
+LispValue tlist ;
 {
     LispValue xtl = LispNil;
+    int numkeys = 0;
+    bool allsame = true;
+    Index relid = 0;
+    LispValue sort_ops = LispNil;
+    List	varkeys = LispNil;
+    List	keys = LispNil;
+    LispValue resdom = LispNil;
+    LispValue expr = LispNil;
     
-    return(LispNil);
-
-/* XXX - remove line above and uncomment the following code
-   after retrieve(x=1) works
-
     foreach (xtl,tlist) {
-	int numkeys = 0;
-	bool allsame = true;
-	LispValue relid = LispNil;
-	LispValue sort_ops = LispNil;
-	List	varkeys = LispNil;
-	List	keys = LispNil;
-	Resdom	resdom;
-	Node	expr;
+	resdom = tl_resdom (CAR(xtl));
+	expr = tl_expr(CAR(xtl));
 	
-	if ( null (xtl)) {
-	    if(!allsame) 
-	      return (lispInteger(numkeys));
-		  else 
-		    if (null (relid)) 
-		      return (LispNil);
-		    else 
-		    return ((LispValue)MakeSortKey (lispCons(lispInteger(relid)
-		                                             ,LispNil),
-		                                      sort_list_car (sort_ops),
-						      sort_list_car (varkeys),
-						      sort_list_car (keys)));
-	}
-	resdom = get_resdom (CAR (xtl));
-	expr = get_expr (CAR (xtl));
-	
-	if (!(equal (0,get_reskey (resdom)))) {
+	if (0 != get_reskey (resdom)) {
 	    if(!(IsA (expr,Var)) ||
 	       var_is_nested (expr) || 
-	       (relid && ! (equal (relid,get_varno (expr)))))
+	       (relid && relid != get_varno (expr)))
 	      allsame = false;
 	    else 
 	      if (allsame) {
-		  if ( null (relid)) 
-		    relid = get_varno (expr);
-		  push (lispCons(get_reskey (resdom),
-		                 lispCons(lispCons(get_reskeyop(resdom), 
+		  if (relid == 0) 
+		    relid = get_varno(expr);
+		  push (lispCons(lispInteger(get_reskey(resdom)),
+		                 lispCons(lispCons(lispInteger
+						   (get_reskeyop(resdom)), 
 				                   LispNil), 
-					   LispNil)),
+					  LispNil)),
                  	sort_ops);
-         	push (lispCons (get_reskey (resdom),
-		                lispCons(lispCons(expr,LispNil),
-				         LispNil)),
-		      varkeys);
+		  push (lispCons (lispInteger(get_reskey (resdom)),
+				  lispCons(lispCons(expr,LispNil),
+					   LispNil)),
+			varkeys);
 		  if (get_vararrayindex(expr))
-		    push (lispCons(get_reskey (resdom),
-		                   lispCons(lispCons (get_varattno (expr),
+		    push (lispCons(lispInteger(get_reskey (resdom)),
+		                   lispCons(lispCons (lispInteger
+						      (get_varattno (expr)),
 				                      lispCons
-						      (get_vararrayindex 
-						      (expr),
-						      LispNil)),
+						      (lispInteger
+						       (get_vararrayindex 
+							(expr)),
+						       LispNil)),
 					    LispNil)),
 			  keys);
 		  else 
-		    push (lispCons (get_reskey (resdom),
-				    lispCons(get_varattno (expr),
+		    push (lispCons (lispInteger(get_reskey (resdom)),
+				    lispCons(lispInteger(get_varattno (expr)),
 				             LispNil)),
 			  keys);
 	      } 
@@ -132,7 +117,17 @@ relation_sortkeys (tlist)
 	    set_reskeyop (resdom,get_opcode (get_reskeyop (resdom)));
 	}
     }
-    */
+    
+    if(!allsame) 
+      return (lispInteger(numkeys));
+    else 
+      if (relid == 0) 
+	return (LispNil);
+      else 
+	return ((LispValue)MakeSortKey (sort_list_car (varkeys),
+					sort_list_car (keys),
+					relid,
+					sort_list_car (sort_ops)));
 }  /* function end   */
 
 /*    
@@ -158,21 +153,21 @@ sort_list_car(list)
      LispValue temp2 = LispNil;
      LispValue temp = LispNil;
      LispValue t_list = LispNil;
+     LispValue templist = LispNil;
 
      foreach(temp1,list)
        foreach(temp2,list)
-	 if (CAR (temp1) >= CAR (temp2)) {
+	 if (CAR(CAR(temp1)) >= CAR(CAR(temp2))) {
 	      /* swap */
 	      temp = temp1;
 	      temp1 = temp2;
 	      temp2 = temp;
-	 }
-     temp = LispNil;
-     foreach(temp,list)
-       t_list = nappend1(t_list,CADR(temp));
-
+	  }
+     
+     foreach(templist,list)
+       t_list = nappend1(t_list,CADR(CAR(templist)));
      return(t_list);
-
+     
 }  /* function end  */
 
 /*    
