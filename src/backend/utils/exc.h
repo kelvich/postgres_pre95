@@ -131,4 +131,4 @@ ExcAbort ARGS((
 	ExcMessage	message
 ));
 
-#endif	/* !defined(ExcIncluded) 
+#endif	/* !defined(ExcIncluded) */
