@@ -150,7 +150,7 @@ DATA(insert OID = 533 (  "="       PGUID 0 b t t  23  21  16 532 539  97  95 int
 DATA(insert OID = 534 (  "<"       PGUID 0 b t f  21  23  16 537 542  0  0 int24lt intltsel intltjoinsel ));
 DATA(insert OID = 535 (  "<"       PGUID 0 b t f  23  21  16 536 543  0  0 int42lt intltsel intltjoinsel ));
 DATA(insert OID = 536 (  ">"       PGUID 0 b t f  21  23  16 535 540  0  0 int24gt intgtsel intgtjoinsel ));
-DATA(insert OID = 537 (  ">"       PGUID 0 b t f  23  21  16 534 541  0  0 int42lt intgtsel intgtjoinsel ));
+DATA(insert OID = 537 (  ">"       PGUID 0 b t f  23  21  16 534 541  0  0 int42gt intgtsel intgtjoinsel ));
 DATA(insert OID = 538 (  "!="      PGUID 0 b t f  21  23  16 539 532  0  0 int24ne neqsel neqjoinsel ));
 DATA(insert OID = 539 (  "!="      PGUID 0 b t f  23  21  16 538 533  0  0 int42ne neqsel neqjoinsel ));
 DATA(insert OID = 540 (  "<="      PGUID 0 b t f  21  23  16 543 536  0  0 int24le intltsel intltjoinsel ));
