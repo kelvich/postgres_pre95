@@ -3,7 +3,7 @@
  *
  *	$Header$
  */
-#include "tmp/c.h"		/* postgres system include file */
+#include "tmp/postgres.h"	/* postgres system include file */
 #include "utils/log.h"		/* for logging postgres errors */
 
 /*
@@ -75,22 +75,42 @@ char16regexne(s, p)
 
 bool
 textregexeq(s, p)
-	char *s;
-	char *p;
+	struct varlena *s;
+	struct varlena *p;
 {
 	char *expbuf, *endbuf;
+	char *sbuf, *pbuf;
 	int result;
+
+	/* ---------------
+	 * text is a varlena, not a string so we have to make 
+	 * a string from the vl_data field of the struct. 
+	 * jeff 13 July 1991
+	 * ---------------
+	 */
+	
+	/* palloc the length of the text + the null character */
+	sbuf = (char *) palloc(s->vl_len - sizeof(int32) + 1);
+	pbuf = (char *) palloc(p->vl_len - sizeof(int32) + 1);
 
 	expbuf = (char *) palloc(EXPBUFSZ);
 	endbuf = expbuf + (EXPBUFSZ - 1);
 
+	bcopy(s->vl_dat, sbuf, s->vl_len);
+	bcopy(p->vl_dat, pbuf, p->vl_len);
+	*(sbuf + s->vl_len) = (char)NULL;
+	*(pbuf + p->vl_len) = (char)NULL;
+
+
 	/* compile the re */
-	(void) compile(p, expbuf, endbuf, NULL);
+	(void) compile(pbuf, expbuf, endbuf, NULL);
 
 	/* do the regexp matching */
-	result = step(s, expbuf);
+	result = step(sbuf, expbuf);
 
 	pfree(expbuf);
+	pfree(sbuf);
+	pfree(pbuf);
 
 	return ((bool) result);
 }
