@@ -46,6 +46,7 @@ described in this section.
 	oid	object identifier type	*
 	oid8	array of 8 oid	*
 	oidchar16	oid and char16 composed	*
+	oidint2	oid and int2 composed	*
 	oidint4	oid and int4 composed	*
 	path	variable-length array of lseg
 	point	2-dimensional geometric point
@@ -75,16 +76,24 @@ where	Month is Jan, Feb, ..., Dec
 	Hour is 01, 02, ..., 24
 	Minute is 00, 01, ..., 59
 	Second is 00, 01, ..., 59
-	Year is 1970, 1971, ..., 2038
+	Year is 1901, 1902, ..., 2038
 .)l
-Valid dates are, therefore, Jan 1 00:00:00 1970 GMT to Jan 1 00:00:00
+Valid dates are from Dec 13 20:45:53 1901 GMT to Jan 19 03:14:04
 2038 GMT.  As of Version 3.0, times are no longer read and written
 using Greenwich Mean Time; the input and output routines default to
 the local time zone.
 .PP
-The special absolute time \*(lqnow\*(rq is provided as a convenience.
-The special absolute time \*(lqepoch\*(rq means Jan 1 00:00:00 1970
-GMT.
+The special absolute time values \*(lqcurrent\*(rq,
+\*(lqinfinity\*(rq and \*(lq-infinity\*(rq are also provided.
+\*(lqinfinity\*(rq specifies a time later than any valid time, and
+\*(lq-infinity\*(rq specifies a time earlier than any valid time.
+\*(lqcurrent\*(rq indicates that the current time should be
+substituted whenever this value appears in a computation.
+.PP
+The strings \*(lqnow\*(rq and \*(lqepoch\*(rq can be used to specify
+time values.  \*(lqnow\*(rq means the current time, and differs from
+\*(lqcurrent\*(rq in that the current time is immediately substituted
+for it.  \*(lqepoch\*(rq means Jan 1 00:00:00 1970 GMT.
 .SH "RELATIVE TIME"
 Relative time is specified with the following syntax:
 .(C
