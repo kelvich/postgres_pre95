@@ -1,12 +1,17 @@
 #!./pgperl
 # An example of how to use Postgres 2.0 from perl.
 # This example is modelled after the example in the libpq reference manual.
-
 # $Id$
 # $Log$
-# Revision 1.1  1990/10/24 20:31:22  cimarron
-# Initial revision
+# Revision 1.2  1991/03/08 13:22:41  kemnitz
+# added RCS header.
 #
+#
+# $Header$
+#
+% Revision 1.1  90/10/24  20:31:22  cimarron
+% Initial revision
+% 
 
 &init_handler();
 

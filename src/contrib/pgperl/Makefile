@@ -1,4 +1,5 @@
 # Makefile for pgperl.
+# $Header$
 # Thu Aug 23 15:00:05 1990  Igor Metz <metz@iam.unibe.ch>
 
 # PERLDIR is the directory, where your uperl.o and all perl header file live
