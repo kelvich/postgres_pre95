@@ -132,15 +132,17 @@ This is *unsupported* software.
 \*(PG currently has been tested by the Postgres development team on Sun
 Microsystems 3/xx family of
 processors with SunOS 3.4, or 3.5, and 4.0, Sparc architecture machines
-(Sparcstation and Sun 4) running SunOS 4.1 and higher, as well as Digital
+(Sparcstation and Sun 4) running SunOS 4.0 and higher, as well as Digital
 Equipment Corporation DECstation 3100 computers running Ultrix 4.0.  An
-unsupported port for Ultrix 2.7 is included, and Postgres does run on
-SunOS 4.0.X on Sparcs, but the dynamic loading feature needed for ADT's is
-unsupported under this system configuration.  An unsupported port for Sequent
-Symmetry running Dynix is also included.
+unsupported port for DECstations running Ultrix lower than 4.0 is included,
+as well as an unsupported port for Sequent Symmetry running Dynix.  These
+ports are unsupported for the following reasons:  the dynamic loading mechanism
+on Ultrix less than 4.0 is severely limited, and the standard "make" on the
+Sequent Symmetry cannot compile Postgres.  Other than these disclaimers, these
+two ports work as well as the others.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
-and you will require at least 25 megabytes of disk space
+and you will require at least 30 megabytes of disk space
 to hold source,
 binaries,
 and user databases.
@@ -204,7 +206,7 @@ of difficulty on Sequent Symmetry machines, so we advise that you
 obtain a Sun-compatible make for these platforms.
 .sh 3 "Disk Partition"
 .pp
-\*(PG requires 25 megabytes of disk space,
+\*(PG requires 30 megabytes of disk space,
 preferably on a single partition.
 If you don't have enough space,
 it is still possible to compile and run \*(PG but you will have to
@@ -252,7 +254,7 @@ system administrator perform these steps.
 .sh 3 "Find a good place for \*(PG"
 .pp
 You should locate a disk partition with
-at least 25 megabytes of free space available for \*(PG.
+at least 30 megabytes of free space available for \*(PG.
 If you haven't any single partition with 25 megabytes free,
 you might have to spread apart the \*(PG directories across several
 partitions,
@@ -327,7 +329,7 @@ you will need either
 a distribution tape or a \*(PG tar file.
 .pp
 If you are loading \*(PG from a tape, follow these instructions;
-if you are loading from an FTP tar file, skip to the
+if you are loading from a tar file obtained via FTP, skip to the
 section "Loading \*(PG from a Tar File".
 .sh 3 "Loading \*(PG from a Tape"
 .pp
@@ -351,7 +353,7 @@ Please proceed to the section "Loading \*(PG from a Tar File".
 If you are not logged in as \*(PG already, log in as \*(PG.
 Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
-the purpose of this discussion, the \*(PG tar file will be called
+For the purpose of this discussion, the \*(PG tar file will be called
 .pp
 postgres-v2r01.tar.Z
 .pp
@@ -369,7 +371,7 @@ options:
 .pp
 % tar xvf postgres-v2r01.tar
 .pp
-Large numbers of file names and such should appear on the screen.
+Lots of file names and such should appear on the screen.
 This step may take several minutes.
 .pp
 Now do an "ls":
@@ -378,7 +380,6 @@ The output of the ls should look something like:
 .(l
 COPYRIGHT	demo/	newconf/	src/
 README	doc/	ref/
-
 .)l
 .pp
 At this point you have loaded the \*(PG files.
@@ -389,8 +390,6 @@ Proceed now to the Configuration section.
 .tm    Configuration
 .\" ----------------
 .sh 2 "Step 3 - Configuration"
-.pp
-.sh 3 "Kernel reconfiguration for Suns and Sparcs"
 .pp
 This step requires familiarity with configuring a UNIX kernel.
 If you are unfamiliar with this procedure,
@@ -404,32 +403,25 @@ of the process and procedures involved.
 .pp
 \*(PG uses shared memory segments which must be compiled into the
 kernel of the host which will act as the \*(PG server.
-If you
-try to run a postgres backend process on a machine without enough
-shared memory,
-the backend will abort with an error message.
+If you try to run a postgres backend process on a machine without enough
+shared memory, the backend will abort with an error message.
 .pp
-In order to reconfigure your kernel,
-you will have to become root
+This is by far the most complicated part of the installation
+so these steps should be performed by someone with system administration
+experience.  Again, we advise you to consult
+the system administration section of your manual
+before doing this step.
+.pp
+For a brief discussion of shared memory,
+you may want to consult the Man pages for \fIshmget()\fR,
+\fIshmop()\fR, \fIshmctl()\fR, etc.  Now proceed to the appropriate
+section for your machine.
+.pp
+.sh 3 "Kernel reconfiguration for Suns and Sparcs"
+.pp
+In order to reconfigure Sun or Sparc kernel, you will have to become root
 and add some lines to /usr/sys/conf (your kernel config file)
 and /usr/sys/conf/param.c (your kernel parameters file).
-A copy of the lines listed below can be found in the files
-~postgres/misc/config.add and ~postgres/misc/param.add\**
-.(f
-\**
-This document assumes that you are running under a BSD
-environment using the C shell.
-In the C shell ~postgres is
-the home directory of the user \*(lqpostgres\*(rq.
-If you are using the Bourne shell,
-then substitute $HOME for occurrences of ~postgres
-and
-.q $
-for the
-.q %
-shell prompt.
-.)f
-respectively.
 We
 .i strongly
 advise you to make a spare copy of your system's original config
@@ -456,8 +448,7 @@ options		TTMOREIPCS	# more semaphores and shared memory (for 32M)
 .)l
 .lp
 to allocate more shared memory so that we can run more \*(PG backends
-at the same time.
-Either of the lines will result in a kernel that
+at the same time.  Either of the lines will result in a kernel that
 has enough shared memory allocated.
 .lp
 Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
@@ -506,40 +497,13 @@ After adding these lines,
 run config over the config file,
 install the new kernel,
 and reboot.
-This is by far the most complicated part of the installation
-so these steps should be performed by someone experienced.
-Again, 
-we advise you to consult
-the system administration section of your SunOS manual
-before doing this step.
-.pp
-For a brief discussion of shared memory, 
-you may want to consult the section 2 man pages for \fIshmget()\fR,
-\fIshmop()\fR, \fIshmctl()\fR, etc. 
 .sp
 .sh 3 "Kernel reconfiguration for DECs"
 .pp
-This step requires familiarity with configuring a UNIX kernel.
-If you are unfamiliar with this procedure,
-we advise you to read the
-section on configuring a kernel in the DEC system administration
-manual carefully.
-This task requires superuser authority and should
-probably not be done without the assistance of your system admistrator.
-We assume that whoever undergoes this procedure has an understanding
-of the process and procedures involved.
-.pp
-\*(PG uses shared memory segments which must be compiled into the
-kernel of the host which will act as the \*(PG server.
-If you
-try to run a postgres backend process on a machine without enough
-shared memory,
-the backend will abort with an error message.
-.pp
-In order to reconfigure your kernel,
-you will have to become root
-and add some lines to /usr/sys/conf (your kernel config file)
-and /usr/sys/conf/param.c (your kernel parameters file).
+In order to reconfigure your DECstation 3100 Ultrix kernel,
+you will have to become root and add some lines to /usr/sys/conf
+(your kernel config file) and /usr/sys/conf/param.c (your kernel
+parameters file).
 .sp
 The following lines should be added to /usr/sys/conf/KERNEL:
 .sp
@@ -549,39 +513,12 @@ smseg           12
 smbrk           1024
 .)l
 .pp
-After adding these lines,
-run config over the config file,
-install the new kernel,
-and reboot.
-This is by far the most complicated part of the installation
-so these steps should be performed by someone experienced.
-Again, 
-we advise you to consult
-the system administration section of your DEC manual
-before doing this step.
-.pp
-For a brief discussion of shared memory, 
-you may want to consult the Man pages for \fIshmget()\fR,
-\fIshmop()\fR, \fIshmctl()\fR, etc. 
+After adding these lines, run 
+.i config
+over the configuration file,
+install the new kernel, and reboot.
 .sp
-.sh 3 "Kernel reconfiguration for Sequent Symmetrys"
-.pp
-This step requires familiarity with configuring a UNIX kernel.
-If you are unfamiliar with this procedure,
-we advise you to read the
-section on configuring a kernel in the DYNIX system administration
-manual carefully.
-This task requires superuser authority and should
-probably not be done without the assistance of your system admistrator.
-We assume that whoever undergoes this procedure has an understanding
-of the process and procedures involved.
-.pp
-\*(PG uses shared memory segments which must be compiled into the
-kernel of the host which will act as the \*(PG server.
-If you
-try to run a postgres backend process on a machine without enough
-shared memory,
-the backend will abort with an error message.
+.sh 3 "Kernel reconfiguration for Sequent Symmetry machines"
 .pp
 In order to reconfigure your kernel,
 you will have to become root
@@ -597,16 +534,6 @@ After adding this line,
 run config over the config file,
 install the new kernel,
 and reboot.
-This is by far the most complicated part of the installation
-so these steps should be performed by someone experienced.
-Again, 
-we advise you to consult
-the system administration section of your DYNIX manual
-before doing this step.
-.pp
-For a brief discussion of shared memory,
-you may want to consult the Man pages for \fIshmget()\fR,
-\fIshmop()\fR, \fIshmctl()\fR, etc. 
 .sp
 .\" ----------------
 .tm    Compiling
@@ -615,91 +542,55 @@ you may want to consult the Man pages for \fIshmget()\fR,
 .pp
 This release of \*(PG
 may require some configuration.
-If you did not unpack the source in /usr/postgres,
-and you have not created a symbolic link from /usr/postgres to
-the directory that
-.i does
-contain the code,
-you will have to edit the configuration file.
-Also,
-if you have a floating-point coprocessor on your machine,
-you should set the \-f68881 flag for the Sun C compiler.
-This is not necessary,
-but will substantially improve the performance of the system.
+For performance reasons, you may want to compile Postgres with the optimizer
+enabled, floating point coprocessors enabled, etc.  The default is to use
+the default options.  Also, if you plan to modify Postgres, you may want to
+enable debugging (note that this will take Postgres up to about 50 megs from
+about 30 megs otherwise).
 .pp
-To do this,
+WARNING!!  DO NOT ENABLE COMPILER OPTIMIZATION ON SUN 4's OR SPARCS - POSTGRES
+WILL CRASH YOUR MACHINE IF COMPILED THIS WAY!!  (This appears to be due to
+a kernel problem with the shared memory functions.)
+.pp
+To enable compiler directives, 
+look in the file ./newconf/CONFIG/README
+for instructions on what to change.
+Now to edit the configuration file,
 .(l
-.i
-	Change to the configuration directory in the directory
-	that contains the unpacked system.
-.r
 .sp 0.5v
-% \fBcd newconf\fP
+% \fBcd /usr/postgres/newconf/CONFIG\fP
 .sp 0.5v
-.i
-	Now make the new port directories and create the config.mk appropriate
-	for this machine.
-.r
-% \fBnewport\fP
-When running 
-.i newport
-you will be asked which distribution you are installing.
-For a DS3100 installation running Ultrix LOWER than 4.0, type "dec",
-for a DS3100 installation on Ultrix 4.0 type "ultrix4", for a
-Sun 3 installation running SunOS 3.4 or 3.5, type "sun",
-for a Sun 3 installation running SunOS 4.0, 
-type "sunos4", for a Sequent Symmetry installation type "seq",
-for a Sparcstation type "sparc", and for a 
-.pp
-.sp 0.5v
-.i
-	Now make the necessary changed to config.mk.  The file newconf/README
-	explains what the various entries in config.mk mean.
-.r
-.sp 0.5v
-% \fBvi config.mk\fP
+% \fBvi config.mk.<port>\fP
 .)l
 .pp
-Look in the README file,
-and in config.mk,
-for instructions on what to change.
+where
+.i <port> is the following:
+.(l
+dec			\- DS3100 running Ultrix LOWER than 4.0
+ultrix4		\- DS3100 running Ultrix 4.0
+sun			\- Sun 3 running SunOS 3.4 or 3.5
+sunos4		\- Sun 3 running SunOS 4.0
+seq			\- Sequent Symmetry running Dynix
+sparc		\- Sparcstation or Sun 4
+.)l
 The
 .i only
 thing we recommend changing is the
-GCFLAGS variable.
+GCFLAGS variable.  Remember the port name used here for Step 3.
 .pp
-By default,
-\*(PG will be compiled without the \-g flag
-for source-level debugging.
-The system is large,
-and using \-g is very expensive.
-If you intend to do debugging,
-you should change GCFLAGS in config.mk to \-g.
-We do not recommend doing this for casual users.
-Without \-g,
-the \*(PG tree consumes about 20 Mbytes of disk space.
-With \-g,
-the number doubles.  NOTE:  Do not compile Postgres with the optimizer level
-higher than 0 on Sparcstations running SunOS 4.1; due to an kernel bug Postgres
-compiled this way will CRASH YOUR SYSTEM.
-.sh 2 "Step 3 - Compiling \*(PG"
-.sh 3 "Compiling"
-.pp
-Once you have configured \*(PG,
-you can perform a complete compilation with the following
-sequence of commands:
+.sh 2 "Step 3 - Compiling and Installing \*(PG"
+Now you are ready to install Postgres.  To do so,
+simply execute the following commands:
 .(l
 % \fBcd ~postgres/newconf\fR
-% \fB./Make everything\fR
+% \fB./Make install\fR
 .)l
 .pp
 .lp
-To install the code,
-run
-.(l
-% \fB./Make install\fR
-.)l
-in the same directory.
+Make install will ask you for the port you wish to use.  Use the same port as
+in Step 2.  You will also be asked for the name of the object tree; go ahead
+and use the default if there is no problem.  This step will take at least
+an hour and may take several hours on diskless Sun 3's.
 .pp
 .i Make
 is a C shell script that runs
@@ -1005,26 +896,6 @@ type:
 .(l
 # \fBcp ~postgres/O/libpq.a   /usr/lib\fR
 .)l
-.sh 2 "Performance Tuning"
-.pp
-Initial performance tuning can be achieved by tuning various
-system parameters.
-The file ~postgres/doc/bufmgr.doc
-describes the parameters that can be used to change the buffer pool
-size to tune buffer manager performance.
-The parameter NDBUFS,
-the number of buffers,
-is in the file ~postgres/src/storage/buffer/internal.h.
-Meanwhile,
-the file ~postgres/src/lib/H/sinvaladt.h contains
-parameters to tune the invalidation cache. 
-The file plparm.h contains parameters to tune the lock manager.
-The appropriate paramater to tune are NMAXSEM,
-the maximum number of semaphores to be handled,
-NMAXXIDHASH,
-the maximum number of transactions that can be run in parallel,
-and NMAXLTABLE,
-the number of tables handled by the lock manager. 
 .sh 2 "Demo Database"
 .pp
 In ~postgres/demo are files to be included by the terminal monitor
@@ -1045,12 +916,19 @@ for a minimal running system are:
 bin/		the binary programs comprising \*(PG
 data/		support files and user created databases
 files/		database initialization scripts
+.)l
+When compiled using the "defaults", (ie no optimization and no debugging),
+these directories will take up about 8 Mbytes.
+The following directories are necessary if Postgres is to ever be recompiled.
+.(l
 newconf/	the \*(PG configuration directory
-O/		compiled \*(PG object files
+obj.<port>/	compiled \*(PG object files
 src/		\*(PG source files
 .)l
 .pp
-Several additional directories are also created as the
+When compiled using the "defaults", these directories will use about 16
+Mbytes.
+Additional Postgres directories are as follows:
 \*(PG distribution is extracted from tape:
 .(l
 demo/		demo database scripts
@@ -1058,17 +936,8 @@ doc/		postgres technical reports and tutorials
 ref/		\*(PG Reference Manual source
 .)l
 .pp
-If space is limited on your system,
-you can delete these additional directories.
-Additionally,
-if you do not wish to use \*(PG for development,
-you can delete the following directories
-\fIafter compiling and testing is done\fR:
-.(l
-O/		compiled \*(PG object files and libraries
-src/		\*(PG source files
-newconf/ 	make utilities
-.)l
+These directories take up about 1 Mbyte, and can be reduced to about
+200 Kbytes if the Postscript files are deleted. 
 .pp
 We do not recommend deleting these unless absolutely necessary.
 .\" ----------------
