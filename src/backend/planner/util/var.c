@@ -36,7 +36,9 @@ pull_var_clause (clause)
 {
 	LispValue retval = LispNil;
 
-	if (IsA(clause,Var) && get_varattno(clause))
+	if (null (clause) ) 
+	  return(LispNil);
+	else if (IsA(clause,Var) && get_varattno(clause))
 	  retval = lispCons (clause,LispNil);
 	else if (single_node (clause)) 
 	  retval = LispNil;
