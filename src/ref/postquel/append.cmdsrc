@@ -147,9 +147,10 @@ append tictactoe (board[3][3] =
 /*
  * Create a tuple containing a large-object array and chunk it.
  * The Inversion file "/large/tictactoe/board" is expected
- * to exist. The file "/etc/acc_patt" holds the access pattern
- * based on which the array  is chunked. A new large object
- * is created to hold the chunked array.
+ * to exist. The external file "/etc/acc_patt" holds the access 
+ * pattern based on which the array  is chunked. A new large 
+ * object is created to hold the chunked array. (see paper on 
+ * arrays in "src/doc/papers/arrays/paper.ps" for more information)
  */
 append tictactoe (board[3][3] = 
  "/large/tictactoe/board -chunk /etc/acc_patt")
