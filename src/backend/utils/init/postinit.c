@@ -434,10 +434,12 @@ InitStdio()
  */
     } 
 
+#ifdef GO_SLOW
     if (!isatty(fileno(stdout)) && !isatty(fileno(stderr))) {
 	setbuf(stdout, (char *)NULL);
 	setbuf(stderr, (char *)NULL);
     }
+#endif GO_SLOW
 
     Dblog = dup(Debugfile);
     Err_file = ErrorFileOpen();
