@@ -23,7 +23,11 @@
 #include "tmp/postgres.h"
 #include "access/attnum.h"
 
-#define PRS2_DEBUG 1
+/* -----------------------------------
+ * Comment out the following to suppress debugging output
+ *
+ * #define PRS2_DEBUG 1
+ */
 
 /*==================================================================
  * PRS2 LOCKS

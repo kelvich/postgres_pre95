@@ -34,8 +34,8 @@
 
 /*------------------------------------------------------------------
  * Comment out the following line to supress debugging output
+ * #define PRS2_DEBUG 1
  */
-#define PRS2_DEBUG 1
 
 /*==================================================================
  * --Prs2RuleData--
