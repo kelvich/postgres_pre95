@@ -49,6 +49,7 @@ handleunion (root,rangetable, tlist, qual)
   List temp = LispNil;
   List new_parsetree = LispNil;
   List union_plans = LispNil;
+  int planno = 0;
 
   /*
    * SplitTlistQual returns a list of the form:
@@ -66,7 +67,14 @@ handleunion (root,rangetable, tlist, qual)
 			   planner(new_parsetree));
 
   }
+
+  /*
+   * testing:
+   */
   
+/*  union_plans = CDR(union_plans); */
+
+
 return(union_plans);  
 
 }
@@ -95,23 +103,30 @@ SplitTlistQual(root,rangetable,tlist, qual)
   List unionlist = LispNil;
   List mod_qual = LispNil;
 
-  unionlist = find_union_vars(rangetable);
+  unionlist = find_union_sets(rangetable);
+
   /*
    *  If query is a delete, the tlist is null.
    */
   if (CAtom(root_command_type_atom(root)) == DELETE) 
     foreach(i,unionlist) 
-      tl_list = nappend1(tl_list, LispNil);
-  else
-    tl_list = SplitTlist(unionlist,tlist);
-
-  qual_list = SplitQual(unionlist,qual); 
+      foreach(temp,CAR(i))
+	tl_list = nappend1(tl_list, LispNil);
+  else {
+    tl_list = lispCons(tlist, LispNil);
+    foreach(i, unionlist)
+      tl_list = SplitTlist(CAR(i),tl_list);
+  }
+  qual_list = lispCons(qual,LispNil);
+  foreach(i,unionlist) {
+    qual_list = SplitQual(CAR(i),qual_list); 
+  }
 
 /*
  *  The assumption here is that both the tl_list and the qual_list, 
  *  must be of the same length, if not, something funky has happened.
  */
-
+  
   if (length (tl_list) != length(qual_list))
     elog (WARN, "UNION:  tlist with missing qual, or vice versa");
 
@@ -137,13 +152,15 @@ return (tqlist);
  */
 
 List
-SplitTlist (unionlist,tlist)
+SplitTlist (unionlist,tlists)
      List unionlist;
-     List tlist;
+     List tlists;
 {
   List i = LispNil;
   List j = LispNil;
   List x = LispNil;
+  List tlist = LispNil;
+  List t = LispNil;
   List varnum = LispNil;
   List new_tlist ;
   List tle = LispNil;
@@ -151,45 +168,48 @@ SplitTlist (unionlist,tlist)
   Var varnode = (Var)NULL;
   List tl_list = LispNil;
 
-  foreach (i, unionlist) {
-    varnum = CAR(i);
-    new_tlist = LispNil;
-    new_tlist = copy_seq_tree(tlist);
+  foreach(t, tlists) {
+    tlist = CAR(t);
+    foreach (i, unionlist) {
+      varnum = CAR(i);
+      new_tlist = LispNil;
+      new_tlist = copy_seq_tree(tlist);
 
-    foreach (x, new_tlist) {
-      tle = CAR(x);
-      varlist = tl_expr(tle);
-      if (IsA(varlist,Const) || IsA(varlist,Var)) ;
-      else
-	if (CAtom(CAR(varlist)) == UNION) {
-	  foreach (j, CDR(varlist)) {
-	    varnode = (Var)CAR(j);
-	    /*
-	     * Find matching entry, and change the tlist to it.
-	     *
-	     * NOTE: Also need to handle the case when a particular
-	     *       rel. is not found in the union.  In that case, 
-	     *       we should remove the tle (i.e, (resdom var) pair).
-	     *       HOWEVER, this is not done just yet.
-	     */
-	    if (CInteger(varnum) == get_varno(varnode)) {
-	      tl_expr(tle) = (List)varnode;
-	      break;
-	    }
-	  } /* for, varlist */
-	}
-    } /* for, new_tlist*/
+      foreach (x, new_tlist) {
+	tle = CAR(x);
+	varlist = tl_expr(tle);
+	if (IsA(varlist,Const) || IsA(varlist,Var)) ;
+	else
+	  if (CAtom(CAR(varlist)) == UNION) {
+	    foreach (j, CDR(varlist)) {
+	      varnode = (Var)CAR(j);
+	      /*
+	       * Find matching entry, and change the tlist to it.
+	       *
+	       * NOTE: Also need to handle the case when a particular
+	       *       rel. is not found in the union.  In that case, 
+	       *       we should remove the tle (i.e, (resdom var) pair).
+	       *       HOWEVER, this is not done just yet.
+	       */
+	      if (CInteger(varnum) == get_varno(varnode)) {
+		tl_expr(tle) = (List)varnode;
+		break;
+	      }
+	    } /* for, varlist */
+	  }
+      } /* for, new_tlist*/
     
-    /*
-     *  At this point, the new_tlist is an orthogonal targetlist, without
-     *  any union relations.
-     */
+      /*
+       *  At this point, the new_tlist is an orthogonal targetlist, without
+       *  any union relations.
+       */
     
-    if (new_tlist == NULL) 
-      elog(WARN, "UNION: resulting tlist is empty");
+      if (new_tlist == NULL) 
+	elog(WARN, "UNION: resulting tlist is empty");
     
-    tl_list = nappend1(tl_list,new_tlist);
-  }
+      tl_list = nappend1(tl_list,new_tlist);
+    }
+  } /*tlists */
   return(tl_list);
 
 }
@@ -206,8 +226,91 @@ List
 find_union_sets(rangetable)
      List rangetable;
 {
+  List i = LispNil;
+  List x = LispNil;
+  List j = LispNil;
+  int varno = 0;
+  List rt_entry = LispNil;
+  List rt_vars = LispNil;
+  List retlist = LispNil;
+  List ulist = LispNil;
+  List u_set = LispNil;
+  List vlist = LispNil;
+  List varname = LispNil;
+  int In_List;
+  int position;
+  
 
+  foreach(i,rangetable) {
+    rt_entry = CAR(i);
+    varno += 1;
+    if (member(lispAtom("union"),rt_flags(rt_entry))) 
+      rt_flags(rt_entry) = remove(lispAtom("union"),
+				  rt_flags(rt_entry));
+    rt_vars = CAR(rt_entry);
+    if (consp(rt_vars)) {
+      foreach(x,rt_vars) {
+	varname = CAR(x);
+	In_List = 0;
+	position = 0;
+	if (ulist == LispNil) {
+	  ulist = nappend1(ulist, lispCons(varname,
+					   LispNil));
+	  vlist = nappend1(vlist, lispCons(lispInteger(varno),
+					   LispNil));
+	  In_List = 1;
+	} else
+	  foreach(j,ulist) {
+	    if (member(varname, CAR(j))) {
+	      u_set = nth(position,vlist);
+	      if (!member(lispInteger(varno), u_set))
+		u_set = nappend1(u_set,lispInteger(varno));
+	      position += 1;
+	      In_List = 1;
+	      break;
+	    }
+	  }
+	if (!In_List) {
+	  ulist = nappend1(ulist, lispCons(varname, LispNil));
+	  vlist = nappend1(vlist,lispCons(lispInteger(varno), LispNil));
+	}
+      } /* rt_vars */
+    } else {  /*  If it is a single var. */
+      varname = rt_vars;
+      In_List = 0;
+      position = 0;
+      if (ulist == LispNil) {
+	ulist = nappend1(ulist, lispCons(varname,
+					 LispNil));
+	vlist = nappend1(vlist, lispCons(lispInteger(varno),
+					 LispNil));
+	In_List = 1;
+      } else
+	foreach(j,ulist) {
+	  if (member(varname, CAR(j))) {
+	    u_set = nth(position,vlist);
+	    if (!member(lispInteger(varno), u_set))
+	      u_set = nappend1(u_set,lispInteger(varno));
+	    In_List = 1;
+	    break;
+	  }
+	  position += 1;
+	} /* ulist */
+      if (!In_List) {
+	ulist = nappend1(ulist, lispCons(varname, LispNil));
+	vlist = nappend1(vlist,lispCons(lispInteger(varno), LispNil));
+      }
+    }
+  }  /* rangetable */
+
+  foreach(i,vlist) {
+    if (length(CAR(i)) > 1) {  /* i.e a union set */
+      retlist = nappend1 (retlist, CAR(i));
+    }
+  }
+  return(retlist);
 }
+
 /*
  *  find_union_vars
  *  runs through the rangetable, and forms a list of all the 
@@ -283,31 +386,35 @@ find_union_vars (rangetable)
  */
 
 List 
-SplitQual (ulist, uqual)
+SplitQual (ulist, uquals)
      List ulist;
-     List uqual;
+     List uquals;
 {
   List i = LispNil;
+  List x = LispNil;
+  List uqual = LispNil;
   List uvarno = LispNil;
   List qual_list = LispNil;
   List currentlist = LispNil;
   List new_qual = LispNil;
 
-  if (uqual == LispNil) {
-    foreach(i, ulist) 
-      qual_list = nappend1(qual_list, LispNil);
-    return(qual_list);
+  foreach(x, uquals) {
+    uqual = CAR(x);
+    if (uqual == LispNil) {
+      foreach(i, ulist) 
+	qual_list = nappend1(qual_list, LispNil);
+      return(qual_list);
+    }
+    foreach(i, ulist) {
+      uvarno = CAR(i);
+      currentlist = nappend1(currentlist, uvarno);
+      new_qual = copy_seq_tree(uqual);
+      new_qual = find_matching_union_qual(currentlist, new_qual);
+      qual_list = nappend1(qual_list, new_qual);
+      currentlist = LispNil;
+    }
   }
-  foreach(i, ulist) {
-    uvarno = CAR(i);
-    currentlist = nappend1(currentlist, uvarno);
-    new_qual = copy_seq_tree(uqual);
-    new_qual = find_matching_union_qual(currentlist, new_qual);
-    qual_list = nappend1(qual_list, new_qual);
-    currentlist = LispNil;
-  }
-    
-return(qual_list);
+  return(qual_list);
 
 }
 
@@ -348,7 +455,7 @@ find_matching_union_qual(ulist, qual)
        */
 
       /*
-      if (matching_clauseargs == LispNil)
+     if (matching_clauseargs == LispNil)
 	remove(clause, clauses);  * NOTE: may have to mod. qual *
       else
 	clauseargs = matching_clauseargs; 
@@ -396,6 +503,7 @@ match_union_clause (unionlist, leftarg, rightarg)
      List unionlist, *leftarg, *rightarg;
 {
   List i = LispNil;
+  List x = LispNil;
   List varlist = LispNil;
   Var uvarnode = (Var)NULL;
   List varlist2 = LispNil;
@@ -405,52 +513,27 @@ match_union_clause (unionlist, leftarg, rightarg)
    */
   if (consp(*leftarg) && CAtom(CAR(*leftarg)) == UNION) {
     varlist = CDR(*leftarg);
-
-    /* (Op (uvar) Const) */
-    if (IsA(*rightarg,Const)) {
-      foreach (i, varlist) {
-	uvarnode = (Var)CAR(i);
-	if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
-	  *leftarg = (List)uvarnode;
-	  break;
-	}
-      }
-    } /* Const */
-    /* (Op (uvar) var) */
-    else if (IsA(*rightarg,Var)) {
-      foreach (i, varlist) {
-	uvarnode = (Var)CAR(i);
-	if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
-	  *leftarg = (List)uvarnode;
-	  break;
-	}
-      }
-    } /* Var */
-
-    /* 
-     * (Op (uvar1) (uvar2) )
-     *  This gets real hairy.
-     *
-     *  If we ever get here, we have a union join.
-     *  In this case, we need to have a ulist for each set 
-     *  of union joins.
-     *  Eg:
-     *  retrieve (A | B).all where (A | B).foo = (B | C).bar 
-     *    and (B | A). bla = const
-     *  the 2 ulists are: (a b) and (b c), and the union join query
-     *  will be split into
-     *  retrieve (A.all) where A.foo = B.bar and B.bla = const
-     *  and
-     *  retrieve (B.all) where B.foo = C.bar and A.bla = const
-     *
-     *  XXX sounds problematic.
-     *  Supported.
-     */
-    else if (consp(*rightarg)) {
-      if (CAtom(CAR(*rightarg)) == UNION) {
-	varlist2 = CDR(*rightarg);
+    foreach(i,varlist) {
+      uvarnode = (Var)CAR(i);
+      if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
+	*leftarg = (List)uvarnode;
+	break;
       }
     }
-  } /* UNION */
+  }
+  
+  /*
+   *  If rightarg is a union var.
+   */
+  if (consp(*rightarg) && CAtom(CAR(*rightarg)) == UNION) {
+    varlist = CDR(*rightarg);
+    foreach(i,varlist) {
+      uvarnode = (Var)CAR(i);
+      if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
+	*rightarg = (List)uvarnode;
+	break;
+      }
+    }
+  }
 
 }
