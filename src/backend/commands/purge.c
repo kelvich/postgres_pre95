@@ -32,8 +32,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	char	*absoluteTimeString, *relativeTimeString;
 {
 	register		i;
-	AbsoluteTime		absoluteTime = InvalidTime;
-	RelativeTime		relativeTime = InvalidTime;
+	AbsoluteTime		absoluteTime = INVALID_ABSTIME;
+	RelativeTime		relativeTime = INVALID_RELTIME;
 	bits8			dateTag;
 	Relation		relation;
 	HeapScanDesc		scan;
@@ -42,7 +42,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	};
 	Buffer			buffer;
 	HeapTuple		newTuple, oldTuple;
-	Time			currentTime;
+	AbsoluteTime		currentTime;
 	char			*values[Natts_pg_relation];
 	char			nulls[Natts_pg_relation];
 	char			replace[Natts_pg_relation];
@@ -50,14 +50,13 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	Assert(NameIsValid(relationName));
 
 	if (PointerIsValid(absoluteTimeString)) {
-		if (!isabstime(absoluteTimeString, NULL)) {
-			elog(NOTICE, "%s: bad absolute time string \"%s\"",
-			     cmdname, absoluteTimeString);
-			absoluteTimeString[0] = '\0';
-			elog(WARN, "purge not executed");
-		}
 		absoluteTime = (int32) nabstimein(absoluteTimeString);
 		absoluteTimeString[0] = '\0';
+		if (absoluteTime == INVALID_ABSTIME) {
+			elog(NOTICE, "%s: bad absolute time string \"%s\"",
+			     cmdname, absoluteTimeString);
+			elog(WARN, "purge not executed");
+		}
 	}
 
 #ifdef	PURGEDEBUG
@@ -98,11 +97,11 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	 * Dig around in the tuple.
 	 */
 	currentTime = GetCurrentTransactionStartTime();
-	if (!TimeIsValid(relativeTime)) {
+	if (!RelativeTimeIsValid(relativeTime)) {
 		dateTag = ABSOLUTE;
-		if (!TimeIsValid(absoluteTime))
+		if (!AbsoluteTimeIsValid(absoluteTime))
 			absoluteTime = currentTime;
-	} else if (!TimeIsValid(absoluteTime))
+	} else if (!AbsoluteTimeIsValid(absoluteTime))
 		dateTag = RELATIVE;
 	else
 		dateTag = ABSOLUTE | RELATIVE;
@@ -147,11 +146,13 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 
 
 assertConsistentTimes(absoluteTime, relativeTime, currentTime, dateTag, tuple)
-	Time		absoluteTime, relativeTime, currentTime;
+	AbsoluteTime    absoluteTime, currentTime;
+        RelativeTime	relativeTime;
 	bits8		dateTag;
 	HeapTuple	tuple;
 {
-	Time	currentExpires, currentPreserved;
+	AbsoluteTime	currentExpires;
+	RelativeTime	currentPreserved;
 	bool	absError = false, relError = false;
 
 	currentExpires =
@@ -160,13 +161,13 @@ assertConsistentTimes(absoluteTime, relativeTime, currentTime, dateTag, tuple)
 		((RelationTupleForm) GETSTRUCT(tuple))->relpreserved;
 	if (dateTag & ABSOLUTE) {
 		absError = true;
-		if (TimeIsValid(currentExpires) &&
-		    TimeIsBefore(absoluteTime, currentExpires)) {
+		if (AbsoluteTimeIsValid(currentExpires) &&
+		    AbsoluteTimeIsBefore(absoluteTime, currentExpires)) {
 			elog(NOTICE,
 			     "%s: expiration %s before current expiration %d",
 			     cmdname, absoluteTime, currentExpires);
-		} else if (TimeIsValid(currentPreserved) &&
-				TimeIsBefore(absoluteTime,
+		} else if (RelativeTimeIsValid(currentPreserved) &&
+				AbsoluteTimeIsBefore(absoluteTime,
 					currentTime + currentPreserved)) {
 			elog(NOTICE,
 			     "%s: expiration %d before current relative %d",
@@ -180,14 +181,16 @@ assertConsistentTimes(absoluteTime, relativeTime, currentTime, dateTag, tuple)
 	}
 	if (dateTag & RELATIVE) {
 		relError = true;
-		if (TimeIsValid(currentExpires) &&
-				TimeIsBefore(currentTime + relativeTime,
+		if (AbsoluteTimeIsValid(currentExpires) &&
+				AbsoluteTimeIsBefore(currentTime + relativeTime,
 					currentExpires)) {
 			elog(NOTICE,
 			     "%s: relative %d before current expiration %d",
 			     cmdname, relativeTime, currentExpires);
-		} else if (TimeIsValid(currentPreserved) &&
-				TimeIsBefore(relativeTime, currentPreserved)) {
+		} else if (RelativeTimeIsValid(currentPreserved) &&
+				AbsoluteTimeIsBefore(relativeTime, currentPreserved)) {
+		        /* ???  ^^^^^^^^ ----------- ^^^^^^^^ ??? */
+
 			/*
 			 * XXX handle this by modifying both relative and
 			 * current times.
