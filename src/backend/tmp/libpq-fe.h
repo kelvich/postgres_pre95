@@ -20,6 +20,7 @@
  */
 #include "tmp/libpq.h"
 
+typedef void *TUPLE;
 /* ----------------
  *	declarations for frontend libpq support routines
  * ----------------
@@ -27,6 +28,8 @@
 #undef palloc
 #undef pfree
 
+extern char *GetAttributeByName ARGS ((TUPLE tuple, char *attname, char *isnull ));
+extern char *GetAttributeByNum ARGS ((TUPLE tuple, int attnum, char *isnull ));
 extern void dump_type ARGS((TypeBlock *types, int nfields));
 extern void dump_tuple ARGS((char **values, int nfields));
 extern void finish_dump ARGS(());

@@ -178,7 +178,8 @@ extern POLYGON	*rt_poly_union();
 extern POLYGON	*rt_poly_inter();
 
 /* rule locks */
-extern Datum GetAttribute();
+extern Datum GetAttributeByName();
+extern Datum GetAttributeByNum();
 
 
 extern int32 pqtest();
