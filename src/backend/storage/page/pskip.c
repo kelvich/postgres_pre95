@@ -75,7 +75,7 @@ startpskip(db, relation, tid)
 	if (ItemIdIsContinuing(objp->op_lpp)) {
 		cp += TCONTPAGELEN;
 	}
-	off = ((struct tuple *)cp)->t_hoff;
+	off = ((HeapTuple)cp)->t_hoff;
 	objp->op_cp = cp + off;
 	if (ItemIdIsContinuing(objp->op_lpp)) {
 		off += TCONTPAGELEN;
