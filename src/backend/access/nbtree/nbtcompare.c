@@ -110,7 +110,23 @@ btchar16cmp(a, b)
 
 int32
 bttextcmp(a, b)
-    char *a, *b;
+    struct varlena *a, *b;
 {
-    return (strcmp(a, b));
+    char *ap, *bp;
+    int len;
+
+    ap = VARDATA(a);
+    bp = VARDATA(b);
+
+    if ((len = VARSIZE(a)) > VARSIZE(b))
+	len = VARSIZE(b);
+
+    while (*ap == *bp && len != 0) {
+	ap++;
+	bp++;
+	--len;
+    }
+    if (len)
+	return ((*ap < *bp) ? -1 : 1);
+    return 0;
 }
