@@ -8,6 +8,8 @@
 #include "execnodes.h"
 #include "plannodes.h"
 
+RcsId("$Header$");
+
 extern bool	_equalLispValue();
 extern bool	_equalHeapTuple();
 extern bool	_equalRelation();
