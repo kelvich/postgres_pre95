@@ -215,6 +215,7 @@ Name view_name;
  *
  *-----------------------------------------------------------------------
  */
+#ifdef TUPLE_VIEW
 List
 FormViewRetrieveRule (view_name, view_parse)
 Name view_name;
@@ -269,8 +270,32 @@ List view_parse;
     return(p);
 
 }
+#endif TUPLE_VIEW
+List
+FormViewRetrieveRule (view_name, view_parse)
+Name view_name;
+List view_parse;
+{
+    
+    NameData rname;
+    List p, q, target, rt;
+    List lispCopy();
 
-
+    /*
+     * Create a lisp tree that corresponds to the suitable
+     * rewrite rule args for DefineQueryRewrite();
+     */
+    p = LispNil;
+    makeRetrieveViewRuleName(&rname, view_name);
+    p = nappend1(p, lispString(&(rname.data[0])));           /* rulename   */
+    p = nappend1(p,lispAtom("retrieve"));                    /* event_type */
+    p = nappend1(p,lispCons(lispString(view_name),LispNil)); /* event_obj  */
+    p = nappend1(p,lispCons(LispNil,LispNil));               /* event_qual */
+    p = nappend1(p,lispInteger(1));                          /* is_instead */
+    q = nappend1(LispNil, view_parse);
+    p = nappend1(p,q);                                       /* (action)   */
+    return p;
+}
 static void
 DefineViewRules (view_name, view_parse)
 Name view_name;
@@ -299,8 +324,10 @@ List view_parse;
 #endif
 
     sprintf(ruleText, "retrieve rule for view %s", view_name);
+    DefineQueryRewrite(retrieve_rule);
+#ifdef TUPLE_VIEW
     prs2DefineTupleRule(retrieve_rule, ruleText);
-
+#endif TUPLE_VIEW
 #ifdef NOTYET
     DefineQueryRewrite ( replace_rule );
     DefineQueryRewrite ( append_rule );
@@ -436,8 +463,10 @@ Name view_name;
      * Currently we only have one!
      */
     makeRetrieveViewRuleName(&rname, view_name);
+    RemoveRewriteRule(&rname);
+#ifdef TUPLE_VIEW
     prs2RemoveTupleRule(&rname);
-
+#endif TUPLE_VIEW
     /*
      * we don't really need that, but just in case...
      */
