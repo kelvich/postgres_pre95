@@ -87,7 +87,7 @@ below.
 .lp
 .uh "Constants"
 .lp
-There are five types of
+There are six types of
 .i constants
 for use in \*(PQ.
 They are described below.
@@ -148,7 +148,7 @@ approximately
 .if t \(mi10\x'-0.2v'\u\s-3\&38\s0\d to 10\u\x'-0.2v'\s-3\&38\s0\d
 and a precision of 17 decimal digits.
 This will vary depending on the operating system and host machine.
-.uh "Constants of Other Types
+.uh "Constants of Postgres User Defined Types"
 .lp
 A constant of an
 .i arbitrary
@@ -159,7 +159,24 @@ type can be entered using the notation:
 In this case the value inside the string is passed to the input conversion
 routine for the type called type-name. The result is a constant of the
 indicated type.
-.lpo
+.lp
+.uh "Array constants"
+.lp
+.i "Array constants"
+are arrays of any Postgres type, including other arrays, string constants,
+etc.  The general format of an array constant is the following:
+.(l
+"{<val1><delim><val2<delim>}"
+.)l
+.lp
+An example of an array constant is
+.lp
+.(l
+"{{1,2,3},{4,5},{6,7,8,9}}"
+.)l
+.lp
+This constant is an array consisting of three sub-arrays of integers.
+.lp
 .uh "Fields"
 .lp
 A 
