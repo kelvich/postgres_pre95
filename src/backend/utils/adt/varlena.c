@@ -84,7 +84,7 @@ int len;
 	struct varlena *result;
 
 	result = palloc(len + sizeof(int32));
-	result->len = len;
+	result->vl_len = len;
 	bcopy(text + sizeof(int32), result->vl_dat, len - sizeof(int32));
 	return(result);
 }
