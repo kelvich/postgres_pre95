@@ -609,6 +609,7 @@ PostgresMain(argc, argv)
     extern	int	optind;
     extern	char	*optarg;
     extern      char	*DBName; /* a global name for current database */
+    extern	short	DebugLvl;
     
     /* ----------------
      * 	register signal handlers.
@@ -626,7 +627,7 @@ PostgresMain(argc, argv)
     flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "B:b:CdEM:NnOP:pQSsTf:")) != EOF)
+    while ((flag = getopt(argc, argv, "B:b:Cd:EM:NnOP:pQSsTf:")) != EOF)
       switch (flag) {
 	  
       case 'b':
@@ -656,6 +657,7 @@ PostgresMain(argc, argv)
 	  DebugPrintPlan = true;
 	  DebugPrintParse = true;
 	  DebugPrintRewrittenParsetree = true;
+	  DebugLvl = (short)atoi(optarg);
 	  break;
 	  
       case 'E':
