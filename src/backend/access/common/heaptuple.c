@@ -54,37 +54,10 @@
 
 RcsId("$Header$");
 
-/* ----------------
- *	XXX replace these with constants from lib/H/catalog/pg_type.h 
- * ----------------
- */
-#ifndef	TYP_BOOL
-#define	TYP_BOOL	16
-#define	TYP_BYTEA	17
-#define	TYP_CHAR	18
-#define	TYP_CHAR16	19
-#define	TYP_DATETIME	20
-#define	TYP_INT2	21
-#define	TYP_INT28	22
-#define	TYP_INT4	23
-#define	TYP_REGPROC	24
-#define	TYP_TEXT	25
-#define	TYP_OID		26
-#define	TYP_TID		27
-#define	TYP_XID		28
-#define	TYP_IID		29
-#define	TYP_OID8	30
-#define	TYP_LOCK	31
-#endif
-
-int use_cacheoffgetattr = 0;
-
 void
 set_use_cacheoffgetattr(x)
     int x;
-{
-    use_cacheoffgetattr = x;
-}
+{}
 
 /* ----------------------------------------------------------------
  *			misc support routines
@@ -96,46 +69,35 @@ set_use_cacheoffgetattr(x)
  * ----------------
  */
 Size
-ComputeDataSize(numberOfAttributes, tupleDescriptor, value, nulls)
+ComputeDataSize(numberOfAttributes, att, value, nulls)
     AttributeNumber	numberOfAttributes;
-    TupleDescriptor	tupleDescriptor;
+    Attribute           att[];
     Datum		value[];
     char		nulls[];
 {
-    register Attribute	*attributeP;
-    register Datum	*valueP;
-    char		*nullP;
-    uint32		length;
-    int			i;
+    register uint32	length;
+    register int	i;
 
-    attributeP = &tupleDescriptor->data[0];
-    valueP = value;
-    nullP = nulls;
-    length = 0;
+    for (length = 0, i = 0; i < numberOfAttributes; i++)
+    {
+	if (nulls[i] != ' ') continue;
 
-    for (i = numberOfAttributes;
-	 i != 0;
-	 i--, attributeP++, valueP++, nullP++) {
-
-	if (*nullP == 'n')
-	    continue;
-
-	if (*nullP != ' ')
-	    elog(DEBUG, "ComputeDataSize called with '\\0%o' nulls[%d]",
-		 *nullP, numberOfAttributes - i);
-
-	if ((*attributeP)->attlen < 0) {
-	    length = LONGALIGN(length) +
-		     PSIZE(DatumGetPointer(*valueP)) +
-		     sizeof (long);
-	} else if ((*attributeP)->attlen >= 3) {
-	    length = LONGALIGN(length) + (*attributeP)->attlen;
-	} else if ((*attributeP)->attlen == 2) {
-	    length = SHORTALIGN(length + 2);
-	} else if (!(*attributeP)->attlen) {
-	    elog(WARN, "ComputeDataSize: 0 attlen");
-	} else {
-	    length++;
+	switch (att[i]->attlen) 
+	{
+	    case -1:
+		length = LONGALIGN(length)
+		       + PSIZE(DatumGetPointer(value[i]))
+		       + sizeof (long);
+		break;
+	    case sizeof(char):
+		length++;
+		break;
+	    case sizeof(short):
+		length = SHORTALIGN(length + sizeof(short));
+		break;
+	    default:
+		length = LONGALIGN(length) + att[i]->attlen;
+		break;
 	}
     }
 
@@ -144,123 +106,91 @@ ComputeDataSize(numberOfAttributes, tupleDescriptor, value, nulls)
 
 /* ----------------
  *	DataFill
- *
- *  Changed to take the whole HeapTuple (including the header) rather than
- *  just the "data" field so that header information could be set here.
  * ----------------
  */
 
 void
-DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, infomask, bit)
+DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
     Pointer data;
     AttributeNumber	numberOfAttributes;
-    TupleDescriptor	tupleDescriptor;
+    Attribute		att[];
     Datum		value[];
     char		nulls[];
-	char		*infomask;
+    char		*infomask;
     bits8		bit[];
 {
-    Attribute	*attributeP;
-    Datum	*valueP;
-    char	*nullP;
     bits8	*bitP;
     int		bitmask;
     uint32	length;
     int		i;
 
-    bitP = &bit[-1];
-    bitmask = CSIGNBIT;
+    if (bit != NULL)
+    {
+        bitP = &bit[-1];
+        bitmask = CSIGNBIT;
+    }
 
-	*infomask = 0;
+    *infomask = 0;
 
-    attributeP = &tupleDescriptor->data[0];
-    valueP = value;
-    nullP = nulls;
-    for (i = numberOfAttributes;
-	 i != 0;
-	 i -= 1, attributeP += 1, valueP += 1, nullP += 1) {
-
-	if (bitmask != CSIGNBIT) {
-	    bitmask <<= 1;
-	} else {
-	    bitP += 1;
-	    *bitP = 0x0;
-	    bitmask = 1;
-	}
-
-	/* ----------------
-	 *  skip null attributes
-	 * ----------------
-	 */
-
-	if (*nullP == 'n') 
+    for (i = 0; i < numberOfAttributes; i++)
+    {
+	if (bit != NULL)
 	{
-	    *infomask |= 0x1;
-	    continue;
+	    if (bitmask != CSIGNBIT) {
+	        bitmask <<= 1;
+	    } else {
+	        bitP += 1;
+	        *bitP = 0x0;
+	        bitmask = 1;
+	    }
+
+	    if (nulls[i] == 'n') 
+	    {
+	        *infomask |= 0x1;
+	        continue;
+	    }
+
+	    *bitP |= bitmask;
 	}
 
-	*bitP |= bitmask;
-	
-	if ((*attributeP)->attlen < 0) {
-	    /* ----------------
-	     *	variable length attribute
-	     * ----------------
-	     */
-	    *infomask |= 0x2;
+	switch (att[i]->attlen)
+	{
+	    case -1:
+	        *infomask |= 0x2;
+	        data = (Pointer) LONGALIGN((char *) data);
+	        * (long *) data = length = PSIZE(DatumGetPointer(value[i]));
+		data += sizeof(long);
+	        bcopy(DatumGetPointer(value[i]), data, length);
+	        data += length;
+		break;
+	    case sizeof(char):
+		* (char *) data = (att[i]->attbyval ?
+				   DatumGetChar(value[i]) :
+				   * (char *) value[i]);
+		data += sizeof(char);
+		break;
+	    case sizeof(short):
+		data = (Pointer) SHORTALIGN(data);
+		* (short *) data = (att[i]->attbyval ?
+		                    DatumGetInt16(value[i]) :
+				    * (short *) value[i]);
+		data += sizeof(short);
+		break;
+	    case 3: /* XXX */
+	    case sizeof(long):
+		data = (Pointer) LONGALIGN(data);
+		* (long *) data = (att[i]->attbyval ?
+				   DatumGetInt32(value[i]) :
+				   * (long *) value[i]);
+		data += sizeof(long);
+		break;
+	    default:
+		data = (Pointer) LONGALIGN(data);
+		bcopy(DatumGetPointer(value[i]), data, att[i]->attlen);
+		data += att[i]->attlen;
+		break;
 
-	    data = (Pointer) LONGALIGN((char *)data);
-	    *(long *)data = length = PSIZE(DatumGetPointer(*valueP));
-
-	    data = (Pointer)((char *)data + sizeof (long));
-	    bcopy((char *)DatumGetPointer(*valueP), (char *)data, length);
-	    data = (Pointer)((char *)data + length);
-
-	} else 
-	    if ((*attributeP)->attbyval)
-		switch ((int)(*attributeP)->attlen) {
-		case 1:
-		    *(char *)data = DatumGetChar(*valueP);
-		    data = (Pointer)((char *)data + 1);
-		    break;
-
-		case 2:
-		    data = (Pointer)SHORTALIGN((char *)data);
-		    *(short *)data = DatumGetInt16(*valueP);
-		    data = (Pointer)((char *)data + sizeof (short));
-		    break;
-
-		case 3:		/* XXX -- which byte ordering best? */
-		    elog(WARN, "DataFill: no len 3 attbyval yet");
-
-		case 4:
-		    data = (Pointer)LONGALIGN((char *)data);
-		    *(long *)data = DatumGetInt32(*valueP);
-		    data = (Pointer)((char *)data + sizeof (long));
-		    break;
-
-		default:
-		    elog(WARN, "DataFill: len %d attbyval",
-			 (*attributeP)->attbyval);
-		}
-
-	    else if ((*attributeP)->attlen >= 3) {
-		data = (Pointer)LONGALIGN((char *)data);
-		bcopy((char *)DatumGetPointer(*valueP), (char *)data,
-		      (*attributeP)->attlen);
-		data = (Pointer)((char *)data + (*attributeP)->attlen);
-		
-	    } else if ((*attributeP)->attlen == 2) {
-		data = (Pointer)SHORTALIGN((char *)data);
-		*(short *)data = *(short *)DatumGetPointer(*valueP);
-		data = (Pointer)((char *)data + sizeof (short));
-		
-	    } else if (!(*attributeP)->attlen)
-		elog(WARN, "DataFill: length 0 attribute");
-	
-	    else {
-		*(char *)data = *(char *)DatumGetPointer(*valueP);
-		data = (Pointer)((char *)data + 1);
-	    }
+	}
     }
 }
 
@@ -270,7 +200,7 @@ DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, infomask, bit)
  */
 
 /* ----------------
- *	heap_attisnull	- returns 1 iff tuple domain is not present
+ *	heap_attisnull	- returns 1 iff tuple attribute is not present
  * ----------------
  */
 int
@@ -285,14 +215,10 @@ heap_attisnull(tup, attnum)
     if (attnum > (int)tup->t_natts)
 	return (1);
 
-	if (HeapTupleNoNulls(tup)) return(0);
+    if (HeapTupleNoNulls(tup)) return(0);
 
     if (attnum > 0) {
-	byte = --attnum >> 3;
-	finalbit = 1 << (attnum & 07);
-	bp = tup->t_bits;
-	if (! (bp[byte] & finalbit))
-	    return (1);
+	return(att_isnull(attnum - 1, tup->t_bits));
     } else
 	switch (attnum) {
 	case SelfItemPointerAttributeNumber:
@@ -323,6 +249,7 @@ heap_attisnull(tup, attnum)
  *		 system attribute heap tuple support
  * ----------------------------------------------------------------
  */
+
 /* ----------------
  *	heap_sysattrlen
  *
@@ -361,7 +288,7 @@ heap_sysattrlen(attno)
 	    len = sizeof (f.t_chain);
 	    break;
 	case AnchorItemPointerAttributeNumber:
-	    len = sizeof (f.t_anchor);
+		elog(WARN, "heap_sysattrlen: field t_anchor does not exist!");
 	    break;
 	case MinAbsoluteTimeAttributeNumber:
 	    len = sizeof f.t_tmin;
@@ -456,7 +383,7 @@ heap_getsysattr(tup, b, attnum)
     switch (attnum) {
     case SelfItemPointerAttributeNumber:
 	return ((char *)&tup->t_ctid);
-	
+
     case RuleLockAttributeNumber:
 	/*---------------
 	 * A rule lock is ALWAYS non-null.
@@ -491,7 +418,8 @@ heap_getsysattr(tup, b, attnum)
     case ChainItemPointerAttributeNumber:
 	return ((char *)&tup->t_chain);
     case AnchorItemPointerAttributeNumber:
-	return ((char *)&tup->t_anchor);
+	elog(WARN, "heap_getsysattr: t_anchor does not exist!");
+	break;
     case MinAbsoluteTimeAttributeNumber:
 	return ((char *)tup->t_tmin);
     case MaxAbsoluteTimeAttributeNumber:
@@ -504,74 +432,7 @@ heap_getsysattr(tup, b, attnum)
 }
 
 /* ----------------
- *	fetchatt2
- *
- *	returns the attribute referenced by tp and ap.  This is used
- *	by cacheoffgetattr() and the soon to be obsolete fastgetattr().
- *	-cim 5/4/91
- * ----------------
- */
-char *
-fetchatt2(ap, tp)
-    register struct attribute	**ap;	/* attribute pointer */
-    register char		*tp;	/* tuple pointer */
-{
-    register struct attribute	*attp;	/* attribute */
-    int al;
-    
-    /* ----------------
-     *	now we're at the attribute we want.  get it's length
-     * ----------------
-     */
-    attp = *ap;
-    al = attp->attlen;
-
-    /* ----------------
-     *	if the length is negative, it means we have a variable
-     *  length attribute.  these have their length in the first
-     *  4 bytes and their data in the remaining bytes.
-     * ----------------
-     */
-    if (al < 0)
-	return ((char *)LONGALIGN(tp + sizeof (long)));
-
-    /* ----------------
-     *	take care of pass-by-reference attributes
-     * ----------------
-     */
-    if (! attp->attbyval) {
-	if (al >= 3)
-	    return ((char *) LONGALIGN(tp));
-	else if (al == 2)
-	    return ((char *) SHORTALIGN(tp));
-	return (tp);
-    }
-    
-    /* ----------------
-     *	take care of pass-by-value attributes.
-     * ----------------
-     */
-    switch (al) {
-    case 1:
-	return ((char *) *tp);
-    case 2:
-	tp = (char *) SHORTALIGN(tp);
-	return ((char *) *(short *)tp);
-    case 3:		
-	elog(WARN, "fetchatt: no len 3 attbyval yet");
-	break;
-    case 4:
-	tp = (char *) LONGALIGN(tp);
-	return ((char *) *(long *)tp);
-    default:
-	elog(WARN, "fetchatt: len %d attbyval", al);
-    }
-    
-    /*NOTREACHED*/
-}
-
-/* ----------------
- *	cacheoffgetattr
+ *	fastgetattr
  *
  *	This is a newer version of fastgetattr which attempts to be
  *	faster by caching attribute offsets in the attribute descriptor.
@@ -587,8 +448,9 @@ fetchatt2(ap, tp)
  *	the same attribute descriptor will go much quicker. -cim 5/4/91
  * ----------------
  */
+
 char *
-cacheoffgetattr(tup, attnum, att, isnull)
+fastgetattr(tup, attnum, att, isnull)
     HeapTuple	tup;
     unsigned	attnum;
     struct	attribute *att[];
@@ -799,127 +661,6 @@ cacheoffgetattr(tup, attnum, att, isnull)
 }
 
 /* ----------------
- *	fastgetattr
- *
- * old comments
- * Note: The caller is responsible for passing an attnum such that
- *	attnum < rdesc->rd_rel.r_natts or a negative (system) attnum
- *	(defined in htup.h).
- *	Does not return a freshly malloc'd version of the attribute.
- *
- *	Also, should document that variable length fields may not
- *	be passed by value.
- *
- * Possible bugs:
- *	Does not work for arrays nor for index relation tuples yet.
- *	Calls elog() upon error--should it return NULL instead?
- *	Handling of variable size arrays may must be fixed.
- *	Non-contiguous tuples should eventually be handled.
- *	Note that the internal structure of TYP is a black-box--
- *	there may be problems if there are array types.
- *	(Ie., struct s3 { short s[3] } S;  will align S on a
- *	short boundry.
- *
- *	***Remove the frequent need of extra dereferencing of ap.
- *
- * ----------------
- */
-char *
-fastgetattr(tup, attnum, att, isnull)
-    HeapTuple	tup;
-    unsigned	attnum;
-    struct	attribute *att[];
-    Boolean	*isnull;
-{
-    register int			bitmask;
-    register struct attribute		**ap;	/* attribute pointer */
-    register struct attribute		*attp;	/* used as (*ap) */
-    register char			*bp;	/* tup->t_bits pointer */
-    register char			*tp;	/* tuple pointer */
-    register int			al;	/* attribute length */
-    int				byte;
-    int				finalbit;
-    int				bitrange;
-    
-    /* ----------------
-     *	sanity checks
-     * ----------------
-     */
-    Assert(PointerIsValid(isnull));
-    Assert(attnum > 0);
-
-    /* ----------------
-     *	check for null attributes
-     * ----------------
-     */
-    byte = --attnum >> 3;
-    finalbit = 1 << (attnum & 07);
-    bp = tup->t_bits;
-    if (! (bp[byte] & finalbit)) {
-	*isnull = (Boolean)true;
-	return ((char *)NULL);
-    }
-
-    /* ----------------
-     *	now walk the tuple descriptor until we get to the attribute
-     *  we want.  we advance tp the length of each attribute we advance
-     *  so tp points to our attribute when we're done.
-     *
-     *  XXX this is pretty inefficient for reasonable sized tuples.
-     *      we should cache the attribute offsets when possible.
-     *	    null attributes can make this difficult though -cim 1/22/90
-     *
-     * old comments
-     *  Assumes < 700 attributes--else use (tp->t_hoff & I1MASK)
-     *  check this and the #define MaxIndexAttributeNumber in ../h/htup.h
-     * ----------------
-     */
-    ap = att;
-    attp = *ap;	/* keep attp current */
-    
-    tp = (char *)tup + (int)tup->t_hoff;
-    if ((long)tp != LONGALIGN(tp))
-	elog(WARN, "fastgetattr: t_hoff misaligned");
-    
-    *isnull = (Boolean) false;
-    bitrange = CSIGNBIT;
-    
-    while (byte >= 0) {
-	if (! byte--)
-	    bitrange = finalbit >> 1;
-	for (bitmask = 1; bitmask <= bitrange; bitmask <<= 1) {
-	    if (*bp & bitmask) {
-		al = attp->attlen;
-		if (al < 0) {
-		    tp = ((char *) LONGALIGN(tp))
-			+ sizeof (long);
-		    tp += PSIZE(tp);
-		} else if (al >= 3) {
-		    tp = ((char *) LONGALIGN(tp)) + al;
-		} else if (al == 2) {
-		    tp = (char *) SHORTALIGN(tp + 2);
-		} else if (!al) {
-		    elog(WARN, "fastgetattr: 0 attlen");
-		} else {
-		    tp++;
-		}
-	    }
-	    ap++;	/* move to next att */
-	    attp = *ap;	/* keep attp current */
-	}
-	bp++;
-    }
-
-    /* ----------------
-     *	tp is now at the attribute we want, so have fetchatt return it
-     * ----------------
-     */
-    return
-	fetchatt2(ap, tp);
-}
-
-
-/* ----------------
  *	heap_getattr
  *
  *	returns an attribute from a heap tuple.  uses 
@@ -955,10 +696,7 @@ heap_getattr(tup, b, attnum, att, isnull)
      */
     if (attnum > 0) {
 	char  *datum;
-	if (use_cacheoffgetattr)
-	    datum = cacheoffgetattr(tup, attnum, att, isnull);
-	else
-	    datum = fastgetattr(tup, attnum, att, isnull);
+	datum = fastgetattr(tup, attnum, att, isnull);
 	
 	return (datum);
     }
@@ -973,70 +711,12 @@ heap_getattr(tup, b, attnum, att, isnull)
 }
 
 /* ----------------
- *	heap_addheader	- constructs a tuple containing the given structure
- *
- *	Returns the palloc'd tuple with each of the natts t_bits filled.
- *	Note, this is not general.  It assumes that maxnatts is as small as
- *	possible with respect to natts.  Should this be allowed to be
- *	called by the user?
- * ----------------
- */
-HeapTuple
-heap_addheader(natts, structlen, structure)
-    uint32	natts;			/* max domain index */
-    int		structlen;		/* its length */
-    char	*structure;		/* pointer to the struct */
-{
-    register char	*bp;	/* bitfield pointer */
-    register char	*tp;	/* tuple data pointer */
-    HeapTuple		tup;
-    int			bitmasklen;
-    int			bitmask;
-    long		len;
-    int			i;
-    int			hoff;
-    extern		bzero();
-    extern		bcopy();
-    
-    len = sizeof (HeapTupleData) - sizeof (tup->t_bits);
-    if (natts < 1)
-	elog(WARN, "addtupleheader: invalid natts == %d", natts);
-    
-    bitmasklen = BITMAPLEN(natts);
-    len += bitmasklen;
-    hoff = len;
-    len += structlen;
-    tp = (char *) palloc(len);
-    tup = (HeapTuple) tp;
-    bzero(tp, (int)len);			/* probably unneeded */
-    tup->t_len = (short) len;			/* XXX */
-    tp += tup->t_hoff = hoff;
-    tup->t_natts = natts;
-    bp = tup->t_bits;
-    for (i = natts / 8; i != 0; i--)
-	*bp++ = ~0;
-    bitmask = 1;
-    for (i = natts % 8; i != 0; i--) {	/* array reference faster? */
-	*bp |= bitmask;
-	bitmask <<= 1;
-    }
-    bcopy(structure, tp, structlen);
-    
-    /*
-     * initialize rule lock
-     */
-    tup->t_locktype = MEM_RULE_LOCK;
-    tup->t_lock.l_lock = NULL;
-    
-    return (tup);
-}
-
-/* ----------------
  *	heap_copytuple
  *
  *	returns a copy of an entire tuple
  * ----------------
  */
+
 HeapTuple
 heap_copytuple(tuple, buffer, relation)
     HeapTuple	tuple;
@@ -1141,6 +821,7 @@ heap_copytuple(tuple, buffer, relation)
  *	Assumes in order.
  * ----------------
  */
+
 HeapTuple
 heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     AttributeNumber	numberOfAttributes;
@@ -1153,16 +834,27 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     int		bitmaplen;
     long	len;
     int		hoff;
+    bool	hasnull = false;
+    int		i;
     
     len = sizeof *tuple - sizeof tuple->t_bits;
+
+    for (i = 0; i < numberOfAttributes && !hasnull; i++)
+    {
+	if (nulls[i] != ' ') hasnull = true;
+    }
+
     if (numberOfAttributes > MaxHeapAttributeNumber)
 	elog(WARN, "heap_formtuple: numberOfAttributes of %d > %d",
 	     numberOfAttributes, MaxHeapAttributeNumber);
-    
-    bitmaplen = BITMAPLEN(numberOfAttributes);
-    len       += bitmaplen;
+
+    if (hasnull)
+    {
+        bitmaplen = BITMAPLEN(numberOfAttributes);
+        len       += bitmaplen;
+    }
     hoff = len;
-    
+
     len += ComputeDataSize(numberOfAttributes, tupleDescriptor, value, nulls);
     
     tp = 	(char *) palloc(len);
@@ -1172,15 +864,15 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     
     tuple->t_len = 	len;
     tuple->t_natts = 	numberOfAttributes;
-	tuple->t_hoff = hoff;
+    tuple->t_hoff = hoff;
     
     DataFill((Pointer) tuple + tuple->t_hoff,
 	     numberOfAttributes,
 	     tupleDescriptor,
 	     value,
 	     nulls,
-		 &tuple->t_infomask,
-	     tuple->t_bits);
+             &tuple->t_infomask,
+	     (hasnull ? tuple->t_bits : NULL));
     
     /*
      * initialize rule lock information to an EMPTY lock
@@ -1192,13 +884,13 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     return (tuple);
 }
 
-
 /* ----------------
  *	heap_modifytuple
  *
  *	forms a new tuple from an old tuple and a set of replacement values.
  * ----------------
  */
+
 HeapTuple
 heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
     HeapTuple	tuple;
@@ -1331,8 +1023,11 @@ getstruct(tup)
 
 /* ----------------
  *	slowgetattr
+ *
+ *      XXX - Currently NOT USED, but probably should not go away.
  * ----------------
  */
+
 char	*
 slowgetattr(tup, b, attnum, att, isnull)
     HeapTuple	tup;
@@ -1480,4 +1175,43 @@ slowgetattr(tup, b, attnum, att, isnull)
     return (tp);
 }
 
+HeapTuple
+heap_addheader(natts, structlen, structure)
+    uint32	natts;			/* max domain index */
+    int		structlen;		/* its length */
+    char	*structure;		/* pointer to the struct */
+{
+    register char	*tp;	/* tuple data pointer */
+    HeapTuple		tup;
+    int			bitmasklen;
+    int			bitmask;
+    long		len;
+    int			i;
+    int			hoff;
+    extern		bzero();
+    extern		bcopy();
+    
+    AssertArg(natts > 0);
 
+    len = sizeof (HeapTupleData) - sizeof (tup->t_bits);
+
+    hoff = len;
+    len += structlen;
+    tp = (char *) palloc(len);
+    tup = (HeapTuple) tp;
+
+    tup->t_len = (short) len;			/* XXX */
+    tp += tup->t_hoff = hoff;
+    tup->t_natts = natts;
+    tup->t_infomask = 0;
+
+    bcopy(structure, tp, structlen);
+
+    /*
+     * initialize rule lock
+     */
+    tup->t_locktype = MEM_RULE_LOCK;
+    tup->t_lock.l_lock = NULL;
+    
+    return (tup);
+}
