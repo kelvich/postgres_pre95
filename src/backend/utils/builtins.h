@@ -23,7 +23,6 @@
 
 #ifdef FMGR_ADT
 #include "utils/geo-decls.h"
-#include "access/kwlist.h"
 #endif /* FMGR_ADT */
 
 
@@ -203,20 +202,6 @@ extern ItemPointer	tidin();
 extern char		*tidout();
 
 /*
- *	B-tree code.
- *	Defined in btree/
- */
-extern char		*btreeinsert();
-extern char		*btreedelete();
-extern char		*btreegetnext();
-extern char		*btreebeginscan();
-extern void		btreeendscan();
-extern void		btreebuild();
-extern void		btreemarkpos();
-extern void		btreerestrpos();
-extern void		btreerescan();
-
-/*
  *  	New btree code.
  *	Defined in nbtree/
  */
@@ -283,17 +268,6 @@ extern int		rt_bigbox_size();
 extern int		rt_poly_size();
 extern POLYGON	*rt_poly_union();
 extern POLYGON	*rt_poly_inter();
-#endif /* FMGR_ADT */
-
-/*
- *	Functional B-tree code.
- *	Defined in ftree/
- */
-#ifdef FMGR_ADT
-extern char		*ftreeinsert();
-extern char		*ftreedelete();
-extern char		*ftreegetnext();
-extern void		ftreebuild();
 #endif /* FMGR_ADT */
 
 /*
