@@ -30,10 +30,18 @@ bool
 equal_path_path_ordering (path_ordering1,path_ordering2)
      LispValue path_ordering1,path_ordering2 ;
 {
-	if ( equal (path_ordering1,path_ordering2) )
-	  return(true);
-	else
-	  return(false);
+    if (path_ordering1 == path_ordering2)
+	return true;
+    if (!path_ordering1 || !path_ordering2)
+	return false;
+    if ((IsA(path_ordering1,MergeOrder) && IsA(path_ordering2,MergeOrder)) ||
+	(!IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder)))
+	return equal(path_ordering1, path_ordering2);
+    if (IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder))
+	return path_ordering2 && get_left_operator(path_ordering1) == 
+				 CInteger(CAR(path_ordering2));
+    return path_ordering1 && CInteger(CAR(path_ordering1)) ==
+			     get_left_operator(path_ordering2);
 }
 
 /*    
