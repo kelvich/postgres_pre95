@@ -23,6 +23,7 @@
 
 typedef struct RelationData {
 	File			rd_fd;		/* open file descriptor */
+	int                     rd_nblocks;     /* number of blocks in rel */
 	uint16			rd_refcnt;	/* reference count */
 	bool			rd_ismem;	/* rel is in-memory only */
 	AccessMethodTupleForm	rd_am;		/* AM tuple */
