@@ -443,7 +443,7 @@ PerformAddAttribute(relationName, schema)
     
     attributeD.attrelid = reltup->t_oid;
     attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */
-    attributeD.attnvals = 1;		/* XXX temporary */
+    attributeD.attnvals = 0;		/* XXX temporary */
     attributeD.atttyparg = InvalidObjectId;	/* XXX temporary */
     attributeD.attbound = 0;		/* XXX temporary */
     attributeD.attcanindex = 0;		/* XXX need this info */
@@ -498,7 +498,7 @@ PerformAddAttribute(relationName, schema)
 		p = &r[0];
 	}
 	else
-		attnelems = 1;
+		attnelems = 0;
 
 	typeTuple = SearchSysCacheTuple(TYPNAME,p);
 	form = (TypeTupleForm)GETSTRUCT(typeTuple);
