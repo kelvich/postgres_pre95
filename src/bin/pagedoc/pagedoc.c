@@ -481,6 +481,9 @@ void
 showindextup(itup)
     IndexTupleData *itup;
 {
+#ifdef TUPDEBUG
+    int *dataptr;
+#endif
     printf("heap tid <%d,0,%d> info [",
 	   ItemPointerGetBlockNumber(itup->t_tid.block), itup->t_tid.offset);
     if (itup->t_info & ITUP_HASNULLS)
@@ -489,7 +492,15 @@ showindextup(itup)
 	printf(" HASVARLENA");
     if (itup->t_info & ITUP_HASRULES)
 	printf(" HASRULES");
+#ifdef TUPDEBUG
+    printf(" ] length %d", itup->t_info & ITUP_LENMASK);
+    dataptr = (int *) (((char *) itup) + sizeof(*itup));
+
+    /* this should be changed for the appropriate datatype */
+    printf("\t%d\n", *dataptr);
+#else
     printf(" ] length %d\n", itup->t_info & ITUP_LENMASK);
+#endif
 }
 
 int
