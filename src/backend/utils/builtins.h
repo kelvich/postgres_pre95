@@ -215,6 +215,16 @@ extern void		btbuild();
 extern void		btmarkpos();
 extern void		btrestrpos();
 extern void		btrescan();
+extern char		*nobtgettuple();
+extern char		*nobtinsert();
+extern char		*nobtdelete();
+extern char		*nobtgetnext();
+extern char		*nobtbeginscan();
+extern void		nobtendscan();
+extern void		nobtbuild();
+extern void		nobtmarkpos();
+extern void		nobtrestrpos();
+extern void		nobtrescan();
 
 /*
  *	Per-opclass comparison functions for new btrees.  These are
