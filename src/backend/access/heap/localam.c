@@ -33,10 +33,13 @@ RcsId("$Header$");
 typedef struct l_rellist
 {
     Relation relation;
-    PageHeader page_header;
-    BlockNumber blocknum;
-	struct l_rellist *next;
+
+    PageHeader read_page, write_page;
+    BlockNumber read_blocknum, write_blocknum;
+
+    OffsetIndex offset_index;
     bool active;
+    struct l_rellist *next;
 }
 LocalRelList;
 
@@ -53,8 +56,17 @@ Relation relation;
 
 {
     LocalRelList *p = GetRelListEntry(relation);
-    FlushLocalPage(p);
+    if (p->write_page != NULL) WriteLocalPage(p);
     DeleteRelListEntry(relation);
+}
+
+local_heap_destroy(relation)
+
+Relation relation;
+
+{
+    LocalRelList *p = GetRelListEntry(relation);
+    FileUnlink(p->relation->rd_fd);
 }
 
 local_heap_open(relation)
@@ -90,9 +102,32 @@ local_heap_insert(relation, tup)
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
 
-
     local_doinsert(p, tup);
 }
+
+/*
+ * These routines are called by the transaction manager.  They are useful
+ * in cleaning up dead temp relations and such from an AbortTransaction
+ * or an elog(WARN).  They do not completely solve the problem of dead
+ * tmp relations, however; we have to do something about those left over from
+ * a crashed backend.
+ */
+
+AtAbort_LocalRels()
+
+{
+    DestroyLocalRelList();
+}
+
+AtCommit_LocalRels()
+
+{
+    DestroyLocalRelList();
+}
+
+/*
+ * Private routines
+ */
 
 LocalRelList *
 AddToRelList(relation)
@@ -113,12 +148,11 @@ Relation relation;
     }
 
     tail->relation = relation;
-    tail->page_header = (PageHeader) palloc(BLCKSZ);
-    tail->blocknum = 0;
+    tail->read_page = tail->write_page = NULL;
+    tail->read_blocknum = tail->write_blocknum = 0;
+	tail->offset_index = 0;
     tail->next = NULL;
     tail->active = true;
-    bzero(tail->page_header, BLCKSZ);
-    PageInit(tail->page_header, BLCKSZ, 0);
     current = tail;
     return(tail);
 }
@@ -164,8 +198,11 @@ Relation relation;
 
     /* don't waste excessive memory */
 
-    pfree(p->page_header);
-    p->page_header = NULL;
+    if (p->read_page != NULL) pfree(p->read_page);
+
+    if (p->write_page != NULL) pfree(p->write_page);
+
+    p->read_page = p->write_page = NULL;
 
     if (current == p)
     {
@@ -174,18 +211,6 @@ Relation relation;
         if (p->next == NULL) current = NULL;
         else current = p;
     }
-}
-
-AtAbort_LocalRels()
-
-{
-    DestroyLocalRelList();
-}
-
-AtCommit_LocalRels()
-
-{
-    DestroyLocalRelList();
 }
 
 /*
@@ -204,7 +229,8 @@ DestroyLocalRelList()
         if (p->active)
         {
             FileUnlink(p->relation->rd_fd);
-            pfree(p->page_header);
+            if (p->read_page != NULL) pfree(p->read_page);
+            if (p->write_page != NULL) pfree(p->write_page);
         }
         q = p->next;
         pfree(p);
@@ -223,20 +249,20 @@ HeapTuple tuple;
     ItemId      itemId;
     HeapTuple   page_tuple;
 
-    if (len > PageGetFreeSpace(rel_info->page_header))
+    if (len > PageGetFreeSpace(rel_info->write_page))
     {
-        FlushLocalPage(rel_info);
-        rel_info->blocknum++;
-        bzero(rel_info->page_header, BLCKSZ);
-        PageInit(rel_info->page_header, BLCKSZ, 0);
+        WriteLocalPage(rel_info);
+        rel_info->write_blocknum++;
+        bzero(rel_info->write_page, BLCKSZ);
+        PageInit(rel_info->write_page, BLCKSZ, 0);
     }
 
-    offsetIndex = PageAddItem((Page)rel_info->page_header, (Item)tuple,
+    offsetIndex = PageAddItem((Page)rel_info->write_page, (Item)tuple,
                               tuple->t_len, InvalidOffsetNumber, LP_USED) - 1;
 
-    itemId = PageGetItemId((Page)rel_info->page_header, offsetIndex);
+    itemId = PageGetItemId((Page)rel_info->write_page, offsetIndex);
 
-    page_tuple = (HeapTuple) PageGetItem((Page) rel_info->page_header, itemId);
+    page_tuple = (HeapTuple) PageGetItem(rel_info->write_page, itemId);
 
     /*
      * As this code is being used for "retrieve into" or tmp relations, 
@@ -248,11 +274,11 @@ HeapTuple tuple;
     ItemPointerSetInvalid(&page_tuple->t_lock.l_ltid);
 
     ItemPointerSimpleSet(&page_tuple->t_ctid,
-                         rel_info->blocknum,
+                         rel_info->write_blocknum,
                          1 + offsetIndex);
 }
 
-FlushLocalPage(rel_info)
+WriteLocalPage(rel_info)
 
 LocalRelList *rel_info;
 
@@ -260,13 +286,31 @@ LocalRelList *rel_info;
     unsigned long offset;
     int nbytes;
 
-    offset = rel_info->blocknum * BLCKSZ;
+    offset = rel_info->write_blocknum * BLCKSZ;
 
     FileSeek(rel_info->relation->rd_fd, offset, L_SET);
 
     nbytes = FileWrite(rel_info->relation->rd_fd,
-                       (char *) rel_info->page_header,
+                       (char *) rel_info->write_page,
                        BLCKSZ);
 
     Assert(nbytes == BLCKSZ);
+}
+
+ReadLocalPage(rel_info)
+
+LocalRelList *rel_info;
+
+{
+    unsigned long offset;
+    int nbytes;
+
+    offset = rel_info->read_blocknum * BLCKSZ;
+
+    FileSeek(rel_info->relation->rd_fd, offset, L_SET);
+
+    nbytes = FileRead(rel_info->relation->rd_fd,
+                       (char *) rel_info->read_page,
+                       BLCKSZ);
+    return(nbytes);
 }
