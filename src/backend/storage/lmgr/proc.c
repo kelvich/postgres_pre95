@@ -207,6 +207,8 @@ IPCKey key;
 void
 ProcReleaseLocks()
 {
+  if (!MyProc)
+    return;
   LockReleaseAll(1,&MyProc->lockQueue);
 }
 
