@@ -141,7 +141,7 @@ _vc_getrels(p)
     Datum d;
     Name rname;
     Boolean n;
-    ScanKeyEntry pgckey[1];
+    ScanKeyEntryData pgckey[1];
 
     StartTransactionCommand();
 
@@ -218,7 +218,7 @@ _vc_vacone(p, curvrl)
     Relation onerel;
     TupleDescriptor onedesc;
     HeapTuple onetup;
-    ScanKeyEntry pgckey[1];
+    ScanKeyEntryData pgckey[1];
 
     StartTransactionCommand();
 
@@ -422,7 +422,7 @@ _vc_vacindices(curvrl, onerel)
     Datum d;
     Boolean n;
     int nindices;
-    ScanKeyEntry pgikey[1];
+    ScanKeyEntryData pgikey[1];
 
     /* see if we can dodge doing any work at all */
     if (!(onerel->rd_rel->relhasindex))
@@ -533,7 +533,7 @@ _vc_updstats(relid, npages, ntuples, hasindex)
     HeapTuple pgctup;
     Buffer buf;
     Form_pg_relation pgcform;
-    ScanKeyEntry pgckey[1];
+    ScanKeyEntryData pgckey[1];
 
     ScanKeyEntryInitialize(&pgckey[0], 0x0, ObjectIdAttributeNumber,
 			   ObjectIdEqualRegProcedure,
