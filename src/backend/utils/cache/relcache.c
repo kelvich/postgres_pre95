@@ -545,14 +545,21 @@ build_tupdesc_seq(buildinfo, relation, attp, natts)
 		   palloc((Size) (sizeof(RuleLock) +
 				  sizeof(*relation->rd_att.data[0])));
 	      
-	      bzero(newattp,	/* XXX PURIFY */
-		    sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
-	      if (heap_attisnull(pg_attribute_tuple,Anum_pg_attribute_attisset))
-		   ((Attribute)newattp)->attisset = false;
+	      bzero(newattp + sizeof(*relation->rd_att.data[0]),
+		    sizeof(RuleLock));
+	      if (heap_attisnull(pg_attribute_tuple,
+				 Anum_pg_attribute_attisset)) {
+		  /* will be null in old 4.1 tuples */
+		  ((Attribute)newattp)->attisset = false;
+		  bcopy((char *) attp,
+			(char *) newattp,
+			offsetof(AttributeTupleFormData, attisset));
+	      } else {
+		  bcopy((char *) attp,
+			(char *) newattp,
+			sizeof(*relation->rd_att.data[0]));
+	      }
 	      relation->rd_att.data[attp->attnum - 1] = (Attribute) newattp;
-	      bcopy((char *) attp,
-		    (char *) newattp,
-		    sizeof(*relation->rd_att.data[0]));
 	      
 	      need--;
 	 }
@@ -600,11 +607,17 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
 	    palloc((Size) (sizeof(RuleLock) +
 			   sizeof(*relation->rd_att.data[0])));
 
-	bcopy((char *) attp,
-	      (char *) relation->rd_att.data[i - 1],
-	      sizeof *relation->rd_att.data[0]);
-	if (att_isnull(Anum_pg_attribute_attisset, bp))
-	     relation->rd_att.data[i-1]->attisset = false;
+	if (att_isnull(Anum_pg_attribute_attisset, bp)) {
+	    /* will be null in old 4.1 tuples */
+	    bcopy((char *) attp,
+		  (char *) relation->rd_att.data[i - 1],
+		  offsetof(AttributeTupleFormData, attisset));
+	    relation->rd_att.data[i-1]->attisset = false;
+	} else {
+	    bcopy((char *) attp,
+		  (char *) relation->rd_att.data[i - 1],
+		  sizeof *relation->rd_att.data[0]);
+	}
 	if (atttup->t_lock.l_lock)
 		pfree (atttup->t_lock.l_lock);
     pfree(atttup);
