@@ -6,7 +6,7 @@
 extern LispValue tlistentry_member ARGS((Var var, LispValue targetlist));
 extern Expr matching_tlvar ARGS((Var var, List targetlist));
 extern LispValue add_tl_element ARGS((Rel rel, Var var, LispValue joinlist));
-extern TL create_tl_element ARGS((Var var, Resdom resdomno, List joinlist));
+extern TL create_tl_element ARGS((Var var, int resdomno, List joinlist));
 extern LispValue get_actual_tlist ARGS((LispValue tlist));
 extern Resdom tlist_member ARGS((Var var, LispValue tlist));
 extern LispValue match_varid ARGS((Var varid, LispValue tlist));

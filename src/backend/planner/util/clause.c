@@ -122,7 +122,7 @@ clause_relids_vars (clause)
     LispValue i = LispNil;
 
     foreach (i,vars) 
-      tvarlist = nappend1(tvarlist,lispInteger(get_varno(CAR(i))));
+      tvarlist = nappend1(tvarlist,lispInteger((int)get_varno((Var)CAR(i))));
     
     varno_list = nreverse(remove_duplicates (tvarlist,equal));
     var_list = nreverse (remove_duplicates (vars, var_equal));
@@ -151,7 +151,7 @@ NumRelids (clause)
     Var var = (Var)NULL;
     LispValue i = LispNil;
 
-    foreach (i,pull_var_clause(clause)) {
+    foreach (i,pull_var_clause((LispValue)clause)) {
 	var = (Var)CAR(i);
 	t_list = nappend1(t_list,lispInteger(get_varno(var)));
     }
@@ -228,7 +228,8 @@ relation_level_clause_p (clause)
      LispValue clause ;
 {
 	if (!single_node(clause) &&
-	    (( is_clause(clause) && get_oprelationlevel(get_op(clause))) ||
+	    (( is_clause(clause) &&
+	       get_oprelationlevel((Oper)get_op(clause))) ||
 	     (not_clause(clause) && 
 	      relation_level_clause_p(get_notclausearg(clause))) ||
 	     (or_clause (clause) && 
@@ -360,8 +361,8 @@ fix_opid (clause)
 	} 
 	else if (is_clause (clause)) {
 		replace_opid(get_op(clause));
-		fix_opid (get_leftop (clause));
-		fix_opid (get_rightop (clause));
+		fix_opid ((LispValue)get_leftop (clause));
+		fix_opid ((LispValue)get_rightop (clause));
 	}
 
 } /* fix_opid */
@@ -427,9 +428,9 @@ get_relattval (clause)
 	if(!null(right)) {
 	    return(lispCons (lispInteger(get_varno (left)),
 		      lispCons(lispInteger(get_varattno (left)),
-			       lispCons(lispInteger(get_constvalue (right)),
-					lispCons(lispInteger(
-						  (_SELEC_CONSTANT_RIGHT_ |
+			     lispCons(lispInteger(get_constvalue((Const)right)),
+				      lispCons(lispInteger(
+						(_SELEC_CONSTANT_RIGHT_ |
 						   _SELEC_IS_CONSTANT_)),
 						 LispNil)))));
 	} else {
@@ -444,20 +445,26 @@ get_relattval (clause)
 	} 
     } /* if (is_clause(clause . . . */ 
 
-    else if (is_clause(clause) && is_funcclause(left) && IsA(right,Const)) {
-	    return(lispCons (lispInteger(get_varno (CAR(get_funcargs(left)))),
+    else if (is_clause(clause) &&
+	     is_funcclause((LispValue)left) &&
+	     IsA(right,Const))
+    {
+	    return(lispCons(lispInteger(get_varno((Var)CAR(get_funcargs((LispValue)left)))),
 		      lispCons(lispInteger(InvalidAttributeNumber),
-			       lispCons(lispInteger(get_constvalue (right)),
+			     lispCons(lispInteger(get_constvalue((Const)right)),
 					lispCons(lispInteger(
 						  (_SELEC_CONSTANT_RIGHT_ |
 						   _SELEC_IS_CONSTANT_)),
 						 LispNil)))));
     }
     
-    else if (is_clause(clause) && is_funcclause(right) && IsA(left,Const)) {
-	    return(lispCons (lispInteger(get_varno (CAR(get_funcargs(right)))),
+    else if (is_clause(clause) &&
+	     is_funcclause((LispValue)right) &&
+	     IsA(left,Const))
+    {
+	    return(lispCons(lispInteger(get_varno((Var)CAR(get_funcargs((LispValue)right)))),
 		      lispCons(lispInteger(InvalidAttributeNumber),
-			       lispCons(lispInteger(get_constvalue (left)),
+			     lispCons(lispInteger(get_constvalue ((Const)left)),
 					lispCons(lispInteger(
 						  (_SELEC_IS_CONSTANT_)),
 						 LispNil)))));
@@ -468,7 +475,7 @@ get_relattval (clause)
 	if (!null (left)) {
 	    return(lispCons(lispInteger(get_varno (right)),
 		   lispCons(lispInteger(get_varattno(right)),
-			    lispCons(lispInteger(get_constvalue (left)),
+			    lispCons(lispInteger(get_constvalue ((Const)left)),
 				     lispCons(lispInteger(_SELEC_IS_CONSTANT_),
 					      LispNil)))));
 	} else {
@@ -517,9 +524,9 @@ get_relsatts (clause)
     bool var_left = ( (IsA(left,Var) && !var_is_mat (left) ) ?true : false);
     bool var_right = ( (IsA(right,Var) && !var_is_mat(right)) ? true:false);
     bool varexpr_left = (bool)((IsA(left,Func) || IsA (left,Oper)) &&
-			       pull_var_clause (left) );
+			       pull_var_clause ((LispValue)left) );
     bool varexpr_right = (bool)(( IsA(right,Func) || IsA (right,Oper)) &&
-				pull_var_clause (right));
+				pull_var_clause ((LispValue)right));
     
     isa_clause = is_clause (clause);
     if(isa_clause && var_left
@@ -531,8 +538,8 @@ get_relsatts (clause)
 						    (get_varattno (right)),
 						    LispNil)))));
     } else if ( isa_clause && var_left && varexpr_right ) {
-	return(lispCons(get_varno (left),
-			lispCons(get_varattno (left),
+	return(lispCons((LispValue)get_varno (left),
+			lispCons((LispValue)get_varattno (left),
 				 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
 					  lispCons(lispInteger
 						   (_SELEC_VALUE_UNKNOWN_),
@@ -540,8 +547,8 @@ get_relsatts (clause)
     } else if ( isa_clause && varexpr_left && var_right) {
 	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
 			 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-				  lispCons(get_varno (right),
-					   lispCons(get_varattno (right),
+				  lispCons((LispValue)get_varno (right),
+					   lispCons((LispValue)get_varattno(right),
 						    LispNil)))));
     } else {
 	return(lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
@@ -582,7 +589,7 @@ CommuteClause(clause)
 	return;
 
     heapTup = (HeapTuple)
-	get_operator_tuple( get_commutator(get_opno(CAR(clause))) );
+	get_operator_tuple( get_commutator(get_opno((Oper)CAR(clause))) );
 
     if (heapTup == (HeapTuple)NULL)
 	return;
@@ -591,9 +598,9 @@ CommuteClause(clause)
 
     commu = MakeOper(heapTup->t_oid,
 	     InvalidObjectId, 
-	     get_oprelationlevel(CAR(clause)),
+	     get_oprelationlevel((Oper)CAR(clause)),
 	     commuTup->oprresult,
-	     get_opsize(CAR(clause)),
+	     get_opsize((Oper)CAR(clause)),
 	     NULL);
 
     /*

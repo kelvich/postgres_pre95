@@ -65,7 +65,6 @@ tlistentry_member (var,targetlist)
      Var var;
      List targetlist;
 {
-    extern bool var_equal();
     extern LispValue lambda1();
     if ( var) {
 	LispValue temp = LispNil;
@@ -142,14 +141,14 @@ add_tl_element (rel,var,joinlist)
 			      get_varid (var),0);
 
 	set_targetlist (rel,nappend1 (tlist,
-				      create_tl_element (newvar,
+				      (LispValue)create_tl_element( newvar,
 							 length(tlist) + 1,
 							 joinlist)));
 
-    } else if (length (get_varid (oldvar)) > length (get_varid (var))) {
+    } else if (length (get_varid ((Var)oldvar)) > length (get_varid (var))) {
 	
-	set_vartype (oldvar,get_vartype (var));
-	set_varid (oldvar,get_varid (var));
+	set_vartype ((Var)oldvar,get_vartype (var));
+	set_varid ((Var)oldvar,get_varid (var));
 
     } 
 }
@@ -180,7 +179,9 @@ create_tl_element (var,resdomno,joinlist)
     set_entry (tlelement,
 	       MakeTLE (MakeResdom (resdomno, get_vartype (var),
 				    get_typlen (get_vartype (var)),
-				    LispNil,0,LispNil,0),
+				    (Name)LispNil,
+				    (Index)0,
+				    (OperatorTupleForm)NULL,0),
 			var));
     set_joinlist (tlelement,joinlist);
     
@@ -324,11 +325,11 @@ match_varid (test_var,tlist)
     foreach (i,tlist)
     {
 	entry = CAR(i);
-	if (equal(get_varid(get_expr(entry)), test_varid))
+	if (equal((Node)get_varid(get_expr(entry)), (Node)test_varid))
 	{
 	    if ((get_vartype(get_expr(entry)) == type_var) &&
-			(equal(get_vararraylist(get_expr(entry)),
-				   get_vararraylist(test_var))))
+			(equal( (Node)get_vararraylist(get_expr(entry)),
+				(Node)get_vararraylist(test_var))))
 	    {
 	    	return(entry);
 	    }
@@ -361,7 +362,7 @@ new_unsorted_tlist (targetlist)
 
     foreach (x, new_targetlist) {
 	set_reskey (get_resdom (CAR(x)),0);
-	set_reskeyop (get_resdom (CAR(x)),LispNil);
+	set_reskeyop (get_resdom (CAR(x)),(OperatorTupleForm)NULL);
     }
     return(new_targetlist);
 }
@@ -454,7 +455,6 @@ flatten_tlist (tlist)
     TLE  full_agg_entry;
     Resdom agg_resdom;
     extern List MakeList();
-    extern List nset_difference();
 
     foreach(temp,tlist)  {
        temp_entry = CAR(temp);
@@ -465,7 +465,7 @@ flatten_tlist (tlist)
 	 tlist_aggs = (LispValue)nappend1(tlist_aggs, full_agg_entry);
 	}
 	else {
-	   tlist_thing = pull_var_clause (get_expr(temp_entry));
+	   tlist_thing = pull_var_clause ((LispValue)get_expr(temp_entry));
 	   if(tlist_thing != LispNil) {
 	       tlist_vars = nconc(tlist_vars, tlist_thing);
 	    }
@@ -474,16 +474,16 @@ flatten_tlist (tlist)
      }
     /* XXX - This used to use the function push and nreverse.  */
     foreach (var,tlist_vars ) {
-	if ( !(tlist_member (CAR(var),new_tlist,1 ))) {
+	if ( !(tlist_member ((Var)CAR(var),new_tlist))) {
 	    new_tlist = (LispValue)append1(new_tlist,
 				MakeTLE (MakeResdom(++last_resdomno,
-						    get_vartype(CAR(var)),
+						    get_vartype((Var)CAR(var)),
 						    get_typlen 
 						    (get_vartype 
-						     (CAR(var))),
-						    LispNil,
-						    0,
-						    LispNil,0),
+						     ((Var)CAR(var))),
+						    (Name)NULL,
+						    (Index)0,
+						    (OperatorTupleForm)NULL,0),
 					 CAR(var)));
 	    
 	}
@@ -549,7 +549,7 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	return((TLE)NULL);
     } 
     else if (IsA (tlistentry,Var)) {
-	return((TLE)get_expr (match_varid (tlistentry, flat_tlist)));
+	return((TLE)get_expr (match_varid ((Var)tlistentry, flat_tlist)));
     } 
     else if (single_node (tlistentry)) {
 	return(tlistentry);
@@ -565,10 +565,11 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
     } else {
-	return((TLE)make_opclause (get_op (tlistentry),
-				 flatten_tlistentry (get_leftop (tlistentry),
-						     flat_tlist),
-				 flatten_tlistentry (get_rightop (tlistentry),
-						     flat_tlist)));
+	return((TLE)
+	    make_opclause( (Oper)get_op (tlistentry),
+			   (Var)flatten_tlistentry( get_leftop(tlistentry),
+						    flat_tlist),
+			   (Var)flatten_tlistentry( get_rightop(tlistentry),
+						    flat_tlist)));
     }
 }

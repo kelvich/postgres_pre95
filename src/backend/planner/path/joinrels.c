@@ -99,12 +99,12 @@ find_clause_joins(outer_rel,joininfo_list)
                LispValue other_rels = get_otherrels(joininfo);
                if(!null(other_rels)) {
                   if(length(other_rels) == 1)
-                     temp_node = lispCons(init_join_rel(outer_rel,
+                     temp_node = lispCons((LispValue)init_join_rel(outer_rel,
                                                        get_rel(CAR(other_rels)),
                                                        joininfo),
                                           LispNil);
                   else
-                     temp_node = lispCons(init_join_rel(outer_rel,
+                     temp_node = lispCons((LispValue)init_join_rel(outer_rel,
                                                         get_rel(other_rels),
                                                          joininfo),
                                           LispNil);
@@ -144,7 +144,9 @@ find_clauseless_joins(outer_rel,inner_rels)
      foreach(i,inner_rels) {
 	 inner_rel = (Rel)CAR(i);
          if(nonoverlap_rels(inner_rel,outer_rel)) {
-	     temp_node = lispCons(init_join_rel(outer_rel, inner_rel, (JInfo)NULL),
+	     temp_node = lispCons((LispValue)init_join_rel(outer_rel, 
+							   inner_rel,
+							   (JInfo)NULL),
 				   LispNil);
 	     t_list = nconc(t_list,temp_node);
 	 } 
@@ -274,7 +276,7 @@ new_join_tlist(tlist,other_relids,first_resdomno)
 	if( in_final_tlist || future_join_list)  {
 	    resdomno += 1;
 	    temp_node = 
-	      lispCons(create_tl_element(get_expr(get_entry(xtl)),
+	      lispCons((LispValue)create_tl_element(get_expr(get_entry(xtl)),
 					   resdomno,
 					   future_join_list),
 			LispNil);
@@ -331,7 +333,8 @@ new_joininfo_list(joininfo_list,join_relids)
                                         get_mergesortable(joininfo),
                                         get_hashjoinable(joininfo),
 					false);
-            current_joininfo_list = push(other_joininfo, current_joininfo_list);
+            current_joininfo_list = push((LispValue)other_joininfo,
+					 current_joininfo_list);
          }
        }
     }
@@ -389,7 +392,8 @@ LispValue joinrels,outerrels ;
 						    mergesortable,
 						    hashjoinable,
 						    false);
-	        set_joininfo(rel,nappend1(get_joininfo(rel), new_joininfo));
+	        set_joininfo(rel,nappend1(get_joininfo(rel),
+					  (LispValue)new_joininfo));
 		foreach(xsuper_rel, super_rels) {
 		    Rel super_rel = (Rel)CAR(xsuper_rel);
 		    if( nonoverlap_rels(super_rel,joinrel) ) {
@@ -408,7 +412,8 @@ LispValue joinrels,outerrels ;
 								hashjoinable,
 								false);
 			    set_joininfo(joinrel,
-			      nappend1 (get_joininfo(joinrel),new_joininfo));
+					 nappend1 (get_joininfo(joinrel),
+						   (LispValue)new_joininfo));
 			}
 		    }
 		}
@@ -457,7 +462,7 @@ LispValue join_rel_list ;
 	    }
 	}
 	if(final)  {
-	   temp = lispCons(rel,LispNil);
+	   temp = lispCons((LispValue)rel,LispNil);
 	   t_list = nconc(t_list, temp);
 	}
     }
@@ -482,7 +487,7 @@ void
 add_superrels(rel,super_rel)
 Rel rel,super_rel ;
 {
-    set_superrels(rel, nappend1(get_superrels(rel), super_rel));
+    set_superrels(rel, nappend1(get_superrels(rel), (LispValue)super_rel));
 }
 
 /*

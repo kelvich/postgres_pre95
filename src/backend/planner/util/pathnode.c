@@ -29,18 +29,9 @@
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
 #include "planner/costsize.h"
+#include "planner/keys.h"
 
 extern int testFlag;
-/* ----------------
- *	node creator declarations
- * ----------------
- */
-extern HashPath RMakeHashPath();
-extern MergePath RMakeMergePath();
-extern JoinPath RMakeJoinPath();
-extern IndexPath RMakeIndexPath();
-extern Path RMakePath();
-
 
 /*    	====================
  *    	MISC. PATH UTILITIES
@@ -153,13 +144,13 @@ add_pathlist (parent_rel,unique_paths,new_paths)
      LispValue old_path;
      foreach (x, new_paths) {
 	 new_path = (Path)CAR(x);
-	 if (member(new_path, unique_paths)) 
+	 if (member((LispValue)new_path, unique_paths)) 
 	     continue;
 	 old_path = better_path (new_path,unique_paths);
 	 if (old_path == LispTrue) {
 	     /*  Is a brand new path.  */
 	     set_parent (new_path,parent_rel);
-	     unique_paths = lispCons (new_path,unique_paths);
+	     unique_paths = lispCons ((LispValue)new_path,unique_paths);
 	
 	 }
 	 else if (null(old_path))
@@ -167,10 +158,10 @@ add_pathlist (parent_rel,unique_paths,new_paths)
 	 else if (IsA(old_path,Path)) {
 	     set_parent (new_path,parent_rel);
 	     if (testFlag) {
-	         unique_paths = lispCons(new_path, unique_paths);
+	         unique_paths = lispCons((LispValue)new_path, unique_paths);
 		}
 	     else
-	         unique_paths = lispCons(new_path,
+	         unique_paths = lispCons((LispValue)new_path,
 				         LispRemove(old_path,unique_paths));
 	 }
      }
@@ -298,29 +289,29 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 {
     IndexPath pathnode = RMakeIndexPath();
     
-    set_pathtype (pathnode,T_IndexScan);
-    set_parent (pathnode,rel);
+    set_pathtype ((Path)pathnode,T_IndexScan);
+    set_parent ((Path)pathnode,rel);
     set_indexid (pathnode,get_relids (index));
-    set_p_ordering (pathnode,get_ordering (index));
-    set_keys (pathnode,get_indexkeys (index));
-    set_pathsortkey(pathnode, (SortKey)NULL);
+    set_p_ordering ((Path)pathnode,get_ordering (index));
+    set_keys ((Path)pathnode,get_indexkeys (index));
+    set_pathsortkey((Path)pathnode, (SortKey)NULL);
     set_indexqual(pathnode, LispNil);
 
     /*    The index must have an ordering for the
 	  path to have (ordering) keys, 
 	  and vice versa. */
      
-    if ( get_p_ordering (pathnode)) {
-	set_keys (pathnode,collect_index_pathkeys (get_indexkeys (index),
-						    get_targetlist (rel)));
+    if ( get_p_ordering ((Path)pathnode)) {
+	set_keys ((Path)pathnode,collect_index_pathkeys( get_indexkeys (index),
+							 get_targetlist (rel)));
 	   /*    Check that the keys haven't 'disappeared', since they may 
 		 no longer be in the target list (i.e.,
 		 index keys that are not 
 		 relevant to the scan are not applied to the scan path node,
 		 so if no index keys were found, we can't order the path). */
 
-	   if ( null (get_keys (pathnode))) {
-	       set_p_ordering (pathnode,LispNil);
+	   if ( null (get_keys ((Path)pathnode))) {
+	       set_p_ordering ((Path)pathnode,LispNil);
 	   }
     }
     if(is_join_scan || null (restriction_clauses)) {
@@ -328,12 +319,13 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	      restrict the result at all, they simply order it,
 	      so compute the scan cost 
 	      accordingly -- use a selectivity of 1.0. */
-	set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids(index))),
-					    get_pages (index),1.0,
-					    get_pages (rel),
-					    get_tuples (rel),
-					    get_pages (index),
-					    get_tuples(index), false));
+	set_path_cost ( (Path)pathnode,
+			cost_index (CInteger(CAR(get_relids(index))),
+				    get_pages (index),1.0,
+				    get_pages (rel),
+				    get_tuples (rel),
+				    get_pages (index),
+				    get_tuples(index), false));
     } 
     else  {
 	/*    Compute scan cost for the case when 'index' is used with a 
@@ -359,12 +351,13 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	Cost temp2 = (Cost)CDouble(CADR(pagesel));
 
 	set_indexqual (pathnode,restriction_clauses);
-	set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids(index))),
- 					    temp1,
-					    temp2,
-					    get_pages (rel),
-					    get_tuples (rel),get_pages (index),
-					    get_tuples (index), false));
+	set_path_cost ( (Path)pathnode,
+			cost_index (CInteger(CAR(get_relids(index))),
+ 				    temp1,
+				    temp2,
+				    get_pages (rel),
+				    get_tuples (rel),get_pages (index),
+				    get_tuples (index), false));
 	/*    Set selectivities of clauses used with index to 
 	      the selectivity of this index, subdividing the 
 	      selectivity equally over each of 
@@ -403,27 +396,28 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
 {
      JoinPath pathnode = RMakeJoinPath();
      
-     set_pathtype(pathnode,T_NestLoop);
-     set_parent (pathnode,joinrel);
+     set_pathtype((Path)pathnode,T_NestLoop);
+     set_parent ((Path)pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
      set_innerjoinpath (pathnode,inner_path);
      set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
-     set_keys (pathnode,keys);
-     set_pathsortkey (pathnode,LispNil);
-     set_joinid(pathnode,LispNil);
-     set_outerjoincost(pathnode,LispNil);
-     set_p_ordering(pathnode,LispNil);
+     set_keys ((Path)pathnode,keys);
+     set_pathsortkey ((Path)pathnode,(SortKey)NULL);
+     set_joinid((Path)pathnode,LispNil);
+     set_outerjoincost((Path)pathnode,(Cost)NULL);
+     set_p_ordering((Path)pathnode,LispNil);
 
      if /*when */ ( keys) {
-	  set_p_ordering (pathnode,get_p_ordering (outer_path));
+	  set_p_ordering ((Path)pathnode,get_p_ordering (outer_path));
      }
-     set_path_cost (pathnode,cost_nestloop (get_path_cost (outer_path),
-					    get_path_cost (inner_path),
-					    get_size (outer_rel),
-					    get_size (get_parent(inner_path)),
-					    page_size (get_size(outer_rel),
-						       get_width(outer_rel)),
-					    IsA(inner_path,IndexPath)));
+     set_path_cost ((Path)pathnode,
+		    cost_nestloop (get_path_cost (outer_path),
+				   get_path_cost (inner_path),
+				   get_size( outer_rel),
+				   get_size( get_parent(inner_path)),
+				   page_size( get_size(outer_rel),
+					      get_width(outer_rel)),
+				   IsA(inner_path,IndexPath)));
      return(pathnode);
 }
 
@@ -462,21 +456,24 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 {
      MergePath pathnode = RMakeMergePath();
 
-     set_pathtype (pathnode,T_MergeJoin);
-     set_parent (pathnode,joinrel);
-     set_outerjoinpath (pathnode,outer_path);
-		set_innerjoinpath (pathnode,inner_path);
-     set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
-     set_keys (pathnode,keys);
-     set_p_ordering (pathnode,order);
+     set_pathtype ((Path)pathnode,T_MergeJoin);
+     set_parent ((Path)pathnode,joinrel);
+     set_outerjoinpath ((JoinPath)pathnode,outer_path);
+     set_innerjoinpath ((JoinPath)pathnode,inner_path);
+     set_pathclauseinfo ((JoinPath)pathnode,get_clauseinfo (joinrel));
+     set_keys ((Path)pathnode,keys);
+     set_p_ordering ((Path)pathnode,order);
      set_path_mergeclauses (pathnode,mergeclauses);
      set_outersortkeys (pathnode,outersortkeys);
      set_innersortkeys (pathnode,innersortkeys);
-     set_path_cost (pathnode,cost_mergesort (get_path_cost (outer_path),
-					get_path_cost (inner_path),
-					outersortkeys,innersortkeys,
-					outersize,innersize,outerwidth,
-					innerwidth));
+     set_path_cost ((Path)pathnode, cost_mergesort( get_path_cost (outer_path),
+						    get_path_cost (inner_path),
+						    outersortkeys,
+						    innersortkeys,
+						    outersize,
+						    innersize,
+						    outerwidth,
+						    innerwidth));
      return(pathnode);
 }
 
@@ -517,26 +514,26 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 {
     HashPath pathnode = RMakeHashPath();
 
-    set_pathtype (pathnode,T_HashJoin); 
-    set_parent (pathnode,joinrel);
-    set_outerjoinpath (pathnode,outer_path);
-    set_innerjoinpath (pathnode,inner_path);
-    set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
-    set_keys (pathnode,keys);
-    set_pathsortkey (pathnode,(SortKey)NULL);
-    set_p_ordering(pathnode,LispNil);
-    set_outerjoincost(pathnode,0);
-    set_joinid(pathnode,LispNil);
+    set_pathtype ((Path)pathnode,T_HashJoin); 
+    set_parent ((Path)pathnode,joinrel);
+    set_outerjoinpath ((JoinPath)pathnode,outer_path);
+    set_innerjoinpath ((JoinPath)pathnode,inner_path);
+    set_pathclauseinfo ((JoinPath)pathnode,get_clauseinfo (joinrel));
+    set_keys ((Path)pathnode,keys);
+    set_pathsortkey ((Path)pathnode,(SortKey)NULL);
+    set_p_ordering((Path)pathnode,LispNil);
+    set_outerjoincost((Path)pathnode,(Cost)0);
+    set_joinid((Path)pathnode, (Relid)NULL);
 /*    set_hashjoinoperator (pathnode,operator);  */ 
     set_path_hashclauses (pathnode,hashclauses);
     set_outerhashkeys (pathnode,outerkeys);
     set_innerhashkeys (pathnode,innerkeys);
-    set_path_cost (pathnode,cost_hashjoin (get_path_cost (outer_path),
-					   get_path_cost (inner_path),
-					   outerkeys,
-					   innerkeys,
-					   outersize,innersize,
-					   outerwidth,innerwidth));
+    set_path_cost ((Path)pathnode,cost_hashjoin( get_path_cost (outer_path),
+						 get_path_cost (inner_path),
+						 outerkeys,
+						 innerkeys,
+						 outersize,innersize,
+						 outerwidth,innerwidth));
     return(pathnode);
 }
 

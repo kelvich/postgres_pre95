@@ -59,7 +59,8 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       Var rightop = get_rightop ((LispValue)clause);
 	       JoinKey keys;
 	       
-	       if(equal (inner_relid,lispInteger(get_varno (leftop)))) {
+	       if(equal ((Node)inner_relid,
+			 (Node)lispInteger(get_varno (leftop)))) {
 		    keys = MakeJoinKey ((LispValue)rightop,(LispValue)leftop);
 	       } 
 	       else {
@@ -69,13 +70,16 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       if ( null (xmergeinfo)) {
 		    xmergeinfo = RMakeMInfo();
 		    set_m_ordering(xmergeinfo,merge_ordering);
-		    mergeinfo_list = push (xmergeinfo,mergeinfo_list);
+		    mergeinfo_list = push ((LispValue)xmergeinfo,
+					   mergeinfo_list);
 	       }
 
 	       set_clauses((JoinMethod)xmergeinfo,
-	                push (clause,joinmethod_clauses((JoinMethod)xmergeinfo)));
+	                push ((LispValue)clause,
+			      joinmethod_clauses((JoinMethod)xmergeinfo)));
 	       set_jmkeys((JoinMethod)xmergeinfo, 
-			 push(keys,joinmethod_keys((JoinMethod)xmergeinfo)));
+			 push((LispValue)keys,
+			      joinmethod_keys((JoinMethod)xmergeinfo)));
 	  }
      }
      return(mergeinfo_list);

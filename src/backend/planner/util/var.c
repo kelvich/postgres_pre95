@@ -50,8 +50,8 @@ pull_agg_clause(clause)
 	else if (not_clause (clause))
 	    retval = pull_agg_clause(get_notclausearg(clause));
 	else if (is_clause(clause))
-	    retval = nconc (pull_agg_clause (get_leftop (clause)),
-			pull_agg_clause (get_rightop (clause)));
+	    retval = nconc (pull_agg_clause ((LispValue)get_leftop (clause)),
+			pull_agg_clause ((LispValue)get_rightop (clause)));
 	else
 	    retval=  LispNil;
 	return (retval);
@@ -75,7 +75,7 @@ pull_var_clause (clause)
 
 	if (null (clause) ) 
 	  return(LispNil);
-	else if (IsA(clause,Var) && get_varattno(clause))
+	else if (IsA(clause,Var) && get_varattno((Var)clause))
 	  retval = lispCons (clause,LispNil);
 	else if (single_node (clause)) 
 	  retval = LispNil;
@@ -93,8 +93,8 @@ pull_var_clause (clause)
 	} else if (not_clause (clause))
 	  retval = pull_var_clause (get_notclausearg (clause));
 	else if (is_clause (clause)) 
-	  retval = nconc (pull_var_clause (get_leftop (clause)),
-			  pull_var_clause (get_rightop (clause)));
+	  retval = nconc (pull_var_clause ((LispValue)get_leftop (clause)),
+			  pull_var_clause ((LispValue)get_rightop (clause)));
 	else retval = LispNil;
 	return (retval);
 }
@@ -117,9 +117,9 @@ var_equal (var1,var2,dots)
      bool dots;
 {
     if (IsA (var1,Var) && IsA (var2,Var) &&
-	(get_varno (var1) == get_varno (var2)) &&
-	(get_vartype (var1) == get_vartype (var2)) && 
-	(get_varattno (var1) == get_varattno (var2))) {
+	(get_varno ((Var)var1) == get_varno ((Var)var2)) &&
+	(get_vartype ((Var)var1) == get_vartype ((Var)var2)) && 
+	(get_varattno ((Var)var1) == get_varattno ((Var)var2))) {
 
 /*   comment out for now since vararrayindex is always
 	     nil until we get procedures working.
@@ -142,7 +142,8 @@ var_equal (var1,var2,dots)
 	    return(true);
 	}
 */
-	  if (equal(get_vararraylist(var1), get_vararraylist(var2)))
+	  if (equal((Node)get_vararraylist((Var)var1),
+		    (Node)get_vararraylist((Var)var2)))
          return(true);
 	  else
 		 return(false);

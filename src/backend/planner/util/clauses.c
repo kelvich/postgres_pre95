@@ -192,13 +192,13 @@ make_opclause (op,leftop,rightop)
      Var leftop,rightop ;
 {
      if(rightop) {
-	  return(lispCons (op,
-			   lispCons(leftop,
-				    lispCons(rightop,
+	  return(lispCons ((LispValue)op,
+			   lispCons((LispValue)leftop,
+				    lispCons((LispValue)rightop,
 					     LispNil))));
      } else {
-	  return(lispCons (op,
-			   lispCons(leftop,LispNil)));
+	  return(lispCons ((LispValue)op,
+			   lispCons((LispValue)leftop,LispNil)));
      }
 }
 
@@ -388,7 +388,7 @@ or_clause (clause)
      LispValue clause ;
 {
     if (consp (clause))
-      return(bool) ( equal(lispInteger(OR),clause_head(clause)));
+      return(bool) ( equal((Node)lispInteger(OR),(Node)clause_head(clause)));
    /*  return(equal ("OR",clause_head (clause))); */
     return(false);
 }
@@ -456,7 +456,7 @@ not_clause (clause)
      LispValue clause ;
 {
     if (consp (clause))
-      return(bool) ( equal(lispInteger(NOT),clause_head(clause)));
+      return(bool) ( equal((Node)lispInteger(NOT),(Node)clause_head(clause)));
 
     return(false);
 }
@@ -518,7 +518,7 @@ and_clause (clause)
      LispValue clause ;
 {
     if (consp (clause))
-      return(bool) ( equal(lispInteger(AND),clause_head(clause)));
+      return(bool) ( equal((Node)lispInteger(AND),(Node)clause_head(clause)));
 
     return(false);
 }

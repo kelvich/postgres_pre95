@@ -142,7 +142,7 @@ MakeTLE(foo,bar)
      Resdom foo;
      Expr bar;
 {
-    return(lispCons(foo,lispCons(bar,LispNil)));
+    return(lispCons((LispValue)foo,lispCons((LispValue)bar,LispNil)));
 }
 
 void

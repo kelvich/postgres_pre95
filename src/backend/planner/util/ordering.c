@@ -36,7 +36,7 @@ equal_path_path_ordering (path_ordering1,path_ordering2)
 	return false;
     if ((IsA(path_ordering1,MergeOrder) && IsA(path_ordering2,MergeOrder)) ||
 	(!IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder)))
-	return equal(path_ordering1, path_ordering2);
+	return equal((Node)path_ordering1, (Node)path_ordering2);
     if (IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder))
 	return path_ordering2 && get_left_operator(path_ordering1) == 
 				 CInteger(CAR(path_ordering2));
@@ -83,7 +83,7 @@ bool
 equal_merge_merge_ordering (merge_ordering1,merge_ordering2)
      LispValue merge_ordering1,merge_ordering2 ;
 {
-	if (equal (merge_ordering1,merge_ordering2))
+	if (equal ((Node)merge_ordering1,(Node)merge_ordering2))
 	  return(true);
 	else
 	  return(false);

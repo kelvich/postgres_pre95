@@ -231,7 +231,7 @@ collect_index_pathkeys (index_keys,tlist)
 	    Expr mvar;
 	    mvar = matching2_tlvar (CAR(index_key),tlist,equal_indexkey_var);
 	    if ( mvar ) 
-	      retval = nconc(retval,lispCons (lispCons (mvar,LispNil),
+	      retval = nconc(retval,lispCons( lispCons((LispValue)mvar,LispNil),
 					      LispNil));
 	}
     }
@@ -289,8 +289,8 @@ equal_sortkey_pathkey (relid,sortkey,pathkey)
      bool retval = false;
 
      foreach(subkey,pathkey) {
-	  if (equal (relid,get_varno (CAR(subkey))) &&
-	      equal_indexkey_var (sortkey,CAR(subkey)))
+	  if (equal ((Node)relid,(Node)get_varno (CAR(subkey))) &&
+	      equal_indexkey_var (sortkey,(Var)CAR(subkey)))
 	    retval = true;
      }
      return(retval);

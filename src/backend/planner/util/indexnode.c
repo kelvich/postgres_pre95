@@ -25,13 +25,6 @@
 #include "planner/indexnode.h"
 #include "planner/cfi.h"
 
-/* ----------------
- *	Rel creator declaration
- * ----------------
- */
-extern Rel RMakeRel();
-
-
 /*    
  *    	find-relation-indices
  *    
@@ -51,7 +44,7 @@ find_relation_indices (rel)
 	  if the relation is the result relation, */
     /* 	 don't use an index to update it! */
 
-    if (equal(_query_result_relation_,get_relids (rel)) && 
+    if (equal((Node)_query_result_relation_,(Node)get_relids (rel)) && 
 	(_query_command_type_ != RETRIEVE )) {
 	return (LispNil);
     } else if (get_indexed (rel)) {
@@ -108,7 +101,8 @@ find_secondary_index (notfirst,relid)
 	set_joininfo(indexnode,LispNil);
 	set_innerjoin(indexnode,LispNil);
 	
-	return(lispCons (indexnode,find_secondary_index (true,relid)));
+	return(lispCons((LispValue)indexnode,
+			find_secondary_index (true,relid)));
     } else
       return(LispNil);
 }

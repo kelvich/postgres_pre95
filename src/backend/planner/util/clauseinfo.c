@@ -41,9 +41,9 @@ valid_or_clause (clauseinfo)
 	LispValue clauseinfo ;
 {
      if (clauseinfo != LispNil && 
-	 !single_node (get_clause (clauseinfo)) && 
-	 !get_notclause (clauseinfo) &&
-	 or_clause (get_clause (clauseinfo))) 
+	 !single_node (get_clause ((CInfo)clauseinfo)) && 
+	 !get_notclause ((CInfo)clauseinfo) &&
+	 or_clause ((LispValue)get_clause ((CInfo)clauseinfo))) 
        return(true);
      else
        return(false);
@@ -68,7 +68,7 @@ get_actual_clauses (clauseinfo_list)
 
   foreach(temp,clauseinfo_list) {
     clause = (CInfo)CAR(temp);
-    result = nappend1(result,get_clause(clause));
+    result = nappend1(result,(LispValue)get_clause(clause));
   }
   return(result);
 }
@@ -116,7 +116,8 @@ get_relattvals (clauseinfo_list)
      
      foreach (i,clauseinfo_list) {
 	 temp = (CInfo)CAR(i);
-	 relattvals = nappend1(relattvals,get_relattval (get_clause (temp)));
+	 relattvals = nappend1(relattvals,
+			       (LispValue)get_relattval (get_clause (temp)));
      }
 
      foreach(i,relattvals) {
@@ -165,8 +166,9 @@ get_joinvars (relid,clauseinfo_list)
      LispValue temp;
      
      foreach(temp,clauseinfo_list) {
-	  relattvals = nappend1(relattvals,get_joinvar(CInteger(relid),
-						       CAR(temp)));
+	  relattvals = nappend1(relattvals,
+				get_joinvar((ObjectId)CInteger(relid),
+					    (CInfo)CAR(temp)));
      }
      
      foreach(temp,relattvals) {
@@ -208,15 +210,17 @@ get_joinvar (relid,clauseinfo)
      CInfo clauseinfo ;
 {
     Expr clause = get_clause (clauseinfo);
-    if( IsA (get_leftop (clause),Var) &&
-       (relid == get_varno (get_leftop (clause)))) {
-	return(lispCons (lispInteger(get_varattno(get_leftop (clause))),
+
+    if( IsA (get_leftop ((LispValue)clause),Var) &&
+       (relid == get_varno( get_leftop( (LispValue)clause)))) {
+
+	return(lispCons(lispInteger(get_varattno(get_leftop((LispValue)clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger
 					    (_SELEC_CONSTANT_RIGHT_),
 					    LispNil))));
      } else {
-	 return(lispCons (lispInteger(get_varattno(get_rightop (clause))),
+	 return(lispCons (lispInteger(get_varattno(get_rightop( (LispValue)clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
 					    LispNil))));
@@ -243,8 +247,9 @@ get_opnos (clauseinfo_list)
 
      foreach(i,clauseinfo_list) {
 	 temp = (CInfo)CAR(i);
-	  result = nappend1(result,
-			    get_opno (get_op (get_clause (temp))));
+	  result =
+	    nappend1(result,
+		     (LispValue)get_opno(get_op( (LispValue)get_clause(temp))));
      }
     return(result);
 }

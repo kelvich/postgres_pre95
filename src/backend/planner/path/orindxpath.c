@@ -86,12 +86,13 @@ create_or_index_paths (rel,clauses)
 
 		    set_pathtype((Path)pathnode,INDEX_SCAN);
 		    set_parent ((Path)pathnode,rel);
-		    set_indexqual (pathnode,lispCons(clausenode,LispNil));
+		    set_indexqual (pathnode,
+				   lispCons((LispValue)clausenode,LispNil));
 		    set_indexid (pathnode,nth (0,indexinfo));
 		    set_path_cost ((Path)pathnode,(Cost)CDouble(nth (1,indexinfo)));
 		    set_selectivity(clausenode,(Cost)CDouble(nth(2,indexinfo)));
 		    t_list = 
-		      lispCons (pathnode,
+		      lispCons ((LispValue)pathnode,
 				create_or_index_paths (rel,CDR (clauses)));
 	       } 
 	       else {
@@ -139,7 +140,7 @@ best_or_subclause_indices (rel,subclauses,indices,
      if ( null (subclauses) ) {
 	  t_list = 
 	    lispCons (nreverse (examined_indexids),
-		      lispCons(subcost,
+		      lispCons((LispValue)subcost,
 			       lispCons(nreverse (selectivities),LispNil)));
      } 
      else {
@@ -230,8 +231,9 @@ best_or_subclause_index (rel,subclause,indices)
 	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
 	       /* XXX - this used to be "list "(CAR(get....index),.." */
 	       t_list = lispCons (get_relids (index),
-				  lispCons(subcost,
-					   lispCons(CADR(pagesel))));
+				  lispCons((LispValue)subcost,
+					   lispCons(CADR(pagesel),
+						    LispNil)));
 	  } 
 	  else {
 	       t_list = bestrest;

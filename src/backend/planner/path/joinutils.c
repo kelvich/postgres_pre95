@@ -265,7 +265,7 @@ extract_path_keys(joinkeys,tlist,which_subkey)
     foreach(i,joinkeys) {
 	xjoinkey = (JoinKey)CAR(i);
 	temp_node =
-	  lispCons(matching_tlvar((Var)extract_subkey(xjoinkey,
+	  lispCons((LispValue)matching_tlvar((Var)extract_subkey(xjoinkey,
 						    which_subkey),tlist),
 		    LispNil);
 	t_list = nappend1(t_list,temp_node);
@@ -365,8 +365,9 @@ new_join_pathkey(subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 	newly_considered_subkeys = LispNil;
 
 	if( tlist_key ) {
-	    if(!member(tlist_key,matched_subkeys))
-	      newly_considered_subkeys = lispCons(tlist_key, matched_subkeys);
+	    if(!member((LispValue)tlist_key,matched_subkeys))
+	      newly_considered_subkeys = lispCons((LispValue)tlist_key,
+						  matched_subkeys);
 	} 
 	else {
 	    newly_considered_subkeys = matched_subkeys;
@@ -419,14 +420,14 @@ new_matching_subkeys(subkey,considered_subkeys,join_rel_tlist,joinclauses)
 			   join_rel_tlist);
 
 	 if(tlist_other_var && 
-	    !(member(tlist_other_var,considered_subkeys))) {
+	    !(member((LispValue)tlist_other_var,considered_subkeys))) {
 	     /* XXX was "push" function  */
 	     considered_subkeys = nappend1(considered_subkeys,
-					   tlist_other_var);
+					   (LispValue)tlist_other_var);
 	     /* considered_subkeys = nreverse(considered_subkeys); 
 		XXX -- I am not sure of this. */
 
-	     temp = lispCons(tlist_other_var,LispNil);
+	     temp = lispCons((LispValue)tlist_other_var,LispNil);
 	     t_list = nconc(t_list,temp);
 	 } 
      }

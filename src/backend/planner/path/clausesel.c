@@ -147,7 +147,7 @@ LispValue clauseinfo_list ;
 	if (valid_or_clause(clausenode) || FLOAT_IS_ZERO(cost_clause)) {
 	    set_selectivity (clausenode,
 			     compute_clause_selec((List)get_clause(clausenode),
-						   lispCons(cost_clause, 
+						   lispCons((LispValue)cost_clause, 
 			/* XXX this bogus */		    LispNil)));
 	}
     }
@@ -232,7 +232,7 @@ compute_selec (clauses,or_selectivities)
       (or_selectivities) {
 	    s1 = (int) CAR (or_selectivities);
 	} 
-    else if (1 == NumRelids (clause)) {
+    else if (1 == NumRelids ((Expr)clause)) {
 
 	/* ...otherwise, calculate s1 from 'clauses'. 
 	 *    The clause is not a join clause, since there is 

@@ -67,7 +67,8 @@ get_rel(relid)
 	    set_innerjoin(rel,LispNil);
 	    set_superrels(rel,LispNil);
 
-	    _base_relation_list_ = lispCons(rel, _base_relation_list_);
+	    _base_relation_list_ = lispCons((LispValue)rel,
+					    _base_relation_list_);
 
 	    if(listp(relid)) {
 		/*    If the relation is a materialized relation, assume 

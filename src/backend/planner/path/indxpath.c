@@ -159,9 +159,10 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	     CInteger(CAR(get_relids(rel))))
 	 && equal_path_path_ordering(get_sortorder((SortKey)sortkeys),
 				     get_ordering(index))
-	 && equal (get_sortkeys((SortKey)sortkeys), get_indexkeys (index)) )
+	 && equal ((Node)get_sortkeys((SortKey)sortkeys),
+		   (Node)get_indexkeys (index)) )
     {
-	sortpath = lispCons(create_index_path(rel,
+	sortpath = lispCons((LispValue)create_index_path(rel,
 					      index,
 					      LispNil,
 					      false),
@@ -323,7 +324,7 @@ match_index_orclause (rel,index,indexkey,xclass,
 				    index) &&
 	    IsA(get_rightop (clause),Const)) {
 	  
-	  matched_indices =  lispCons(index, matched_indices);
+	  matched_indices =  lispCons((LispValue)index, matched_indices);
 	  index_list = nappend1(index_list,
 				matched_indices);
 	}
@@ -412,7 +413,7 @@ group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,join)
 	    if ( !matched_clause )
 		break;
 
-	    clausegroup = cons (matched_clause,clausegroup);
+	    clausegroup = cons ((LispValue)matched_clause,clausegroup);
 	    curIndxKey = CDR(curIndxKey);
 	    curClass = CDR(curClass);
 
@@ -665,7 +666,7 @@ index_innerjoin (rel,clausegroup_list,index)
 					get_pages (index),
 					get_tuples (index), true));
 
-	 cg_list = nappend1(cg_list,pathnode);
+	 cg_list = nappend1(cg_list,(LispValue)pathnode);
      }
      return(cg_list);
  }  /*  function end */
@@ -722,7 +723,7 @@ create_index_paths (rel,index,clausegroup_list,join)
 	 if ( !join  || temp ) {  /* restriction, ordering scan */
 	     temp_path = create_index_path (rel,index,clausegroup,join);
 	     temp_node = 
-	       lispCons (temp_path,
+	       lispCons ((LispValue)temp_path,
 			LispNil);
 	     ip_list = nconc(ip_list,temp_node);
 	  } 
@@ -744,7 +745,7 @@ List plist;
 	path = (IndexPath)CAR(x);
 	qual = get_indexqual(path);
 	set_indexqual(path, LispNil);
-	if (equal(p, path)) {
+	if (equal((Node)p, (Node)path)) {
 	    set_indexqual(path, qual);
 	    return true;
 	  }
@@ -768,7 +769,7 @@ List indexpaths, new_indexpaths;
     foreach (x, new_indexpaths) {
 	path = (IndexPath)CAR(x);
 	if (!indexpath_useless(path, retlist))
-	    retlist = nappend1(retlist, path);
+	    retlist = nappend1(retlist, (LispValue)path);
       }
     return retlist;
 }

@@ -3,7 +3,7 @@
 extern LispValue pull_constant_clauses ARGS((LispValue quals));
 extern LispValue pull_relation_level_clauses ARGS((LispValue quals));
 extern LispValue clause_relids_vars ARGS((LispValue clause));
-extern int NumRelids ARGS((LispValue clause));
+extern int NumRelids ARGS((Expr clause));
 extern bool nested_clause_p ARGS((LispValue clause));
 extern bool relation_level_clause_p ARGS((LispValue clause));
 extern bool contains_not ARGS((LispValue clause));

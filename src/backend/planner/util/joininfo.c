@@ -18,12 +18,6 @@
 #include "nodes/relation.a.h"
 #include "planner/clauses.h"
 
-/* ----------------
- *	JInfo creator declaration
- * ----------------
- */
-extern JInfo RMakeJInfo();
-
 /*    
  *    	joininfo-member
  *    
@@ -50,7 +44,7 @@ joininfo_member(join_relids,joininfo_list)
     List other_rels = LispNil;
     foreach(i,joininfo_list) {
 	other_rels = CAR(i);
-	if(same(join_relids,get_otherrels(other_rels)))
+	if(same(join_relids,get_otherrels((JInfo)other_rels)))
 	  return((JInfo)other_rels);
     }
     return((JInfo)NULL);
@@ -86,7 +80,8 @@ find_joininfo_node(this_rel,join_relids)
 	set_mergesortable(joininfo,false);
 	set_hashjoinable(joininfo,false);
 	set_inactive(joininfo,false);
-	set_joininfo(this_rel, lispCons(joininfo,get_joininfo(this_rel)));
+	set_joininfo(this_rel, lispCons((LispValue)joininfo,
+					get_joininfo(this_rel)));
 
     }
     return(joininfo);

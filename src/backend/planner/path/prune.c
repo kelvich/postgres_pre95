@@ -87,7 +87,7 @@ prune_joinrel(rel,other_rels)
 	     t_list = nconc(t_list, LispNil);  /* XXX is this right ? */
 	 } 
 	 else {
-	     temp_node = lispCons(other_rel,LispNil);
+	     temp_node = lispCons((LispValue)other_rel,LispNil);
 	     t_list = nconc(t_list,temp_node);
 	 } 
      }
@@ -204,8 +204,10 @@ Path p1, p2;
     Path p;
     if(p1 == NULL || p2 == NULL) return NULL;
     if(IsA(p1,MergePath) && IsA(p2,MergePath)) {
-       if(equal(get_outerjoinpath((JoinPath)p1), get_innerjoinpath((JoinPath)p2)) &&
-           equal(get_innerjoinpath((JoinPath)p1), get_outerjoinpath((JoinPath)p2)))
+       if(equal((Node)get_outerjoinpath((JoinPath)p1),
+		(Node)get_innerjoinpath((JoinPath)p2)) &&
+           equal((Node)get_innerjoinpath((JoinPath)p1),
+		 (Node)get_outerjoinpath((JoinPath)p2)))
           return true;
       }
     if(IsA(p1,JoinPath) && IsA(p2,JoinPath)) {
@@ -288,16 +290,16 @@ Rel rel;
 	 if(!path_contain_redundant_indexscans(path,
 			    (length(get_relids(get_parent(path))) !=
 			     length(_base_relation_list_)))) {
-	     newpathlist = nappend1(newpathlist, path);
+	     newpathlist = nappend1(newpathlist, (LispValue)path);
 	   }
        }
      foreach(x, newpathlist) {
 	 path = (Path)CAR(x);
 	 foreach(y, CDR(x)) {
 	     path1 = (Path)CAR(y);
-	     if(equal(path, path1) ||
+	     if(equal((Node)path, (Node)path1) ||
 		 path_contain_rotated_mergepaths(path, path1))
-		 prunelist = nappend1(prunelist, path1);
+		 prunelist = nappend1(prunelist, (LispValue)path1);
 	   }
        }
      newpathlist = nset_difference(newpathlist, prunelist);
@@ -328,7 +330,8 @@ prune_rel_path(rel,unorderedpath)
      if(!(eq(unorderedpath,cheapest)) && !testFlag) {
 
 	  set_unorderedpath(rel,(Path)NULL);
-	  set_pathlist(rel,LispRemove(unorderedpath,get_pathlist(rel)));
+	  set_pathlist(rel,LispRemove((LispValue)unorderedpath,
+				      get_pathlist(rel)));
 
      } else {
 
@@ -401,11 +404,11 @@ LispValue old_rels;
      rel = (Rel)CAR(old_rels);
      joininfo_list = get_joininfo(rel);
      if(joininfo_list == LispNil)
-	 return(lispCons(rel, prune_oldrels(CDR(old_rels))));
+	 return(lispCons((LispValue)rel, prune_oldrels(CDR(old_rels))));
      foreach(xjoininfo, joininfo_list) {
 	 JInfo joininfo = (JInfo)CAR(xjoininfo);
 	 if(!joininfo_inactive(joininfo))
-	      return(lispCons(rel, prune_oldrels(CDR(old_rels))));
+	      return(lispCons((LispValue)rel, prune_oldrels(CDR(old_rels))));
       }
      return(prune_oldrels(CDR(old_rels)));
 }

@@ -116,7 +116,8 @@ find_rel_paths(rels,level,sortkeys)
 	  LispValue sequential_scan_list;
 
 	  rel = (Rel)CAR(temp);
-	  sequential_scan_list = lispCons(create_seqscan_path(rel), LispNil);
+	  sequential_scan_list = lispCons((LispValue)create_seqscan_path(rel),
+					  LispNil);
 
 	  if(level > 1) {
 	       set_pathlist(rel,sequential_scan_list);
@@ -413,5 +414,5 @@ void
 PRel(r)
 Rel r;
 {
-    printrels("",lispCons(r,LispNil));
+    printrels("",lispCons((LispValue)r,LispNil));
 }
