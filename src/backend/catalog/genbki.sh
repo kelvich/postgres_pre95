@@ -9,6 +9,9 @@
 #	the postgres template database.
 #
 #   NOTES
+#	non-essential whitespace is removed from the generated file.
+#	if this is ever a problem, then the sed script at the very
+#	end can be changed into another awk script or something smarter..
 #
 #   IDENTIFICATION
 # 	$Header$
@@ -32,8 +35,7 @@ done
 # ----------------
 #
 cat $SYSFILES | \
-sed -e '/^#/d' \
-    -e 's/\/\*.*\*\///g' \
+sed -e 's/\/\*.*\*\///g' \
     -e 's/;[ 	]*$//g' | \
 awk '
 # ----------------
@@ -45,9 +47,18 @@ awk '
 # ----------------
 BEGIN {
 	inside = 0;
+	raw = 0;
 	bootstrap = 0;
 	nc = 0;
 }
+
+# ----------------
+#	anything in a BKI_BEGIN .. BKI_END block should be passed
+#	along without interpretation.
+# ----------------
+/^BKI_BEGIN/ 	{ raw = 1; next; }
+/^BKI_END/ 	{ raw = 0; next; }
+raw == 1 	{ print; next; }
 
 # ----------------
 #	DATA() statements should get passed right through after
@@ -141,7 +152,10 @@ END {
 	print "show";
 	print "close " catalog;
 }
-'
+' | \
+/lib/cpp | \
+sed -e '/^[ 	]*$/d' \
+    -e 's/[ 	][ 	]*/ /g'
 
 # ----------------
 #	all done
