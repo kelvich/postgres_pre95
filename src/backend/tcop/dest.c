@@ -100,6 +100,7 @@ EndCommand(commandTag, dest)
 
     case Local:
     case Debug:
+	break;
     case CopyEnd:
     pq_putnchar("Z", 1);
 	pq_flush();
