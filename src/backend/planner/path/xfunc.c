@@ -111,14 +111,15 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
      int whichchild;     /* whether child is INNER or OUTER of join */
      CInfo *maxcinfopt;  /* Out: pointer to clause to pullup */
 {
-    LispValue clauselist, tmplist;      /* lists of clauses */
-    CInfo maxcinfo;                     /* clause to pullup */
-    CInfo primjoinclause                /* primary join clause */
+    LispValue clauselist, tmplist; /* lists of clauses */
+    CInfo maxcinfo;		/* clause to pullup */
+    CInfo primjoinclause	/* primary join clause */
       = xfunc_primary_join(get_pathclauseinfo(parentpath));
-    double tmpmeasure, maxmeasure = 0;  /* measures of clauses */
-    double joinselec = 0;               /* selectivity of the join predicate */
-    double joincost = 0;                /* join cost + primjoinclause cost *;
+    double tmpmeasure, maxmeasure = 0; /* measures of clauses */
+    double joinselec = 0;	/* selectivity of the join predicate */
+    double joincost = 0;	/* join cost + primjoinclause cost */
     int retval = XFUNC_LOCPRD;
+    int okness;
 
     clauselist = get_locclauseinfo(childpath);
 
@@ -158,10 +159,15 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	 }
     /* sanity check: we better not be pulling up the only join clause */
     if (retval == XFUNC_JOINPRD)
-      Assert(primjoinclause != CAR(get_pathclauseinfo((JoinPath)childpath))
-	     || CDR(get_pathclauseinfo((JoinPath)childpath)) != LispNil;
+     {
+	 okness = (primjoinclause != 
+		   (CInfo)CAR(get_pathclauseinfo((JoinPath)childpath))
+		   || CDR(get_pathclauseinfo((JoinPath)childpath)) != LispNil)
+	   ? 1 : 0;
+	 Assert(okness);
+     }
 
-    if (maxmeasure == 0)  /* no expensive clauses */
+    if (maxmeasure == 0)	/* no expensive clauses */
       return(0);
 
     /*
@@ -184,7 +190,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	      *maxcinfopt = maxcinfo;
 	      return(retval);
 	  }
-	 else  /* drop through */;
+	 else			/* drop through */;
      }
 
     return(FALSE);
