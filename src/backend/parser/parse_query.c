@@ -410,7 +410,7 @@ int orig_typeId, true_typeId;
 			  get_constvalue((Const)result));
 	    infunc = typeid_get_retinfunc(true_typeId);
 	    result = (LispValue)MakeConst(true_typeId,
-					  tlen(type),
+					  tlen(true_type),
 					  (Datum)fmgr(infunc, val),
 					  false, true);
 	}
