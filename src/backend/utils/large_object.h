@@ -91,6 +91,8 @@ typedef struct
 	union {
 	    struct unix_fs {
 		int fd;			/* Postgres virtual file descriptor */
+		int seekPos;		/* ONLY FOR JAQUITH!!!  (future use) */
+		int dirty;    /* ONLY FOR JAQUITH  Has file been written to? */
 	    } u_fs;
 
 	    struct inversion_fs {
@@ -146,7 +148,19 @@ LOCreate ARGS((
 ));
 
 LargeObjectDesc *
+JOCreate ARGS((
+   char *path,
+   int open_mode
+));
+
+LargeObjectDesc *
 LOOpen ARGS((
+    LargeObject *object,
+    int open_mode
+));
+
+LargeObjectDesc *
+JOOpen ARGS((
     LargeObject *object,
     int open_mode
 ));
@@ -186,6 +200,11 @@ LOClose ARGS((
 ));
 
 void
+JOClose ARGS((
+    LargeObjectDesc *obj_desc
+));
+
+void
 LODestroy ARGS((
     LargeObject *object
 ));
@@ -194,3 +213,24 @@ LargeObject *
 LODescToObject ARGS((
     LargeObjectDesc *obj_desc
 ));
+
+char *
+JO_path ARGS((
+    char *name
+));
+
+char *
+JO_arch ARGS((
+    char *name
+));
+
+int
+JO_get ARGS((
+    char *name
+));
+
+int 
+JO_put ARGS((
+    char *name
+));
+
