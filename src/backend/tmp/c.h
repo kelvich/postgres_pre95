@@ -92,7 +92,11 @@ typedef void	*Pointer;
  * CppConcat --
  *	Concatenate two arguments together, using the C preprocessor.
  */
+#ifdef sprite
+#define CppConcat(x, y)         x/**/y
+#else
 #define CppConcat(x, y)		CppIdentity(x)y
+#endif /* sprite */
 
 /*
  * const --

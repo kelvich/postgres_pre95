@@ -12,11 +12,13 @@
 #include "tmp/c.h"
 
 #if defined(sequent) || defined(mips)
+#if !sprite
 union semun {
     int val;
     struct semid_ds *buf;
     unsigned short *array;
 };
+#endif /* sprite */
 #endif
 
 typedef uint16	SystemPortAddress;
