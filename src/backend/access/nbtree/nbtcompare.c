@@ -122,6 +122,9 @@ bttextcmp(a, b)
     if ((len = VARSIZE(a)) > VARSIZE(b))
 	len = VARSIZE(b);
 
+    /* len includes the four bytes in which string length is stored */
+    len -= sizeof(VARSIZE(a));
+
     /*
      *  If the two strings differ in the first len bytes, or if they're
      *  the same in the first len bytes and they're both len bytes long,
