@@ -10,7 +10,7 @@ cluster \*- give storage clustering advice to \*(PP
 .b cluster
 classname
 .b on
-domname [
+attname [
 .b using
 operator ]
 .uh DESCRIPTION
@@ -18,12 +18,12 @@ operator ]
 This command instructs \*(PP to keep the class specified by
 .i classname
 approximately sorted on
-.i domname
+.i attname
 using the specified operator
 to determine the sort order.
 The operator must be a binary operator
 and both operands must be of type
-.i domname
+.i attname
 and the operator
 must produce a result
 of type boolean.  If no operator is specified, then
@@ -31,7 +31,7 @@ of type boolean.  If no operator is specified, then
 is used by default.
 .lp
 A class can be reclustered at any time on a different
-.i domname
+.i attribute
 and/or with a different operator.  
 .lp
 \*(PP will try to keep the heap data structure which stores the
@@ -50,4 +50,4 @@ then this command will have no effect.
 .fi
 .uh BUGS
 .lp
-Cluster has no effect in Version 2.1.
+Cluster has no effect in Version 3.
