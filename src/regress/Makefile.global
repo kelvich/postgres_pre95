@@ -14,19 +14,29 @@ CFLAGS+= -G 0
 .elif (${PORTNAME} == "sparc")
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
-.o.so:
+.o${SLSUFF}:
 	${LD} -Bdynamic -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "alpha")
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
-.o.so:
+.o${SLSUFF}:
 	${LD} -shared -expect_unresolved '*' -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= +z
 SLSUFF=.sl
 .SUFFIXES: ${SLSUFF}
-.o.sl:
+.o${SLSUFF}:
 	${LD} -b -o ${.TARGET} ${.ALLSRC}
+.elif (${PORTNAME} == "aix")
+EXPSUFF=.exp
+SLSUFF=.so
+.SUFFIXES: ${SLSUFF} ${EXPSUFF}
+.o${EXPSUFF}:
+	mkldexport ${.ALLSRC} `pwd` > ${.TARGET}
+.o${SLSUFF}: $*${EXPSUFF}
+	${LD} -H512 -T512 -o ${.TARGET} -e _nostart \
+		-bI:${LIBDIR}/postgres.exp -bE:$*${EXPSUFF} $*.o \
+		-lm -lc 2>/dev/null
 .endif
 SLSUFF?=.o
 
