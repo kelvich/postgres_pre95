@@ -118,6 +118,58 @@ int28out(shs)
 	return(result);
 }
 
+/*
+ *	int28in		- converts "num num ..." to internal form
+ *
+ *	Note:
+ *		Fills any nonexistent digits with NULLs.
+ */
+int32 *
+int44in(input_string)
+	char	*input_string;
+
+{
+    int *foo = (int *)palloc(4*sizeof(int));
+    register int i = 0;
+
+    char *temp = input_string;
+    
+    while ( sscanf(temp,"%ld", &foo[i]) == 1 
+	   && i < 4) {
+	i = i+1;
+	while (*temp != ' ' && *temp != '\t') temp++;
+	while (*temp == ' ' || *temp == '\t') temp++;
+    }
+    return(foo);
+}
+
+/*
+ *	int28out	- converts internal form to "num num ..."
+ */
+char *
+int44out(an_array)
+	int32	an_array[];
+{
+    int temp = 4;
+    char *output_string = NULL;
+    extern int itoa();
+    int i;
+
+    if ( temp > 0 ) {
+	char *walk;
+	output_string = (char *)palloc(16*temp); /* assume 15 digits + sign */
+	walk = output_string;
+	for ( i = 0 ; i < temp ; i++ ) {
+	    itoa(an_array[i],walk);
+	    while (*++walk != '\0')
+	      ;
+	    *walk++ = ' ';
+	}
+	*--walk = '\0';
+    }
+    return(output_string);
+}
+
 
 	     /* ========== PUBLIC ROUTINES ========== */
 

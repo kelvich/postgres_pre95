@@ -141,6 +141,8 @@ extern int32		int2in();
 extern char		*int2out();
 extern int16		*int28in();
 extern char		*int28out();
+extern int32		*int44in();
+extern char		*int44out();
 extern int32		int4in();
 extern char		*int4out();
 extern int32		itoi();
