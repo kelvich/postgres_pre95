@@ -64,7 +64,7 @@ bool _cost_weirdness_ = true;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true;
 bool _enable_sort_ =        true;
-bool _enable_hash_ =        false;    /* XXX just for now */
+bool _enable_hash_ =        true;
 bool _enable_nestloop_ =    true;
 bool _enable_mergesort_ =   true;
 bool _enable_hashjoin_ =    true;
@@ -287,7 +287,7 @@ cost_hash (keys,tuples,width,which_rel)
 		int pages = page_size (tuples,width);
 		temp += pages;	    /*   read in */
 		temp += _CPU_PAGE_WEIGHT_ * tuples;
-		if (_xprs_ && equal(OUTER,which_rel)) {	/*   write out */
+		if (_xprs_ && (OUTER == which_rel)) {	/*   write out */
 		    temp += max (0,pages - _MAX_BUFFERS_);
 		} 
 		else 
