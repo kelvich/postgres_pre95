@@ -32,6 +32,7 @@
 #include "planner/cfi.h"
 #include "planner/costsize.h"
 #include "planner/pathnode.h"
+#include "planner/xfunc.h"
 
 /*    
  *    	find-index-paths
@@ -665,6 +666,17 @@ index_innerjoin (rel,clausegroup_list,index)
 					get_tuples (rel),
 					get_pages (index),
 					get_tuples (index), true));
+
+	 /* copy clauseinfo list into path for expensive function processing 
+	    -- JMH, 7/7/92 */
+	 set_locclauseinfo(pathnode,
+			   set_difference(CopyObject(get_clauseinfo(rel)),
+					  clausegroup,
+					  LispNil));
+
+	 /* add in cost for expensive functions!  -- JMH, 7/7/92 */
+	 set_path_cost((Path)pathnode, get_path_cost((Path)pathnode) + 
+		       xfunc_get_path_cost(pathnode));
 
 	 cg_list = nappend1(cg_list,(LispValue)pathnode);
      }
