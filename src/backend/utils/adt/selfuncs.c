@@ -10,14 +10,15 @@
 
 #include <stdio.h>
 #include <strings.h>
-#include "anum.h"
-#include "cat.h"
+
 #include "catname.h"
 #include "fmgr.h"
 #include "heapam.h"
 #include "log.h"
 #include "syscache.h"
 #include "tqual.h"	/* for NowTimeQual */
+
+#include "catalog/pg_statistic.h"
 
 RcsId("$Header$");
 
