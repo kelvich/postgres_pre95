@@ -129,6 +129,23 @@ static Const make_null(type)
     set_constbyval(c, get_typbyval(type));
     return c;
 }
+void FixResdomTypes (user_tlist)
+     List user_tlist;
+{
+    List i;
+    foreach ( i , user_tlist ) {
+	List one_entry = CAR(i);
+	List entry_LHS  = CAR(one_entry);
+	List entry_RHS = CDR(one_entry);
+	
+	Assert(IsA(entry_LHS,Resdom));
+	Assert(IsA(entry_RHS,Var));
+	if (NodeType(entry_RHS) == classTag(Var)) {
+	    set_restype(entry_LHS, get_vartype(entry_RHS));
+	    set_reslen (entry_LHS, get_typlen(get_vartype(entry_RHS)));
+	}
+    }
+}
 
 static List 
 FindMatchingNew ( user_tlist , attno )
@@ -243,14 +260,21 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 		break;
 	    case classTag(Var): {
 		int this_varno = (int)get_varno ( this_node );
+		List vardots = get_vardotfields((Var) this_node);
+		char *name_to_look_for;
 		if (this_varno == rt_index &&
 		    get_varattno(this_node) == attr_num) {
 		    elog(DEBUG,"relid = %d, %d",
 			 CInteger(getrelid(this_varno,rt)), attr_num);
-		    n = FindMatchingTLEntry
-			 (tl,
-			  get_attname(CInteger(getrelid(this_varno,rt)),
-				      attr_num));
+		    if (vardots != LispNil) {
+			if (length(vardots) != 1)
+			    elog(WARN, "exceeded nested dot limit");
+			name_to_look_for = CString(CAR(vardots));
+		    }
+		    else name_to_look_for = (char *)
+			get_attname(CInteger(getrelid(this_varno,rt)),
+				    attr_num);
+		    n = FindMatchingTLEntry(tl,name_to_look_for);
 		    if (n == NULL)
 			n = (List) make_null(get_vartype(this_node));
 		    CAR(i) = CAR(n);
