@@ -57,43 +57,74 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
 {
     register char	*tp;	/* tuple pointer */
     IndexTuple		tuple;	/* return tuple */
-    Size		size;
-    
-    size = sizeof *tuple;
+    Size		size, hoff;
+    int 		i, infomask = 0;
+    bool		hasnull = false;
+    char		tupmask = 0;
+
     if (numberOfAttributes > MaxIndexAttributeNumber)
 	elog(WARN, "index_formtuple: numberOfAttributes of %d > %d",
 	     numberOfAttributes, MaxIndexAttributeNumber);
     
-    size += ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null);
+
+    for (i = 0; i < numberOfAttributes && !hasnull; i++)
+    {
+	if (null[i] != ' ') hasnull = true;
+    }
+
+    if (hasnull) infomask |= INDEX_NULL_MASK;
+
+    hoff = IndexInfoFindDataOffset(infomask);
+    size = hoff
+	 + ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null);
     size = LONGALIGN(size);
-    
+
     tp = (char *) palloc(size);
     tuple = (IndexTuple) tp;
     bzero(tp, (int)size);
     
-    DataFill((Pointer) &tp[sizeof *tuple],
+    DataFill((Pointer) tp + hoff,
 	     numberOfAttributes,
 	     tupleDescriptor,
 	     value,
 	     null,
-		 &tuple->t_infomask,
-	     &tuple->bits.bits[0]);
-    
+	     &tupmask,
+	     (hasnull ? tp + sizeof *tuple : NULL));
+
+    /*
+     * We do this because DataFill wants to initialize a "tupmask" which
+     * is used for HeapTuples, but we want an indextuple infomask.  The only
+     * "relevent" info is the "has variable attributes" field, which is in
+     * mask position 0x02.  We have already set the null mask above.
+     */
+
+    if (tupmask & 0x02) infomask |= INDEX_VAR_MASK;
+
+    /*
+     * Here we make sure that we can actually hold the size.  We also want
+     * to make sure that size is not aligned oddly.  This actually is a
+     * rather odd way to make sure the size is not too large overall.
+     */
+
+    if (size & 0xE000)
+    {
+	elog(WARN, "index_formtuple: data takes %d bytes: too big", size);
+    }
+
+    infomask |= size;
+
     /* ----------------
      * initialize metadata
      * ----------------
      */
-    tuple->t_size = size;
-    tuple->t_locktype = MEM_INDX_RULE_LOCK;
-    tuple->t_lock.l_lock = NULL;
-    
+    tuple->t_info = infomask;
     return (tuple);
 }
 
 /* ----------------
  *	fastgetiattr
  *
- *	This is a newer version of fastgetattr which attempts to be
+ *	This is a newer version of fastgetiattr which attempts to be
  *	faster by caching attribute offsets in the attribute descriptor.
  *
  *	an alternate way to speed things up would be to cache offsets
@@ -118,6 +149,7 @@ fastgetiattr(tup, attnum, att, isnull)
     register char		*tp;		/* ptr to att in tuple */
     register char		*bp;		/* ptr to att in tuple */
     int 			slow;		/* do we have to walk nulls? */
+    register int		data_off;	/* tuple data offset */
 
     /* ----------------
      *	sanity checks
@@ -128,15 +160,17 @@ fastgetiattr(tup, attnum, att, isnull)
     Assert(attnum > 0);
 
     /* ----------------
-	 *   Three cases:
-	 * 
-	 *   1: No nulls and no variable length attributes.
-	 *   2: Has a null or a varlena AFTER att.
-	 *   3: Has nulls or varlenas BEFORE att.
-	 * ----------------
-	 */
+     *   Three cases:
+     * 
+     *   1: No nulls and no variable length attributes.
+     *   2: Has a null or a varlena AFTER att.
+     *   3: Has nulls or varlenas BEFORE att.
+     * ----------------
+     */
 
     *isnull =  false;
+    data_off = IndexTupleHasMinHeader(tup) ? sizeof *tup : 
+               IndexInfoFindDataOffset(tup->t_info);
 
     if (IndexTupleNoNulls(tup))
     {
@@ -144,23 +178,23 @@ fastgetiattr(tup, attnum, att, isnull)
 
 	if (attnum == 1)
 	{
- 	    return(fetchatt(att, (Pointer) tup + sizeof(*tup)));
+ 	    return(fetchatt(att, (Pointer) tup + data_off));
 	}
 	attnum--;
 
 	if (att[attnum]->attcacheoff > 0)
 	{
-	    return(fetchatt(att + attnum, (Pointer) tup
-				+ sizeof(*tup) + att[attnum]->attcacheoff));
+	    return(fetchatt(att + attnum, (Pointer) tup + data_off
+				+ att[attnum]->attcacheoff));
 	}
 
-	tp = (Pointer) tup + sizeof(*tup);
+	tp = (Pointer) tup + data_off;
 
 	slow = 0;
     }
     else /* there's a null somewhere in the tuple */
     {
-	bp = (char *) tup->bits.bits;
+	bp = (char *) tup + sizeof(*tup); /* "knows" t_bits are here! */
 	slow = 0;
         /* ----------------
          *	check to see if desired att is null
@@ -204,6 +238,7 @@ fastgetiattr(tup, attnum, att, isnull)
 	        }
 	    }
         }
+	tp = (Pointer) tup + data_off;
     }
 
     /* now check for any non-fixed length attrs before our attribute */
@@ -370,8 +405,7 @@ IndexTupleGetAttributeValue(tuple, attNum, tupleDescriptor, isNullOutP)
      * ----------------
      */
     if (attNum > 0)
-	return
-		(AttributeValue)
+	return (AttributeValue)
 	    fastgetiattr(tuple, attNum, tupleDescriptor, isNullOutP);
 
     /* ----------------
@@ -468,4 +502,58 @@ ItemPointerFormRetrieveIndexResult(indexItemPointer, heapItemPointer)
     result->heapItemData = *heapItemPointer;
 
     return (result);
+}
+
+/*
+ * Takes an infomask as argument (primarily because this needs to be usable
+ * at index_formtuple time so enough space is allocated).
+ *
+ * Change me if adding an attribute to IndexTuples!!!!!!!!!!!
+ */
+
+Size
+IndexInfoFindDataOffset(t_info)
+
+unsigned short t_info;
+
+{
+    if (!(t_info & (INDEX_NULL_MASK | INDEX_RULE_MASK)))
+	return((Size) sizeof(IndexTupleData));
+    else
+    {
+	Size size = sizeof(IndexTupleData);
+
+	if (t_info & INDEX_NULL_MASK)
+	{
+	    size += sizeof(IndexAttributeBitMapData);
+	}
+	if (t_info & INDEX_RULE_MASK)
+	{
+	    size = LONGALIGN(size) + sizeof(IndexTupleRuleLock) + sizeof(char);
+	}
+	return(LONGALIGN(size));
+    }
+}
+
+/*
+ * Copies source into target.  If *target == NULL, we palloc space; otherwise
+ * we assume we have space that is already palloc'ed.
+ */
+
+void
+CopyIndexTuple(source, target)
+
+IndexTuple source, *target;
+
+{
+    Size size, hoff;
+    IndexTuple ret;
+
+    size = IndexTupleSize(source);
+    if (*target == NULL)
+    {
+	*target = ret = (IndexTuple) palloc(size);
+    }
+
+    bcopy(source, ret, size);
 }
