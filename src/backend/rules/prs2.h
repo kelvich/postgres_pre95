@@ -133,7 +133,11 @@ prs2Main ARGS((
  * prs2FreeLocks
  *    free the space occupied by a rule lock
  */
-#define prs2FreeLocks(x)	pfree((x))
+extern
+void
+prs2FreeLocks ARGS((
+    RuleLock lock
+));
 
 /*------------------------------------------------------------------
  * prs2MakeLocks
@@ -373,7 +377,7 @@ prs2RemoveLocks ARGS((
 #define prs2GetQualFromRulePlan(x)	(CADR(x))
 #define prs2GetActionsFromRulePlan(x)	(CDR(CDR(x)))
 
-#define prs2IsRuleInsteadFromRuleInfo(x) (CInteger(CAR(x)))
+#define prs2IsRuleInsteadFromRuleInfo(x) (!strcmp(CString(CAR(x)),"instead"))
 
 #define prs2GetParseTreeFromOneActionPlan(x)	(CAR(x))
 #define prs2GetPlanFromOneActionPlan(x)		(CADR(x))
@@ -478,12 +482,21 @@ attributeValuesMakeNewTuple ARGS((
 /*========================================================================
  * EState Rule Info + Rule Stack
  *
- * The following has to do with a rule loop detection mechanism.
- * The 'Prs2EStateInfo' is a pointer to a structure that contains
- * all the appropriate info. Note that this is kept inside the
- * executor state node EState.
- * Initially this should be NULL.
+ * This structure (which is kept inside the executor state node EState)
+ * contains some information used by the rule manager.
  *
+ * RULE DETECTION MECHANISM:
+ * prs2Stack: A stack where enough information is ketp in order to detect
+ *	rule loops.
+ * prs2StackPointer: the next (free) stack entry
+ * prs2MaxStackSize: number of stack entries allocated. If
+ *      prs2StackPointer is >= prs2MaxStackSize the stack is full
+ *	and we have to reallocate some more memory...
+ *
+ * MISC INFO:
+ * prs2QueryDesc: the query descriptor of a recursive call made by the
+ *      rule manager to the executor.
+ * 
  *========================================================================
  */
 typedef struct Prs2StackData {
@@ -495,9 +508,10 @@ typedef struct Prs2StackData {
 typedef Prs2StackData *Prs2Stack;
 
 typedef struct Prs2EStateInfoData {
+    LispValue	prs2QueryDesc;
+    Prs2Stack	prs2Stack;	/* the stack used for loop detection */
     int		prs2StackPointer;	/* the next free stack entry */
     int		prs2MaxStackSize;	/* the max number of entries */
-    Prs2Stack	prs2Stack;	/* the stack used for loop detection */
 } Prs2EStateInfoData;
 
 typedef  Prs2EStateInfoData *Prs2EStateInfo;
