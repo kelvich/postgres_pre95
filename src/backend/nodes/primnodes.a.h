@@ -51,7 +51,7 @@ extern void set_functype ARGS((Func node, ObjectId value));
 extern ObjectId get_functype ARGS((Func node));
 extern void set_funcisindex ARGS((Func node, bool value));
 extern bool get_funcisindex ARGS((Func node));
-extern Resdom MakeResdom ARGS((AttributeNumber resno, ObjectId restype, Size reslen, Name resname, Index reskey, OperatorTupleForm reskeyop));
+extern Resdom MakeResdom ARGS((AttributeNumber resno, ObjectId restype, Size reslen, Name resname, Index reskey, OperatorTupleForm reskeyop, int resjunk));
 extern void PrintResdom ARGS((FILE *fp, Resdom node));
 extern bool EqualResdom ARGS((Resdom a, Resdom b));
 extern Expr MakeExpr ARGS((int resno));

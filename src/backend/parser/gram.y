@@ -1672,7 +1672,7 @@ res_target_el:
 		      resnode = MakeResdom ( p_last_resno++ ,
 						type_id, type_len, 
 						CString(CAR(last ($1) ))
-					    , 0 , 0 );
+					    , 0 , 0 , 0 );
 		      varnode = CDR(temp);
 		      if ( IsA(varnode,Var))
 			set_vardotfields ( varnode , CDR(CDR($1)));
@@ -1834,7 +1834,7 @@ make_targetlist_expr ( name , expr )
        return  ( lispCons (MakeResdom (resdomno,
                                          attrtype,
                                         attrlen ,
-                                         CString(name), 0 , 0 ) ,
+                                         CString(name), 0 , 0 , 0 ) ,
                              lispCons((Var)CDR(expr),LispNil)) );
      }
  
@@ -1873,7 +1873,7 @@ make_targetlist_expr ( name , expr )
     return  ( lispCons (MakeResdom (resdomno,
 					  attrtype,
 					  attrlen , 
-					  CString(name), 0 , 0 ) ,
+					  CString(name), 0 , 0 , 0 ) ,
 			      lispCons((Var)CDR(expr),LispNil)) );
     
 }

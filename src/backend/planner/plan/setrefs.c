@@ -84,7 +84,7 @@ new_level_tlist (tlist,prevtlist,prevlevel)
 				       0,
 					  LispNil,
 				       0,
-				       LispNil),
+				       LispNil, 0),
 			   replace_nestvar_refs (get_expr (entry),
 						 prevtlist,
 						 prevlevel)),

@@ -131,6 +131,12 @@ class (Resdom) public (Node) {
 	Name			resname;
 	Index			reskey;
 	OperatorTupleForm	reskeyop; 
+	/* ---------
+	 *  set to nonzero to eliminate the attribute from final target list
+	 *  e.g., ctid for replace and delete
+	 * ---------
+	 */
+	int			resjunk;
  /* public: */
 };
 

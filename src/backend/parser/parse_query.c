@@ -300,7 +300,7 @@ ExpandAll(relname,this_resno)
 		type_len = (int)tlen(get_id_type(type_id));
 		
 		resnode = MakeResdom( i + first_resno, type_id, type_len,
-					 attrname, 0, 0 );
+					 attrname, 0, 0, 0 );
 /*
 		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
 				tall);
