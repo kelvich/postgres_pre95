@@ -1,3 +1,4 @@
+/* $Header$ */
 extern LispValue ModifyQueryTree ARGS((LispValue query, LispValue priority, LispValue ruletag));
 extern Name VarnoGetRelname ARGS((int vnum));
 extern LispValue MakeRoot ARGS((int NumLevels, LispValue query_name, LispValue result, LispValue rtable, LispValue priority, LispValue ruleinfo));
