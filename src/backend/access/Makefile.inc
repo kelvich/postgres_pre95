@@ -7,7 +7,8 @@
 .include "${.CURDIR}/access/index/Makefile.inc"
 .include "${.CURDIR}/access/index-rtree/Makefile.inc"
 .include "${.CURDIR}/access/nbtree/Makefile.inc"
-.include "${.CURDIR}/access/nobtree/Makefile.inc"
+# the nobtree code is all #ifdef'd out anyway
+#.include "${.CURDIR}/access/nobtree/Makefile.inc"
 .include "${.CURDIR}/access/transam/Makefile.inc"
 
 .PATH: ${.CURDIR}/access
