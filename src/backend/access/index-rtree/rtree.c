@@ -117,12 +117,12 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	 *  dispatch through rtinsert, which locks the relation
 	 *  for write.  This is the right thing to do if you're
 	 *  inserting single tups, but not when you're initializing
-	 *  the whole index at once.  As a side effect, rtdoinsert
-	 *  pfree's the tuple after insertion.
+	 *  the whole index at once.
 	 */
 
 	res = rtdoinsert(index, itup);
-	pfree (res);
+	pfree(itup);
+	pfree(res);
 
 	/* do the next tuple in the heap */
 	htup = heap_getnext(scan, 0, &buffer);
@@ -161,7 +161,8 @@ rtinsert(r, itup)
 
     RelationSetLockForWrite(r);
     res = rtdoinsert(r, itup);
-    RelationUnsetLockForWrite(r);
+
+    /* XXX two-phase locking -- don't unlock the relation until EOT */
     return (res);
 }
 
@@ -226,8 +227,6 @@ rtdoinsert(r, itup)
     /* now expand the page boundary in the parent to include the new child */
     rttighten(r, stack, datum, (itup->t_size - sizeof(IndexTupleData)));
     freestack(stack);
-
-    pfree(itup);
 
     /* build and return an InsertIndexResult for this insertion */
     res = (InsertIndexResult) palloc(sizeof(InsertIndexResultData));
