@@ -1905,7 +1905,7 @@ POLYGON *poly;
 
 	for (i=1; i<poly->npts; i++,xp++,yp++)
 	{
-		sprintf(outptr, ",%*g,%*g", P_MAXDIG, *xp++, P_MAXDIG, *yp++);
+		sprintf(outptr, ",%*g,%*g", P_MAXDIG, *xp, P_MAXDIG, *yp);
 		outptr += 2*(P_MAXDIG + 1);
 	}
 	*outptr++ = RDELIM;
