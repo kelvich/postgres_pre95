@@ -1,32 +1,25 @@
-/*
- * creatinh.c --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	creatinh.c
+ *	
+ *   DESCRIPTION
  *	POSTGRES create/destroy relation with inheritance utility code.
+ *
+ *   INTERFACE ROUTINES
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tcop.h"
+ RcsId("$Header$");
 
 #define private
 
-RcsId("$Header$");
-
-#include "anum.h"
-#include "attnum.h"
-#include "cat.h"
-#include "catname.h"
-#include "ftup.h"	/* for FormHeapTuple */
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
-#include "name.h"
-#include "oid.h"
-#include "palloc.h"	/* for pfree */
-#include "parse.h"
-#include "pg_lisp.h"
-#include "rel.h"
-#include "syscache.h"
-#include "tupdesc.h"
-
-static LispValuePtr	InstalledNameP = &LispNil;
+LispValuePtr	InstalledNameP = &LispNil;
 
 /*
  * LispValuePInstallAsName --
@@ -85,7 +78,7 @@ StoreCatalogInheritance ARGS((
 	List		supers
 ));
 
-/*
+/* ----------------------------------------------------------------
  * CREATE relation_name '(' dom_list ')' [KEY '(' dom_name [USING operator] 
  * 	{ , '(' dom_name [USING operator] } ')']
  * 	[INHERITS '(' relation_name {, relation_name} ')' ] 
@@ -103,7 +96,7 @@ StoreCatalogInheritance ARGS((
  * 
  * 	... where	operator?	is either ,operator or 'nil
  * 			archive		is one of 'HEAVY, 'LIGHT, or 'NONE
- * 
+ * ----------------------------------------------------------------
  */
 
 void

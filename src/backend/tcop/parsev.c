@@ -1,19 +1,27 @@
-/*     
- * parsev.c --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	parsev.c
+ *	
+ *   DESCRIPTION
  *	Parser validity checking code.
+ *
+ *   INTERFACE ROUTINES
+ *
+ *   NOTES
+ *	Not sure why this is in the tcop directory
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tcop.h"
+ RcsId("$Header$");
 
-RcsId("$Header$");
-
-#include "log.h"		/* error logging */
-#include "name.h"		/* for NameIsEqual */
-#include "parse.h"		/* y.tab.h, created by yacc'ing gram.y */
-#include "pg_lisp.h"		/* lisp-compat package */
-
-#include "command.h"	/* for ValidateUtility */
-
+/* ----------------
+ *	ValidateParse
+ * ----------------
+ */
 void
 ValidateParse(parse)
 	List	parse;

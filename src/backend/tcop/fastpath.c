@@ -1,24 +1,32 @@
-/*
- * fastpath.c
- * - routines to handle function requests from the 
- *   frontend
- * - error condition may be asserted by fmgr code and
- *   an "elog" propagated to the frontend independent of the
- *   code in this module
- * - for no good reason, function names are limited to 80 chars
- *   by this module.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	fastpath.c
+ *	
+ *   DESCRIPTION
+ * 	routines to handle function requests from the frontend
+ *
+ *   INTERFACE ROUTINES
+ *	
+ *   NOTES
+ *	error condition may be asserted by fmgr code and
+ *   	an "elog" propagated to the frontend independent of the
+ *   	code in this module
+ *
+ *      for no good reason, function names are limited to 80 chars
+ *      by this module.
+ *	
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tcop.h"
+ RcsId("$Header$");
 
-RcsId("$Header$");
-
-#include "htup.h"
-#include "syscache.h"
-#include "buf.h"
-#include "log.h"
-#include "fmgr.h"
-
+/* ----------------
+ *	fastpath #defines
+ * ----------------
+ */
 #define FUNCTION_BY_NAME (-1)
 #define MAX_FUNC_NAME_LENGTH 80
 #define VAR_LENGTH_RESULT (-1)
@@ -27,12 +35,93 @@ RcsId("$Header$");
 #define PORTAL_RESULT (-2)
 #define PASS_BY_REF (1)
 #define PASS_BY_VALUE (0)
-void ReturnFunctionResult();
-static int external_to_internal();
-static char *internal_to_external();
-static void SendFunctionResult();
 
-/*---------------
+/* ----------------
+ *	external_to_internal
+ * ----------------
+ */
+int
+external_to_internal( string )
+     char *string;
+{
+    return((int)string);
+}
+
+/* ----------------
+ *	internal_to_external
+ * ----------------
+ */
+char * 
+internal_to_external( string )
+     char *string;
+{
+    return(string);
+}
+
+/* ----------------
+ *	SendFunctionResult
+ * ----------------
+ */
+void
+SendFunctionResult ( fid, retval, rettype )
+     int fid;
+     char *retval;
+     int rettype;
+{
+    char *retdata;
+
+    printf("Sending results %d, %d, %d",fid,retval,rettype);
+    putnchar("V",1);
+    putint(fid,4);
+    
+    switch (rettype) {
+
+      case 0: 			/* void retval */
+        break;
+      case PORTAL_RESULT:
+	break;
+
+      case VAR_LENGTH_RESULT:
+	retdata = internal_to_external(retval,MAX_STRING_LENGTH,0);
+	putnchar("G",1);
+	putint(rettype,4);
+	putstr(retdata);
+	break;
+
+      case 1: case 2: case 4:
+	putnchar("G",1);
+	putint(rettype,4);
+	putint(retval,rettype);
+	break;
+
+      default:
+	putnchar(retval,rettype);
+    }
+    putnchar("0",1);
+    pflush();
+} /* SendFunctionResult */
+
+/* 
+    {
+	Datum sendproc;
+	bool attr_is_null;
+
+	tuple = SearchSysCacheTuple (TYPOID,rettype);
+	if (HeapTupleIsValid(tuple)) {
+
+
+	    sendproc = HeapTupleGetAttributeValue(tuple,
+						  InvalidBuffer,
+						  13,
+						  tupledesc,
+						  attr_is_null);
+						  
+	    if ( RegProcedureIsValid ( sendproc )  == false )
+	      elog(WARN,"invalid sending procedure");
+
+    } */
+
+/* ---------------
  * 
  * HandleFunctionRequest
  * - externally callable routine for handling function requests
@@ -64,6 +153,7 @@ static void SendFunctionResult();
  * CAVEAT:the function_by_name code was given to me by Mike H, I am taking
  *        it on faith since it looks ok & I don't have the time to verify it. 
  *
+ * ----------------
  */
 
 HandleFunctionRequest()
@@ -138,77 +228,4 @@ HandleFunctionRequest()
     }
 
     /* CommitTransactionCommand(); */
-}
-
-static void
-SendFunctionResult ( fid, retval, rettype )
-     int fid;
-     char *retval;
-     int rettype;
-{
-    char *retdata;
-
-    printf("Sending results %d, %d, %d",fid,retval,rettype);
-    putnchar("V",1);
-    putint(fid,4);
-    
-    switch (rettype) {
-
-      case 0: 			/* void retval */
-        break;
-      case PORTAL_RESULT:
-	break;
-
-      case VAR_LENGTH_RESULT:
-	retdata = internal_to_external(retval,MAX_STRING_LENGTH,0);
-	putnchar("G",1);
-	putint(rettype,4);
-	putstr(retdata);
-	break;
-
-      case 1: case 2: case 4:
-	putnchar("G",1);
-	putint(rettype,4);
-	putint(retval,rettype);
-	break;
-
-      default:
-	putnchar(retval,rettype);
-    }
-    putnchar("0",1);
-    pflush();
-} /* ReturnFunctionResult */
-
-/* 
-    {
-	Datum sendproc;
-	bool attr_is_null;
-
-	tuple = SearchSysCacheTuple (TYPOID,rettype);
-	if (HeapTupleIsValid(tuple)) {
-
-
-	    sendproc = HeapTupleGetAttributeValue(tuple,
-						  InvalidBuffer,
-						  13,
-						  tupledesc,
-						  attr_is_null);
-						  
-	    if ( RegProcedureIsValid ( sendproc )  == false )
-	      elog(WARN,"invalid sending procedure");
-
-    } */
-
-static int
-external_to_internal( string )
-     char *string;
-{
-    return((int)string);
-}
-
-static char * 
-internal_to_external( string )
-     char *string;
-{
-    return(string);
 }
