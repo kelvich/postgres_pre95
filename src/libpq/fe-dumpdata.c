@@ -255,6 +255,8 @@ dump_data(portal_name, rule_p)
 	    }
 	}
 	
+    	pq_getnchar(id,0,1); 
+    	read_remark(id);
 	pqdebug("The identifier is: %c", id[0]);
     }
 }
