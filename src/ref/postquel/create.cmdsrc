@@ -11,8 +11,10 @@ create \*- create a new class
 classname (attributename = type
 { , attributename = type})
 [key (attributename [[using] operator] { , attributename [[using] operator])]
-[inherits (classname { , classname}]
-[archive_mode]
+[inherits (classname { , classname} )]
+[archive = archive_mode]
+[store = ``smgr name'']
+[arch_store = ``smgr name'']
 .uh DESCRIPTION
 .lp
 .b Create
@@ -69,6 +71,31 @@ See
 .b introduction
 (commands) for a further discussion of this point.
 .lp
+The
+.i store
+and
+.i arch_store
+keywords may be used to specify a storage manager to use
+for the new class.
+The released version of POSTGRES supports only ``magnetic disk''
+as a storage manager name;
+the research system at Berkeley provides additional storage managers.
+.i Store
+controls the location of current data,
+and
+.i arch_store
+controls the location of historical data.
+.i Arch_store
+may only be specified if
+.i archive
+is also specified.
+If either
+.i store
+or
+.i arch_store
+is not declared,
+it defaults to ``magnetic disk.''
+.lp
 The class is created as a heap with
 no initial data.
 A class can have no more than 1600 domains,
@@ -76,19 +103,18 @@ but this limit may be configured lower at some sites.
 A class cannot have the same name as
 a system catalog class.
 .lp
-The archive specification for each class can be one of:
+.i Archive
+specifies whether historical data is to be saved or discarded.
+.i Arch_mode may be one of:
 .(l
 none:	no historical access is supported
 light:	historical access is allowed and optimized for light update activity
 heavy:	historical access is allowed and optimized for heavy update activity
 .)l
+and defaults to none.
 For details of the optimization, see
 [STON87].
 Once the archive status is set, there is no way to change it.
-See the 
-.b purge
-(commands) command for details on specifying how much history
-is kept.
 .uh EXAMPLE
 .lp
 .nf
@@ -102,10 +128,22 @@ is kept.
 
    create permemp (plan = char16)
    inherits emp
+.lp
+.nf
+/* create a class foo on mag disk, and archive historical data */
+
+create foo (bar = int4) archive = heavy store = ``magnetic disk''
 .fi
 .uh "SEE ALSO"
 .lp
 destroy(commands)
 .uh BUGS
 .lp
-Key and archive_mode are not implemented in Version 2.1.
+Key is not implemented in Version 3.0.
+.lp
+Optional specifications
+(inherits,
+archive,
+store)
+must be supplied in the order given above,
+if they are supplied at all.
