@@ -63,6 +63,8 @@
  * 
  */
 
+#include "rules/prs2stub.h"
+
 #ifndef RuleScan_H
 #define RuleScan_H 1
 
@@ -97,6 +99,8 @@ typedef struct ScanStateRuleInfoData {
     Prs2RuleList ruleList;
     bool insteadRuleFound;
     RuleLock relationLocks;
+    Prs2Stub relationStubs;
+    bool relationStubsHaveChanged;
 } ScanStateRuleInfoData;
 
 typedef ScanStateRuleInfoData *ScanStateRuleInfo;
