@@ -266,72 +266,70 @@ _elt_!=LispNil;_elt_=CDR(_elt_))
  *	extern definitions
  * ----------------
  */
-extern LispValue	lispAtom();
-extern LispValue	lispDottedPair();
-extern LispValue	lispFloat();
-extern LispValue	lispInteger();
-extern LispValue	lispString();
-extern LispValue	lispVectori();
-extern LispValue	evalList();
-extern LispValue	quote();
+extern LispValue lispAtom ARGS((char *atomName ));
+extern LispValue lispDottedPair ARGS((void ));
+extern LispValue lispFloat ARGS((double floatValue ));
+extern LispValue lispInteger ARGS((int integerValue ));
+extern LispValue lispName ARGS((char *string ));
+extern LispValue lispString ARGS((char *string ));
+extern LispValue lispVectori ARGS((int nBytes ));
+extern LispValue evalList ARGS((LispValue list ));
+extern LispValue quote ARGS((LispValue lispObject ));
 
-extern LispValue	lispList();
-extern LispValue        lispCons();
-extern LispValue	nappend1();
-extern LispValue 	car();
-extern LispValue 	cdr();
-extern LispValue 	rplaca();
-extern LispValue 	rplacd();
-extern LispValue 	find_if_not();
-extern LispValue 	find_if();
-extern LispValue 	rplacd();
-extern			init_list();
+extern LispValue lispList ARGS((void ));
+extern LispValue lispCons ARGS((LispValue lispObject1 , LispValue lispObject2 ));
+extern LispValue nappend1 ARGS((LispValue list , LispValue lispObject ));
+extern LispValue append1 ARGS((LispValue list , LispValue lispObject ));
+extern LispValue car ARGS((LispValue dottedPair ));
+extern LispValue cdr ARGS((LispValue dottedPair ));
+extern LispValue rplaca ARGS((LispValue dottedPair , LispValue newValue ));
+extern LispValue rplacd ARGS((LispValue dottedPair , LispValue newValue ));
 
-/*
- *	Defined in fmgr/ppreserve.c
- */
-extern LispValue	ppreserve();
-extern LispValue	lppreserve();
-extern char		*prestore();
-extern LispValue	lprestore();
+extern int init_list ARGS((LispValue list , LispValue newValue ));
+extern LispValue append ARGS((LispValue list , LispValue lispObject ));
+extern int length ARGS((LispValue list ));
+extern LispValue nthCdr ARGS((int index , LispValue list ));
+extern LispValue nconc ARGS((LispValue list1 , LispValue list2 ));
+extern LispValue nreverse ARGS((LispValue list ));
+extern int position ARGS((LispValue foo , List bar ));
+extern bool member ARGS((LispValue foo , List bar ));
+extern LispValue remove_duplicates ARGS((List foo , bool (*test )()));
+extern LispValue find_if_not ARGS((bool (*pred )(), LispValue bar ));
+extern LispValue LispDelete ARGS((LispValue foo , List bar ));
+extern LispValue setf ARGS((LispValue foo , LispValue bar ));
+extern LispValue LispRemove ARGS((LispValue foo , List bar ));
+extern List nLispRemove ARGS((List foo , LispValue bar ));
+extern LispValue set_difference ARGS((LispValue foo , LispValue bar ));
+extern List nset_difference ARGS((List foo , List bar ));
+extern LispValue push ARGS((LispValue foo , List bar ));
+extern LispValue last ARGS((LispValue foo ));
+extern LispValue LispUnion ARGS((LispValue foo , LispValue bar ));
+extern LispValue mapcar ARGS((void (*foo )(), LispValue bar ));
+extern bool zerop ARGS((LispValue foo ));
+extern LispValue lispArray ARGS((int foo ));
+extern List number_list ARGS((int start , int n ));
+extern LispValue apply ARGS((LispValue (*foo )(), LispValue bar ));
+extern LispValue find_if ARGS((bool (*pred )(), LispValue bar ));
+extern LispValue find ARGS((LispValue foo , LispValue bar , bool (*test )(), Node (*key )()));
+extern LispValue some ARGS((bool (*foo )(), LispValue bar ));
+extern LispValue sort ARGS((LispValue foo ));
+extern double expt ARGS((double foo ));
+extern bool same ARGS((LispValue foo , LispValue bar ));
 
-/* 
- * as yet undefined, but should be defined soon
- */
-extern LispValue nthCdr();
-extern LispValue lispArray();
-/* extern LispValue list(); /* XXX - varargs ??? */
-extern LispValue setf();
-extern LispValue find();
-extern LispValue nconc();
-extern LispValue nreverse();
+extern bool equal ARGS((Node a , Node b ));
 
-extern int length();
-extern LispValue LispRemove();
-extern LispValue nLispRemove();
-extern LispValue remove_duplicates();
-extern LispValue setf();
-extern bool equal();
+extern LispValue collect ARGS((bool (*pred )(), LispValue list ));
+extern LispValue last_element ARGS((LispValue list ));
 
-extern LispValue  LispUnion();
-extern LispValue set_difference();
-extern LispValue nset_difference();
-extern LispValue append();
-extern LispValue LispDelete();
-extern LispValue push();
-extern LispValue collect();
-extern LispValue last_element();
-extern LispValue last();
-extern bool same();
+extern char *CString ARGS((LispValue lstr ));
+extern int CAtom ARGS((LispValue lv ));
+extern double CDouble ARGS((LispValue lval ));
+extern int CInteger ARGS((LispValue lval ));
 
-extern int CAtom();
-extern double CDouble();
-extern char *CString();
-extern int CInteger();
-
-/* temporary functions */
-
-extern LispValue mapcar();
+extern LispValue ppreserve ARGS((char *pallocObject ));
+extern LispValue lppreserve ARGS((LispValue pallocObject ));
+extern char *prestore ARGS((char *ppreservedObject ));
+extern LispValue lprestore ARGS((LispValue ppreservedObject ));
 
 /*===============================
  * in/out print/read functions...
