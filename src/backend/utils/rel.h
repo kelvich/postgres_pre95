@@ -66,6 +66,13 @@ typedef char	ArchiveMode;
 #define RelationGetSystemPort(relation) ((relation)->rd_fd)
 
 /*
+ * RelationGetLockInfo --
+ *      Returns the lock information structure in the reldesc
+ *
+ */
+#define RelationGetLockInfo(relation) ((relation)->lockInfo)
+
+/*
  * RelationHasReferenceCountZero --
  *	True iff relation reference count is zero.
  *
