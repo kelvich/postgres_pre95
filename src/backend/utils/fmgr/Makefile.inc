@@ -4,3 +4,7 @@
 .PATH: ${.CURDIR}/utils/fmgr
 
 SRCS+= dfmgr.c fmgr.c ufp.c
+
+.if defined(USE_DLD)
+CFLAGS+= -DUSE_DLD
+.endif
