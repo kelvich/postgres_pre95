@@ -47,7 +47,6 @@
 #include "storage/lmgr.h"
 #include "support/master.h"
 
-#include "tmp/hasht.h"		/* for EnableHashTable, etc. */
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"		/* for EnablePortalManager, etc. */
 
@@ -539,12 +538,10 @@ InitPostgres(name)
      *	Memory system initialization.
      *  (we may call palloc after EnableMemoryContext())
      *
-     *  Note EnableMemoryContext() must happen before EnableHashTable() or
-     *  EnablePortalManager().
+     *  Note EnableMemoryContext() must happen before EnablePortalManager().
      * ----------------
      */
     EnableMemoryContext(true);	/* initializes the "top context" */
-    EnableHashTable(true);	/* memory for hash table sets */
     EnablePortalManager(true);	/* memory for portal/transaction stuff */
 
     /* ----------------
@@ -713,7 +710,6 @@ ReinitPostgres()
     /* reset all modules */
 
     EnablePortalManager(false);
-    EnableHashTable(false);
     EnableMemoryContext(false);
 
     EnableExceptionHandling(false);

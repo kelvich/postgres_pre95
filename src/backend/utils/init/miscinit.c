@@ -16,7 +16,6 @@
 
 #include "tmp/postgres.h"
 
-#include "tmp/hasht.h"		/* for EnableHashTable, etc. */
 #include "tmp/portal.h"		/* for EnablePortalManager, etc. */
 #include "utils/exc.h"		/* for EnableExceptionHandling, etc. */
 #include "utils/mcxt.h"		/* for EnableMemoryContext, etc. */
