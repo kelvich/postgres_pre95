@@ -758,9 +758,9 @@ char *
 path_out(path)
 	PATH	*path;
 {
-	char 		buf[BUFSIZ], *result, *s;
+	char 		buf[BUFSIZ + 20000], *result, *s;
 	int		i;
-	static char	tmp[64];
+	char	tmp[64];
 
 	if (path == NULL)
 		return(NULL);
