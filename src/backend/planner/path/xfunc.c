@@ -12,10 +12,10 @@
 
 /*     
 **      EXPORTS
-**              xfunc_clause_compare
-**              xfunc_disjunct_sort
 **              xfunc_trypullup
 **              xfunc_get_path_cost
+**              xfunc_clause_compare
+**              xfunc_disjunct_sort
 */
 
 #include <strings.h>
@@ -46,54 +46,229 @@
 #define ever ; 1 ;
 
 /*
-** Comparison function for lisp_qsort() on a list of CInfo's.
-** arg1 and arg2 should really be of type (CInfo *).  
+** xfunc_trypullup --
+**    Main entry point to expensive function optimization.
+** Given a relation, check each of its paths and see if it should 
+** pullup clauses from its inner and outer.
 */
-int xfunc_cinfo_compare(arg1, arg2)
-    void *arg1;
-    void *arg2;
-{
-    CInfo info1 = *(CInfo *) arg1;
-    CInfo info2 = *(CInfo *) arg2;
 
-    LispValue clause1 = (LispValue) get_clause(info1),
-              clause2 = (LispValue) get_clause(info2);
-    
-    return(xfunc_clause_compare((void *) &clause1, (void *) &clause2));
+void xfunc_trypullup(rel)
+     Rel rel;
+{
+    LispValue y;            /* list ptr */
+    CInfo maxcinfo;         /* The CInfo to pull up, as calculated by
+			       xfunc_shouldpull() */
+    JoinPath curpath;       /* current path in list */
+    Rel outerrel, innerrel;
+    LispValue form_relid();
+    int clausetype;
+
+    foreach(y, get_pathlist(rel))
+     {
+	 curpath = (JoinPath)CAR(y);
+	 
+	 /* find Rels for inner and outer operands of curpath */
+	 innerrel = get_parent((Path) get_innerjoinpath(curpath));
+	 outerrel = get_parent((Path) get_outerjoinpath(curpath));
+	 
+	 /*
+	 ** for each operand, attempt to pullup predicates until first 
+	 ** failure.
+	 */
+	 for(ever)
+	  {
+	      /* No, the following should NOT be '=='  !! */
+	      if (clausetype = xfunc_shouldpull(get_innerjoinpath(curpath),
+				   curpath, INNER, &maxcinfo))
+		xfunc_pullup(get_innerjoinpath(curpath),
+			     curpath, maxcinfo, INNER, clausetype);
+	      else break;
+	  }
+	 for(ever)
+	  {
+	      /* No, the following should NOT be '=='  !! */
+	      if (clausetype = xfunc_shouldpull(get_outerjoinpath(curpath), 
+				   curpath, OUTER, &maxcinfo))
+		xfunc_pullup(get_outerjoinpath(curpath),
+			     curpath, maxcinfo, OUTER, clausetype);
+	      else break;
+	  }
+     }
 }
 
 /*
-** xfunc_clause_compare: comparison function for lisp_qsort() that compares two 
-** clauses based on expense/(1 - selectivity)
-** arg1 and arg2 are really pointers to clauses.
+** xfunc_shouldpull --
+**    find clause with most expensive measure, and decide whether to pull it up
+** from child to parent.
+**
+** Returns:  0 if nothing left to pullup
+**           XFUNC_LOCPRD if a local predicate is to be pulled up
+**           XFUNC_JOINPRD if a secondary join predicate is to be pulled up
 */
-int xfunc_clause_compare(arg1, arg2)
-    void *arg1;
-    void *arg2;
+int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
+     Path childpath;
+     JoinPath parentpath;
+     int whichchild;     /* whether child is INNER or OUTER of join */
+     CInfo *maxcinfopt;  /* Out: pointer to clause to pullup */
 {
-    LispValue clause1 = *(LispValue *) arg1;
-    LispValue clause2 = *(LispValue *) arg2;
-    double measure1,             /* total xfunc measure of clause1 */ 
-           measure2;             /* total xfunc measure of clause2 */
-    int infty1 = 0, infty2 = 0;  /* divide by zero is like infinity */
+    LispValue clauselist, tmplist;      /* lists of clauses */
+    CInfo maxcinfo;                     /* clause to pullup */
+    CInfo primjoinclause                /* primary join clause */
+      = xfunc_primary_join(get_pathclauseinfo(parentpath));
+    double tmpmeasure, maxmeasure = 0;  /* measures of clauses */
+    double joinselec = 0;               /* selectivity of the join predicate */
+    double joincost = 0;                /* join cost + primjoinclause cost *;
+    int retval = XFUNC_LOCPRD;
 
-    measure1 = xfunc_measure(clause1);
-    if (measure1 == -1.0) infty1 = 1;
-    measure2 = xfunc_measure(clause2);
-    if (measure2 == -1.0) infty2 = 1;
+    clauselist = get_locclauseinfo(childpath);
 
-    if (infty1 || infty2)
+    if (clauselist != LispNil)
      {
-	 if (!infty1) return(-1);
-	 else if (infty1 && infty2) return(0);
-	 else return(1);
+	 /* find local predicate with maximum measure */
+	 for (tmplist = clauselist,
+	      maxcinfo = (CInfo) CAR(tmplist),
+	      maxmeasure = xfunc_measure(get_clause(maxcinfo));
+	      tmplist != LispNil;
+	      tmplist = CDR(tmplist))
+	   if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
+	       > maxmeasure)
+	    {
+		maxcinfo = (CInfo) CAR(tmplist);
+		maxmeasure = tmpmeasure;
+	    }
      }
-    
-    if ( measure1 < measure2) 
-      return(-1);
-    else if (measure1 == measure2)
+
+	 
+    /* 
+    ** If child is a join path, and there are multiple join clauses,
+    ** see if any join clause has even higher measure than the highest
+    ** local predicate 
+    */
+    if (length((get_parent(childpath))->relids) > 1
+	&& length(get_pathclauseinfo((JoinPath)childpath)) > 1)
+      for (tmplist = get_pathclauseinfo((JoinPath)childpath);
+	   tmplist != LispNil;
+	   tmplist = CDR(tmplist))
+	if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
+	    > maxmeasure)
+	 {
+	     maxcinfo = (CInfo) CAR(tmplist);
+	     maxmeasure = tmpmeasure;
+	     retval = XFUNC_JOINPRD;
+	 }
+    /* sanity check: we better not be pulling up the only join clause */
+    if (retval == XFUNC_JOINPRD)
+      Assert(primjoinclause != CAR(get_pathclauseinfo((JoinPath)childpath))
+	     || CDR(get_pathclauseinfo((JoinPath)childpath)) != LispNil;
+
+    if (maxmeasure == 0)  /* no expensive clauses */
       return(0);
-    else return(1);
+
+    /*
+    ** Pullup over join if clause is higher measure than join.
+    ** Note that the cost of a secondary join clause is only what's
+    ** calculated by xfunc_expense(), since the actual joining 
+    ** (i.e. the usual path_cost) is paid for by the primary join clause.
+    ** The cost of the join clause is the cost of the primary join clause
+    ** plus the cost_per_tuple of whichchild for the join method.
+    */
+    if (primjoinclause != (CInfo) NULL)
+     {
+	 joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
+	 joincost = xfunc_cost_per_tuple(parentpath, whichchild) 
+	   + xfunc_expense(get_clause(primjoinclause));
+	 if (joinselec != 1.0 &&
+	     xfunc_measure(get_clause(maxcinfo)) > 
+	     (joincost / (1.0 - joinselec)))
+	  {
+	      *maxcinfopt = maxcinfo;
+	      return(retval);
+	  }
+	 else  /* drop through */;
+     }
+
+    return(FALSE);
+
+}
+
+
+/*
+** xfunc_pullup --
+**    move clause from child pathnode to parent pathnode.   This operation 
+** makes the child pathnode produce a larger relation than it used to.
+** This means that we must construct a new Rel just for the childpath,
+** although this Rel will not be added to the list of Rels to be joined up
+** in the query; it's merely a parent for the new childpath.
+**    We also have to fix up the path costs of the child and parent.
+*/
+void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
+     Path childpath;
+     JoinPath parentpath;
+     CInfo cinfo;         /* clause to pull up */
+     int whichchild;      /* whether child is INNER or OUTER of join */
+     int clausetype;      /* whether clause to pull is join or local */
+{
+    Path newkid;
+    Rel newrel;
+    double pulled_selec;
+
+    /* remove clause from childpath */
+    if (clausetype == XFUNC_LOCPRD)
+     {
+	 set_locclauseinfo(((Path)newkid = (Path)CopyObject(childpath)), 
+			   LispRemove(cinfo, get_locclauseinfo(newkid)));
+     }
+    else
+     {
+	 set_pathclauseinfo
+	   (((JoinPath)(newkid = (Path)CopyObject(childpath))),
+	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
+     }
+
+    /*
+    ** give the new child path its own Rel node that reflects the
+    ** lack of the pulled-up predicate
+    */
+    pulled_selec = compute_clause_selec(get_clause(cinfo), LispNil);
+    xfunc_copyrel(get_parent(newkid), &newrel);
+    set_parent(newkid, newrel);
+    set_pathlist(newrel, lispCons(newkid, LispNil));
+    set_unorderedpath(newrel, (PathPtr)newkid);
+    set_cheapestpath(newrel, (PathPtr)newkid);
+    set_tuples(newrel, get_tuples(get_parent(childpath)) / pulled_selec);
+    set_pages(newrel, get_pages(get_parent(childpath)) / pulled_selec);
+    
+    /* 
+    ** fix up path cost of newkid.  To do this we subtract away all the
+    ** xfunc_costs of childpath, then recompute the xfunc_costs of newkid
+    */
+    set_path_cost(newkid, get_path_cost(newkid) 
+		  - xfunc_get_path_cost(childpath));
+    set_path_cost(newkid, get_path_cost(newkid)
+		  + xfunc_get_path_cost(newkid));
+
+    /* Fix all vars in the clause 
+       to point to the right varno and varattno in parentpath */
+    xfunc_fixvars(get_clause(cinfo), newrel, whichchild);
+
+    /*  add clause to parentpath, and fix up its cost. */
+    set_locclauseinfo(parentpath, 
+		      lispCons(cinfo, get_locclauseinfo(parentpath)));
+    /* put new childpath into the path tree */
+    if (whichchild == INNER)
+     {
+	 set_innerjoinpath(parentpath, (pathPtr)newkid);
+     }
+    else
+     {
+	 set_outerjoinpath(parentpath, (pathPtr)newkid);
+     }
+
+    /* 
+    ** recompute parentpath cost from scratch -- the cost
+    ** of the join method has changed
+    */
+    set_path_cost(parentpath, xfunc_total_path_cost(parentpath));
 }
 
 /*
@@ -130,6 +305,7 @@ double xfunc_expense(clause)
     /* First handle the base case */
     if (IsA(clause,Const) || IsA(clause,Var) || IsA(clause,Param)) 
       return(0);
+    /* now other stuff */
     else if (IsA(clause,Iter))
       return(xfunc_expense(get_iterexpr((Iter)clause)));
     else if (IsA(clause,ArrayRef))
@@ -268,6 +444,7 @@ int xfunc_width(clause)
      }
     else if (IsA(clause,ArrayRef))
      {
+	 /* base case: width is width of the refelem within the array */
 	 retval = get_refelemlength((ArrayRef)clause);
 	 goto exit;
      }
@@ -323,7 +500,8 @@ int xfunc_width(clause)
 	 /* 
          ** An Iter returns a setof things, so return the width of a single
 	 ** thing.
-	 ** Note:  THIS MAY NOT WORK RIGHT WHEN AGGS GET FIXED!!!!
+	 ** Note:  THIS MAY NOT WORK RIGHT WHEN AGGS GET FIXED,
+	 ** SINCE AGG FUNCTIONS CHEW ON THE WHOLE SETOF THINGS!!!!
 	 */
 	 retval = xfunc_width(get_iterexpr((Iter)clause));
 	 goto exit;
@@ -416,138 +594,208 @@ int xfunc_tuple_width(rd)
 }
 
 /*
-** xfunc_trypullup --
-**    check each path within a relation, and do all the pullups needed for it.
+** xfunc_primary_join:
+**   Find a join clause of minimal measure.
 */
-
-void xfunc_trypullup(rel)
-     Rel rel;
+CInfo xfunc_primary_join(joinclauselist)
+     LispValue joinclauselist;
 {
-    LispValue y;            /* list ptr */
-    CInfo maxcinfo;         /* The CInfo to pull up, as calculated by
-			       xfunc_shouldpull() */
-    JoinPath curpath;       /* current path in list */
-    Rel outerrel, innerrel;
-    LispValue form_relid();
-    int clausetype;
+    CInfo mincinfo;
+    LispValue tmplist;
+    double minmeasure, tmpmeasure;
 
-    foreach(y, get_pathlist(rel))
-     {
-	 curpath = (JoinPath)CAR(y);
-	 
-	 /* find Rels for inner and outer operands of curpath */
-	 innerrel = get_parent((Path) get_innerjoinpath(curpath));
-	 outerrel = get_parent((Path) get_outerjoinpath(curpath));
-	 
-	 /*
-	 ** for each operand, attempt to pullup predicates until first 
-	 ** failure.
-	 */
-	 for(ever)
-	  {
-	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = xfunc_shouldpull(get_innerjoinpath(curpath),
-				   curpath, &maxcinfo))
-		xfunc_pullup(get_innerjoinpath(curpath),
-			     curpath, maxcinfo, INNER, clausetype);
-	      else break;
-	  }
-	 for(ever)
-	  {
-	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = xfunc_shouldpull(get_outerjoinpath(curpath), 
-				   curpath, &maxcinfo))
-		xfunc_pullup(get_outerjoinpath(curpath),
-			     curpath, maxcinfo, OUTER, clausetype);
-	      else break;
-	  }
-     }
+    if (joinclauselist == LispNil)
+      return((CInfo) NULL);
+
+    for(tmplist = joinclauselist, mincinfo = (CInfo) CAR(joinclauselist),
+	minmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)));
+	tmplist != LispNil;
+	tmplist = CDR(tmplist))
+      if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist))))
+	  < minmeasure)
+       {
+	   minmeasure = tmpmeasure;
+	   mincinfo = (CInfo) CAR(tmplist);
+       }
+    return(mincinfo);
 }
 
 /*
-** xfunc_pullup --
-**    move clause from child pathnode to parent pathnode.   This operation 
-** makes the child pathnode produce a larger relation than it used to.
-** This means that we must construct a new Rel just for the childpath,
-** although this Rel will not be added to the list of Rels to be joined up
-** in the query; it's merely a parent for the new childpath.
-**    We also have to fix up the path costs of the child and parent.
+** xfunc_get_path_cost
+**   get the expensive function costs of the path
 */
-void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
-     Path childpath;
-     JoinPath parentpath;
-     CInfo cinfo;         /* clause to pull up */
-     int whichchild;      /* whether child is INNER or OUTER of join */
-     int clausetype;      /* whether clause to pull is join or local */
+int xfunc_get_path_cost(pathnode)
+Path pathnode;
 {
-    Path newkid;
-    Rel newrel;
-    double pulled_selec;
-
-    /* remove clause from childpath */
-    if (clausetype == XFUNC_LOCPRD)
-     {
-	 set_locclauseinfo(((Path)newkid = (Path)CopyObject(childpath)), 
-			   LispRemove(cinfo, get_locclauseinfo(newkid)));
-     }
-    else
-     {
-	 set_pathclauseinfo
-	   (((JoinPath)(newkid = (Path)CopyObject(childpath))),
-	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
-     }
-
-    /*
-    ** give the new child path its own Rel node that reflects the
-    ** lack of the pulled-up predicate
-    */
-    pulled_selec = compute_clause_selec(get_clause(cinfo), LispNil);
-    xfunc_copyrel(get_parent(newkid), &newrel);
-    set_parent(newkid, newrel);
-    set_pathlist(newrel, lispCons(newkid, LispNil));
-    set_unorderedpath(newrel, (PathPtr)newkid);
-    set_cheapestpath(newrel, (PathPtr)newkid);
-    set_tuples(newrel, get_tuples(get_parent(childpath)) / pulled_selec);
-    set_pages(newrel, get_pages(get_parent(childpath)) / pulled_selec);
+    int cost = 0;
+    LispValue tmplist;
+    double selec = 1.0;
     
     /* 
-    ** fix up path cost of newkid.  To do this we subtract away all the
-    ** xfunc_costs of childpath, then recompute the xfunc_costs of newkid
+    ** first add in the expensive local function costs.
+    ** We ensure that the clauses are sorted by measure, so that we
+    ** know (via selectivities) the number of tuples that will be checked
+    ** by each function.
     */
-    set_path_cost(newkid, get_path_cost(newkid) 
-		  - xfunc_get_path_cost(childpath));
-    set_path_cost(newkid, get_path_cost(newkid)
-		  + xfunc_get_path_cost(newkid));
-
-    /* Fix all vars in the clause 
-       to point to the right varno and varattno in parentpath */
-    xfunc_fixvars(get_clause(cinfo), newrel, whichchild);
+    set_locclauseinfo(pathnode, lisp_qsort(get_locclauseinfo(pathnode),
+					   xfunc_cinfo_compare));
+    for(tmplist = get_locclauseinfo(pathnode), selec = 1.0;
+	tmplist != LispNil;
+	tmplist = CDR(tmplist))
+     {
+	 cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+	         * get_tuples(get_parent(pathnode)) * selec;
+	 selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)), 
+				       LispNil);
+     }
 
     /* 
-    ** add clause to parentpath, and fix up its xfunc costs 
-    ** TO DO:  The Join costs of the parent change since it has a different
-    ** cardinality for one of its kids!  FIX ME FIX ME FIX ME!!!!!!!!
+    ** Now add in any node-specific expensive function costs.
+    ** Again, we must ensure that the clauses are sorted by measure.
     */
-    set_path_cost(parentpath, get_path_cost(parentpath) 
-		  - xfunc_get_path_cost(parentpath));
-    set_locclauseinfo(parentpath, 
-		      lispCons(cinfo, get_locclauseinfo(parentpath)));
-    set_path_cost(newkid, get_path_cost(parentpath)
-		  + xfunc_get_path_cost(parentpath));
-    if (whichchild == INNER)
+    if (IsA(pathnode,JoinPath))
      {
-	 set_innerjoinpath(parentpath, (pathPtr)newkid);
+	 set_pathclauseinfo((JoinPath)pathnode, 
+			    lisp_qsort(get_pathclauseinfo((JoinPath)pathnode),
+				       xfunc_cinfo_compare));
+	 for(tmplist = get_pathclauseinfo((JoinPath)pathnode), selec = 1.0;
+	     tmplist != LispNil;
+	     tmplist = CDR(tmplist))
+	  {
+	      cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+		      * get_tuples(get_parent(pathnode)) * selec;
+	      selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)),
+					    LispNil);
+	  }
      }
-    else
+    if (IsA(pathnode,HashPath))
      {
-	 set_outerjoinpath(parentpath, (pathPtr)newkid);
+	 Assert(length(get_path_hashclauses((HashPath) pathnode)) == 1);
+	 cost += xfunc_expense(CAR(get_path_hashclauses((HashPath) pathnode)))
+	         * get_tuples(get_parent(pathnode));
      }
+    if (IsA(pathnode,MergePath))
+     {
+	 Assert(length(get_path_mergeclauses((MergePath) pathnode)) == 1);
+	 cost += xfunc_expense(CAR(get_path_mergeclauses((MergePath) pathnode)))
+	           * get_tuples(get_parent(pathnode));
+     }
+    return(cost);
+}
+
+/*
+** Recalculate the cost of a path node.  This includes the basic cost of the 
+** node, as well as the cost of its expensive functions.
+** We need to do this to the parent after pulling a clause from a child into a
+** parent.  Thus we should only be calling this function on JoinPaths.
+*/
+int xfunc_total_path_cost(pathnode)
+JoinPath pathnode;
+{
+    int cost = xfunc_get_path_cost(pathnode);
+
+    Assert(IsA(pathnode,JoinPath));
+    if (IsA(pathnode,MergePath))
+     {
+	 MergePath mrgnode = (MergePath)pathnode;
+	 return(cost + 
+		cost_mergesort(get_path_cost((Path)get_outerjoinpath(mrgnode)),
+			       get_path_cost((Path)get_innerjoinpath(mrgnode)),
+			       get_outersortkeys(mrgnode),
+			       get_innersortkeys(mrgnode),
+			       get_tuples(get_parent((Path)get_outerjoinpath
+						     (mrgnode))),
+			       get_tuples(get_parent((Path)get_innerjoinpath
+						     (mrgnode))),
+			       get_width(get_parent((Path)get_outerjoinpath
+						    (mrgnode))),
+			       get_width(get_parent((Path)get_innerjoinpath
+						    (mrgnode)))));
+     }
+    else if (IsA(pathnode,HashPath))
+     {
+	 HashPath hashnode = (HashPath)pathnode;
+	 return(cost +
+		cost_hashjoin(get_path_cost((Path)get_outerjoinpath(hashnode)),
+			      get_path_cost((Path)get_innerjoinpath(hashnode)),
+			      get_outerhashkeys(hashnode),
+			      get_innerhashkeys(hashnode),
+			      get_tuples(get_parent((Path)get_outerjoinpath
+						    (hashnode))),
+			      get_tuples(get_parent((Path)get_innerjoinpath
+						    (hashnode))),
+			      get_width(get_parent((Path)get_outerjoinpath
+						   (hashnode))),
+			      get_width(get_parent((Path)get_innerjoinpath
+						   (hashnode)))));
+     }
+    else /* Nested Loop Join */
+      return(cost +
+	     cost_nestloop(get_path_cost((Path)get_outerjoinpath(pathnode)),
+			   get_path_cost((Path)get_innerjoinpath(pathnode)),
+			   get_tuples(get_parent((Path)get_outerjoinpath
+						 (pathnode))),
+			   get_tuples(get_parent((Path)get_innerjoinpath
+						 (pathnode))),
+			   get_pages(get_parent((Path)get_outerjoinpath
+						(pathnode))),
+			   IsA(get_innerjoinpath(pathnode),IndexPath)));
+}
+
+
+/*
+** xfunc_cost_per_tuple --
+**    return the expense of the join *per-tuple* of the input relation.
+** This will be different for tuples of INNER and OUTER
+*/
+double xfunc_cost_per_tuple(joinnode, whichrel)
+JoinPath joinnode;
+int whichrel;       /* INNER or OUTER of joinnode */
+{
+    int outersize = get_tuples(get_parent((Path)get_outerjoinpath(joinnode)));
+    int innersize = get_tuples(get_parent((Path)get_innerjoinpath(joinnode)));
+
+    /* for merge join, all you do to each tuple is the minimal CPU processing */
+    if (IsA(joinnode,MergePath))
+     {
+	 return(_CPU_PAGE_WEIGHT_);
+     }
+    /* 
+    ** For hash join, figure out the number of chunks of the outer we process
+    ** at a time.  The the cost for a tuple of the outer is the CPU cost
+    ** times the size of the inner relation, and for a tuple of the inner
+    ** it's the CPU cost times the number of chunks of the outer 
+    */
+    else if (IsA(joinnode,HashPath))
+     {
+	 int outerpages = 
+	   get_pages(get_parent((Path)get_outerjoinpath(joinnode)));
+	 int innerpages = 
+	   get_pages(get_parent((Path)get_innerjoinpath(joinnode)));
+
+	 int nrun = ceil((double)outerpages/(double)NBuffers);
+	 if (whichrel == INNER)
+	   return(_CPU_PAGE_WEIGHT_ * nrun);
+	 else
+	   return(_CPU_PAGE_WEIGHT_ * innersize);
+     }
+    /*
+    ** For nested loop, the cost for tuples is the size of the outer relation
+    ** times the cost of the inner relation divided by the number of tuples
+    ** in whichrel.
+    */
+    else /* nested loop join */
+      if (whichrel == INNER)
+	return(outersize * get_path_cost((Path)get_innerjoinpath(joinnode)) /
+	       innersize);
+      else
+	return(get_path_cost((Path)get_innerjoinpath(joinnode)));
 }
 
 /*
 ** xfunc_fixvars --
 ** After pulling up a clause, we must walk its expression tree, fixing Var 
-** nodes to point to the right correct varno (either INNER or OUTER, depending
+** nodes to point to the correct varno (either INNER or OUTER, depending
 ** on which child the clause was pulled from), and the right varattno in the 
 ** target list of the child's former relation.  If the target list of the
 ** child Rel does not contain the attribute we need, we add it.
@@ -605,94 +853,56 @@ void xfunc_fixvars(clause, rel, varno)
      }
 }
 
+
 /*
-** xfunc_shouldpull --
-**    find clause with most expensive measure, and decide whether to pull it up
-** from child to parent.
-**
-** Returns:  0 if nothing left to pullup
-**           XFUNC_LOCPRD if a local predicate is to be pulled up
-**           XFUNC_JOINPRD if a secondary join predicate is to be pulled up
+** Comparison function for lisp_qsort() on a list of CInfo's.
+** arg1 and arg2 should really be of type (CInfo *).  
 */
-int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
-     Path childpath;
-     JoinPath parentpath;
-     CInfo *maxcinfopt;  /* Out: pointer to clause to pullup */
+int xfunc_cinfo_compare(arg1, arg2)
+    void *arg1;
+    void *arg2;
 {
-    LispValue clauselist, tmplist;      /* lists of clauses */
-    CInfo maxcinfo;                     /* clause to pullup */
-    CInfo primjoinclause                /* primary join clause */
-      = xfunc_primary_join(get_pathclauseinfo(parentpath));
-    double tmpmeasure, maxmeasure = 0;  /* measures of clauses */
-    double joinselec = 0;               /* selectivity of the join predicates */
-    int retval = XFUNC_LOCPRD;
+    CInfo info1 = *(CInfo *) arg1;
+    CInfo info2 = *(CInfo *) arg2;
 
-    clauselist = get_locclauseinfo(childpath);
+    LispValue clause1 = (LispValue) get_clause(info1),
+              clause2 = (LispValue) get_clause(info2);
+    
+    return(xfunc_clause_compare((void *) &clause1, (void *) &clause2));
+}
 
-    if (clauselist != LispNil)
+/*
+** xfunc_clause_compare: comparison function for lisp_qsort() that compares two 
+** clauses based on expense/(1 - selectivity)
+** arg1 and arg2 are really pointers to clauses.
+*/
+int xfunc_clause_compare(arg1, arg2)
+    void *arg1;
+    void *arg2;
+{
+    LispValue clause1 = *(LispValue *) arg1;
+    LispValue clause2 = *(LispValue *) arg2;
+    double measure1,             /* total xfunc measure of clause1 */ 
+           measure2;             /* total xfunc measure of clause2 */
+    int infty1 = 0, infty2 = 0;  /* divide by zero is like infinity */
+
+    measure1 = xfunc_measure(clause1);
+    if (measure1 == -1.0) infty1 = 1;
+    measure2 = xfunc_measure(clause2);
+    if (measure2 == -1.0) infty2 = 1;
+
+    if (infty1 || infty2)
      {
-	 /* find local predicate with maximum measure */
-	 for (tmplist = clauselist,
-	      maxcinfo = (CInfo) CAR(tmplist),
-	      maxmeasure = xfunc_measure(get_clause(maxcinfo));
-	      tmplist != LispNil;
-	      tmplist = CDR(tmplist))
-	   if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
-	       > maxmeasure)
-	    {
-		maxcinfo = (CInfo) CAR(tmplist);
-		maxmeasure = tmpmeasure;
-	    }
+	 if (!infty1) return(-1);
+	 else if (infty1 && infty2) return(0);
+	 else return(1);
      }
-
-	 
-    /* 
-    ** If child is a join path, and there are multiple join clauses,
-    ** see if any join clause has even higher measure than the highest
-    ** local predicate 
-    */
-    if (length((get_parent(childpath))->relids) > 1
-	&& length(get_pathclauseinfo((JoinPath)childpath)) > 1)
-      for (tmplist = get_pathclauseinfo((JoinPath)childpath);
-	   tmplist != LispNil;
-	   tmplist = CDR(tmplist))
-	if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)))) 
-	    > maxmeasure)
-	 {
-	     maxcinfo = (CInfo) CAR(tmplist);
-	     maxmeasure = tmpmeasure;
-	     retval = XFUNC_JOINPRD;
-	 }
-    /* sanity check: we better not be pulling up the primary join clause */
-    if (retval == XFUNC_JOINPRD)
-      Assert(primjoinclause != maxcinfo);
-
-    if (maxmeasure == 0)  /* no expensive clauses */
+    
+    if ( measure1 < measure2) 
+      return(-1);
+    else if (measure1 == measure2)
       return(0);
-
-    /*
-    ** Pullup over join if clause is higher measure than join.
-    ** Note that the cost of a secondary join clause is only what's
-    ** calculated by xfunc_expense(), since the actual joining 
-    ** (i.e. the usual path_cost) is paid for by the primary join clause
-    */
-    if (primjoinclause != (CInfo) NULL)
-     {
-	 joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
-	 if (joinselec != 1.0 &&
-	     xfunc_measure(get_clause(maxcinfo)) > 
-	     ((xfunc_expense(get_clause(primjoinclause)) 
-	       + get_path_cost(parentpath))
-	      / (1.0 - joinselec)))
-	  {
-	      *maxcinfopt = maxcinfo;
-	      return(retval);
-	  }
-	 else  /* drop through */;
-     } 
-	
-    return(FALSE);
-
+    else return(1);
 }
 
 /*
@@ -735,96 +945,6 @@ int xfunc_disjunct_compare(arg1, arg2)
       return(0);
     else return(1);
 }
-
-/*
-** xfunc_primary_join:
-**   Find the join clause of minimum measure.  This clause cannot be pulled
-** up.
-*/
-CInfo xfunc_primary_join(joinclauselist)
-     LispValue joinclauselist;
-{
-    CInfo mincinfo;
-    LispValue tmplist;
-    double minmeasure, tmpmeasure;
-
-    if (joinclauselist == LispNil)
-      return((CInfo) NULL);
-
-    for(tmplist = joinclauselist, mincinfo = (CInfo) CAR(joinclauselist),
-	minmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)));
-	tmplist != LispNil;
-	tmplist = CDR(tmplist))
-      if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist))))
-	  < minmeasure)
-       {
-	   minmeasure = tmpmeasure;
-	   mincinfo = (CInfo) CAR(tmplist);
-       }
-    return(mincinfo);
-}
-
-/*
-** xfunc_get_path_cost
-**   get the expensive function costs of the path
-*/
-int xfunc_get_path_cost(pathnode)
-Path pathnode;
-{
-    int cost = 0;
-    LispValue tmplist;
-    double selec = 1.0;
-    
-    /* 
-    ** first add in the expensive local function costs.
-    ** We ensure that the clauses are sorted by measure, so that we
-    ** know (via selectivities) the number of tuples that will be checked
-    ** by each function.
-    */
-    set_locclauseinfo(pathnode, lisp_qsort(get_locclauseinfo(pathnode),
-					   xfunc_cinfo_compare));
-    for(tmplist = get_locclauseinfo(pathnode), selec = 1.0;
-	tmplist != LispNil;
-	tmplist = CDR(tmplist))
-     {
-	 cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
-	         * get_tuples(get_parent(pathnode)) * selec;
-	 selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)), 
-				       LispNil);
-     }
-
-    /* Now add in any node-specific expensive function costs */
-    if (IsA(pathnode,JoinPath))
-     {
-	 set_pathclauseinfo((JoinPath)pathnode, 
-			    lisp_qsort(get_pathclauseinfo((JoinPath)pathnode),
-				       xfunc_cinfo_compare));
-	 for(tmplist = get_pathclauseinfo((JoinPath)pathnode), selec = 1.0;
-	     tmplist != LispNil;
-	     tmplist = CDR(tmplist))
-	  {
-	      cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
-		      * get_tuples(get_parent(pathnode)) * selec;
-	      selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)),
-					    LispNil);
-	  }
-     }
-    if (IsA(pathnode,HashPath))
-     {
-	 Assert(length(get_path_hashclauses((HashPath) pathnode)) == 1);
-	 cost += xfunc_expense(CAR(get_path_hashclauses((HashPath) pathnode)))
-	         * get_tuples(get_parent(pathnode));
-     }
-    if (IsA(pathnode,MergePath))
-     {
-	 Assert(length(get_path_mergeclauses((MergePath) pathnode)) == 1);
-	 cost += xfunc_expense(CAR(get_path_mergeclauses((MergePath) pathnode)))
-	           * get_tuples(get_parent(pathnode));
-     }
-    return(cost);
-}
-
-
 
 #define Node_Copy(a, b, c, d) \
     if (NodeCopy(((a)->d), &((b)->d), c) != true) { \
