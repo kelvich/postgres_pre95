@@ -18,6 +18,8 @@ runtest:
 	@echo To run the Wisconsin benchmark, you must kill the postmaster,
 	@echo cd into "bench" and "make runtest".
 
+install::
+
 .include <postgres.subdir.mk>
 
 #
