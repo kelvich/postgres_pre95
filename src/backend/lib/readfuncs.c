@@ -88,6 +88,7 @@ extern SortKey 		RMakeSortKey();
 extern Temp 		RMakeTemp();
 extern Unique		RMakeUnique();
 extern Var 		RMakeVar();
+extern Array 		RMakeArray();
 
 /* ----------------
  *	_getPlan
@@ -855,6 +856,59 @@ _readVar()
 
 	return(local_node);
 }
+
+/*
+ * ----------------
+ * _readArray
+ *
+ * Array is a subclass of Expr
+ * ----------------
+ */
+
+Array
+_readArray()
+
+{
+	Array		local_node;
+	char		*token;
+	int length;
+
+	local_node = RMakeArray();
+
+	token = lsptok(NULL, &length);    		/* eat :arrayelemtype */
+	token = lsptok(NULL, &length);    		/* get arrayelemtype */
+	
+	local_node->arrayelemtype = (ObjectId) atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :arrayelemlength */
+	token = lsptok(NULL, &length);    		/* get arrayelemlength */
+	
+	local_node->arrayelemlength = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :arrayelembyval */
+	token = lsptok(NULL, &length);    		/* get arrayelembyval */
+	
+	local_node->arrayelembyval = (token[0] == 't') ? true : false;
+
+	token = lsptok(NULL, &length);    		/* eat :arraylow */
+	token = lsptok(NULL, &length);    		/* get arraylow */
+
+	local_node->arraylow = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :arrayhigh */
+	token = lsptok(NULL, &length);    		/* get arrayhigh */
+
+	local_node->arrayhigh = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :arraylen */
+	token = lsptok(NULL, &length);    		/* get arraylen */
+
+	local_node->arraylen = atoi(token);
+
+	return(local_node);
+}
+
+
 
 /* ----------------
  *	_readConst
