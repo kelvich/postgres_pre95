@@ -104,7 +104,7 @@ afterinstall:
 
 realinstall: _PROGSUBDIR
 .if defined(SHPROG)
-	install -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
+	${INSTALL} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 	    ${SHPROG} ${DESTDIR}${BINDIR}/${SHPROG}
 .endif
 .if defined(LINKS) && !empty(LINKS)
