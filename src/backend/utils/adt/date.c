@@ -48,6 +48,7 @@ typedef TimeIntervalData *TimeInterval;
 
 /* absolute time definitions */
 #define	TIME_NOW_STR		"now"	   /* represents time now */
+#define	TIME_EPOCH_STR		"epoch"	   /* Jan 1 00:00:00 1902 */
 #ifndef INVALID_ABSTIME
 #define	INVALID_ABSTIME		MAX_LONG
 #endif	!INVALID_ABSTIME
@@ -133,33 +134,40 @@ abstimein(datetime)
 	extern	int		timeinsec();
 	extern 	AbsoluteTime	timenow();
 
-	struct tm	*brokentime;
-	int		error;
+	int		which;
 	AbsoluteTime	time;
+	struct tm	brokentime;
 
-	brokentime = (struct tm *) palloc (sizeof(struct tm)); 
-	error = isabstime(datetime, brokentime);
-	switch (error) {
-	case 0:	/* syntax error in time format */
-		time = INVALID_ABSTIME; /* invalid time representation */
+	which = isabstime(datetime, &brokentime);
+
+	switch (which) {
+
+	case 3:
+		time = MIN_ABSTIME;
 		break;
+
 	case 2:
 		time = timenow();
 		break;
+
 	case 1:
-		error = timeinsec(brokentime, &time); /* error not used */
-		/* time in respect of GMT !  */
+		(void) timeinsec(&brokentime, &time);
+		break;
+
+	case 0:	/* syntax error in time format */
+		time = INVALID_ABSTIME;
 		break;
 	}
+
 	if (!TimeIsValid((Time)time)) {
 		elog(WARN, "abstimein: cannot handle time of UNIX epoch, yet");
 		return(0);
 	} else if (time == INVALID_ABSTIME) {
 		time = InvalidTime;
 	}
+
 	return(time);
 }
-
 
 /*
  *	abstimeout	- converts the internal time format to a string
@@ -789,8 +797,7 @@ isabstime(datestring, brokentime)
 		p++;
 	}
 	/* check whether invalid time representation or not */
-	if (strncmp(INVALID_ABSTIME_STR, datestring,
-		    INVALID_ABSTIME_STR_LEN) == 0) {
+	if (strcmp(INVALID_ABSTIME_STR, datestring) == 0) {
 		brokentime->tm_sec = INVALID_SEC;
 		brokentime->tm_min = INVALID_MIN;
 		brokentime->tm_hour = INVALID_HOUR;
@@ -802,9 +809,15 @@ isabstime(datestring, brokentime)
 		brokentime->tm_isdst = 0;   /* dst_in_effect not relevant! */
 		return(1);
 	}
+
 	/* check whether time NOW required or not */
-	if (strncmp(TIME_NOW_STR, datestring, strlen(TIME_NOW_STR)) == 0)
+	if (strcmp(TIME_NOW_STR, datestring) == 0)
 		return(2);		    /* time NOW required */
+
+	/* check whether time EPOCH required */
+	if (strcmp(TIME_EPOCH_STR, datestring) == 0)
+		return(3);		    /* time EPOCH required */
+
 	/* handle month */
 	for( i=0; i<=2; i++) {
 		month[i] = c;
