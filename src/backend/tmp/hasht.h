@@ -11,5 +11,8 @@
 #ifndef	HashTIncluded		/* Include this file only once */
 #define HashTIncluded	1
 
-extern void HashTableWalk();
+#include "utils/hsearch.h"
+
+void HashTableWalk ARGS((HTAB *hashtable, void (*func)(), int arg));
+
 #endif	/* !defined(HashTIncluded) */
