@@ -111,6 +111,7 @@ rtrescan(s, fromEnd, key)
 	freestack(p->s_stack);
 	freestack(p->s_markstk);
 	p->s_stack = p->s_markstk = (RTSTACK *) NULL;
+	p->s_flags = 0x0;
     } else {
 	int i;
 
@@ -125,6 +126,7 @@ rtrescan(s, fromEnd, key)
 	p = (RTreeScanOpaque) s->opaque;
 	p->s_stack = p->s_markstk = (RTSTACK *) NULL;
 	p->s_internalNKey = s->numberOfKeys;
+	p->s_flags = 0x0;
 	if (s->numberOfKeys > 0) {
 	    nbytes = s->numberOfKeys * sizeof(ScanKeyEntryData);
 	    bcopy(&(s->keyData.data[0]), &(p->s_internalKey.data[0]), nbytes);
@@ -148,6 +150,10 @@ rtmarkpos(s)
 
     s->currentMarkData = s->currentItemData;
     p = (RTreeScanOpaque) s->opaque;
+    if (p->s_flags & RTS_CURBEFORE)
+	p->s_flags |= RTS_MRKBEFORE;
+    else
+	p->s_flags &= ~RTS_MRKBEFORE;
 
     o = (RTSTACK *) NULL;
     n = p->s_stack;
@@ -175,6 +181,10 @@ rtrestrpos(s)
 
     s->currentItemData = s->currentMarkData;
     p = (RTreeScanOpaque) s->opaque;
+    if (p->s_flags & RTS_MRKBEFORE)
+	p->s_flags |= RTS_CURBEFORE;
+    else
+	p->s_flags &= ~RTS_CURBEFORE;
 
     o = (RTSTACK *) NULL;
     n = p->s_markstk;
@@ -285,8 +295,8 @@ rtadjone(s, op, blkno, offind)
 {
     RTreeScanOpaque so;
 
-    adjustiptr(&(s->currentItemData), op, blkno, offind);
-    adjustiptr(&(s->currentMarkData), op, blkno, offind);
+    adjustiptr(s, &(s->currentItemData), op, blkno, offind);
+    adjustiptr(s, &(s->currentMarkData), op, blkno, offind);
 
     so = (RTreeScanOpaque) s->opaque;
 
@@ -305,24 +315,47 @@ rtadjone(s, op, blkno, offind)
  */
 
 void
-adjustiptr(iptr, op, blkno, offind)
+adjustiptr(s, iptr, op, blkno, offind)
+    IndexScanDesc s;
     ItemPointer iptr;
     int op;
     BlockNumber blkno;
     OffsetIndex offind;
 {
+    OffsetIndex curoff;
+    RTreeScanOpaque so;
+
     if (ItemPointerIsValid(iptr)) {
 	if (ItemPointerGetBlockNumber(iptr) == blkno) {
+	    curoff = ItemPointerGetOffsetNumber(iptr, 0);
+	    so = (RTreeScanOpaque) s->opaque;
+
 	    switch (op) {
 	      case RTOP_DEL:
 		/* back up one if we need to */
-		if (ItemPointerGetOffsetNumber(iptr, 0) <= offind + 1)
-		  ItemPointerSet(iptr, 0, blkno, 0, offind);
+		if (curoff > offind) {
+
+		    if (curoff > 1) {
+			/* just adjust the item pointer */
+			ItemPointerSet(iptr, 0, blkno, 0, curoff - 1);
+		    } else {
+			/* remember that we're before the current tuple */
+			ItemPointerSet(iptr, 0, blkno, 0, 1);
+			if (iptr == &(s->currentItemData))
+			    so->s_flags |= RTS_CURBEFORE;
+			else
+			    so->s_flags |= RTS_MRKBEFORE;
+		    }
+		}
 		break;
 
 	      case RTOP_SPLIT:
 		/* back to start of page on split */
 		ItemPointerSet(iptr, 0, blkno, 0, 1);
+		if (iptr == &(s->currentItemData))
+		    so->s_flags &= ~RTS_CURBEFORE;
+		else
+		    so->s_flags &= ~RTS_MRKBEFORE;
 		break;
 
 	      default:
