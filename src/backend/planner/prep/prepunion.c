@@ -263,7 +263,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	    temp_flag = lispInteger(flag);
 	    NodeSetTag(temp_flag,classTag(LispSymbol));
 	    rt_flags (rt_fetch (rt_index,rangetable)) = 
-	      remove (temp_flag,
+	      LispRemove (temp_flag,
 		      rt_flags (rt_fetch (rt_index,rangetable)));
 	    
 	    /* XXX - can't find any reason to sort union-relids
