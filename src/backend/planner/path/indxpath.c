@@ -19,13 +19,13 @@
 #include "tmp/postgres.h"
 #include "access/att.h"
 
-#include "nodes/pg_lisp.h";
+#include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
 #include "utils/lsyscache.h"
 
-#include "planner/internal.h";
+#include "planner/internal.h"
 #include "planner/indxpath.h"
 #include "planner/clauses.h"
 #include "planner/clauseinfo.h"
