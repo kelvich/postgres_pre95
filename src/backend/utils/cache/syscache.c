@@ -98,7 +98,7 @@ static struct cachedesc cacheinfo[] = {
 		Anum_pg_attribute_attname,
 		0,
 		0 },
-	  sizeof(FormData_pg_attribute),
+	  offsetof(FormData_pg_attribute, attcacheoff),
       &AttributeNameIndex,
       (ScanFunc) AttributeNameIndexScan  },
     { &AttributeRelationName,			/* ATTNUM */
@@ -107,7 +107,7 @@ static struct cachedesc cacheinfo[] = {
 		Anum_pg_attribute_attnum,
 		0,
 		0 },
-	  sizeof(FormData_pg_attribute),
+	  offsetof(FormData_pg_attribute, attcacheoff),
       &AttributeNumIndex,
       AttributeNumIndexScan  },
     { &IndexRelationName,			/* INDEXRELID */
