@@ -27,7 +27,7 @@
 
 /*------------------------------------------------------------------
  * Include PRS2 lock definition
- * These defs were put in a separate file becuase they are included
+ * These defs were put in a separate file because they are included
  * bit "htup.h" and that created a circular dependency...
  */
 #include "rules/prs2locks.h"
@@ -98,37 +98,6 @@ prs2Main ARGS((
  * PRS2 LOCKS
  *==================================================================
  */
-
-/*------------------------------------------------------------------
- * Routines to access/set Prs2Lock data...
- * It is highly recommended that these routines are used instead
- * of directly manipulating the variosu structures invloved..
- *------------------------------------------------------------------
- */
-
-#define prs2OneLockGetRuleId(l)			((l)->ruleId)
-#define prs2OneLockGetLockType(l)		((l)->lockType)
-#define prs2OneLockGetAttributeNumber(l)	((l)->attributeNumber)
-#define prs2OneLockGetPlanNumber(l)		((l)->planNumber)
-
-#define prs2OneLockSetRuleId(l, x)		((l)->ruleId = (x))
-#define prs2OneLockSetLockType(l, x)		((l)->lockType = (x))
-#define prs2OneLockSetAttributeNumber(l, x)	((l)->attributeNumber = (x))
-#define prs2OneLockSetPlanNumber(l, x)		((l)->planNumber = (x))
-
-/*------------------------------------------------------------------
- * prs2LockSize
- *    return the size needed for a 'Prs2LocksData' structure big enough
- *    to hold 'n' of 'Prs2OneLockData' structures...
- */
-#define prs2LockSize(n) (sizeof(Prs2LocksData) \
-			+ ((n)-1)*sizeof(Prs2OneLockData))
-
-/*------------------------------------------------------------------
- * prs2GetNumberOfLocks
- *    return the number of locks contained in a 'RuleLock' structure.
- */
-#define prs2GetNumberOfLocks(x)	((x)->numberOfLocks)
 
 /*------------------------------------------------------------------
  * prs2FreeLocks
