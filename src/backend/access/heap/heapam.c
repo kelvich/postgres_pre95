@@ -822,10 +822,10 @@ heap_endscan(sdesc)
     RelationDecrementReferenceCount(sdesc->rs_rd);
 
     /* ----------------
-     * Non 2-phase read locks on pg_type
+     * Non 2-phase read locks on catalog relations
      * ----------------
      */
-    if ( RelationGetRelationId(sdesc->rs_rd) == RelOid_pg_type )
+    if ( IsSystemRelation(sdesc->rs_rd) )
 	RelationUnsetLockForRead(sdesc->rs_rd);
 
     pfree((char *)sdesc);	/* XXX */
@@ -1204,6 +1204,8 @@ heap_insert(relation, tup, off)
     HeapTuple	tup;
     double	*off;
 {
+    RuleLock returnMe;
+
     /* ----------------
      *	increment access statistics
      * ----------------
@@ -1242,7 +1244,12 @@ heap_insert(relation, tup, off)
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
 
-    return(doinsert(relation, tup));
+    returnMe = doinsert(relation, tup);
+
+    if ( IsSystemRelation(relation) )
+	RelationUnsetLockForWrite(relation);
+
+    return(returnMe);
 }
 
 /* ----------------
@@ -1338,6 +1345,8 @@ heap_delete(relation, tid)
     if (BufferPut(b, L_UN | L_EX | L_WRITE) < 0) {
 	elog(WARN, "heap_delete: failed BufferPut(L_UN | L_WRITE)");
     }
+    if ( IsSystemRelation(relation) )
+	RelationUnsetLockForWrite(relation);
 }
 
 /* ----------------
@@ -1427,6 +1436,8 @@ heap_replace(relation, otid, tup)
 
     if (TupleUpdatedByCurXactAndCmd(tp)) {
 	elog(NOTICE, "Non-functional update, only first update is performed");
+	if ( IsSystemRelation(relation) )
+	    RelationUnsetLockForWrite(relation);
         return (RuleLock)NULL;
     }
     /* XXX order problems if not atomic assignment ??? */
@@ -1516,6 +1527,9 @@ heap_replace(relation, otid, tup)
     if (BufferPut(buffer, L_UN | L_EX | L_WRITE) < 0) {
 	elog(WARN, "heap_replace: failed BufferPut(L_UN | L_WRITE)");
     }
+
+    if ( IsSystemRelation(relation) )
+	RelationUnsetLockForWrite(relation);
 
     return ((RuleLock)NULL);	/* XXX */
 }
