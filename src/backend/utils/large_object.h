@@ -4,6 +4,8 @@
  * $Header$
  */
 
+#include "tmp/c.h"
+
 #define LARGE_OBJECT_BLOCK 1024
 
 /*
@@ -86,3 +88,79 @@ typedef struct
 	LargeObject *object;
 }
 LargeObjectDesc;
+
+/*
+ * Function definitions...
+ */
+
+/*
+ * external registered function interface 
+ */
+
+char *
+lo_filein ARGS((
+	char *filename
+));
+
+
+char *
+lo_fileout ARGS((
+    LargeObject *object
+));
+
+/* 
+ * internal large object interface
+ */
+
+LargeObjectDesc *
+LOCreate ARGS((
+   int open_mode
+));
+
+LargeObjectDesc *
+LOOpen ARGS((
+    LargeObject *object,
+    int open_mode
+));
+
+void
+LOStat ARGS((
+    LargeObjectDesc *obj_desc,
+    unsigned int *nblocks, *byte_offset
+));
+
+int
+LOBlockRead ARGS((
+    LargeObjectDesc *obj_desc,
+    char *buf,
+    unsigned long nblocks
+));
+
+int
+LOBlockWrite ARGS((
+    LargeObjectDesc *obj_desc,
+    char *buf,
+    unsigned long n_whole_blocks, bytes_at_end
+));
+
+unsigned long
+LOBlockSeek ARGS((
+	LargeObjectDesc *obj_desc,
+	unsigned long offset,
+	int whence
+));
+
+void
+LOClose ARGS((
+    LargeObjectDesc *obj_desc
+));
+
+void
+LODestroy ARGS((
+    LargeObject *object
+));
+
+LargeObject *
+LODescToObject ARGS((
+    LargeObjectDesc *obj_desc
+));
