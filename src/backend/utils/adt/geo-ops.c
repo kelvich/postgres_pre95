@@ -1814,14 +1814,22 @@ inter_lb(line, box)
 double poly_min();
 double poly_max();
 
-BOX *
+/*---------------------------------------------------------------------
+ * Make the smallest bounding box for the given polygon.
+ *---------------------------------------------------------------------*/
+void
 make_bound_box(poly)
 POLYGON *poly;
 {
-	return box_construct(poly_min(poly->xpts, poly->npts),
-						poly_max(poly->xpts, poly->npts),
-						poly_min(poly->ypts, poly->npts),
-						poly_max(poly->ypts, poly->npts));
+	double x1,y1,x2,y2;
+	int npts;
+
+	npts = poly->npts;
+	x1 = poly_min(poly->pts, npts);
+	x2 = poly_max(poly->pts, npts);
+	y1 = poly_min(poly->pts+(npts*sizeof(double)), npts),
+	y2 = poly_max(poly->pts+(npts*sizeof(double)), npts);
+	box_fill(&(poly->boundbox), x1, x2, y1, y2); 
 }
 	
 /*------------------------------------------------------------------
@@ -1835,25 +1843,23 @@ char *s;
 	POLYGON *poly;
 	long points;
 	double *xp, *yp, strtod();
-	int i;
+	int i, size;
 
 	if((points = poly_pt_count(s, ',')) < 0)
 		elog(WARN, "Bad input polyon");
 
-	poly = PALLOCTYPE(POLYGON);
+	size = 2*sizeof(double)*points + sizeof(BOX) + 2*sizeof(int);
+	poly = (POLYGON *)PALLOC(size);
+
 	if (!PointerIsValid(poly))
-		elog(WARN, "Memory allocation failed, can't input polygon");
-
-	poly->xpts = (double *)PALLOC(points*sizeof(double));
-	poly->ypts = (double *)PALLOC(points*sizeof(double));
-
-	if (!(PointerIsValid(poly->xpts) && PointerIsValid(poly->ypts)))
 		elog(WARN, "Memory allocation failed, can't input polygon");
 
 	poly->npts = points;
 
-	xp = poly->xpts;
-	yp = poly->ypts;
+	/* Store all x coords followed by all y coords */
+	xp = (double *) &(poly->pts[0]);
+	yp = (double *) (poly->pts + points*sizeof(double));
+
 	s++;				/* skip LDELIM */
 
 	for (i=0; i<points; i++,xp++,yp++)
@@ -1863,7 +1869,7 @@ char *s;
 		*yp = strtod(s, &s);
 		s++;					/* skip delimiter */
 	}
-	poly->boundbox = make_bound_box(poly);
+	make_bound_box(poly);
 	return (poly);
 }
 
@@ -1922,10 +1928,22 @@ POLYGON *poly;
 		elog(WARN, "Memory allocation failed, can't output polygon");
 
 	*outptr++ = LDELIM;
-	for (i=0,xp=poly->xpts,yp=poly->ypts; i<poly->npts; i++,xp++,yp++)
+
+	xp = (double *) poly->pts;
+	yp = (double *) (poly->pts + (poly->npts * sizeof(double)));
+
+	sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *xp++);
+	outptr += P_MAXDIG;
+	*outptr++ = DELIM;
+	sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *yp++);
+	outptr += P_MAXDIG;
+
+	for (i=1; i<poly->npts; i++,xp++,yp++)
 	{
+		*outptr++ = DELIM;
 		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *xp);
 		outptr += P_MAXDIG;
+		*outptr++ = DELIM;
 		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *yp);
 		outptr += P_MAXDIG;
 	}
@@ -1987,8 +2005,8 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	right = poly_max(polya->xpts, polya->npts);
-	left = poly_min(polyb->xpts, polyb->npts);
+	right = poly_max((double *)polya->pts, polya->npts);
+	left = poly_min((double *)polyb->pts, polyb->npts);
 
 	return (right < left);
 }
@@ -2004,8 +2022,8 @@ POLYGON *polya, *polyb;
 {
 	double left, right;
 
-	left = poly_min(polya->xpts, polya->npts);
-	right = poly_max(polyb->xpts, polyb->npts);
+	left = poly_min((double *)polya->pts, polya->npts);
+	right = poly_max((double *)polyb->pts, polyb->npts);
 
 	return (left <= right);
 }
@@ -2021,8 +2039,8 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	left = poly_min(polya->xpts, polya->npts);
-	right = poly_max(polyb->xpts, polyb->npts);
+	left = poly_min((double *)polya->pts, polya->npts);
+	right = poly_max((double *)polyb->pts, polyb->npts);
 
 	return (left > right);
 }
@@ -2038,8 +2056,8 @@ POLYGON *polya, *polyb;
 {
 	double right, left;
 
-	right = poly_max(polya->xpts, polya->npts);
-	left = poly_min(polyb->xpts, polyb->npts);
+	right = poly_max((double *)polya->pts, polya->npts);
+	left = poly_min((double *)polyb->pts, polyb->npts);
 
 	return (right > left);
 }
@@ -2058,9 +2076,10 @@ POLYGON *polya, *polyb;
 	if (polya->npts != polyb->npts)
 		return 0;
 
-	for (	i=0, axp=polya->xpts, bxp=polyb->xpts; 
-			i<polya->npts; 
-			axp++, bxp++, i++)
+	axp = (double *)polya->pts;
+	bxp = (double *)polyb->pts;
+
+	for (i=0; i<polya->npts; axp++, bxp++, i++)
 	{
 		if (*axp != *bxp)
 			return 0;
@@ -2076,7 +2095,7 @@ long
 poly_overlap(polya, polyb)
 POLYGON *polya, *polyb;
 {
-	return box_overlap(polya->boundbox, polyb->boundbox);
+	return box_overlap(&(polya->boundbox), &(polyb->boundbox));
 }
 
 /*-----------------------------------------------------------------
@@ -2087,7 +2106,7 @@ long
 poly_contain(polya, polyb)
 POLYGON *polya, *polyb;
 {
-	return box_contain(polya->boundbox, polyb->boundbox);
+	return box_contain(&(polya->boundbox), &(polyb->boundbox));
 }
 
 /*-----------------------------------------------------------------
@@ -2098,5 +2117,5 @@ long
 poly_contained(polya, polyb)
 POLYGON *polya, *polyb;
 {
-	return box_contain(polya->boundbox, polyb->boundbox);
+	return box_contain(&(polya->boundbox), &(polyb->boundbox));
 }
