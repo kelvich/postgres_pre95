@@ -108,7 +108,8 @@ LispValue plan,params ;
 			       MakeConst(CInteger(CDR(paramnode)),
 					 get_typlen(CInteger(CDR(paramnode))),
 					 CInteger(CDR(CDR(paramnode))),
-					 LispNil));
+					 LispNil,
+					 LispNil /* not a set, for now */));
 	    param_alist = nappend1(param_alist,tmpnode);
 	}
 	return(assoc_params (plan,param_alist));
