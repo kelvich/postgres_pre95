@@ -810,50 +810,52 @@ it empty.  The system will not request confirmation before doing this.
 .\"-----------------
 .sh 3 "Arrays"
 .lp
-.(l C
-.hl
-FIX ME
-multidimensional
-flags
-other new behavior
-.hl
-.)l
 \*(PP allows attributes of an instance to be defined as fixed-length or
-variable-length multi-dimensional arrays.  To illustrate their use, we
-first create a class with an array type.
+variable-length multi-dimensional arrays. Arrays of any base type or 
+user-defined type can be created. To illustrate their use, we
+first create a class with arrays of base types.
 .(C
-* create SAL_EMP (name = char[],
-                  pay_by_quarter = int4[4]) \\g
+* create SAL_EMP (name = text, pay_by_quarter = int4[],
+  		schedule = char16[][]) \\g
 .)C
 The above query will create a class named
 .cW SAL_EMP
-with a variable-length one-dimensional array of
+with a 
 .cW text
-strings
+string
 .cW name ), (
-and a one-dimensional array of 4
+a one-dimensional array of
 .cW int4
-integers
 .cW pay_by_quarter ), (
-which represents the employee's salary by quarter.  Now we do some
+which represents the employee's salary by quarter and a two-dimensional array of
+.cW char16
+.cW schedule ), (
+which represents the employee's weekly schedule.  
+Now we do some
 .cW append s;
-note that when appending to a non-character array, we enclose the
-values within braces and separate them by commas.
+note that when appending to an array, we enclose the
+values within braces and separate them by commas (following a C-like syntax).
 .(C
-* append SAL_EMP (name = "bill",
-      pay_by_quarter = "{10000, 10000, 10000, 10000}") \\g
+* append SAL_EMP (name = "bill", 
+		pay_by_quarter[4] = "{10000, 10000, 10000, 10000}", 
+		schedule[7][2] = "{{"meeting", "lunch"}, {}}") \\g
 
-* append SAL_EMP (name = "jack",
-      pay_by_quarter = "{10000, 15000, 15000, 15000}") \\g
-
-* append SAL_EMP (name = "joe",
-      pay_by_quarter = "{20000, 25000, 25000, 25000}") \\g
+* append SAL_EMP (name = "{"joe"}",
+      	pay_by_quarter = "{20000, 25000, 25000, 25000}", 
+		schedule[5][2] = "{{"talk", "consult"}, {"meeting"}}") \\g
 .)C
 By default, \*(PP uses the 
 .q one-based
 numbering convention for arrays \(em that is, \*(PP arrays start with
 array[1] and end with array[n].  (This is the same convention used in
-Pascal and FORTRAN.)
+Pascal and FORTRAN.). Note that the elements of an array can be specified partly
+or fully. For example, for the attribute
+.cW schedule, 
+we have initialized only part of 
+the array elements. The uninitialized elements are filled with garbage 
+and can be updated later using the 
+.cW replace 
+command.
 .lp
 Now, we can run some queries on
 .cW SAL_EMP .
@@ -868,46 +870,55 @@ This query retrieves the third quarter pay of all employees:
 .(C
 * retrieve (SAL_EMP.pay_by_quarter[3]) \\g
 .)C
-This query deletes everyone from
-.cW SAL_EMP
-whose name begins with the letter
-.q j.
-.cW SAL_EMP
-should now contain only the employee named
-.q bill :
+This query retrieves the first item on the schedule of the first 
+three working days for 
+.cW "bill".
 .(C
-* delete SAL_EMP where SAL_EMP.name[1] = 'j' \\g
+* retrieve (SAL_EMP.schedule[1:3][1:1]) 
+		where SAL_EMP.name = "bill" \\g
 .)C
-Let's make sure (note that the attribute
-.cW all
-may be used as a shorthand for all attributes of a class):
+The
+.cW replace
+command can be used to update an element of an array or a subpart of an array.
+This query updates the schedule for the second and third day for 
+.cW "joe".
 .(C
-* retrieve (SAL_EMP.all) \\g
-.TS
-allbox tab(|);
-l l.
-name|pay_by_quarter
-bill|{10000,10000,10000,10000}
-.TE
+* replace SAL_EMP (schedule[2:3][1:2] = 
+		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
+		where SAL_EMP.name = "joe" \\g
 .)C
-\*(PP supports arrays of base and user-defined types, as well as
-.q "arrays of arrays,"
-as in the following example:
+This query gives a $1000 raise in the first quater to all members whose first
+item on schedule for the first working day is 
+.cW "debugging" 
 .(C
-* create manager (name = char16, employees = text[]) \\g
-
-* append manager (name = "mike",
-                  employees = "{"wei", "greg", "jeff"}") \\g
-
-* append manager (name = "alice",
-                  employees = "{"bill", "joe"}") \\g
-
-* append manager (name = "marge",
-                  employees = "{"mike", "alice"}") \\g
+* replace SAL_EMP (pay_by_quarter[1] = 
+		SAL_EMP.pay_by_quarter[1] + 1000)
+			where SAL_EMP.schedule[1][1] = "debugging" \\g
 .)C
-This creates a class
-.cW manager ,
-and provides a list of employees.
+When arrays are too large to fit in a single page they can be stored as 
+large objects by giving the
+name of a large object file as the array string at 
+.cW append
+time. 
+For example, the following append query will cause the array data to be
+stored as a large object.
+.(C
+* append SAL_EMP (name = "Busy_guy", 
+		schedule[7][101] = "/LO_name") \\g 
+.)C
+The 
+.cW replace 
+query can be used to populate the large object array using the same syntax
+as used for ordinary arrays. This query will cause the first four slots
+on
+.cW "Busy_guy's"
+.cW schedule 
+to be filled.
+.(C
+* replace SAL_EMP (schedule[1:1][1:4] = 
+		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
+		where SAL_EMP.name = "Busy_guy" \\g
+.)C
 .\"-----------------
 .sh 3 "Aggregate Functions"
 .lp
@@ -1806,7 +1817,7 @@ overpaid2(emp, dept, name, number)
 .\"------------------------------------
 .sh 3 "Arrays of Types"
 .lp
-As discussed above, \*(PP fully supports arrays of base types.
+As discussed earlier, \*(PP fully supports arrays of base types.
 Additionally, \*(PP supports arrays of user-defined types as well.
 When you define a type, \*(PP
 .i automatically
@@ -1867,12 +1878,6 @@ indicating that an array has been retrieved, as opposed to a single element.
 .\"-----------------
 .sh 4 "Defining a New Array Type"
 .lp
-.(l C
-.hl
-FIX ME
-this is totally wrong now
-.hl
-.)l
 An array may be defined as an element of a class, as shown above, or it may
 be defined as a type in and of itself.
 This is useful for defining
@@ -1914,192 +1919,18 @@ arrays:
 
 * create stuff (a = int_arrays) \\g
 
-* append stuff (a = "{{1, 2, 3} , {4, 5}, {6, 7, 8}}") \\g
+* append stuff (a = "{"{1, 2, 3}" , "{4, 5}", "{6, 7, 8}"}") \\g
 
-* append stuff (a = "{{88, 99, 3}}") \\g
+* append stuff (a = "{"{88, 99, 3}"}") \\g
 
-* append stuff (a = "{{5, 4, 3} , {2, 2}}") \\g
-
-* retrieve (stuff.a[1])
-      where stuff.a[1][1] < stuff.a[1][2] \\g
-
-* retrieve (stuff.a)
-      where stuff.a[3][1] < stuff.a[1][2] \\g
-
-* retrieve (s.all) from s in stuff
-      where s.a[2][2] = stuff.a[1][1] \\g
+* retrieve (stuff.a[1]) \\g
 .)C
-We can also define operators for equality, less than, greater than,
-etc., which operate on our new array type as necessary.
-.\"-----------------
-.sh 4 "Creating an Array Type from Scratch"
-.lp
-.(l C
-.hl
-FIX ME
-.hl
-.)l
-There are many situations in which the above scheme for creating an
-array type is inappropriate, particularly when it is necessary to
-define a fixed-length array.  In this section, we will create an array
-of four 
-.cW long s
-called
-.cW quarterly ,
-and a variable-length array of 
-.cW long s
-called
-.cW stats .\**
-.(f
-\** We assume
-.cW "sizeof(long) == 4" .
-.)f
-.lp
-The only special things we need to know when writing the input and
-output functions for
-.cW quarterly
-is that \*(PP will pass a
-.q simple
-(i.e., fixed-length) array of
-.cW long s
-to the output function and expect a simple array of
-.cW long s
-in return from the input function.  A simple array suitable for
-.cW quarterly
-can be declared:
+Queries like these will not work on 
+.i "arrays of arrays".
 .(C
-long quarterly[4];
+* retrieve (stuff.a[1][1]) \\g
 .)C
-For the variable-length array
-.cW stats ,
-the situation is a little more complicated.  Because \*(PP will not
-know in advance how big the array is, \*(PP will expect the length of
-the array (in bytes) to be encoded in the first four bytes of the
-memory which contains the array.  The expected structure is:
-.(C
-typedef struct {
-    long length;
-    unsigned char bytes[1]; /* Force contiguity */
-} VAR_LEN_ATTR;
-.)C
-The input function for the
-.cW stats
-array will look something like:
-.(C
-VAR_LEN_ATTR *
-stats_in(s)
-    char s;
-{
-    VAR_LEN_ATTR *stats;
-    long array_size, *arrayp, nbytes;
-
-    /*
-     * nbytes is the total number of bytes in stats,
-     * INCLUDING the byte count at the beginning
-     */
-    nbytes = array_size * sizeof(long)  +  sizeof(long);
-
-    stats = (VAR_LEN_ATTR *) palloc(nbytes);
-
-    stats->length = nbytes;
-
-    arrayp = &(stats->bytes[0]);
-
-    /*
-     * put code here that loads interesting stuff into
-     * arrayp[0] .. arrayp[array_size]
-     */
-
-    return(stats);
-}
-.)C
-The output function for
-.cW stats
-will get the same
-.cW VAR_LEN_ATTR
-structure.
-.lp
-Now, assuming the functions are in
-.cW /usr/local/postgres/stats.c
-and
-.cW /usr/local/postgres/quarterly.c ,
-we can define our two arrays.  First we will define the fixed-size
-array
-.cW quarterly .\**
-.(f
-\** The assumption that
-.cW "internallength == 16"
-follows from our assumption about
-.cW sizeof(long) .
-.)f
-.(C
-* define function quarterly_in
-      (language = "c", returntype = quarterly)
-      arg is (any)
-      as "/usr/local/postgres/quarterly.o" \\g
-
-* define function quarterly_out
-      (language = "c", returntype = any)
-      arg is (any)
-      as "/usr/local/postgres/quarterly.o" \\g
-
-* define type quarterly
-      (element = int4, internallength = 16,
-       input = quarterly_in, output = quarterly_out) \\g
-.)C
-Now we define the
-.cW stats
-array:
-.(C
-* define function stats_in
-      (language = "c", returntype = stats)
-      arg is (any)
-      as "/usr/local/postgres/stats.o" \\g
-
-* define function stats_out
-      (language = "c", returntype = any)
-      arg is (any)
-      as "/usr/local/postgres/stats.o" \\g
-
-* define type stats
-      (element = int4, internallength = variable,
-       input = stats_in, output = stats_out) \\g
-.)C
-Now we can run some queries:
-.(C
-* create test (a = quarterly, b = stats) \\g
-
-* append test (a = "1 2 3 4"::quarterly,
-               b = "5 6 7"::stats) \\g
-
-* append test (a = "1 3 2 4"::quarterly,
-               b = "6 4"::stats) \\g
-
-* append test (a = "7 11 6 9"::quarterly,
-               b = "1 2"::stats) \\g
-
-* retrieve (test.all) where test.a[4] = test.b[2] \\g
-.)C
-which returns:
-.(T
-.TS
-tab(|) allbox;
-l l.
-a|b
-1324|64
-.TE
-.)T
-Note that when you use your own functions to input and output array
-types,
-.i "your function"
-will define how to parse the external (string) representation.  The
-braces notation is only a convention used by
-.cW array_in
-and
-.cW array_out
-and is
-.i not
-part of the formal \*(PQ definition.
+However, two dimensional arrays can be used to get this behavior.
 .\"------------------------------------
 .sh 3 "Large Object Types"
 .lp
