@@ -158,8 +158,8 @@
  * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
  * 'struct Blah *blah'.		- ron 'blah blah' choi
  */
-typedef	struct EState *EStatePtr;
-typedef	struct Plan *PlanPtr;
+typedef	struct _EState *EStatePtr;
+typedef	struct _Plan *PlanPtr;
 
 class (Plan) public (Node) {
 #define PlanDefs \
@@ -189,7 +189,7 @@ class (Plan) public (Node) {
  * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
  * 'struct Blah *blah'.		- ron 'blah blah' choi
  */
-typedef	struct Fragment *FragmentPtr;
+typedef	struct _Fragment *FragmentPtr;
 
 class (Fragment) public (Node) {
 #define FragmentDefs \
@@ -331,7 +331,7 @@ class (JoinRuleInfo) public (Node) {
  * with 'BlahPtr' in the #define's.  The reason?  Sprite cannot handle
  * 'struct Blah *blah'.		- ron 'blah blah' choi
  */
-typedef	struct JoinRuleInfo *JoinRuleInfoPtr;
+typedef	struct _JoinRuleInfo *JoinRuleInfoPtr;
 
 class (Join) public (Plan) {
 #define	JoinDefs \
