@@ -252,10 +252,12 @@ class (Const) public (Expr) {
  *
  *	PARAM_NUM:   The parameter has only a numeric identifier,
  *              i.e. something like `$1', `$2' etc.
- *              The number is contained in the `parmid' field.
+ *              The number is contained in the `paramid' field.
  *
  * 	PARAM_NEW:   Used in PRS2 rule, similar to PARAM_NAMED.
- *              The `paramname' refers to the "NEW" tuple
+ * 	             The `paramname' and `paramid' refer to the "NEW" tuple
+ *		     The `pramname' is the attribute name and `paramid'
+ *	    	     is the attribute number.
  *
  *	PARAM_OLD:   Same as PARAM_NEW, but in this case we refer to
  *              the "OLD" tuple.
@@ -270,7 +272,7 @@ class (Param) public (Expr) {
  /* private: */
 	inherits(Expr);
 	int			paramkind;
-	int32			paramid;
+	AttributeNumber		paramid;
 	Name			paramname;
 	ObjectId		paramtype;
  /* public: */
