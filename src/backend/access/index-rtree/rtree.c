@@ -261,7 +261,7 @@ rtdoinsert(r, itup)
     Buffer buffer;
     BlockNumber blk;
     IndexTuple which;
-    OffsetNumber l;
+    OffsetNumber l = 0;	/* XXX this is never set, but it's read below!? */
     RTSTACK *stack;
     InsertIndexResult res;
     RTreePageOpaque opaque;
@@ -322,6 +322,7 @@ rtdoinsert(r, itup)
 
     /* build and return an InsertIndexResult for this insertion */
     res = (InsertIndexResult) palloc(sizeof(InsertIndexResultData));
+    /* XXX "l" is never set! */
     ItemPointerSet(&(res->pointerData), 0, blk, 0, l);
     res->lock = (RuleLock) NULL;
     res->offset = (double) 0;
