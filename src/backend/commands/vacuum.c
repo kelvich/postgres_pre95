@@ -366,7 +366,7 @@ _vc_vacheap(p, curvrl, onerel)
 
 	    if (TransactionIdIsValid((TransactionId)htup->t_xmax)) {
 		if (TransactionIdDidAbort(htup->t_xmax)) {
-		    PointerStoreInvalidTransactionId(&(htup->t_xmax));
+		    PointerStoreInvalidTransactionId((Pointer)&(htup->t_xmax));
 		    pgchanged = true;
 		} else if (TransactionIdDidCommit(htup->t_xmax)) {
 		    if (!AbsoluteTimeIsReal(htup->t_tmax)) {

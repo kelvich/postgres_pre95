@@ -190,7 +190,7 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXidP)
      */
     if (index == 0) {
 	if (returnXidP != NULL)
-	    TransactionIdStore(baseXid, (Pointer) returnXidP);
+	    TransactionIdStore(baseXid, returnXidP);
     }
 
     /* ----------------
