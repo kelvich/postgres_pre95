@@ -401,9 +401,9 @@ DestroyStmt:
 FetchStmt:
 	  Fetch OptFetchDirn OptFetchNum OptFetchPname
 		{
-		    $2 = lispCons ( $2 , LispNil );
-		    $3 = lispCons ( $3 , $2 );
-		    $4 = lispCons ( $4 , $3 );
+		    $3 = lispCons ( $3 , LispNil );
+		    $2 = lispCons ( $2 , $3 );
+		    $4 = lispCons ( $4 , $2 );
 		    $$ = lispCons ( $1 , $4 );
 	        }
 	;
