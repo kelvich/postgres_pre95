@@ -1,3 +1,4 @@
+/* $Header$ */
 extern notify_parser();
 
 extern int MAKE_RESDOM,MAKE_VAR,MAKE_ADT,MAKE_CONST,MAKE_PARAM,MAKE_OP;
