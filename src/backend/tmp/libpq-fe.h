@@ -44,7 +44,6 @@ extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int result_is
 extern char *PQexec ARGS((char *query));
 extern Pointer palloc ARGS((Size size));
 extern void pfree ARGS((Pointer pointer));
-extern void ExcRaise ARGS((int arg1, char *string));
 extern void elog ARGS(());
 extern void AssertionFailed ARGS((const String assertionName, const String fileName, const int lineNumber));
 

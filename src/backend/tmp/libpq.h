@@ -115,7 +115,8 @@ extern PortalEntry *portals[];
  * Exceptions.
  */
 
-#define libpq_raise(X, Y) ExcRaise((X), (Y))
+#define libpq_raise(X, Y) ExcRaise((Exception *)(X), (ExcDetail) (Y),\
+				   (ExcData)0, (ExcMessage) 0)
 
 extern Exception MemoryError, PortalError, PostquelError, ProtocolError;
 
@@ -137,7 +138,7 @@ extern void pqdebug2 ARGS((char *target, char *msg1, char *msg2));
 extern void PQtrace ARGS(());
 extern void PQuntrace ARGS(());
 extern int PQnportals ARGS((int rule_p));
-extern void PQpnames ARGS((int pnames, int rule_p));
+extern void PQpnames ARGS((char **pnames, int rule_p));
 extern PortalBuffer *PQparray ARGS((char *pname));
 extern int PQrulep ARGS((PortalBuffer *portal));
 extern int PQntuples ARGS((PortalBuffer *portal));
@@ -191,7 +192,7 @@ extern void pq_putnchar ARGS((char *s, int n));
 extern void pq_putint ARGS((int i, int b));
 extern int pq_getinaddr ARGS((struct sockaddr_in *sin, char *host, int port));
 extern int pq_getinserv ARGS((struct sockaddr_in *sin, char *host, char *serv));
-extern int pq_connect ARGS((char *host, char *port));
+int pq_connect ARGS((char *dbname , char *user , char *args , char *hostName , char *debugTty , char *execFile , int portName ));
 extern int pq_accept ARGS(());
     
 #endif LibpqIncluded
