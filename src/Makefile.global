@@ -314,8 +314,8 @@ HPUX_MAJOR=${HPUX_VERS:R:E}
 CFLAGS+= +u -DHP_S500_ALIGN
 LDFLAGS+= +u
 .    elif (${HPUX_MAJOR} == "09")
-CFLAGS+= +u4
-LDFLAGS+= +u4
+CFLAGS+= +u
+LDFLAGS+= +u
 .    endif
 .  elif (${PORTNAME} == "alpha")
 CFLAGS+= -DNOPRINTADE
@@ -337,5 +337,5 @@ MAKE_EXPORTS=
 # everything to compile.  :-/
 #
 .if (${PORTNAME} == "aix")
-CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP
+CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP -DUSE_POSIX_TIME
 .endif
