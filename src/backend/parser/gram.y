@@ -386,7 +386,7 @@ key_list:
 	;
 
 key:
-	  attribute OptUseOp
+	  attr_name OptUseOp
 		{
 		  $$ = lispCons($1,lispCons($2,LispNil)) ;
 		}
@@ -735,7 +735,7 @@ remove_operator:
   **********************************************************************/
 
 RenameStmt :
-	  RENAME attribute IN relation_name TO attribute
+	  RENAME attr_name IN relation_name TO attr_name
 		{ 
 		    $$ = MakeList ( KW(rename), lispString("ATTRIBUTE"),
 				    $4, $2, $6, -1 );
@@ -850,7 +850,7 @@ RuleBody:
 	;
 
 event_object: 
-	relation_name '.' attribute
+	relation_name '.' attr_name
 		{ $$ = MakeList ( $1, $3, -1 ); }
 	| relation_name
 		{ $$ = lispCons ( $1, LispNil ); }
@@ -1212,7 +1212,7 @@ index_list:
 	;
 
 index_elem:
-	  attribute opt_class
+	  attr_name opt_class
 		{ $$ = nappend1(LispNil,$1); nappend1($$,$2);}
 	;
 opt_class:
@@ -1498,9 +1498,17 @@ a_expr:
 						   get_vartype((Var)temp));
 			NewWasUsed = false;
 		    }
-
-		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
-				    $$ );
+		    if (IsA(temp,Var)) {
+			$$ = lispCons ( lispInteger (get_vartype((Var)temp)),
+				       $$ );
+		    } else if (IsA(temp,LispList) ) {
+			$$ = lispCons ( lispInteger 
+				          (get_vartype((Var)CADR(temp))),
+				       $$ );
+		    } else {
+			elog(WARN, "Var or union expected, not found");
+		    }
+			
 		}
  /*	| attr '(' expr_list ')'
 		{ 
@@ -1591,7 +1599,7 @@ expr_list:
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:
-	  relation_name '.' attribute
+	  relation_name '.' attr_name
 		{    
 		    INC_NUM_LEVELS(1);		
 		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
@@ -1600,7 +1608,7 @@ attr:
 						      CString($1)));
 		    $$ = MakeList ( $1 , $3 , -1 );
 		}
-	| attr '.' attribute
+	| attr '.' attr_name
 		{
 		    $$ = nappend1 ( $1, $3 ); 
 		}
@@ -1685,7 +1693,7 @@ relation_name:
 
 access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
-attribute: 		Id		/*$$=$1*/;
+attr_name: 		Id		/*$$=$1*/;
 class: 			Id		/*$$=$1*/;
 col_name:		Id		/*$$=$1*/;
 index_name: 		Id		/*$$=$1*/;
