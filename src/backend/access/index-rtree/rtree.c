@@ -336,8 +336,9 @@ rttighten(r, stk, datum, att_size)
     int att_size;
 {
     char *oldud;
+    char *tdatum;
     Page p;
-    int old_size, newd_size;
+    float *old_size, *newd_size;
     RegProcedure union_proc, size_proc;
     Buffer b;
 
@@ -353,16 +354,25 @@ rttighten(r, stk, datum, att_size)
     oldud = (char *) PageGetItem(p, PageGetItemId(p, stk->rts_child));
     oldud += sizeof(IndexTupleData);
 
-    old_size = (int) fmgr(size_proc, oldud);
+    old_size = (float *) fmgr(size_proc, oldud);
     datum = (char *) fmgr(union_proc, oldud, datum);
 
-    newd_size = (int) fmgr(size_proc, datum);
+    newd_size = (float *) fmgr(size_proc, datum);
 
-    /* XXX assume constant-size data items here */
-    if (newd_size != old_size) {
+    if (*newd_size != *old_size) {
 	bcopy(datum, oldud, att_size);
 	WriteBuffer(b);
-	rttighten(r, stk->rts_parent, datum, att_size);
+
+	/*
+	 *  The user may be defining an index on variable-sized data (like
+	 *  polygons).  If so, we need to get a constant-sized datum for
+	 *  insertion on the internal page.  We do this by calling the union
+	 *  proc, which is guaranteed to return a rectangle.
+	 */
+
+	tdatum = (char *) fmgr(union_proc, datum, datum);
+	rttighten(r, stk->rts_parent, tdatum, att_size);
+	pfree(tdatum);
     } else {
 	ReleaseBuffer(b);
     }
@@ -604,9 +614,9 @@ picksplit(r, page, v, itup)
     RegProcedure size_proc;
     RegProcedure inter_proc;
     bool firsttime;
-    int waste;
-    int size_alpha, size_beta, size_union, size_waste, size_inter;
-    int size_l, size_r;
+    float *size_alpha, *size_beta, *size_union, *size_inter;
+    float size_waste, waste;
+    float *size_l, *size_r;
     int nbytes;
     OffsetNumber seed_1, seed_2;
     OffsetNumber *left, *right;
@@ -632,12 +642,15 @@ picksplit(r, page, v, itup)
 
 	    /* compute the wasted space by unioning these guys */
 	    union_d = (char *) fmgr(union_proc, datum_alpha, datum_beta);
-	    size_union = (int) fmgr(size_proc, union_d);
+	    size_union = (float *) fmgr(size_proc, union_d);
 	    inter_d = (char *) fmgr(inter_proc, datum_alpha, datum_beta);
-	    size_inter = (int) fmgr(size_proc, inter_d);
-	    size_waste = size_union - size_inter;
+	    size_inter = (float *) fmgr(size_proc, inter_d);
+	    size_waste = *size_union - *size_inter;
 
 	    pfree(union_d);
+	    pfree(size_union);
+	    pfree(size_inter);
+
 	    if (inter_d != (char *) NULL)
 		    pfree(inter_d);
 
@@ -663,11 +676,11 @@ picksplit(r, page, v, itup)
     item_1 = (IndexTuple) PageGetItem(page, PageGetItemId(page, seed_1));
     datum_alpha = ((char *) item_1) + sizeof(IndexTupleData);
     datum_l = (char *) fmgr(union_proc, datum_alpha, datum_alpha);
-    size_l = (int) fmgr(size_proc, datum_l);
+    size_l = (float *) fmgr(size_proc, datum_l);
     item_2 = (IndexTuple) PageGetItem(page, PageGetItemId(page, seed_2));
     datum_beta = ((char *) item_2) + sizeof(IndexTupleData);
     datum_r = (char *) fmgr(union_proc, datum_beta, datum_beta);
-    size_r = (int) fmgr(size_proc, datum_r);
+    size_r = (float *) fmgr(size_proc, datum_r);
 
     /*
      *  Now split up the regions between the two seeds.  An important
@@ -710,30 +723,36 @@ picksplit(r, page, v, itup)
 	datum_alpha = ((char *) item_1) + sizeof(IndexTupleData);
 	union_dl = (char *) fmgr(union_proc, datum_l, datum_alpha);
 	union_dr = (char *) fmgr(union_proc, datum_r, datum_alpha);
-	size_alpha = (int) fmgr(size_proc, union_dl);
-	size_beta = (int) fmgr(size_proc, union_dr);
+	size_alpha = (float *) fmgr(size_proc, union_dl);
+	size_beta = (float *) fmgr(size_proc, union_dr);
 
 	/* pick which page to add it to */
-	if (size_alpha - size_l < size_beta - size_r) {
+	if (*size_alpha - *size_l < *size_beta - *size_r) {
 	    pfree(datum_l);
 	    pfree(union_dr);
 	    datum_l = union_dl;
-	    size_l = size_alpha;
+	    *size_l = *size_alpha;
 	    *left++ = i;
 	    v->spl_nleft++;
 	} else {
 	    pfree(datum_r);
 	    pfree(union_dl);
 	    datum_r = union_dr;
-	    size_r = size_alpha;
+	    *size_r = *size_alpha;
 	    *right++ = i;
 	    v->spl_nright++;
 	}
+
+	pfree(size_alpha);
+	pfree(size_beta);
     }
     *left = *right = (OffsetNumber)0;
 
     v->spl_ldatum = datum_l;
     v->spl_rdatum = datum_r;
+
+    pfree(size_l);
+    pfree(size_r);
 }
 
 RTInitBuffer(b, f)
@@ -764,14 +783,15 @@ choose(r, p, it)
     int i;
     char *ud, *id;
     char *datum;
-    int isize, usize, dsize;
-    int which, which_grow;
+    float *isize, *usize, *dsize;
+    int which;
+    float which_grow;
     RegProcedure union_proc, size_proc;
 
     union_proc = index_getprocid(r, 1, RT_UNION_PROC);
     size_proc = index_getprocid(r, 1, RT_SIZE_PROC);
     id = ((char *) it) + sizeof(IndexTupleData);
-    isize = (int) fmgr(size_proc, id);
+    isize = (float *) fmgr(size_proc, id);
     maxoff = PageGetMaxOffsetIndex(p);
     which_grow = -1;
     which = -1;
@@ -779,17 +799,21 @@ choose(r, p, it)
     for (i = 0; i <= maxoff; i++) {
 	datum = (char *) PageGetItem(p, PageGetItemId(p, i));
 	datum += sizeof(IndexTupleData);
-	dsize = (int) fmgr(size_proc, datum);
+	dsize = (float *) fmgr(size_proc, datum);
 	ud = (char *) fmgr(union_proc, datum, id);
-	usize = (int) fmgr(size_proc, ud);
+	usize = (float *) fmgr(size_proc, ud);
 	pfree(ud);
-	if (which_grow < 0 || usize - dsize < which_grow) {
+	if (which_grow < 0 || *usize - *dsize < which_grow) {
 	    which = i;
 	    which_grow = usize - dsize;
 	    if (which_grow == 0)
 		break;
 	}
+	pfree(usize);
+	pfree(dsize);
     }
+
+    pfree(isize);
     return (which);
 }
 
