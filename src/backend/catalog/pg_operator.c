@@ -548,7 +548,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
      */
     i = 0;
     values[i++] = (char *) operatorName;
-    values[i++] = (char *) (ObjectId) getuid();
+    values[i++] = (char *) (ObjectId) GetUserId();
     values[i++] = (char *) precedence;
     values[i++] = (char *) (NameIsValid(leftTypeName) ?
 			    (NameIsValid(rightTypeName) ? 'b' : 'l') : 'r');
