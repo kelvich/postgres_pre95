@@ -436,13 +436,12 @@ pg_checkretval(rettype, parselist)
     int cmd;
     char *typ;
     Resdom resnode;
-    Var varnode;
+    LispValue thenode;
     Relation reln;
     ObjectId relid;
+    ObjectId tletype;
     int relnatts;
     int i;
-    ObjectId rtrelid;
-    int varno, varattno;
 
     /* find the final query */
     while (CDR(parselist) != LispNil)
@@ -527,9 +526,7 @@ pg_checkretval(rettype, parselist)
      *  By here, the procedure returns a (set of) tuples.  This part of
      *  the typechecking is a hack.  We look up the relation that is
      *  the declared return type, and be sure that attributes 1 .. n
-     *  for that relation appear in the target list, in order, and that
-     *  no others do.  This is because .all expansion happens in the
-     *  wrong place in postgres.
+     *  in the target list match the declared types.
      */
 
     reln = heap_open(get_typrelid(typ));
@@ -540,8 +537,6 @@ pg_checkretval(rettype, parselist)
     relid = reln->rd_id;
     relnatts = reln->rd_rel->relnatts;
 
-    heap_close(reln);
-
     if (ExecTargetListLength(tlist) != relnatts)
 	elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
 
@@ -549,28 +544,21 @@ pg_checkretval(rettype, parselist)
     for (i = 1; i <= relnatts; i++) {
 	tle = CAR(tlist);
 	tlist = CDR(tlist);
-	varnode = (Var) CADR(tle);
+	thenode = CADR(tle);
 
-	if (!IsA(varnode,Var))
+	if (IsA(thenode,Var))
+	    tletype = (ObjectId) get_vartype((Var)thenode);
+	else if (IsA(thenode,Const))
+	    tletype = (ObjectId) get_consttype((Const)thenode);
+	else
 	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
 
-	varno = get_varno(varnode);
-	varattno = get_varattno(varnode);
-
-	/* make sure atts are in ascending order */
-	if (varattno != i)
-	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
-
-	/* get the range table entry */
-	for (rte = rt; varno > 1; varno--, rte = CDR(rte))
-	    continue;
-
-	rte = CAR(rte);
-	rtrelid = (ObjectId) CInteger(CADR(CDR(rte)));
-
-	if (rtrelid != relid)
+	/* reach right in there, why don't you? */
+	if (tletype != reln->rd_att.data[i-1]->atttypid)
 	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
     }
+
+    heap_close(reln);
 
     /* success */
     return;
