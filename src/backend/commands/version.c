@@ -29,14 +29,41 @@ static char attr_list[MAX_QUERY_LEN];
 /*
  *  This is needed because the rule system only allows 
  *  *1* rule to be defined per transaction.
+ *
+ * NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+ * OOOOOOOOOOOOOOOOOOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ *
+ * DONT DO THAT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ *
+ * If you commit the current Xact all the palloced memory GOES AWAY
+ * and could be re-palloced in the new Xact and the whole hell breaks
+ * loose and poor people like me spend 2 hours of their live chassing
+ * a strange memory bug instead of watching the "Get Smart" marathon
+ * in NICK !
+ * DO NOT COMMIT THE XACT, just increase the Cid counter!
+ *							_sp.
  */
 
 void
 eval_as_new_xact ( query )
      char *query;
 {
-  CommitTransactionCommand();
-  StartTransactionCommand();
+  /* WARNING! do not uncomment the following lines WARNING!
+   *  CommitTransactionCommand();
+   * StartTransactionCommand();
+   */
+  CommandCounterIncrement();
   pg_eval(query);
 }
 
@@ -59,17 +86,17 @@ CreateVersion (name, bnamestring)
   if ( NodeType(bnamestring) == classTag(LispStr) ) {
     /* no time ranges */
     bname = (Name)CString(bnamestring);
-    bcopy ( bname, saved_basename, strlen(bname));
+    strcpy(saved_basename, bname);
     *saved_snapshot = (char)NULL;
   } else {
     /* version is a snapshot */
     bname = (Name)CString(CAR(bnamestring));
-    bcopy(bname,saved_basename, strlen(bname));
+    strcpy(saved_basename, bname);
     sprintf(saved_snapshot, "[\"%s\"]",
 	    CString(CADR(bnamestring)) );
   }
 
-  bcopy ( name, saved_vname, sizeof(NameData));
+  bcopy (name, saved_vname, sizeof(NameData));
   
   /*
    * Calls the routine ``GetAttrList'' get the list of attributes
@@ -80,6 +107,7 @@ CreateVersion (name, bnamestring)
 
   tmp_list = GetAttrList(bname);
   
+  attr_list[0] = '\0';
   foreach(i, tmp_list) {
     temp = CAR(i);
     attrname = CString(temp);
@@ -99,7 +127,6 @@ CreateVersion (name, bnamestring)
   VersionDelete (saved_vname, saved_basename,saved_snapshot);
   VersionReplace (saved_vname, saved_basename,saved_snapshot);
   VersionRetrieve (saved_vname, saved_basename, saved_snapshot);
-  bzero(attr_list,length);
 
 }
 
