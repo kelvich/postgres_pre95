@@ -472,6 +472,7 @@ int p_closedir(dirp)
 int p_chdir(path)
      char *path;
 {
+    char *evar;
     struct pgstat st;
 
     if (p_stat(path,&st) < 0) {
@@ -487,8 +488,13 @@ int p_chdir(path)
     } else {
 	strcpy(cwdir,resolve_path(path));
     }
-    setenv("PFCWD",cwdir,1);
-    return 0;
+    evar = palloc(strlen(cwdir)+strlen("PFCWD")+2);
+    sprintf(evar, "PFCWD=%s", cwdir);
+    if (putenv(evar))
+	return (-1);
+
+    pfree(evar);
+    return (0);
 }
 
 char *p_getwd(path)
