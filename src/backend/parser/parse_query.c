@@ -277,7 +277,7 @@ MakeRangeTableEntry( relname , options , refname)
 	/* Flags - zero or more from archive,inheritance,union,version */
 
 	if(options & 0x01 ) /* XXX - fix this */
-	  Flags = lispCons( lispString ("inherit") , Flags );
+	  Flags = lispCons( lispAtom ("inheritance") , Flags );
 
 	/* TimeRange */
 
