@@ -4,6 +4,10 @@
  *	system catalogs).
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include <stdio.h>
 #include "pg_lisp.h"
 #include "postgres.h"
@@ -14,10 +18,10 @@
 #include "fmgr.h"
 #include "heapam.h"
 #include "log.h"
-#include "syscache.h"
 #include "parsetree.h"
+#include "syscache.h"
+#include "tqual.h"
 
-RcsId("$Header$");
 
 /*
  *	RelationCatalogInformation
@@ -120,7 +124,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 			HeapScanEnd(scan);
 		indexKey[0].argument.objectId.value = indrelid;
 		relation = RelationNameOpenHeapRelation(IndexRelationName);
-		scan = RelationBeginHeapScan(relation, 0, NowTimeRange,
+		scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 					     1, (ScanKey) indexKey);
 	}
 	if (!HeapScanIsValid(scan))
@@ -400,7 +404,7 @@ find_inheritance_children (inhparent)
 	key[0].argument.objectId.value =
 	  (ObjectId) LISPVALUE_INTEGER(inhparent);
 	relation = RelationNameOpenHeapRelation(InheritsRelationName);
-	scan = RelationBeginHeapScan(relation, 0, NowTimeRange,
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) key);
 	while (HeapTupleIsValid(inheritsTuple =
 				HeapScanGetNextTuple(scan, 0,
@@ -436,7 +440,7 @@ VersionGetParents(verrelid, list)
 	relation = RelationNameOpenHeapRelation(VersionRelationName);
 	key[0].argument.objectId.value =
 		(ObjectId) LISPVALUE_INTEGER(verrelid);
-	scan = RelationBeginHeapScan(relation, 0, NowTimeRange,
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) key);
 	for (;;) {
 		versionTuple = HeapScanGetNextTuple(scan, 0,
