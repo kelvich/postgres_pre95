@@ -900,11 +900,11 @@ bool can_coerce(nargs, input_typeids, func_typeids)
      */
     for (i=0; i<nargs; i++) {
 	if (input_typeids[i] != func_typeids[i]) {
-	    if (input_typeids[i] != UNKNOWNOID)
+	    if (input_typeids[i] != UNKNOWNOID || func_typeids[i] == 0)
 		return false;
 	    
 	    tp = get_id_type(input_typeids[i]);
-	    if (typetypetype(tp) == 'c')
+	    if (typetypetype(tp) == 'c' )
 		return false;
 	}
     }
@@ -1051,8 +1051,13 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype,
     }
 
     if (!HeapTupleIsValid(ftup)) {
-	func_error("func_get_detail", funcname, nargs, oid_array);
-	return (false);
+	Type tp = get_id_type(oid_array[0]);
+
+	if (nargs == 1 && typetypetype(tp) == 'c')
+	    elog(WARN, "no such attribute or function \"%s\"",
+		 funcname);
+	else
+	    func_error("func_get_detail", funcname, nargs, oid_array);
     }
 
     else {
