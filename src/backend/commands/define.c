@@ -911,6 +911,10 @@ DefineFunction(name, parameters)
 		argCount = 0;
 		arg = NULL;
 	} else {
+		/*
+		 * first discard symbol 'arg from list
+		 */
+		argList = CDR(argList);
 		argCount = length(argList);
 		arg = NULL;			
 		if (argCount != 0) {
@@ -919,7 +923,7 @@ DefineFunction(name, parameters)
 
 			arg = CreateTemplateTupleDesc(argCount);
 			for (rest = argList; !null(rest); rest = CDR(rest)) {
-				if (!lispStringp(CAR(CAR(rest)))) {
+				if (!lispStringp(CAR(rest))) {
 	elog(WARN, "DefineFunction: returntype = ?");
 				}
 			}
