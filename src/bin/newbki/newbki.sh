@@ -24,7 +24,7 @@ echo  "Error: it looks like you already ran initdb."
 echo  "You should first run cleardbdir if you want to reset the postgres userid."
 exit
 fi
-echo -n 'Enter username that postgres should use (default is postgres):  '
+echo _fUnKy_DASH_N_sTuFf_ 'Enter username that postgres should use (default is postgres):  '_fUnKy_BACKSLASH_C_sTuFf_
 read name || exit
 case $name in
 "")	name=postgres ;;

@@ -67,7 +67,7 @@ fi
 
 if [ -z "$NEWUSER" ]
 then
-    echo -n "Enter name of user to add ---> "
+    echo _fUnKy_DASH_N_sTuFf_ "Enter name of user to add ---> "_fUnKy_BACKSLASH_C_sTuFf_
     read NEWUSER
 fi
 
@@ -105,7 +105,7 @@ do
     fi
     while  [ -z "$SYSID" ]
     do
-	echo -n "Enter user's postgres ID$DEFMSG -> "
+	echo _fUnKy_DASH_N_sTuFf_ "Enter user's postgres ID$DEFMSG -> "_fUnKy_BACKSLASH_C_sTuFf_
 	read SYSID
 	[ -z "$SYSID" ] && SYSID=$DEFSYSID;
 	QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""
@@ -138,7 +138,7 @@ yn=f
 
 while [ "$yn" != y -a "$yn" != n ]
 do
-    echo -n "Is user \"$NEWUSER\" allowed to create databases (y/n) "
+    echo _fUnKy_DASH_N_sTuFf_ "Is user \"$NEWUSER\" allowed to create databases (y/n) "_fUnKy_BACKSLASH_C_sTuFf_
     read yn
 done
 
@@ -157,7 +157,7 @@ yn=f
 
 while [ "$yn" != y -a "$yn" != n ]
 do
-    echo -n "Is user \"$NEWUSER\" allowed to add users? (y/n) "
+    echo _fUnKy_DASH_N_sTuFf_ "Is user \"$NEWUSER\" allowed to add users? (y/n) "_fUnKy_BACKSLASH_C_sTuFf_
     read yn
 done
 

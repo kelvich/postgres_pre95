@@ -12,7 +12,7 @@
 [ -z "$PGDATA" ] && PGDATA=_fUnKy_DATADIR_sTuFf_
 
 echo "This program completely destroys all the databases in $PGDATA"
-echo -n "Are you sure you want to do this (y/n) [n]? "
+echo _fUnKy_DASH_N_sTuFf_ "Are you sure you want to do this (y/n) [n]? "_fUnKy_BACKSLASH_C_sTuFf_
 read resp || exit
 case $resp in
 	y*)	: ;;
