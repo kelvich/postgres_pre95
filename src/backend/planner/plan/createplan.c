@@ -80,11 +80,15 @@ create_plan(best_path,origtlist)
      Rel parent_rel;
      Count size;
      Count width;
+     Count pages;
+     Count tuples;
 
      parent_rel = get_parent(best_path);
      tlist = get_actual_tlist(get_targetlist(parent_rel));
      size = get_size(parent_rel);
      width = get_width(parent_rel);
+     pages = get_pages(parent_rel);
+     tuples = get_tuples(parent_rel);
 
      switch(get_pathtype(best_path)) {
 	case T_IndexScan : 
@@ -103,6 +107,7 @@ create_plan(best_path,origtlist)
 
      set_plan_size(plan_node, size);
      set_plan_width(plan_node, width);
+     set_plan_tupperpage(plan_node, tuples/pages);
      set_fragment(plan_node, 0);
 
      /*    Attach a SORT node to the path if a sort path is specified. */
