@@ -71,6 +71,7 @@ void CreateNameTuple ARGS((oid parentID , char *name , oid ourid ));
 oid CreateNewNameTuple ARGS((oid parentID , char *name ));
 oid DeleteNameTuple ARGS((oid parentID , char *name ));
 oid LOcreatOID ARGS((char *fname , int mode ));
+oid LOpathOID ARGS((char *fname , int mode ));
 int LOunlinkOID ARGS((char *fname ));
 int LOisemptydir ARGS((char *path ));
 int LOisdir ARGS((char *path ));

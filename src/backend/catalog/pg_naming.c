@@ -28,6 +28,10 @@
  * OID LOcreatOID(char *fname,int mode);
  *     enter pathname in system relation.  error if directories don't exist.
  *     mode is ignored
+ * OID LOpathOID(char *fname,int mode);
+ *     enter pathname in system relation if it doesn't exist, create
+ *     intervening directories unless they can't be made due to component
+ *     length, mode is ignored. 
  * OID LOunlinkOID(char *fname);
  *     remove dir/fname tuple.
  * int LOisdir(char *path);
@@ -59,6 +63,12 @@
  *      fails, then return error (no parent directory), else do lookup
  *      ExistingOID = <BasedirOID,tailname>.  if success, then return error
  *      (file already exists), else allocate a new OID, do a put of 
+ *      <BasedirOID,fname,NewOID>.  return NewOID.
+ *
+ *    LOpathOID(char *fname,int mode);
+ *      take FilenameToOID of fname; if it doesn't exist take basename
+ *      of fname and recursively deal with it (if in the root dir,
+ *      LOcreatOID will handle it).  Allocate a new OID, do a put of
  *      <BasedirOID,fname,NewOID>.  return NewOID.
  *
  *    LOunlinkOID(char *fname);
@@ -282,6 +292,38 @@ oid LOcreatOID(fname,mode)
 	    return InvalidObjectId;		/* file already exists */
 	}
     }
+}
+
+oid LOpathOID(fname, mode)
+    char *fname;
+    int mode; /* ignored */
+{
+	char *basename, *tailname;
+	int nlen;
+	oid baseOID, retOID;
+
+	if ((retOID = FilenameToOID(fname)) != InvalidObjectId)
+		return retOID;
+	nlen = strlen(fname);
+	basename = (char *)palloc(nlen + 1);
+	bcopy(fname, basename, nlen);
+	basename[nlen] = 0;
+
+	tailname = rindex(basename,'/');
+	if (tailname == NULL || (strlen(tailname) > sizeof(NameData)))
+		goto fin;
+	if (tailname == basename) {
+		retOID = LOcreatOID(fname,mode);
+		goto fin;
+	}
+	*tailname++ = 0;
+	if ((baseOID = FilenameToOID(basename)) == InvalidObjectId &&
+	    (baseOID = LOpathOID(basename, mode)) == InvalidObjectId)
+		goto fin;
+	retOID = CreateNewNameTuple(baseOID,tailname);
+fin:
+	pfree(basename);
+	return retOID;
 }
 
 int LOunlinkOID(fname)
