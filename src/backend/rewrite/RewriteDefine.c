@@ -26,11 +26,11 @@ bool prs2AttributeIsOfBasicType();
 
 #define RULE_PLAN_SIZE 8192 
 
-#define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree),0)
-#define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree),0)
+#define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree))
+#define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree))
 #define ShowParseCmd(ptree)	lispDisplay(root_command_type \
-					    parse_root(ptree),0))
-#define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree),0)
+					    parse_root(ptree))
+#define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree))
 
 /*
  *	InsertRule
