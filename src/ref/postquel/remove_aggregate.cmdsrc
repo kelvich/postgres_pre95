@@ -25,7 +25,3 @@ the owner of the aggregate.
 .uh "SEE ALSO"
 .lp
 define aggregate(commands).
-.uh BUGS
-.lp
-Remove aggregate
-is not implemented in Version 2.1.
