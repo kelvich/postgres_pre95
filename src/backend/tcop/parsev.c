@@ -180,18 +180,22 @@ ValidateUtility(command, args)
 	}
 		break;
 
-#if 0
 	case ADD_ATTR:
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && lispStringp(CAR(args)));
-		AssertArg(consp(CDR(args)) && lispStringp(CADR(args)));
-		AssertArg(null(CDR(CDR(args))));
-#endif
-		addattribute(CString(CAR(args)),
-		relation_add_attribute (CAR (args),	/* relation name */
-			CDR (args));
+	{
+		List	element;
+
+		AssertArg(length(args) >= 2);
+		AssertArg(lispStringp(CAR(args)));
+
+		foreach (element, CDR(args)) {
+			AssertArg(consp(CAR(element)));
+			AssertArg(lispStringp(CAR(CAR(element))));
+			AssertArg(lispStringp(CADR(CAR(element))));
+			AssertArg(null(CDR(CDR(CAR(element)))));
+		}
+	}
 		break;
-#endif
+
 		/*
 		 * schema
 		 */
