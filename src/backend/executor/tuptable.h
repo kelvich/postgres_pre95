@@ -80,6 +80,9 @@ typedef TupleTableData *TupleTable;
 #define SetSlotTupleDescriptorIsNew(slot, isnew) \
     set_ttc_descIsNew(slot, isnew)
 
+#define SetSlotWhichPlan(slot, plannum) \
+    set_ttc_whichplan(slot, plannum)
+
 #define SlotBuffer(slot) \
     get_ttc_buffer(slot)
 
