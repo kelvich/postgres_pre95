@@ -251,21 +251,21 @@ RangeTablePosn ( rangevar , inherit , timerange)
 	
 	/*printf("Looking for relation : %s\n",rangevar);
 	fflush(stdout);*/
-	while ( ! lispNullp (temp )) {
-		/*printf("%s\n",CString ( CAR(CAR (temp ))));
-		fflush (stdout );*/
+	/* search thru aliases
+	  while ( ! lispNullp (temp )) {
 		if ( ! strcmp ( CString ( CAR( CAR (temp ))),
 			        rangevar ))
 		  return (index );
 		temp = CDR(temp);
 		index++;
-	}
+	} */
 	index = 1;
 	temp = p_rtable;
 	while ( ! lispNullp (temp )) {
-		/*printf("%s\n",CString ( CAR(CDR(CAR (temp )))));
+		/* car(cdr(car(temp)) = actual relname 
+		  printf("%s\n",CString ( CAR(CDR(CAR (temp )))));
 		fflush (stdout );*/
-		if ( (! strcmp ( CString ( CAR( CDR(CAR (temp )))),
+		if ( (! strcmp ( CString ( CAR( CAR (temp ))),
 				rangevar ) ) &&
 		    (inherit == inherit) &&
 		    (timerange == timerange))
