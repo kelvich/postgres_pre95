@@ -117,17 +117,12 @@ provided.
 .SH "TIME RANGES"
 Time ranges are specified as:
 .(C
-[abstime, abstime]
-[ , abstime]
-[abstime, \*(lq\*(rq]
-[\*(lq\*(rq, \*(lq\*(rq]
+[ 'abstime' 'abstime']
 .)C
 where 
 .IR abstime
-is a time in the absolute time format.  Pairs of double-quotes ("")
-will cause the time interval to either start or end at the least or
-greatest time allowable, that is, either Jan 1 00:00:00 1902 or Jan 1
-00:00:00 2038, respectively.
+is a time in the absolute time format.  Special abstime values such as 
+\*(lqcurrent\*(rq, \*(lqinfinity\*(rq and \*(lq-infinity\*(rq can be used.
 .XA 1 "Built-in operators and functions"
 .SP OPERATORS BUILT-INS 01/23/93
 .SH OPERATORS
