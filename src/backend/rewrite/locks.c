@@ -144,18 +144,17 @@ ThisLockWasTriggered ( varno, attnum, parse_subtree )
 
 	Node temp = (Node)CAR(i);
 
-	if ( !null(temp) &&
-	     IsA(temp,Var) && 
-	     ( varno == get_varno((Var)temp)) && 
-	     (( get_varattno((Var)temp) == attnum ) ||
-	        attnum == -1 ) )
-	  return ( true );
-	if ( temp && temp->type == PGLISP_DTPR &&
-	     ThisLockWasTriggered ( varno, attnum, (List) temp ) )
-	  return ( true );
-
+	if ( !null(temp) ) {
+	    if ( IsA(temp,Var) && 
+		 ( varno == get_varno((Var)temp)) && 
+		 (( get_varattno((Var)temp) == attnum ) || attnum == -1 ) ) {
+		     return ( true );
+	    } else if ( IsA(temp,LispList) &&
+			ThisLockWasTriggered ( varno, attnum, (List) temp )) {
+			    return (true);
+	    }
+	}
     }
-
     return ( false );
 }
 
