@@ -232,6 +232,19 @@ prs2DeleteOneStub ARGS((
 ));
 
 /*-------------------------
+ * prs2RemoveStubsOfRule
+ * remove (in place) all the stubs of the given rule.
+ * Return true if some stubs have been removed, or false if no stubs
+ * for this rule were found.
+ */
+extern
+bool
+prs2RemoveStubsOfRule ARGS((
+	Prs2Stub	stubs,
+	ObjectId	ruleId
+));
+
+/*-------------------------
  * prs2MakeStub
  * create an empty 'Prs2Stub'
  */
@@ -324,7 +337,7 @@ prs2DeleteRelationStub ARGS((
 extern
 void
 prs2ReplaceRelationStub ARGS((
-	Relation	relation,
+	ObjectId	relationOid,
 	Prs2Stub	stubs
 ));
 
@@ -384,14 +397,14 @@ prs2StubGetLocksForTuple ARGS((
 ));
 
 /*-------------------------
- * prs2StubTestTuple
- * test if a tuple satisfies the given qualifications of a
+ * prs2StubQualTestTuple
+ * test if a tuple satisfies the qualification of a
  * stub record.
  *-------------------------
  */
 extern
 bool
-prs2StubTestTuple ARGS((
+prs2StubQualTestTuple ARGS((
     HeapTuple		tuple,
     Buffer		buffer,
     TupleDescriptor	tupDesc,
