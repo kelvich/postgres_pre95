@@ -91,6 +91,7 @@ typtoout(type)
  *	printtup
  * ----------------
  */
+void
 printtup(tuple, typeinfo)
     HeapTuple		tuple;
     struct attribute 	*typeinfo[];
@@ -185,6 +186,7 @@ showatts(name, natts, attinfo)
  *	debugtup
  * ----------------
  */
+void
 debugtup(tuple, typeinfo)
     HeapTuple		tuple;
     struct attribute 	*typeinfo[];
