@@ -8,6 +8,7 @@
 
 extern EState CreateExecutorState();
 extern LispValue ExecMain();
+extern HeapTuple palloctup();
 
 /*------------------------------------------------------------------------
  *
@@ -110,9 +111,11 @@ Relation relation;
  * prs2GetOneTupleFromViewRules
  */
 HeapTuple
-prs2GetOneTupleFromViewRules(scanStateRuleInfo, prs2EStateInfo, explainRel)
+prs2GetOneTupleFromViewRules(scanStateRuleInfo, prs2EStateInfo, relation,
+			    explainRel)
 ScanStateRuleInfo scanStateRuleInfo;
 Prs2EStateInfo prs2EStateInfo;
+Relation relation;
 Relation explainRel;
 {
 
@@ -236,11 +239,22 @@ Relation explainRel;
 			scanStateRuleInfo->ruleList->data.queryDesc.queryDesc,
 			scanStateRuleInfo->ruleList->data.queryDesc.estate,
 			lispCons(lispInteger(EXEC_RETONE), LispNil));
-		if (!null(res)) {
+		tuple = (HeapTuple) ExecFetchTuple((TupleTableSlot)res);
+		if (tuple != NULL) {
 		    /*
 		     * Yeahhh! the executor returned a tuple!
+		     *
+		     * Make a COPY of this tuple
+		     * we need to make a copy for 2 reasons:
+		     * a) the (low level) executor might release it when
+		     *    called with EXEC_END
+		     * b) the top level executor might want to pfree it
+		     *    and pfree seems to complain (I guess something
+		     *    to do with the fact that this palloc happenned
+		     *    in the lower executor's context and not in
+		     *    the current one...
 		     */
-		    tuple = (HeapTuple) CAR(res);
+		    tuple = palloctup(tuple, InvalidBuffer, relation);
 		    return(tuple);
 		}
 		/*
