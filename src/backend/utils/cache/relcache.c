@@ -413,6 +413,7 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
  *
  *  File		   rd_fd;	 open file descriptor
  *  int                    rd_nblocks;   number of blocks in rel 
+ *					 it will be set in ambeginscan()
  *  uint16		   rd_refcnt;	 reference count
  *  AccessMethodTupleForm  rd_am;	 AM tuple
  *  RelationTupleForm	   rd_rel;	 RELATION tuple
@@ -514,7 +515,6 @@ RelationBuildDesc(buildinfo)
 	     &relp->relname);
     
     relation->rd_fd = fd;
-    relation->rd_nblocks = FileGetNumberOfBlocks(fd);
 
     /* ----------------
      *	initialize relation->rd_refcnt
@@ -741,7 +741,6 @@ RelationIdCacheGetRelation(relationId)
 	RelationIncrementReferenceCount(rd);
 	RelationSetLockForDescriptorOpen(rd);
 	
-	rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
     }
     
     return(rd);
@@ -773,7 +772,6 @@ RelationNameCacheGetRelation(relationName)
 	RelationIncrementReferenceCount(rd);
 	RelationSetLockForDescriptorOpen(rd);
 	
-	rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
     }
     
     return(rd);
