@@ -5,20 +5,16 @@ PARSED= ${.CURDIR}/parser
 PARSEYACCS= gram.c parse.h
 
 ${PARSEYACCS}: gram.y
-	yacc -d ${PARSED}/gram.y; \
+	yacc -d ${.ALLSRC}; \
 	mv y.tab.c gram.c; \
 	mv y.tab.h parse.h;
-
-${PARSED}/parse.h: ${PARSEYACCS}
-	rm -f ${.TARGET}; \
-	ln -s ${.CURDIR}/obj/parse.h ${.TARGET}
 
 SRCS+= catalog_utils.c dbcommands.c error.c io.c parse_query.c scanner.c \
 	 ylib.c gram.c scan.c
 
 CLEANFILES+= scan.c ${PARSEYACCS}
 
-${PROG}: ${PARSED}/parse.h
+${PROG}: ${PARSEYACCS}
 
 .if ${PORTNAME} == "bsd44"
 YFLAGS+= -l

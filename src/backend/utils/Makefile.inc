@@ -25,13 +25,9 @@ GENFMGRTABFILES= fmgr.h fmgrtab.c
 ${GENFMGRTABFILES}: ${GENFMGRTAB} ${CATD}/pg_proc.h
 	sh ${SHOPTS} ${GENFMGRTAB} ${BKIOPTS} ${CATD}/pg_proc.h
 
-${UTILD}/fmgr.h: ${GENFMGRTABFILES}
-	rm -f ${.TARGET}; \
-	ln -s ${.CURDIR}/obj/fmgr.h ${.TARGET}
-
 .depend: ${GENFMGRTABFILES}
 
-${PROG}: ${UTILD}/fmgr.h
+${PROG}: ${GENFMGRTABFILES}
 
 CLEANFILES+= ${GENFMGRTABFILES}
 
