@@ -7,12 +7,61 @@
  *
  */
 
+#include <errno.h>
 #include <math.h>
 
 #include "tmp/postgres.h"
 #include "utils/builtins.h"
 
+#include "utils/log.h"
+
 RcsId("$Header$");
+
+int32
+pg_atoi(s, size, c)
+    char *s;
+    int size;
+    int c;
+{
+    long l;
+    char *badp = (char *) NULL;
+
+    Assert(s);
+
+    errno = 0;
+    l = strtol(s, &badp, 10);
+    if (errno)		/* strtol must set ERANGE */
+	elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+    if (badp && *badp && (*badp != c))
+	elog(WARN, "pg_atoi: error in \"%s\": can\'t parse \"%s\"", s, badp);
+
+    switch (size) {
+    case sizeof(int32):
+#ifdef PORTNAME_alpha
+	/* won't get ERANGE on these with 64-bit longs... */
+	if (l < -0x80000000)
+	    elog(WARN, "pg_atoi: \"%s\" causes int4 underflow", s);
+	if (l > 0x7fffffff)
+	    elog(WARN, "pg_atoi: \"%s\" causes int4 overflow", s);
+#endif /* PORTNAME_alpha */
+	break;
+    case sizeof(int16):
+	if (l < -0x8000)
+	    elog(WARN, "pg_atoi: \"%s\" causes int2 underflow", s);
+	if (l > 0x7fff)
+	    elog(WARN, "pg_atoi: \"%s\" causes int2 overflow", s);
+	break;
+    case sizeof(int8):
+	if (l < -0x80)
+	    elog(WARN, "pg_atoi: \"%s\" causes int1/char underflow", s);
+	if (l > 0x7f)
+	    elog(WARN, "pg_atoi: \"%s\" causes int1/char overflow", s);
+	break;
+    default:
+	elog(WARN, "pg_atoi: invalid result size: %d", size);
+    }
+    return((int32) l);
+}
 
 /*
  *	itoa		- converts a short int to its string represention
@@ -36,10 +85,10 @@ itoa(i, a)
  *		now uses vendor's sprintf conversion
  */
 ltoa(l, a)
-	register long	l;
+	register int32	l;
 	register char	*a;
 {
-        sprintf(a, "%ld", l);
+        sprintf(a, "%d", l);
 }
 
 /*
@@ -311,7 +360,7 @@ atof1(str, val)
 	/* test for exponent */
 	if (c == 'e' || c == 'E') {
 		p++;
-		expon = atoi(p);
+		expon = pg_atoi(p, sizeof(expon), '\0');
 		if (!gotmant)
 			v = 1.0;
 		fact = expon;
