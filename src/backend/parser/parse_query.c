@@ -194,8 +194,8 @@ ExpandAll(relname,this_resno)
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
 		/* printf("%s\n",attrname);
 		fflush(stdout);*/
-		temp = make_var ( relname,
-				  attrname );
+		temp = make_var ( CString(relname),
+				  CString(attrname) );
 		varnode = CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = tlen(get_id_type(type_id));
@@ -325,29 +325,27 @@ make_var ( relname, attrname )
 	extern LispValue p_rtable;
 	extern int p_last_resno;
 
-	/* 
 	printf (" now in make_Var\n"); 
-	printf ("relation = %s, attr = %s\n",CString(relname),
-		CString(attrname)); 
-		*/
+	printf ("relation = %s, attr = %s\n",relname,
+		attrname); 
 	fflush(stdout);
 
-	vnum = RangeTablePosn ( CString (relname),0,0) ;
-	/* printf("vnum = %d\n",vnum); */
+	vnum = RangeTablePosn ( relname,0,0) ;
+	printf("vnum = %d\n",vnum); 
 	if (vnum == 0) {
 		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );
-		vnum = RangeTablePosn (CString (relname),0,0);
+		vnum = RangeTablePosn (relname,0,0);
 		/* printf("vnum = %d\n",vnum); */
 		relname = VarnoGetRelname(vnum);
 	} else {
 	  	relname = VarnoGetRelname( vnum );
 	}
 
-	/* printf("relname to open is %s",CString(relname));*/
+	printf("relname to open is %s",relname);
 
-	rd = amopenr ( CString (relname ));
-	attid = varattno (rd , CString(attrname) );
+	rd = amopenr ( relname );
+	attid = varattno (rd , attrname );
 	vartype = att_typeid ( rd , attid );
 	rtype = get_id_type(vartype);
 	vardotfields = 0;                          /* XXX - fix this */
@@ -517,53 +515,21 @@ make_const( value )
 
 /*	printf("in make_const\n");*/
 	fflush(stdout);
-#ifdef ALLEGRO
-	switch( GetType( value )) {
 
-	      case FixnumType:
+	switch( value->type ) {
+	      case PGLISP_INT:
 		tp = type("int4");
 		break;
 		
-	      case CharType:
+	      case PGLISP_ATOM:
 		tp = type("char");
 		break;
 
-	      case S_FloatType:
-	      case D_FloatType:
+	      case PGLISP_FLOAT:
 		tp = type("float4");
 		break;
 
-	      case V_charType:
-		if( strlen ( CString (value)) > 16 )
-		  tp = type("text");
-		else 
-		  tp = type("char16");
-		break;
-
-	      case NilType: 
-	      default: 
-		/* null const */
-		return ( lispCons (LispNil , 
-				   MakeConst ( 0 , 0 , 
-					       LispNil , 1 )) );
-	}
-#endif
-#ifdef FRANZ43
-	switch( TYPE( value )) {
-
-	      case INT:
-		tp = type("int4");
-		break;
-		
-/*	      case CharType:
-		tp = type("char");
-		break;
-*/
-	      case DOUB:
-		tp = type("float4");
-		break;
-
-	      case STRNG:
+	      case PGLISP_STR:
 		if( strlen ( CString (value)) > 16 )
 		  tp = type("text");
 		else 
@@ -571,14 +537,14 @@ make_const( value )
 		break;
 
 	      default: 
-		elog(NOTICE,"unknown type : %d\n", TYPE(value) );
+		elog(NOTICE,"unknown type : %d\n", value->type );
 		fflush (stdout);
 		/* null const */
 		return ( lispCons (LispNil , 
 				   MakeConst ( 0 , 0 , 
 					       LispNil , 1 )) );
 	}
-#endif
+
 /*	printf("tid = %d , tlen = %d\n",typeid(tp),tlen(tp));*/
 	fflush(stdout);
 

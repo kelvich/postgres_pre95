@@ -49,6 +49,7 @@ extern Relation amopenr();
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
 static ResdomNoIsAttrNo = 0;
+extern YYSTYPE parser_ppreserve();
 
 static YYSTYPE temp;
 static int NumLevels = 0;
@@ -1120,7 +1121,7 @@ b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info
 a_expr:
 	  attr
 		{
-		$$ = make_var ( CAR ($1) , CDR($1));
+		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)));
 		}
 	| AexprConst		
 	| adt_name '[' adt_const ']'
@@ -1278,7 +1279,7 @@ res_target_el:
 		      LispValue varnode, temp,resnode;
 		      int type_id, type_len;
 
-		      temp = make_var ( CAR($1) , CDR($1));
+		      temp = make_var ( CString(CAR($1)) , CString(CDR($1)));
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
