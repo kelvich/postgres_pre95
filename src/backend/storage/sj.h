@@ -20,13 +20,11 @@
 #define	SJCACHESIZE	64		/* # groups in mag disk cache */
 #define	SJGRPSIZE	10		/* # 8k pages in a group */
 #define SJPATHLEN	64		/* size of path to cache file */
-#define SJEXTENTSZ	(SJBufSize / JBBLOCKSZ)	/* # of jb blocks in extent */
-
-extern int		SJBufSize;
 
 /* misc constants */
 #define	SJCACHENAME	"_sj_cache_"	/* relative to $POSTGRESHOME/data */
 #define	SJMETANAME	"_sj_meta_"	/* relative to $POSTGRESHOME/data */
+#define	SJBLOCKNAME	"_sj_nblocks_"	/* relative to $POSTGRESHOME/data */
 
 /* bogus macros */
 #define	RelationSetLockForExtend(r)
@@ -63,6 +61,12 @@ typedef struct SJGroupDesc {
 #define	SJGDVERSION	0
 #define JBBLOCKSZ	1024
 
+/* size of SJCacheBuf */
+#define SJBUFSIZE	((BLCKSZ * SJGRPSIZE) + JBBLOCKSZ)
+
+/* # of jb blocks in extent */
+#define SJEXTENTSZ	(SJBUFSIZE / JBBLOCKSZ)
+
 /*
  *  SJCacheTag -- Unique identifier for individual groups in the magnetic
  *		  disk cache.
@@ -93,8 +97,8 @@ typedef struct SJHashEntry {
 
 typedef struct SJCacheHeader {
     int			sjh_nentries;
-    int			sjh_lruhead;
-    int			sjh_lrutail;
+    int			sjh_freehead;
+    int			sjh_freetail;
     uint32		sjh_flags;
 
 #define SJH_INITING	(1 << 0)
@@ -124,12 +128,12 @@ typedef struct SJCacheHeader {
  *	are very careful to do this in a way that guarantees no data is lost,
  *	and that does not require log processing.
  *
- *	Since we never return pointers to private data, we don't need to
- *	maintain a free list or pin count on magnetic disk cache groups.
- *	In shared memory, we maintain a list of groups in LRU order (offsets
- *	from the start of cache metadata are stored in this structure).
- *	When we need a group for data transfer, we use the least-recently-used
- *	group's space, kicking it out to the platter if necessary.
+ *	We keep a free list of groups to which no references exist.  We
+ *	allocate groups off this list on demand.  In general, references
+ *	to groups in the cache are very short-lived; we never return pointers
+ *	into private structures outside of the code that manages the cache.
+ *	The free list is maintained in LRU order, and the least-recently-
+ *	used group is allocated first.
  *
  *	Groups on the jukebox include one page (the first) that describes the
  *	group, including its dbid, relid, dbname, relname, and extent size.
@@ -138,8 +142,8 @@ typedef struct SJCacheHeader {
 
 typedef struct SJCacheItem {
     SJCacheTag		sjc_tag;		/* dbid, relid, group triple */
-    int			sjc_lruprev;		/* LRU list pointer */
-    int			sjc_lrunext;		/* LRU list pointer */
+    int			sjc_freeprev;		/* free list pointer */
+    int			sjc_freenext;		/* free list pointer */
     int			sjc_refcount;		/* number of active refs */
     ObjectId		sjc_oid;		/* OID of group */
     ObjectId		sjc_plid;		/* platter OID for group */
@@ -174,6 +178,7 @@ typedef struct SJCacheItem {
  */
 
 typedef struct SJNBlock {
+    ObjectId		sjnb_dbid;
     ObjectId		sjnb_relid;
     int			sjnb_nblocks;
     struct SJNBlock	*sjnb_next;
