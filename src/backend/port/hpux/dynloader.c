@@ -35,9 +35,8 @@ static char *path = "/usr/tmp/";
 DynamicFunctionList *read_symbols();
 void free_dyna();
 
-DynamicFunctionList *dynamic_file_load(err, filename, libname, handle )
-char **err, *filename, **libname;
-shl_t *handle;
+void *pg_dlopen( filename, err )
+     char *filename; char **err;
 {
 
     FILE *temp_file = NULL;
@@ -51,6 +50,8 @@ shl_t *handle;
     char *fname = NULL;
     char *temp_file_name = NULL;
     int str_len = 0;
+    dfHandle *dfhandle= NULL;
+    shl_t handle;
 
     /* Build name of shared library: */
 
@@ -92,7 +93,7 @@ shl_t *handle;
         goto failed;
     }
 
-    if( ( (*handle) = shl_load( temp_file_name, BIND_DEFERRED, NULL ) ) == 0 )
+    if( ( handle = shl_load( temp_file_name, BIND_DEFERRED, NULL ) ) == 0 )
     {
         *err = "unable to load shared library";
         free_dyna( &dyna_head );
@@ -117,8 +118,11 @@ shl_t *handle;
         this_dyna = this_dyna->next;
     }
 
-    *libname = temp_file_name;
+    dfhandle= (dfHandle *)malloc(sizeof(dfHandle));
+    dfhandle->func_list= dyna_head;
+    dfhandle->libname= temp_file_name;
     temp_file_name = NULL;
+    dfhandle->handle= handle;
 
 failed:
 
@@ -128,7 +132,7 @@ failed:
     if( temp_file_name != NULL )
        free( temp_file_name );
 
-    return( dyna_head );
+    return (void *)dfhandle;
 
 }
 
@@ -309,4 +313,40 @@ DynamicFunctionList **dyna_list;
         this_dyna = that_dyna;
     }
 
+}
+
+func_ptr pg_dlsym( handle, funcname )
+     void *handle; char *funcname;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner;
+
+    if (funcname==NULL)
+	return (func_ptr)NULL;
+    func_scanner= dfhandle->func_list;
+    while(func_scanner) {
+	if (!strcmp(func_scanner->funcname, funcname)) 
+	    return func_scanner->func;
+	func_scanner= func_scanner->next;
+    }
+    return (func_ptr)NULL;
+}
+
+void pg_dlclose( handle )
+     void *handle;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner, *throw_away;
+    
+    func_scanner = dfhandle->func_list;
+    for (throw_away = func_scanner->next;
+	 throw_away != (DynamicFunctionList *) NULL;) {
+        throw_away = func_scanner->next;
+	free((char *) func_scanner->funcname);
+        free((char *) func_scanner);
+        func_scanner = throw_away;
+    }
+    free((char *) dfhandle->func_list);
+
+    return;
 }
