@@ -204,6 +204,7 @@ void Async_NotifyAtCommit()
     int pid;
     int isnull;
     int notifypending;
+    bool didNotify;
     static int reentrant;	/* hack:
 				   This is a transaction itself, so we
 				   don't want to loop at commit time
@@ -211,7 +212,7 @@ void Async_NotifyAtCommit()
     if (reentrant)
       return;
     reentrant = 1;
-    StartTransactionCommand();
+    CommandCounterIncrement();
 
     if (! initialized) {
 	SLNewList(&pendingNotifies,offsetof(PendingNotify,Node));
@@ -221,7 +222,16 @@ void Async_NotifyAtCommit()
     r = heap_openr("pg_listener");
     tdesc = RelationGetTupleDescriptor(r);
     s = heap_beginscan(r,0,NowTimeQual,0,(ScanKey)NULL);
-    while (HeapTupleIsValid(htup = heap_getnext(s,0,&b))) {
+
+    htup = heap_getnext(s,0,&b);
+    if (HeapTupleIsValid(htup)) {
+	didNotify = true;
+	StartTransactionCommand();
+    }
+    else
+	didNotify = false;
+
+    while (HeapTupleIsValid(htup)) {
 	d = (Datum) heap_getattr(htup,b,Anum_pg_listener_notify,tdesc,
 				 &isnull);
 	notifypending = (int)DatumGetPointer(d);
@@ -236,10 +246,12 @@ void Async_NotifyAtCommit()
 	    }
 	}
 	ReleaseBuffer(b);
+	htup = heap_getnext(s,0,&b);
     }
     heap_endscan(s);
     heap_close(r);
-    CommitTransactionCommand();
+    if (didNotify)
+	CommitTransactionCommand();
     reentrant = 0;
 }
 
