@@ -787,8 +787,14 @@ OptStmtList:
 OptStmtBlock:
 	  OptimizableStmt 
 		{ ELEMENT ;}
-	| OptStmtBlock OptimizableStmt
-		{ $$ = nappend1($1, $2); }
+       | OptStmtBlock
+               {
+                  p_last_resno = 1;
+                  p_target_resnos = LispNil;
+               }
+         OptimizableStmt
+               { $$ = nappend1($1, $3); }
+
 	;
 
 RuleBody: 
@@ -977,7 +983,7 @@ DeleteStmt:
 		    parser_current_rel = amopenr(VarnoGetRelname(x));
 		    if (parser_current_rel == NULL)
 		      elog(WARN,"invalid relation name");
-		    ResdomNoIsAttrNo = true; 
+		    /* ResdomNoIsAttrNo = true;  */
 		}
           where_clause
                 {
