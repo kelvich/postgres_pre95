@@ -298,7 +298,7 @@ icopy_in(srcfname, destfname, smgrno)
 		fflush(stdout);
 	    }
 	    ibegin();
-	    if (p_mkdir(cplist->cl_dest) < 0)
+	    if (p_mkdir(cplist->cl_dest, 0755) < 0)
 		errs++;
 	    icommit();
 	} else {
