@@ -1,0 +1,31 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP POSTMASTER UNIX 6/14/90
+.XA 1 "The Postgres Backend"
+.uh NAME
+.lp
+postgres \*- run the Postgres backend directly
+.uh SYNOPSIS
+.lp
+.b postgres
+[-Q] [databasename]
+.uh DESCRIPTION
+.lp
+This command executes the Postgres backend.  This should be done only
+while debugging by the DBA, and should not be done while other Postgres
+backends are being managed by a postmaster on this set of databases.
+
+\fBCommand options:\fR
+
+.uh "-Q"
+Quiet mode.  Much less debugging output (ie, no parse, plan, or execution
+trees are printed, etc).
+.pp
+.uh "databasename"
+The name of the database to be accessed.  Default is $USER.
+.pp
+.uh "SEE ALSO"
+.lp
+monitor (unix),
+postmaster (unix),
+ipcclean (unix)
