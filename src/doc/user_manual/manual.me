@@ -817,7 +817,7 @@ whose salaries exceed 50,000:
 .(C
 * define function high_pay
       (language = "postquel", returntype = setof EMP)
-      as retrieve (EMP.all) where EMP.salary > 50000 \\g
+      as "retrieve (EMP.all) where EMP.salary > 50000" \\g
 .)C
 \*(PQ functions can also have parameters.
 The following function
@@ -827,7 +827,7 @@ allows the threshold salary to be specified as an argument:
 * define function large_pay
       (language = "postquel", returntype = setof EMP)
       arg is (int4)
-      as retrieve (EMP.all) where EMP.salary > $1 \\g
+      as "retrieve (EMP.all) where EMP.salary > $1" \\g
 .)C
 In addition to their obvious utility as
 .q aliases
