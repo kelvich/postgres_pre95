@@ -318,6 +318,17 @@ prs2FindLocksOfType ARGS((
 ));
 
 /*------------------------------------------------------------------
+ * prs2RemoveLocksOfTypeInPlace
+ * remove all the lcoks of the given type in place (i.e. No copies)
+ */
+extern
+void
+prs2RemoveLocksOfTypeInPlace ARGS((
+    	RuleLock	locks,
+	Prs2LockType	lockType
+));
+
+/*------------------------------------------------------------------
  * RuleLockToString
  *   greate a string containing a representation of the given
  *   lock, more suitable for the human brain & eyes than a
@@ -732,6 +743,7 @@ extern Prs2Status prs2Retrieve();
 extern Prs2Status prs2Append();
 extern Prs2Status prs2Delete();
 extern Prs2Status prs2Replace();
+extern RuleLock prs2FindLocksForNewTupleFromStubs();
 
 /*
  * These are functions in prs2plans.c
