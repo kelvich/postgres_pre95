@@ -1,6 +1,6 @@
 /* 
- * $File:$
- * $Version:$
+ * $Source$
+ * $Revision$
  * $State$
  * $Author$
  */
@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include "tmp/oid.h"
 
-#include "rules/prs2locks.h"		/* temporarily */
+/* #include "rules/prs2locks.h"		/* temporarily */
+#include "./locks.h"			
 #include "utils/rel.h"			/* for Relation stuff */
 #include "access/heapam.h"		/* access methods like amopenr */
 #include "utils/log.h"			/* for elog */
@@ -18,7 +19,6 @@
 
 ObjectId LastOidProcessed = InvalidObjectId;
 
-typedef EventType Event;
 
 #define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree),0)
 #define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree),0)
@@ -99,7 +99,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 
     /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
 
-    eval_as_new_xact(rulebuf);
+    pg_eval(rulebuf);
 
     /* elog(NOTICE,"RuleOID is : %d\n", LastOidProcessed ); */
 
@@ -122,111 +122,76 @@ ModifyActionToReplaceCurrent ( retrieve_parsetree )
 DefineQueryRewrite ( args ) 
      List args;
 {
-     List i			= NULL;
-     Name rulename 		= (Name)CString ( nth ( 0,args )) ;
-     LispValue event_type	= nth ( 1 , args );
-     List event_obj		= nth ( 2 , args );
-     List event_qual	        = nth ( 3 , args );
-     bool is_instead	        = (bool)CInteger ( nth ( 4 , args ));
-     List action		= nth ( 5 , args );
-     Relation event_relation 	= NULL ;
-     ObjectId ruleId 		= 0;
-     char *eobj_string		= NULL;
-     char *eslot_string		= NULL;
-     EventType 			this_event;
-     int event_attno 		= 0;
+    List i			= NULL;
+    Name rulename 		= (Name)CString ( nth ( 0,args )) ;
+    LispValue event_type	= nth ( 1 , args );
+    List event_obj		= nth ( 2 , args );
+    List event_qual	        = nth ( 3 , args );
+    bool is_instead	        = (bool)CInteger ( nth ( 4 , args ));
+    List action		= nth ( 5 , args );
+    Relation event_relation 	= NULL ;
+    ObjectId ruleId[16];
+    ObjectId ev_relid		= 0;
+    char locktype[16];
+    char *eobj_string		= NULL;
+    char *eslot_string		= NULL;
+    int event_attno 		= 0;
+    int j			= 0;		/* save index */
+    int k			= 0;		/* actual lock placement */
 
 #ifdef FUZZY
-     List support 		= nth (6 , args );
-     double necessary 		= CDouble(CAR(support));
-     double sufficient 		= CDouble(CDR(support));
+    List support 		= nth (6 , args );
+    double necessary 		= CDouble(CAR(support));
+    double sufficient 		= CDouble(CDR(support));
 #else
-     double necessary 		= 1.0;
-     double sufficient 		= 0.0;
+    double necessary 		= 1.0;
+    double sufficient 		= 0.0;
 #endif
+    
+    extern	char		*PlanToString();
+    extern	char		PutRelationLocks();
 
-     extern	char		*PlanToString();
+    eobj_string = CString ( CAR ( event_obj));
+    
+    if ( CDR (event_obj) != LispNil )
+      eslot_string = CString ( CADR ( event_obj));
+    else
+      eslot_string = NULL;
+    
+    event_relation = amopenr ( eobj_string );
+    if ( event_relation == NULL ) {
+	elog(WARN, "virtual relations not supported yet");
+    }
+    ev_relid = RelationGetRelationId (event_relation);
+    
+    if ( eslot_string == NULL ) 
+      event_attno = -1;
+    else
+      event_attno = varattno ( event_relation, eslot_string );
 
-     eobj_string = CString ( CAR ( event_obj));
-     
-     if ( CDR (event_obj) != LispNil )
-	 eslot_string = CString ( CADR ( event_obj));
-     else
-       eslot_string = NULL;
+    foreach ( i , action ) {
+	List 	this_action 		= CAR(i);
+	int 	this_action_is_instead 	= 0;
+	int 	action_type 		= 0;	 
+	List	action_result		= NULL;
+	int	action_result_index	= 0;
 
-     event_relation = amopenr ( eobj_string );
-     if ( event_relation == NULL ) {
-	 elog(WARN, "virtual relations not supported yet");
-     }
-
-
-     if ( eslot_string == NULL ) 
-	   event_attno = -1;
-     else
-	   event_attno = varattno ( event_relation, eslot_string );
-
-
-     foreach ( i , action ) {
-	 List 	this_action 		= CAR(i);
-	 int 	this_action_is_instead 	= 0;
-	 
-	 if (CDR(i) == LispNil && is_instead ) {
-	     this_action_is_instead = 1;
+	if (CDR(i) == LispNil && is_instead ) {
+	    this_action_is_instead = 1;
 	 }
-	 
-	 if ( NodeHasTag ( event_type, classTag(LispSymbol) ) ) {
-	     
-	     int action_type = 0;
-	     
-	     ActionType  prs2actiontype;
-
-	     action_type = root_command_type(parse_root(this_action));
-	     
-	     switch (  CAtom ( event_type ) ) {
-	       case APPEND:
-		 this_event = EventTypeAppend;
-		 prs2actiontype = ActionTypeOther;
-		 break;
-	       case DELETE:
-		 this_event = EventTypeDelete;
-		 prs2actiontype = ActionTypeOther;
-		 break;
-	       case RETRIEVE:
-		 this_event = EventTypeRetrieve;
-		 switch ( action_type ) {
-		   case RETRIEVE:
-		     /*
-		      * a slight optimization here, modify
-		      * a "on retrieve to foo.all do instead retrieve bar.all
-		      * type rule to use replace current, since we assume
-		      * that foo and bar have compatiable schemas
-		      */
-		     if ( event_attno != -1 ) {
-			 prs2actiontype = ActionTypeRetrieveValue;
-			 break;
-		     }
-		     ModifyActionToReplaceCurrent(this_action);
-
-		     /* NO BREAK HERE IS CORRECT */
-
-		   case REPLACE:
-		     prs2actiontype = ActionTypeReplaceCurrent;
-		     break;
-		   default:
-		  prs2actiontype = ActionTypeOther;
-		 } 
-		 break;
-	       case REPLACE:
-		 this_event = EventTypeReplace;
-		 prs2actiontype = ActionTypeOther;
-		 break;
-	       default:
-		 this_event = EventTypeInvalid;
-		 elog(WARN,"unknown event type given to rule definition");
-		 
-	     } /* end switch */
-
-	     ruleId = InsertRule ( rulename, 
+	
+	action_type = root_command_type(parse_root(this_action));
+	action_result = root_result_relation(parse_root(this_action));
+	if ( action_type == REPLACE ) {
+	    action_result_index = CInteger(action_result);
+	}
+	if ( action_type == RETRIEVE && event_attno == -1 ) {
+	    /* transform to replace current */
+	    ModifyActionToReplaceCurrent ( this_action );
+	    action_type = REPLACE;
+	    action_result_index = 1;
+	}
+	ruleId[j] = InsertRule ( rulename, 
 				  CAtom(event_type),
 				  (Name)eobj_string,
 				  (Name)eslot_string,
@@ -235,16 +200,31 @@ DefineQueryRewrite ( args )
 				  PlanToString(this_action),
 				  necessary,
 				  sufficient );
+	
+	locktype[j] = PutRelationLocks ( ruleId[j], 
+					ev_relid,
+					event_attno,
+					CAtom(event_type),
+					action_type,
+					action_result_index,
+					this_action_is_instead );
+	j += 1;
+	if ( j > 15 )
+	  elog(WARN,"max # of actions exceeded");
+	
+    } /* foreach action */
 
-	     prs2PutLocks ( ruleId, RelationGetRelationId (event_relation),
-			   event_attno,
-			   event_attno,
-			   this_event,
-			   prs2actiontype  );
-	 } /* foreach action */
+    for ( k = 0 ; k < j ; k++ ) {
+	if ( k != 0 ) {
+	    CommitTransactionCommand();
+	    StartTransactionCommand();
+	}
+	prs2PutLocksInRelation(ruleId[k],locktype[k],
+			       ev_relid,event_attno);
     }
-}
 
+}
+    
 ShowRuleAction(ruleaction)
      LispValue ruleaction;
 {

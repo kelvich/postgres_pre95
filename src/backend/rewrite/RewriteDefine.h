@@ -1,6 +1,9 @@
-
-/* module: /users/goh/postgres/src/parser/RewriteDefine.c */
-/* $Id$ */
+/* 
+ * $Source$
+ * $Revision$
+ * $State$
+ * $Author$
+ */
 
 unsigned int InsertRule ARGS((struct char16 *, int, struct char16 *, struct char16 *, char *, char, char *, double, double));
 void ModifyActionToReplaceCurrent ARGS((struct _LispValue *));
