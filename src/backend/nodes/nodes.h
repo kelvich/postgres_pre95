@@ -203,6 +203,9 @@ extern
 Node
 NewNode ARGS((Size size, NodeTag tag ));
 
+void SetNodeType ARGS((Node thisNode , TypeId tag ));
+Size NodeTagGetSize ARGS((TypeId tag ));
+
 extern TypeId _InvalidTypeId;
 
 #endif /* NodesIncluded */
