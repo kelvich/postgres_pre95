@@ -246,7 +246,7 @@ ProcessUtility(command, args, commandString, dest)
 				 sizeof(NameData), relname);
 	    } else {
 		    if (!pg_aclcheck(relname, user.data, ACL_WR))
-			    elog(WARN, "write on \"-*%s\": permission denied",
+			    elog(WARN, "write on \"%-*s\": permission denied",
 				 sizeof(NameData), relname);
 	    }
 #endif
@@ -321,7 +321,7 @@ ProcessUtility(command, args, commandString, dest)
 
 	    relname = CString(CAR(args));
 	    if (NameIsSystemRelationName(relname))
-		    elog(WARN, "class \"-*%s\" is a system catalog",
+		    elog(WARN, "class \"%-*s\" is a system catalog",
 			 sizeof(NameData), relname);
 #ifndef NO_SECURITY
 	    if (!pg_ownercheck(user.data, relname, RELNAME))
