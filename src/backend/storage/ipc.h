@@ -126,6 +126,8 @@ typedef enum _LockId_ {
     FIRSTFREELOCKID
 } _LockId_;
 
+#define MAX_SPINS	FIRSTFREELOCKID
+
 typedef struct slock {
     slock_t		locklock;
     unsigned char	flag;
