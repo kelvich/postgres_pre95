@@ -188,11 +188,18 @@ heap_creatr(relname, natts, smgr, att)
     extern		bcopy(), bzero();
 
     /* ----------------
-     *	sanity check
+     *	sanity checks
      * ----------------
      */
     if (!natts)
 	elog(WARN, "heap_creatr(%s): called with 0 natts", relname);
+
+    if (issystem(relname) && IsNormalProcessingMode())
+    {
+	elog(WARN, 
+	    "Illegal class name: %s -- pg_ is reserved for system catalogs",
+	    relname);
+    }
 
     /* ----------------
      *	switch to the cache context so that we don't lose
