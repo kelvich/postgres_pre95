@@ -260,18 +260,7 @@ int entry_addr;
 		scanner->next = NULL;
 	}
 
+	fclose(fp);
 	unlink(tmp_file);
 	return(head);
 }
-
-func_ptr
-dynamic_load(err)
-
-char **err;
-
-{
-	*err = "Dynamic load: Should not be here!";
-	return(NULL);
-}
-
-remove() {}
