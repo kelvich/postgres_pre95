@@ -243,27 +243,20 @@ _equalConst(a, b)
 	register Const	a;
 	register Const	b;
 {
-	if (a == b)
-		return (true);
-
-	return (false);
-
-#ifdef NOTYET
+    /*
+    ** this function used to do a pointer compare on a and b.  That's
+    ** ridiculous.  -- JMH, 7/11/92
+    */
 	if (a->consttype != b->consttype)
-		return (false);
+	  return(false);
 	if (a->constlen != b->constlen)
-		return (false);
-	/*
-	 *  Have to use the function manager to call the equality
-	 *  test routine for the datum we've got.  Talk to mike h
-	 *  about how to do that.
-	 */
-
+	  return(false);
 	if (a->constisnull != b->constisnull)
-		return (false);
-
-	return (true);
-#endif
+	  return(false);
+	if (a->constbyval != b->constbyval)
+	  return(false);
+	return(datumIsEqual(a->constvalue, b->constvalue,
+			    a->consttype, a->constbyval, a->constlen));
 }
 
 /*
@@ -351,8 +344,8 @@ _equalCInfo(a,b)
     Assert(IsA(a,CInfo));
     Assert(IsA(b,CInfo));
     
-    if (!_equalExpr((Expr)(get_clause(a)),
-		    (Expr)(get_clause(b))))
+    if (!_equalLispValue((LispValue)(get_clause(a)),
+			 (LispValue)(get_clause(b))))
       return(false);
     if (a->selectivity != b->selectivity)
       return(false);
