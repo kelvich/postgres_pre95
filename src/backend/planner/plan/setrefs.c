@@ -524,6 +524,12 @@ set_tlist_references (plan)
 	  else
 	    if (IsA(plan,Result))
 		set_result_tlist_references(plan);
+	    else if (IsA(plan,Choose)) {
+		LispValue x;
+		foreach (x, get_chooseplanlist(plan)) {
+		    set_tlist_references(CAR(x));
+		  }
+	      }
 
 }   /* function end  */
 

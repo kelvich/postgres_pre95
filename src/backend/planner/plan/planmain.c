@@ -32,11 +32,13 @@
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
 
+extern int testFlag;
 /* ----------------
  *	Result creator declaration
  * ----------------
  */
 extern Result RMakeResult();
+extern Choose RMakeChoose();
 
 /*    
  *    	query_planner
@@ -323,9 +325,26 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      }
 /*    Determine the cheapest path and create a subplan corresponding to it. */
     
-    if (final_relation)
+    if (final_relation) {
+      if (testFlag) {
+	  List planlist = LispNil;
+	  LispValue x;
+	  Path path;
+	  Plan plan;
+	  Choose chooseplan;
+	  foreach (x, get_pathlist(final_relation)) {
+	      path = (Path)CAR(x);
+	      plan = create_plan(path, original_tlist);
+	      planlist = nappend1(planlist, plan);
+	    }
+	  chooseplan = RMakeChoose();
+	  set_chooseplanlist(chooseplan, planlist);
+	  set_qptargetlist(chooseplan, get_qptargetlist(plan));
+	  return (Plan)chooseplan;
+	}
       return (create_plan (get_cheapestpath (final_relation),
 			   original_tlist));
+     }
     else {
 	printf(" Warn: final relation is nil \n");
 	return(create_plan (LispNil,original_tlist));
