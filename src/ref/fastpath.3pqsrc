@@ -11,7 +11,10 @@ fast path \*- trap door into system internals
 .uh DESCRIPTION
 .lp
 \*(PP allows any valid \*(PP function to be specified as a query.
-On fast path commands, \*(PP simply loads the appropriate function
+On
+.b fast
+.b path
+commands, \*(PP simply loads the appropriate function
 (if it is not already loaded) and then calls it with the indicated
 arguments.  No type checking is done by \*(PP, so the overhead
 to use fast path is exceedingly low.
