@@ -262,7 +262,9 @@ are the same if
 evaluates to true.
 .PP
 In the case that all instance variables used in the aggregate
-expression are defined in the from list, a simple aggregate has been
+expression are defined in the 
+.IR from 
+list, a simple aggregate has been
 defined.  For example, to sum employee salaries whose age is greater
 than 30, one would write:
 .(C
@@ -271,7 +273,7 @@ retrieve (total = sum {e.salary from e in emp
 .)C
 or
 .(C
-retrieve (total = sum {EMP.salary where emp.age > 30})
+retrieve (total = sum {emp.salary where emp.age > 30})
 .)C
 In either case, \*(PG is instructed to find the instances in the
 .IR from_list
@@ -286,7 +288,7 @@ list, e.g:
 .(C
 avg {emp.salary where emp.age = e.age}
 .)C
-then this aggregate has a value for each possible value taken on by
+then this aggregate function has a value for each possible value taken on by
 \*(lqe.age\*(rq.  For example, the following complete query finds the
 average salary of each possible employee age over 18:
 .(C
@@ -294,15 +296,28 @@ retrieve (e.age, avg {emp.salary where emp.age = e.age})
 	from e in emp 
 	where e.age > 18
 .)C
-Such aggregate functions are not supported in Version \*(PV. Furthermore,
-in this version, only 
+Aggregate functions are not supported in Version \*(PV.
+.PP
+In general, the following aggregates
+(i.e., the expression within the braces) will not work:
+.IP
+Aggregate functions of any kind.
+.IP
+Aggregates containing more than one range variable.
+.IP
+Aggregates that refer to range variables
+that use class inheritance (e.g., \*(lqe from emp*\*(rq).
+.IP
+Aggregate containing clauses other than
 .IR a_expr
-and the 
+and
 .IR where -qualification
-clause are supported.  Therefore, for the above simple sum aggregate,
-the supported query would be the latter.  One other note: the
-qualification will support inheritance, but the expression to be
-aggregated will not.
+clauses.  (In other words,
+.IR from
+clauses within aggregates are not supported.)
+.PP
+Therefore, of the three example queries given, only the second is 
+actually supported.
 .SH "Set Expressions"
 .BR "Set expressions are not supported in Version \*(PV."
 .PP
