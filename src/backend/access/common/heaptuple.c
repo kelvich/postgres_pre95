@@ -502,6 +502,8 @@ fastgetattr(tup, attnum, att, isnull)
     {
 	bp = tup->t_bits;
 	slow = 0;
+	tp = (Pointer) tup + tup->t_hoff;
+
         /* ----------------
          *	check to see if desired att is null
          * ----------------
