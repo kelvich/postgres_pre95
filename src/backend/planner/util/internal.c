@@ -81,22 +81,6 @@ restore_globals()
 */
 }
 
-void
-set_unorderedpath(node,path)
-     Rel node;
-     Path path;
-{
-    AssertArg(IsA(node,Rel));
-    (Path)(node->unorderedpath) = path;
-}
-
-Path
-get_unorderedpath(node)
-     Rel node;
-{
-    return((Path)(node->unorderedpath));
-}
-
 List
 joinmethod_clauses(method)
      joinmethod method;
