@@ -185,15 +185,11 @@ CopyStmt:
 		{
 		  LispValue temp;
 			$$ = lispCons($1,LispNil);
-			/* if(! lispNullp($4)) */
-		          $4 = lispCons($4,LispNil);
-			/* if(! lispNullp($2)) */
-			  $4 = nappend1($4,$2);
-			/* if(! lispNullp($3)) */
-			  $4 = nappend1($4,$3);
-			  $$ = nappend1($$,$4);
-			$$ = nappend1($$,$8);
-			$$ = nappend1($$,$9);
+			$4 = lispCons($4,LispNil);
+			$4 = nappend1($4,$2);
+			$4 = nappend1($4,$3);
+			$$ = nappend1($$,$4);
+			$$ = nappend1($$,lispCons ($8,lispCons($9,LispNil)));
 			if(! lispNullp($10))
 			  $10 = lispCons($10,LispNil);
 			$$ = nappend1 ($$ , lispCons( KW(USING),$10 ));
@@ -334,9 +330,23 @@ key:
   **********************************************************************/
 DefineStmt:
 	  Define def_type def_name definition opt_def_args
+		{
+		   if ( $5 != LispNil ) 
+			$4 = nappend1 ($4, $5 );
+		   $3 = lispCons ($3 , $4 );
+		   $2 = lispCons ($2 , $3 ); 
+		   $$ = lispCons ($1 , $2 ); 
+		}
 	;
 
-def_type:	Function | Operator | Type ;
+def_type:	
+	  Function 
+		{ $$ = KW(FUNCTION); }
+	| Operator 
+		{ $$ = KW(OPERATOR); }
+	| Type 
+		{ $$ = KW(TYPE); }
+	;
 def_name:
 	  Id 
 	| Op	
@@ -344,7 +354,7 @@ def_name:
 
 opt_def_args:	/* Because "define procedure .." */
 	  Arg Is '(' def_name_list ')'
-		{ $$ = $4; }
+		{ $$ = lispCons (KW(args), $4); }
 	| /*EMPTY*/
 		{ NULLTREE }
 	;
@@ -354,8 +364,8 @@ def_name_list:		name_list;
 def_arg:
 	  Id
 	| Op
-		{/*$$ = new_id($1); */}
-	| AexprConst { /* XXX - anyconst in expressions only ? */ }
+	| NumConst
+      	| Sconst
 	;
 
 definition:
@@ -365,14 +375,8 @@ definition:
 
 def_elem:
 	  def_name equals def_arg
-		{/*temp = new_kw("is");
-		 add_sibling($1, $3);
-		 $$ = add_child(temp, $1);
-		*/}
-
+		{ $$ = lispCons ( $1 , lispCons ($3, LispNil)); }
 	| def_name
-		{/*temp = new_kw("is");
-		 $$ = add_child(temp, $1);*/}
 	;
 
 def_list:
@@ -1287,15 +1291,15 @@ Sconst:		SCONST			{ $$ = yylval; }
 Id:
 	  IDENT					
 		{ $$ = yylval; }
-	| Keyword				
-		{ extern char yytext[]; /* defined in scan.l */
+	/* | Keyword				
+		{ extern char yytext[];
 		  $$ = lispString( yytext ); } /* XXX - may not be good */
 	;
 		
-Keyword:
+ /* Keyword:
 	  Sort
 	| Before
-	;
+	;*/
 
 Abort:			ABORT_TRANS	{ $$ = yylval ; } ;
 Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
