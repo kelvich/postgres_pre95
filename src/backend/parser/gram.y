@@ -140,7 +140,7 @@ bool is_postquel_function = false;
 %left  	'[' ']' 
 %nonassoc TYPECAST
 %nonassoc REDUCE
-%token PARAM AS
+%token PARAM AS BASE COMPLEX
 %%
 
 queryblock:
@@ -471,6 +471,8 @@ def_arg:
 	| Op
 	| NumConst
       	| Sconst
+        | BASE
+        | COMPLEX
 	;
 
 definition:
@@ -608,6 +610,7 @@ MergeStmt:
 	QUERY:
                 define function <fname>
                        (language = <lang>, returntype = <typename> 
+ 		       finput = BASE|COMPLEX, foutput = BASE|COMPLEX,
                         [, arch_pct = <percentage | pre-defined>]
                         [, disk_pct = <percentage | pre-defined>]
                         [, byte_pct = <percentage | pre-defined>]
@@ -625,8 +628,6 @@ MergeStmt:
 		   if (!is_postquel_function)
 		       elog(WARN,
 		      "non-postquel functions don't use queries, you lose!");
-		   
-			   
  	       }
 | SCONST
                {
@@ -636,8 +637,9 @@ MergeStmt:
 
 ProcedureStmt:
 
-        DEFINE FUNCTION def_rest AS 
+      DEFINE FUNCTION def_rest AS 
                 {
+		    List args;
 		    char *pfa = "not_a_relation";
 		    /* so current and new can be used in definition of 
 		       postquel functions */
@@ -645,7 +647,9 @@ ProcedureStmt:
 
 		    is_postquel_function = false;
 		    if(is_postquel_func($3)) {
+ 			Params_ok = true;
 			is_postquel_function = true;
+#ifdef foo
 			pfa = postquel_func_arg($3);
 			NewOrCurrentIsReally = lispString((char *)$4);
 		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
@@ -655,9 +659,12 @@ ProcedureStmt:
 					     LispNil,
 					     (Name)"*NEW*" ));
 
+#endif foo
+			args = func_arg_list($3);
+			param_type_init(args);
 		    }
-
 		}
+
         Executable
                 {
 		    QueryIsRule = false;
@@ -1720,10 +1727,10 @@ agg_where_clause:
 a_expr:
 	  attr
 		{
-		    Var temp = (Var)NULL;
-		    temp =  (Var)CDR ( make_var ( (Name)CString(CAR ($1)) , 
-						 (Name)CString(CADR($1)) ));
-
+		    List temp = NULL;
+ 		    temp =  CDR ( make_var ((Name)CString(CAR ($1)) , 
+ 						 (Name)CString(CADR($1)),
+ 						 CDR(CDR($1))));
 		    $$ = (LispValue)temp;
 
 		    if (CurrentWasUsed) {
@@ -1741,19 +1748,25 @@ a_expr:
 						   get_vartype((Var)temp));
 			NewWasUsed = false;
 		    }
-		    if (IsA(temp,Var)) {
-			set_vardotfields ( temp , CDR(CDR($1)));
-			$$ = lispCons ( lispInteger (get_vartype((Var)temp)),
-				       $$ );
-		    } else if (IsA(temp,LispList) ) {
-			$$ = lispCons ( lispInteger 
-				          (get_vartype((Var)CADR((List)temp))),
-				       $$ );
-		    } else {
-			elog(WARN, "Var or union expected, not found");
-		    }
-			
-		}
+  		    if (IsA(temp,Var)) {
+ 
+ 			set_vardotfields ( (Var) temp , CDR(CDR($1)));
+ 			if (null(CDR(CDR($1)))) 
+ 			    $$ = lispCons ( lispInteger
+ 					   (get_vartype((Var)temp)),$$ );
+ 		    }
+ 		    else if(IsA(CAR(temp),Func)) {
+ 			printf("foo");
+ 			$$ = lispCons(lispInteger(get_functype((Func)
+ 							       CAR(temp))),
+ 				      $$);
+ 		    }
+ 		    else if (IsA(temp,LispList) ) {
+  			$$ = lispCons ( lispInteger 
+  				          (get_vartype((Var)CADR((List)temp))),
+  				       $$ );
+  		    }
+  		}
 	| AexprConst		
 	| attr optional_indirection
 		{ 
@@ -1848,7 +1861,8 @@ agg_res_target_el:
 		   int type_id, type_len;
 
 		   temp = make_var ( (Name)CString(CAR($1)) ,
-				    (Name)CString(CADR($1)));
+				    (Name)CString(CADR($1)),
+     				    CDR(CDR($1)));
 		   type_id = CInteger(CAR(temp));
 		   type_len = tlen(get_id_type(type_id));
 		   resnode = MakeResdom ( (AttributeNumber)1,
@@ -1958,7 +1972,8 @@ res_target_el:
 		      int type_id, type_len;
 
 		      temp = make_var ( (Name)CString(CAR($1)) ,
-				       (Name)CString(CADR($1)));
+				       (Name)CString(CADR($1)),
+ 				       CDR(CDR($1)));
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
@@ -2068,15 +2083,30 @@ AexprConst:
 		ObjectId toid;
 		int aid;
 		char temp[8];
-		aid = CInteger($1);
-		toid = param_type(aid);
-		if (!ObjectIdIsValid(toid)) {
-		    elog(WARN, "Parameter '$%d' is out of range",
-			 aid);
+		
+		if (lispIntegerp($1)) {
+		    aid = CInteger($1);
+		    toid = param_type(aid);
+		    if (!ObjectIdIsValid(toid)) {
+			elog(WARN, "Parameter '$%d' is out of range",
+			     aid);
+		    }
+		    $$ = (List) lispCons(lispInteger(toid), (LispValue)
+				 MakeParam(PARAM_NUM, (AttributeNumber)aid,
+					   (Name)"foop", (ObjectId)toid));
 		}
-		$$ = (List) lispCons(lispInteger(toid), (LispValue)
-				     MakeParam(PARAM_NUM, (AttributeNumber)aid,
-					       (Name)"foop", (ObjectId)toid));
+		else {
+		    toid = param_type_complex(CString($1));
+		    if (!ObjectIdIsValid(toid)) {
+			elog(WARN,
+			     "'$%s' is not an attribute of current relation",
+			     CString($1));
+		    }
+		    $$ = (List) lispCons(lispInteger(toid), (LispValue)
+					 MakeParam(PARAM_NAMED, 0, CString($1),
+						   toid));
+		    
+		}
 	    }
 	    else {
 		Params_ok = false;
@@ -2246,7 +2276,7 @@ make_targetlist_expr ( name , expr )
 			      lispCons(CDR(expr),LispNil)) );
     
 }
-
+#ifdef foo
 static int is_postquel_func(parameters)
      List parameters;
 {
@@ -2301,3 +2331,4 @@ static char *postquel_func_arg(parameters)
     }
     elog(WARN, "no zero argument postquel functions");
 }
+#endif foo
