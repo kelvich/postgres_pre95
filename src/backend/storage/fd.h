@@ -201,4 +201,6 @@ FileFindName ARGS((
 	File	file
 ));
 
+extern void closeAllVfds ARGS(());
+extern void closeOneVfd ARGS(());
 #endif	/* !defined(FDIncluded) */
