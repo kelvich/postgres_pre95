@@ -1,5 +1,12 @@
+#
+# C programs
+#
 SUBDIR=  monitor pagedoc pg_id pg_version shmemdoc
-SUBDIR+= createdb createuser destroydb destroyuser initdb vacuum
+#
+# Shell scripts
+#
+SUBDIR+= createdb createuser destroydb destroyuser initdb vacuum ipcclean \
+	pg_copytree
 
 #
 # Removed: tree xexemon.
