@@ -36,6 +36,8 @@ LDADD+= ${LIBPQ}
 
 TESTPROGS= iportal aportal
 
+TESTOBJS= iportal.o aportal.o
+
 iportal: iportal.o
 	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
 
@@ -47,13 +49,14 @@ aportal: aportal.o
 #
 # build dynamically-loaded object files
 #
-DLOBJS= regress.o ufp1.o ufp2.o ufp3.o iportal.o aportal.o
+DLOBJS= regress.o ufp1.o ufp2.o ufp3.o
 
 #
 # ... plus test query inputs
 #
 CREATEFILES= ${DLOBJS} \
 	${TESTPROGS} \
+	${TESTOBJS} \
 	create.pq queries.pq errors.pq destroy.pq \
 	aportalcreate.pq aportalappend.pq \
 	fstest.sh aportaltest.sh
