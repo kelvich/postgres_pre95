@@ -1706,15 +1706,24 @@ can define a BTREE or RTREE index on your own type.  To do this, we will
 discuss how to define a new operator class in \*(PP
 for use with an existing access method.
 .lp
+Our example will be to add a new operator class to the BTREE access method.
+The new operator class will sort integers in ascending absolute value
+order.
+This tutorial will describe how to define the operator class.
+If you work the example,
+you will be able to define and use indices that sort integer
+keys by absolute value.
+.lp
 There are several \*(PP system classes that are important in understanding how
 the
 access methods work.  These will be discussed, and then a sample procedure
 for adding a new set of operators to an existing access method will be shown
 as an example.
 .lp
-pg_am contains one instance for every user defined access method.  Support
-for the HEAP access method is built into \*(PP, but every other access method
-is described here.  The schema is
+The pg_am class contains one instance for every user defined access method.
+Support for the HEAP access method is built into \*(PP,
+but every other access method is described here.
+The schema is
 .lp
 .(l
     amname:  name of the access method
@@ -1725,35 +1734,38 @@ is described here.  The schema is
 
     amstrategies:  number of strategies for this access method (see below)
 
-    am*:  procedure identifiers for interface routines to the access method.
-          for example, regproc ids for opening, closing, and getting instances
-          from the access method appear here.
+    amsupport:  number of support routines for this access method (see below)
 
+    am*:  procedure identifiers for interface routines to the access method.
+          For example, regproc ids for opening, closing, and getting instances
+          from the access method appear here.
 .)l
 .lp
 The object ID of the instance in pg_am is used as a foreign key in lots of
-other classes.  For BTREES, this object ID is 400.  You don't need to add
+other classes.  For BTREES, this object ID is 403.  You don't need to add
 a new instance to this class; all you're interested in is the object ID of
-the BTREE instance.
+the access method instance you want to extend.
 .lp
 .(l
-
-        * retrieve (pg_am.oid) where pg_am.amname = "btree" 
+.ft C
+    * retrieve (pg_am.oid) where pg_am.amname = "btree" 
         
-        * \\g
+    * \eg
 
     ---------------
     | oid         |
     ---------------
-    | 400         |
+    | 403         |
     ---------------
-
+.ft
 .)l
 .lp
-The AMSTRATEGIES attribute exists to standardize comparisons across data
+The
+.b amstrategies
+attribute exists to standardize comparisons across data
 types.  For example, BTREES impose a strict ordering on keys, less to
 greater.  Since \*(PP allows the user to define operators, \*(PP cannot
-in general look at the name of an operator (eg, ">", "<") and tell what sort
+in general look at the name of an operator (eg, ">", "<") and tell what kind
 of comparison it is.  In fact, some access methods (like rtrees) don't impose
 a less to greater ordering, but some other ordering, like containment.
 \*(PP needs some consistent way of taking a scan qualification, looking at
@@ -1764,17 +1776,19 @@ a BTREE.  Strategies is the way that we do this.
 .lp
 Defining a new set of strategies is beyond the scope of this discussion, but
 how the BTREE strategies work will be explained, since you'll need to know that
-to add a new operator class.  In the pg_am class, the AMSTRATEGIES attribute
-is the number of strategies defined for this access method.  For BTREES, this
+to add a new operator class.  In the pg_am class, the
+.b amstrategies
+attribute is the number of strategies defined for this access method.
+For BTREES, this
 number is 5.  These strategies correspond to
 .lp
 .(l
-
-    less than        1
-    less than or equal    2
-    equal            3
-    greater than or equal    4
-    greater than        5
+.ta 0.5i 2.2i
+	less than	1
+	less than or equal	2
+	equal	3
+	greater than or equal	4
+	greater than	5
 .)l
 .lp
 The idea is that you'll add procedures corresponding to the comparisons
@@ -1784,26 +1798,62 @@ BTREE, compute selectivity, and so on.  Don't worry about the details of adding
 procedures yet; just understand that there's a set of these for int2's, int4's,
 oid's, and every other data type on which a BTREE can operate.
 .lp
-The AMSTRATEGIES entry in pg_am is just the *number* of strategies defined
-for the access method in question.  The procedures for less than, less equal,
-and so on don't appear in pg_am.
+Strategies are used by all of the \*(PP access methods.
+Some access methods require other support routines in order to work.
+For example,
+the BTREE access method must be able to compare two keys and determine
+whether one is greater than, equal to, or less than the other.
+Similarly,
+the RTREE access method must be able to compute intersections,
+unions,
+and sizes of rectangles.
+These operations do not correspond to user qualifications in 
+\*(PQ queries;
+they are administrative routines used by the access methods,
+internally.
 .lp
-The next class of interest is PG_OPCLASS.  This class exists only to associate
-a name with an oid.  In pg_amop, every operator class has a set of procedures,
-one through five, above.  Some existing opclasses are int2_ops, int4_ops, and
-oid_ops.  You need to add an instance with your opclass name (for example,
-"int4_abs_ops") to pg_opclass.  The oid of this instance is a foreign key in
-other classes.
+In order to manage diverse support routines consistently across
+all \*(PP access methods,
+.b pg_am
+includes a field called
+.b amsupport .
+This field records the number of support routines used by
+an access method.
+For BTREES, this number is one \*-
+the routine to take two keys and return \(mi\^1, 0, or \(pl\^1,
+depending on whether the first key is less than,
+equal to,
+or greater than the second.
+.lp
+The
+.b amstrategies
+entry in pg_am is just the number of strategies defined
+for the access method in question.
+The procedures for less than, less equal, and so on don't appear in pg_am.
+Similarly,
+.b amsupport
+is just the number of support routines required by the access method.
+The actual routines are listed elsewhere.
+.lp
+The next class of interest is
+.b pg_opclass.
+This class exists only to associate a name with an oid.
+In pg_amop, every BTREE operator class has a set of procedures,
+one through five, above.
+Some existing opclasses are int2_ops, int4_ops, and oid_ops.
+You need to add an instance with your opclass name (for example,
+"int4_abs_ops") to pg_opclass.
+The oid of this instance is a foreign key in other classes.
 .lp
 .(l
-
+.ft C
        * append pg_opclass (opcname = "int4_abs_ops")
-       * \\g
+       * \eg
 
        * retrieve (cl.oid, cl.opcname)
               from cl in pg_opclass
               where cl.opcname = "int4_abs_ops"
-       * \\g
+       * \eg
 
     -----------------------------
     | oid         | opcname     |
@@ -1817,10 +1867,19 @@ other classes.
 The oid for your pg_opclass instance MAY BE DIFFERENT!  You should
 substitute your value for 17314 wherever it appears in this discussion.
 .lp
-So now you have an access method and an operator class. You need some
-operators; use the method for defining operators discussed previously.
-Now, suppose the c
-code that implements the functions defined is stored in the file
+So now we have an access method and an operator class.
+We still need a set of operators;
+the procedure for defining operators was discussed earlier in this manual.
+For the "int4_abs_ops" operator class on BTREES,
+the operators we require are:
+.(l
+	absolute value less-than
+	absolute value less-than-or-equal
+	absolute value equal
+	absolute value greater-than-or-equal
+	absolute value greater-than
+.)l
+Suppose the code that implements the functions defined is stored in the file
 .lp
 .(l
 /usr/postgres/tutorial/int4_abs.c
@@ -1842,89 +1901,84 @@ The code is
 
 .)l
 .lp
-There are a couple of important things that are happening below.  First,
-note that operators for less, less equal, equal, greater equal, and greater for
-int4 are being defined.  All of these operators are already defined
-for int4 under the names "<", "<=", "=", ">=", and ">".  The new operators
-behave differently, of course.  In order to guarantee that \*(PP uses
-these new operators rather than the old ones, they need to be named differently
-from the old ones.  This is a key point:  you can overload operators in
+There are a couple of important things that are happening below.
+First, note that operators for less, less equal, equal, greater equal,
+and greater for int4 are being defined.
+All of these operators are already defined
+for int4 under the names "<", "<=", "=", ">=", and ">".
+The new operators behave differently, of course.
+In order to guarantee that \*(PP uses
+these new operators rather than the old ones,
+they need to be named differently from the old ones.
+This is a key point:  you can overload operators in
 \*(PP, but only if the operator isn't already defined for the argument
 types.
 .lp
-That is, if you have "<" defined for (int4, int4), you can't define it
-again.  \*(PP 
+That is, if you have "<" defined for (int4, int4), you can't define it again.
+\*(PP 
 .b doesn't
-check this when you define your operator, so be careful.
+check this when you define your operator,
+so be careful.
 To avoid this problem, 
-odd names will be used for the operators.  If you *do* get this wrong, the
-access methods are likely to 
-.b crash
-when you try to do scans.
+odd names will be used for the operators.
+If you get this wrong,
+the access methods are likely to crash when you try to do scans.
 .lp
 The other important point is that all the functions return BOOLEAN values;
 the access methods rely on this fact.
 .lp
 .(l
+.ft C
+   * define function int4_abs_lt
+           (file = "/usr/postgres/tutorial/int4_abs.o",
+	    language = "c", returntype = bool)
+           arg is (int4, int4) \eg
 
-so here goes -- let's define some functions.
+   * define function int4_abs_le
+           (file = "/usr/postgres/tutorial/int4_abs.o",
+	    language = "c", returntype = bool)
+           arg is (int4, int4) \eg
 
-       * define function int4_abs_lt
-               (file = "/usr/postgres/tutorial/int4_abs.o", language = "c",
-                returntype = bool)
-               arg is (int4, int4)
-                
-       * \\g
+   * define function int4_abs_eq
+           (file = "/usr/postgres/tutorial/int4_abs.o",
+	    language = "c", returntype = bool)
+           arg is (int4, int4) \eg
 
-       * define function int4_abs_le
-               (file = "/usr/postgres/tutorial/int4_abs.o", language = "c",
-                returntype = bool)
-               arg is (int4, int4)
-       
-       * \\g
+   * define function int4_abs_ge
+           (file = "/usr/postgres/tutorial/int4_abs.o",
+	    language = "c", returntype = bool)
+           arg is (int4, int4) \eg
 
-       * define function int4_abs_eq
-               (file = "/usr/postgres/tutorial/int4_abs.o", language = "c",
-                returntype = bool)
-               arg is (int4, int4)
-
-       * \\g
-
-       * define function int4_abs_ge
-               (file = "/usr/postgres/tutorial/int4_abs.o", language = "c",
-                returntype = bool)
-               arg is (int4, int4)
-
-       * \\g
-
-       * define function int4_abs_gt
-               (file = "/usr/postgres/tutorial/int4_abs.o", language = "c",
-                returntype = bool)
-               arg is (int4, int4)
-        
-       * \\g
-
+   * define function int4_abs_gt
+           (file = "/usr/postgres/tutorial/int4_abs.o",
+	    language = "c", returntype = bool)
+           arg is (int4, int4) \eg
+.ft
 .)l
 .lp
-Now define the operators that use them.  As noted, the operator names
-must be unique for two int4 operands.  You can do a query on pg_operator
+Now define the operators that use them.
+As noted,
+the operator names must be unique for two int4 operands.
+You can do a query on pg_operator
 .(l
-
-       * retrieve (pg_operator.all)
-
-       * \\g
+.ft C
+   * retrieve (pg_operator.all) \eg
+.ft
 .)l
-to see if your name is taken for the types you want.  The important things here
-are the procedure (which is the C function defined above) and the restriction
-and join selectivity functions.  You should just use the ones used below --
-note that there are different such functions for the less, equal, and greater
-cases.  These 
+to see if your name is taken for the types you want.
+The important things here are the procedure
+(which is the C function defined above)
+and the restriction and join selectivity functions.
+You should just use the ones used below --
+note that there are different such functions for the less,
+equal,
+and greater cases.
+These 
 .b must
-be supplied or the access method will
-.b die
-when it tries to
-use the operator.  You should copy the names for restrict and join, but use the
-procedure names you defined in the last step.
+be supplied,
+or the access method will die when it tries to use the operator.
+You should copy the names for restrict and join,
+but use the procedure names you defined in the last step.
 .lp
 .(l
 
