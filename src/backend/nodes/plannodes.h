@@ -104,6 +104,7 @@
 #define	OutSeqScanExists
 #define	OutIndexScanExists
 #define	OutTempExists
+#define OutAggExists
 #define	OutSortExists
 #define	OutHashExists
 #define OutUniqueExists
@@ -123,6 +124,7 @@ extern void	OutScan();
 extern void	OutSeqScan();
 extern void	OutIndexScan();
 extern void	OutTemp();
+extern void	OutAgg();
 extern void	OutSort();
 extern void	OutHash();
 extern void     OutScanTemps();
@@ -146,6 +148,7 @@ extern bool	EqualScan();
 extern bool	EqualSeqScan();
 extern bool	EqualIndexScan();
 extern bool	EqualTemp();
+extern bool 	EqualAgg();
 extern bool	EqualSort();
 extern bool	EqualHash();
 extern bool     EqualFragment();
@@ -167,6 +170,7 @@ extern bool     EqualFragment();
 #define	CopySeqScanExists
 #define	CopyIndexScanExists
 #define	CopyTempExists
+#define CopyAggExists
 #define	CopySortExists
 #define	CopyHashExists
 #define CopyUniqueExists
@@ -185,6 +189,7 @@ extern bool	CopyScan();
 extern bool	CopySeqScan();
 extern bool	CopyIndexScan();
 extern bool	CopyTemp();
+extern bool	CopyAgg();
 extern bool	CopySort();
 extern bool	CopyHash();
 extern bool     CopyScanTemps();
@@ -470,6 +475,19 @@ class (Sort) public (Temp) {
  /* private: */
 	SortDefs;
  /* public: */
+};
+/* ---------------
+ *      aggregate node
+ * ---------------
+ */
+class (Agg) public (Temp) {
+#define AggDefs \
+	inherits(Temp); \
+	Name                    aggname; \
+	AggState                aggstate
+    /* private */
+	AggDefs;
+    /* public: */
 };
 
 /* ----------------
