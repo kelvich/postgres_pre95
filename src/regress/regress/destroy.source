@@ -5,6 +5,15 @@
  */
 
 /*
+ * this will fail if the user is not the postgres superuser.
+ * if it does, don't worry about it (you can turn usersuper
+ * back on as "postgres").  too many people don't follow 
+ * directions and run this as "postgres", though...
+ */
+replace pg_user (usesuper="t"::bool) where pg_user.usename = "_USER_"
+\g
+
+/*
  * FUNCTION REMOVAL
  */
 remove function hobbies(person)
@@ -45,6 +54,12 @@ remove operator ## (path, path)
 \g
 remove operator <% (point, circle)
 \g
+remove operator @#@ (none, int4)	/* left unary */
+\g
+remove operator #@# (int4, none)	/* right unary */
+\g
+remove operator #%# (int4)		/* right unary */
+\g
 
 /*
  * ABSTRACT DATA TYPE REMOVAL
@@ -56,8 +71,10 @@ remove type circle
 
 /*
  * RULE REMOVAL
- *	(is tested in queries.source)
+ *	(is also tested in queries.source)
  */
+remove rule r1
+\g
 
 /*
  * AGGREGATE REMOVAL
@@ -97,6 +114,12 @@ remove index tenk2_unique2
 \g
 remove index tenk2_hundred
 \g
+remove index onek2_u1_prtl
+\g
+remove index onek2_u2_prtl
+\g
+remove index onek2_stu1_prtl
+\g
 remove index rect2ind
 \g
 remove index rix
@@ -105,14 +128,32 @@ remove index iix
 \g
 remove index six
 \g
-remove index hasham_index
+remove index hash_i4_index
+\g
+remove index hash_c16_index
+\g
+remove index hash_txt_index
+\g
+remove index hash_f8_index
+\g
+remove index bt_i4_index
+\g
+remove index bt_c16_index
+\g
+remove index bt_txt_index
+\g
+remove index bt_f8_index
 \g
 
 destroy onek
 \g
+destroy onek2
+\g
 destroy tenk1 
 \g
 destroy tenk2 
+\g
+destroy Bprime
 \g
 
 destroy hobbies_r
@@ -122,11 +163,36 @@ destroy equipment_r
 
 destroy aggtest
 \g
+destroy xacttest
+\g
 destroy arrtest
 \g
 destroy iportaltest
 \g
+destroy asynctest1
+\g
+destroy asynctest1a
+\g
 
+destroy f_star
+\g
+destroy e_star
+\g
+destroy d_star
+\g
+destroy c_star
+\g
+destroy b_star
+\g
+destroy a_star
+\g
+
+destroy myclass0
+\g
+
+/*
+ * must be in reverse inheritance order
+ */
 destroy stud_emp
 \g
 destroy student
@@ -139,6 +205,7 @@ destroy emp
 \g
 destroy person
 \g
+
 destroy ramp
 \g
 destroy real_city
@@ -153,7 +220,65 @@ destroy road
 \g
 destroy city
 \g
-destroy hasham_heap
+
+destroy hash_i4_heap
+\g
+destroy hash_c16_heap
+\g
+destroy hash_txt_heap
+\g
+destroy hash_f8_heap
+\g
+destroy bt_i4_heap
+\g
+destroy bt_c16_heap
+\g
+destroy bt_txt_heap
+\g
+destroy bt_f8_heap
+\g
+
+destroy BOOLTBL1
+\g
+destroy BOOLTBL2
+\g
+destroy ABSTIME_TBL
+\g
+destroy RELTIME_TBL
+\g
+destroy TINTERVAL_TBL
+\g
+destroy BOX_TBL
+\g
+destroy CHAR_TBL
+\g
+destroy CHAR2_TBL
+\g
+destroy CHAR4_TBL
+\g
+destroy CHAR8_TBL
+\g
+destroy CHAR16_TBL
+\g
+destroy FLOAT4_TBL
+\g
+destroy FLOAT8_TBL
+\g
+destroy INT2_TBL
+\g
+destroy INT4_TBL
+\g
+destroy OID_TBL
+\g
+destroy OIDCHAR16_TBL
+\g
+destroy OIDINT2_TBL
+\g
+destroy OIDINT4_TBL
+\g
+destroy POINT_TBL
+\g
+destroy POLYGON_TBL
 \g
 
 /*
