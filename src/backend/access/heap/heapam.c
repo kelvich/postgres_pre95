@@ -272,7 +272,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
      *	return null immediately if relation is empty
      * ----------------
      */
-    if (!(pages = RelationGetNumberOfBlocks(relation)))
+    if (!(pages = relation->rd_nblocks))
 	return (NULL);
 
     /* ----------------
@@ -734,6 +734,7 @@ heap_beginscan(relation, atend, timeQual, nkeys, key)
     sdesc = (HeapScanDesc)
 	palloc(sizeof *sdesc + (nkeys - 1) * sizeof key->data); /* XXX */
 
+    relation->rd_nblocks = FileGetNumberOfBlocks(relation->rd_fd);
     sdesc->rs_rd = relation;
 
     initsdesc(sdesc, relation, atend, nkeys, key);
