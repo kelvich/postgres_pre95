@@ -163,7 +163,7 @@ match_hashop_hashinfo (hashop,hashinfo_list)
     foreach( i, hashinfo_list) {
 	xhashinfo = (HInfo)CAR(i);
 	key = get_hashop(xhashinfo);
-	if (equal(hashop,key)) {  /* found */
+	if (hashop == key) {  /* found */
 	    return(xhashinfo);    /* should be a hashinfo node ! */
 	}
     }
