@@ -837,6 +837,11 @@ CommitTransaction()
      * ----------------
      */
     s->state = TRANS_DEFAULT;    
+    {				/* want this after commit */
+	extern void Async_NotifyAtCommit();
+	if (IsNormalProcessingMode())
+	  Async_NotifyAtCommit();
+    }
 }
 
 /* --------------------------------
