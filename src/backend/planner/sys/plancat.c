@@ -11,6 +11,7 @@ RcsId("$Header$");
 
 #include "access/heapam.h"
 #include "access/htup.h"
+#include "access/itup.h"
 #include "access/tqual.h"
 #include "parser/parsetree.h"
 #include "utils/fmgr.h"
@@ -196,7 +197,7 @@ execIndexCatalogInformation(notFirst, indrelid, isarchival, indexkeys)
 					indexCatalogInfo);
 	if (! found || indexCatalogInfo[0] == 0)
 		return((int32) InvalidObjectId);
-	for (i = 0; i < MAXIATTS; ++i)
+	for (i = 0; i < MaxIndexAttributeNumber; ++i)
 		indexkeys[i] = indexCatalogInfo[i+3];
 	return((int32) indexCatalogInfo[0]);	
 }

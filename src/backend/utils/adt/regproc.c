@@ -61,7 +61,7 @@ regprocin(proname)
 	case 1:
 		result = (RegProcedure) amgetattr(proctup,
 						  InvalidBuffer,
-						  T_OID,
+						  ObjectIdAttributeNumber,
 						  &proc->rd_att,
 						  &isnull);
 		if (isnull) {
@@ -100,7 +100,7 @@ regprocout(proid)
 		     ProcedureRelationName->data);
 		return(0);
 	}
-	key.sk_attnum = T_OID;		/* proid */
+	key.sk_attnum = ObjectIdAttributeNumber;		/* proid */
 	key.sk_flags = 0;
 	key.sk_opr = F_INT4EQ;
 	key.sk_data = (DATUM) proid;

@@ -432,7 +432,7 @@ funcname_get_funcid ( function_name )
     func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
 
     if ( func_tuple != NULL )
-      return ( ((struct tuple *)func_tuple)->t_oid );
+      return ( func_tuple->t_oid );
     else
       return ( (OID) 0 );
 }

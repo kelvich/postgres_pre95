@@ -275,7 +275,7 @@ fillatt(natts, att)
     HeapTuple			tuple;
     int				i;
 
-    if (natts < 0 || natts > MAXATTS)
+    if (natts < 0 || natts > MaxHeapAttributeNumber)
 	elog(WARN, "fillatt: %d attributes is too large", natts);
     if (natts == 0) {
 	elog(DEBUG, "fillatt: called with natts == 0");

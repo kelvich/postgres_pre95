@@ -9,8 +9,8 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
     
-typedef struct tuple *Type;
-typedef struct tuple *Operator;
+typedef HeapTuple	Type;
+typedef HeapTuple	Operator;
 
 extern Type type(), get_id_type();
 extern OID att_typeid(), typeid();

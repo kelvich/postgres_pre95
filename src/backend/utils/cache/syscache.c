@@ -103,7 +103,7 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(struct operator) },
     { &OperatorRelationName,			/* OPROID */
 	  1,
-	  { T_OID,
+	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
@@ -117,7 +117,7 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(struct proc) },
     { &ProcedureRelationName,			/* PROOID */
 	  1,
-	  { T_OID,
+	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
@@ -131,7 +131,7 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(struct relation) },
     { &RelationRelationName,			/* RELOID */
 	  1,
-	  { T_OID,
+	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
@@ -145,7 +145,7 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(TypeTupleFormData) - sizeof(struct varlena) },
     { &TypeRelationName,			/* TYPOID */
 	  1,
-	  { T_OID,
+	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0},
@@ -187,7 +187,7 @@ static struct cachedesc cacheinfo[] = {
 	  sizeof(struct prs2plans) - sizeof(struct varlena) },
     { &RewriteRelationName,			/* RULOID */
 	  1,
-	  { T_OID,
+	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
@@ -351,25 +351,25 @@ SearchSysCacheStruct(cacheId, returnStruct, key1, key2, key3, key4)
  */
 static int32 heapTupleAttributeLength[] = {
     0,
-    sizeof(ItemPointerData),				/* T_CTID */
-    Max(sizeof(ItemPointerData), sizeof(RuleLock)),	/* T_LOCK */
-    sizeof(ObjectId),					/* T_OID */
-    sizeof(XID),sizeof(CID),				/* T_XMIN,T_CMIN */
-    sizeof(XID),sizeof(CID),				/* T_XMAX,T_CMAX */
-    sizeof(ItemPointerData),sizeof(ItemPointerData),	/* T_CHAIN,T_ANCHOR */
-    sizeof(ABSTIME),sizeof(ABSTIME),			/* T_TMIN,T_TMAX */
-    sizeof(char)					/* T_VTYPE */
+    sizeof(ItemPointerData),				/* CTID */
+    Max(sizeof(ItemPointerData), sizeof(RuleLock)),	/* LOCK */
+    sizeof(ObjectId),					/* OID */
+    sizeof(XID),sizeof(CID),				/* XMIN,CMIN */
+    sizeof(XID),sizeof(CID),				/* XMAX,CMAX */
+    sizeof(ItemPointerData),sizeof(ItemPointerData),	/* CHAIN,ANCHOR */
+    sizeof(ABSTIME),sizeof(ABSTIME),			/* TMIN,TMAX */
+    sizeof(char)					/* VTYPE */
 };
 static Boolean heapTupleAttributeByValue[] = {
     0,
-    0,							/* T_CTID */
-    0,							/* T_LOCK */
-    1, 							/* T_OID */
-    1, 1,	 					/* T_XMIN,T_CMIN */
-    1, 1,	 					/* T_XMAX,T_CMAX */
-    0, 0,						/* T_CHAIN,T_ANCHOR */
-    1, 1,						/* T_TMIN,T_TMAX */
-    1							/* T_VTYPE */
+    0,							/* CTID */
+    0,							/* LOCK */
+    1, 							/* OID */
+    1, 1,	 					/* XMIN,CMIN */
+    1, 1,	 					/* XMAX,CMAX */
+    0, 0,						/* CHAIN,ANCHOR */
+    1, 1,						/* TMIN,TMAX */
+    1							/* VTYPE */
 };
  
 /*
@@ -412,7 +412,7 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
     relation = RelationNameOpenHeapRelation(cacheName);
     
     if (attributeNumber < 0 &&
-	attributeNumber > T_HLOW) {
+	attributeNumber > FirstLowInvalidHeapAttributeNumber) {
 	attributeLength = heapTupleAttributeLength[-attributeNumber];
 	attributeByValue = heapTupleAttributeByValue[-attributeNumber];
     } else if (attributeNumber > 0 &&

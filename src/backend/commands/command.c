@@ -320,11 +320,11 @@ PerformAddAttribute(relationName, schema)
 
 	minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
 	maxatts = minattnum + newAttributes;
-	if (maxatts > MAXATTS) {
+	if (maxatts > MaxHeapAttributeNumber) {
 		pfree((char *) reltup);			/* XXX temp */
 		amclose(relrdesc);			/* XXX temp */
 		elog(WARN, "addattribute: relations limited to %d attributes",
-		     MAXATTS);
+		     MaxHeapAttributeNumber);
 		return;
 	}
 

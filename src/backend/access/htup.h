@@ -126,7 +126,7 @@ Form
 HeapTupleGetForm ARGS((
 	HeapTuple	tuple
 ));
-
+#ifdef OBSOLETE
 /* ----------------------------------------------------------------
  *			old stuff from tuple.h
  * ----------------------------------------------------------------
@@ -198,5 +198,7 @@ typedef	union {
 #define	T_TMAX	(-11)
 #define	T_VTYPE	(-12)
 #define	T_HLOW	(T_VTYPE - 1)
+
+#endif OBSOLETE
 
 #endif	/* !defined(HTupIncluded) */

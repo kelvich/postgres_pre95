@@ -343,7 +343,7 @@ CatalogCacheComputeTupleHashIndex(cacheInOutP, relation, tuple)
     switch (cacheInOutP->cc_nkeys) {
     case 4:
 	cacheInOutP->cc_skey[3].sk_data =
-	    (cacheInOutP->cc_key[3] == T_OID)
+	    (cacheInOutP->cc_key[3] == ObjectIdAttributeNumber)
 		? (DATUM) tuple->t_oid
 		: fastgetattr(tuple,
 			      cacheInOutP->cc_key[3],
@@ -353,7 +353,7 @@ CatalogCacheComputeTupleHashIndex(cacheInOutP, relation, tuple)
 	/* FALLTHROUGH */
     case 3:
 	cacheInOutP->cc_skey[2].sk_data =
-	    (cacheInOutP->cc_key[2] == T_OID)
+	    (cacheInOutP->cc_key[2] == ObjectIdAttributeNumber)
 		? (DATUM) tuple->t_oid
 		: fastgetattr(tuple,
 			      cacheInOutP->cc_key[2],
@@ -363,7 +363,7 @@ CatalogCacheComputeTupleHashIndex(cacheInOutP, relation, tuple)
 	/* FALLTHROUGH */
     case 2:
 	cacheInOutP->cc_skey[1].sk_data =
-	    (cacheInOutP->cc_key[1] == T_OID)
+	    (cacheInOutP->cc_key[1] == ObjectIdAttributeNumber)
 		? (DATUM) tuple->t_oid
 		: fastgetattr(tuple,
 			      cacheInOutP->cc_key[1],
@@ -373,7 +373,7 @@ CatalogCacheComputeTupleHashIndex(cacheInOutP, relation, tuple)
 	/* FALLTHROUGH */
     case 1:
 	cacheInOutP->cc_skey[0].sk_data =
-	    (cacheInOutP->cc_key[0] == T_OID)
+	    (cacheInOutP->cc_key[0] == ObjectIdAttributeNumber)
 		? (DATUM) tuple->t_oid
 		: fastgetattr(tuple,
 			      cacheInOutP->cc_key[0],
@@ -670,7 +670,7 @@ InitSysCache(relname, nkeys, key)
 	    elog(FATAL, "InitSysCache: called with 0 key[%d]", i);
 	}
 	if (key[i] < 0) {
-	    if (key[i] != T_OID) {
+	    if (key[i] != ObjectIdAttributeNumber) {
 		elog(FATAL, "InitSysCache: called with %d key[%d]", key[i], i);
 	    } else {
 		cp->cc_klen[i] = sizeof(OID);

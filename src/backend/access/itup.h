@@ -45,11 +45,21 @@ typedef struct IndexTupleData {
  *  Warning: T_* defined also in tuple.h
  */
 
+/*----
+ * "Special" attributes of index tuples...
+ * NOTE: I used these big values so that there is no overlapping
+ * with the HeapTuple system attributes.
+ */
+#define IndxBaseTupleIdAttributeNumber	 	(-101)
+#define IndxRuleLockAttributeNumber		(-102)
+
+#ifdef OBSOLETE
 #ifndef	T_CTID
 #define T_CTID	(-1)	/* remove me */
 #define T_LOCK	(-2)	/* -1 */
 #define T_TID	(-3)	/* -2 */
 #endif	/* !defined(T_CTID) */
+#endif OBSOLETE
 
 typedef IndexTupleData	*IndexTuple;
 
