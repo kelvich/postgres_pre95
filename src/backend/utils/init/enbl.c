@@ -3,11 +3,11 @@
  *	POSTGRES module enable and disable support code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "enbl.h"
+#include "utils/module.h"
 
 bool
 BypassEnable(enableCountInOutP, on)
