@@ -71,7 +71,6 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     List		parsetree_list;
     List		plan_list;
     ObjectId		typev[8];
-    static char oid_string[64];
     static char temp[8];
     ObjectId relid;
     List t;
@@ -87,16 +86,42 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     Assert(PointerIsValid(prosrc));
     Assert(PointerIsValid(probin));
 
-    parameterCount = length(argList);
+    parameterCount = 0;
+    bzero(typev, 8 * sizeof(ObjectId));
+    foreach (x, argList) {
+	t = CAR(x);
+
+	if (parameterCount == 8)
+	    elog(WARN, "Procedures cannot take more than 8 arguments");
+
+	toid = TypeGet((Name)(CString(t)), &defined);
+
+	if (!ObjectIdIsValid(toid)) {
+	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
+		 CString(t));
+	}
+
+	if (!defined) {
+	    /* 
+	     * replace with 0 - this is probably a type output function
+	     */
+	    toid = 0;
+	    elog(NOTICE, "ProcedureDefine: arg type '%s' is only a shell",
+		 CString(t));
+        }
+	typev[parameterCount++] = toid;
+
+	sprintf(temp, "%ld ", toid);
+    }
 
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
-			      (char *) NULL,
-			      (char *) NULL,
+			      parameterCount,
+			      typev,
 			      (char *) NULL);
 
     if (HeapTupleIsValid(tup))
-	elog(WARN, "ProcedureDefine: procedure %s already exists",
+	elog(WARN, "ProcedureDefine: procedure %s already exists with same arguments",
 	     procedureName);
 
     tup = SearchSysCacheTuple(LANNAME,
@@ -112,9 +137,35 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     languageObjectId = tup->t_oid;
 
     typeObjectId = TypeGet(returnTypeName, &defined);
-    if (!ObjectIdIsValid(typeObjectId)) {
-	elog(NOTICE, "ProcedureDefine: return type '%s' not yet defined",
-	     returnTypeName);
+    if (!ObjectIdIsValid(typeObjectId) || (!defined)) {
+	if (!ObjectIdIsValid(typeObjectId)) {
+            elog(NOTICE, "ProcedureDefine: type '%s' is not yet defined",
+		 returnTypeName);
+	    elog(NOTICE, "ProcedureDefine: creating a shell for type '%s'",
+		 returnTypeName);
+        }
+	else {
+	    elog(NOTICE, "ProcedureDefine: return type '%s' is only a shell",
+		 returnTypeName);
+        }
+
+	/*
+	 * assume this is the input or receive function for a new type
+	 * and create a "shell" for the type.  change the argument type(s)
+	 * to 0, because the function just takes a pointer to a
+	 *  null-terminated string 
+	 */
+	for(i=0; i<parameterCount; i++)
+	      typev[i] = 0;
+
+	tup = SearchSysCacheTuple(PRONAME,
+				  (char *) procedureName,
+				  parameterCount,
+				  typev,
+				  (char *) NULL);
+	if (HeapTupleIsValid(tup))
+	      elog(WARN, "ProcedureDefine: input procedure %s already exists",
+		   procedureName);
 
 	typeObjectId = TypeShellMake(returnTypeName);
 	if (!ObjectIdIsValid(typeObjectId))
@@ -132,26 +183,6 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
       elog(WARN, "method %s already an attribute of type %s",
 	   procedureName, CString(CAR(argList)));
 
-    parameterCount = 0;
-    oid_string[0] = '\0';
-    foreach (x, argList) {
-	t = CAR(x);
-
-	if (parameterCount == 8)
-	    elog(WARN, "Procedures cannot take more than 8 arguments");
-
-	toid = TypeGet((Name)(CString(t)), &defined);
-
-	if (!ObjectIdIsValid(toid)) {
-	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
-		 CString(t));
-	}
-
-	typev[parameterCount++] = toid;
-
-	sprintf(temp, "%ld ", toid);
-	strcat(oid_string, temp);
-    }
 
     /*
      *  If this is a postquel procedure, we parse it here in order to
@@ -190,7 +221,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     values[i++] = (char *) returnsSet;
     values[i++] = (char *) typeObjectId;
 
-    values[i++] = fmgr(F_OID8IN, oid_string);
+    values[i++] = (char *) typev;
     /*
      * The following assignments of constants are made.  The real values
      * will have to be extracted from the arglist someday soon.
