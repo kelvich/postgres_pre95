@@ -111,7 +111,7 @@
 #define	PrintHashExists
 #define PrintUniqueExists
 #define PrintFragmentExists
-#define PrintScanTempExists
+#define PrintScanTempsExists
 
 extern void	PrintPlan();
 extern void	PrintResult();
@@ -128,7 +128,7 @@ extern void	PrintIndexScan();
 extern void	PrintTemp();
 extern void	PrintSort();
 extern void	PrintHash();
-extern void     PrintScanTemp();
+extern void     PrintScanTemps();
 extern void     PrintFragment();
 
 /* ----------------
@@ -174,7 +174,7 @@ extern bool     EqualFragment();
 #define	CopySortExists
 #define	CopyHashExists
 #define CopyUniqueExists
-#define CopyScanTempExists
+#define CopyScanTempsExists
 
 extern bool	CopyPlan();
 extern bool	CopyResult();
@@ -191,7 +191,7 @@ extern bool	CopyIndexScan();
 extern bool	CopyTemp();
 extern bool	CopySort();
 extern bool	CopyHash();
-extern bool     CopyScanTemp();
+extern bool     CopyScanTemps();
 
 /* ----------------------------------------------------------------
  *			node definitions
@@ -217,7 +217,7 @@ class (Plan) public (Node) {
 	Cost			cost; \
 	Count			plan_size; \
 	Count			plan_width; \
-	Index			fragment; \
+	int			fragment; \
 	int			parallel; \
 	EStatePtr		state; \
 	ReturnStatePtr		retstate; \
@@ -364,10 +364,10 @@ class (SeqScan) public (Scan) {
  /* public: */
 };
 
-class (ScanTemp) public (Plan) {
+class (ScanTemps) public (Plan) {
 #define ScanTempDefs \
         inherits(Plan); \
-        Relation        temprelDesc; \
+        List        temprelDescs; \
         ScanTempState   scantempState
 /* private: */
         ScanTempDefs;

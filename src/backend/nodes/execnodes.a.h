@@ -179,6 +179,10 @@ extern void set_iss_RelationDescs ARGS((IndexScanState node, RelationPtr value))
 extern RelationPtr get_iss_RelationDescs ARGS((IndexScanState node));
 extern void set_iss_ScanDescs ARGS((IndexScanState node, IndexScanDescPtr value));
 extern IndexScanDescPtr get_iss_ScanDescs ARGS((IndexScanState node));
+extern void set_st_whichplan ARGS((ScanTempState node, int value));
+extern int get_st_whichplan ARGS((ScanTempState node));
+extern void set_st_nplans ARGS((ScanTempState node, int value));
+extern int get_st_nplans ARGS((ScanTempState node));
 extern void set_nl_PortalFlag ARGS((NestLoopState node, bool value));
 extern bool get_nl_PortalFlag ARGS((NestLoopState node));
 extern void set_mj_OSortopI ARGS((MergeJoinState node, List value));
