@@ -1401,3 +1401,16 @@ UserAbortTransactionBlock()
     AbortTransaction();
     s->blockState = TBLOCK_ENDABORT;
 }
+
+bool
+IsTransactionBlock()
+{
+    TransactionState s = CurrentTransactionState;
+
+    if (s->blockState == TBLOCK_INPROGRESS
+	|| s->blockState == TBLOCK_ENDABORT) {
+	return (true);
+    }
+
+    return (false);
+}
