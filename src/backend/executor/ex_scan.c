@@ -88,6 +88,7 @@ ExecScan(node, accessMtd)
     AttributeNumberPtr	scanAtts;
     int			scanNumAtts;
     int			i;
+    bool		isDone;
     bool		madeBogusScanAtts = false;
     
     TupleTableSlot	slot;
@@ -137,6 +138,12 @@ ExecScan(node, accessMtd)
     set_ecxt_relation(econtext, scanRelation);
     set_ecxt_relid(econtext, scanRelid);
 	    
+    if (get_cs_TupFromTlist((CommonState)scanstate)) {
+	projInfo = get_cs_ProjInfo((CommonState)scanstate);
+	resultSlot = ExecProject(projInfo, &isDone);
+	if (!isDone)
+	    return resultSlot;
+    }
     /* ----------------
      *	get a tuple from the access method and have the
      *  rule manager process it..  loop until we obtain
@@ -361,6 +368,7 @@ ExecScan(node, accessMtd)
      */
     projInfo = get_cs_ProjInfo((CommonState) scanstate);
     
-    return (TupleTableSlot)
-	ExecProject(projInfo);
+    resultSlot = ExecProject(projInfo, &isDone);
+    set_cs_TupFromTlist((CommonState) scanstate, !isDone);
+    return resultSlot;
 }
