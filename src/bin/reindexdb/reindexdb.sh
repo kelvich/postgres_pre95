@@ -39,6 +39,8 @@ if [ -z "$DBNAME" ]; then
     exit 1
 fi
 
+INTERNALFILE=$PGDATA/base/$DBNAME/pg_internal.init
+
 TEMPLATE=$FILESDIR/local1_template1.bki
 if [ ! -f $TEMPLATE ]; then
     echo "$CMDNAME: error: database initialization files not found."
@@ -68,6 +70,16 @@ case $resp in
 esac
 
 echo "$CMDNAME: Working..."
+
+if [ -f $INTERNALFILE ]; then
+    /bin/rm $INTERNALFILE
+
+    if [ $? -ne 0 ]; then
+	echo "$CMDNAME: Attempted to remove pg_internal.init and failed."
+	echo "$CMDNAME: Are you logged in as the postgres superuser?"
+	exit 1
+    fi
+fi
 
 echo "destroy indices" > $TMPFILE
 egrep '(declare|build) ind' $TEMPLATE >> $TMPFILE
