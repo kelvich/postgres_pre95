@@ -534,7 +534,8 @@ PageIndexTupleDelete(page, offset)
     phdr->pd_lower -= sizeof (ItemIdData);
 
     /* finally, we need to adjust the linp entries that remain */
-    PageIndexTupleDeleteAdjustLinePointers(phdr, locn, size);
+    if (!PageIsEmpty(page))
+	PageIndexTupleDeleteAdjustLinePointers(phdr, locn, size);
 }
 
 /*
@@ -552,6 +553,8 @@ PageIndexTupleDelete(page, offset)
  *	Location is where the tuple data used to lie; size is how
  *	much space it occupied.  We assume that size has been aligned
  *	as required by the time we get here.
+ *
+ *	This routine should never be called on an empty page.
  */
 
 PageIndexTupleDeleteAdjustLinePointers(phdr, location, size)
