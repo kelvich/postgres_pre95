@@ -466,8 +466,14 @@ DATA(insert OID = 741 (  text_le           PGUID 11 f t f 2 f 16 "25 25" 100 0 0
 DATA(insert OID = 742 (  text_gt           PGUID 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
 DATA(insert OID = 743 (  text_ge           PGUID 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
 
-DATA(insert OID = 750 (  array_in          PGUID 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 751 (  array_out         PGUID 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 745 (  array_assgn      PGUID 11 f t f 8 f 23 "0 23 0 0 0 23 23 0" 100 0 0 100 foo bar));
+DATA(insert OID = 746 (  array_clip        PGUID 11 f t f 7 f 23 "0 23 0 0 23 23 0" 100 0 0 100 foo bar));
+DATA(insert OID = 747 (  array_dims        PGUID 11 f t f 1 f 19 "0" 100 0 0 100 foo bar));
+DATA(insert OID = 748 (  array_set         PGUID 11 f t f 6 f 23 "0 23 0 23 23 0" 100 0 0 100 foo bar));
+DATA(insert OID = 749 (  array_ref         PGUID 11 f t f 6 f 23 "0 23 0 23 23 0" 100 0 0 100 foo bar));
+DATA(insert OID = 750 (  array_in          PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
+DATA(insert OID = 751 (  array_out         PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
+
 DATA(insert OID = 752 (  filename_in       PGUID 11 f t f 2 f 605 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 753 (  filename_out      PGUID 11 f t f 2 f 19 "605" 100 0 0 100  foo bar ));
 
