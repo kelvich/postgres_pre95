@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 2.0
+C-Only Release 2.01
 .sp 0.25v
 .ce 0
 .sp
@@ -131,11 +131,13 @@ This is *unsupported* software.
 .pp
 \*(PG currently has been tested by the Postgres development team on Sun
 Microsystems 3/xx family of
-processors with SunOS 3.4 or 3.5, as well as Digital
-Equipment Corporation DECstation 3100 computers running
-Ultrix 2.0 Rev 7.  Ports for Sparcstation 1, SunOS 4.0 on
-Sun 3's, and Sequent Symmetry minicomputers are also included in the
-distribution.
+processors with SunOS 3.4, or 3.5, and 4.0, Sparc architecture machines
+(Sparcstation and Sun 4) running SunOS 4.1 and higher, as well as Digital
+Equipment Corporation DECstation 3100 computers running Ultrix 4.0.  An
+unsupported port for Ultrix 2.7 is included, and Postgres does run on
+SunOS 4.0.X on Sparcs, but the dynamic loading feature needed for ADT's is
+unsupported under this system configuration.  An unsupported port for Sequent
+Symmetry running Dynix is also included.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
 and you will require at least 25 megabytes of disk space
@@ -148,8 +150,9 @@ See the section on compilation for details.
 .pp
 The DECstation version requires a kernel which allows 4 megabytes of
 shared memory.
-A Sequent Symmetry port is available, except that you will have to obtain
-a System V Release 3 compatible "make" in order to compile \*(PG.
+To compile the Sequent Symmetry port, you will have to obtain
+a System V Release 3 compatible "make".  Consult your Sequent representative
+for details.
 .sh 2 "Software"
 .pp
 This implementation of \*(PG is completely in C.
@@ -249,8 +252,8 @@ system administrator perform these steps.
 .sh 3 "Find a good place for \*(PG"
 .pp
 You should locate a disk partition with
-at least 20 megabytes of free space available for \*(PG.
-If you haven't any single partition with 20 megabytes free,
+at least 25 megabytes of free space available for \*(PG.
+If you haven't any single partition with 25 megabytes free,
 you might have to spread apart the \*(PG directories across several
 partitions,
 and glue them together with symbolic links.
@@ -337,7 +340,7 @@ Login as postgres.
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v2r0.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v2r01.tar.Z" will appear in your \*(PG home directory.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
@@ -350,21 +353,21 @@ Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
 the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v2r0.tar.Z
+postgres-v2r01.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompres postgres-v2r0.tar.Z
+% uncompres postgres-v2r01.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v2r0.tar
+postgres-v2r01.tar
 .pp
 Extract \*(PG from the tar file, using the "extract, verbose, file"
 options:
 .pp
-% tar xvf postgres-v2r0.tar
+% tar xvf postgres-v2r01.tar
 .pp
 Large numbers of file names and such should appear on the screen.
 This step may take several minutes.
@@ -641,11 +644,12 @@ To do this,
 When running 
 .i newport
 you will be asked which distribution you are installing.
-For a DEC installation, type "dec", for a Sun 3 installation running
-SunOS 3.4 or 3.5, type "sun",
+For a DS3100 installation running Ultrix LOWER than 4.0, type "dec",
+for a DS3100 installation on Ultrix 4.0 type "ultrix4", for a
+Sun 3 installation running SunOS 3.4 or 3.5, type "sun",
 for a Sun 3 installation running SunOS 4.0, 
-type "sunos4", for a Sequent Symmetry installation type "seq", and
-for a Sparcstation type "sparc".
+type "sunos4", for a Sequent Symmetry installation type "seq",
+for a Sparcstation type "sparc", and for a 
 .pp
 .sp 0.5v
 .i
@@ -675,7 +679,9 @@ We do not recommend doing this for casual users.
 Without \-g,
 the \*(PG tree consumes about 20 Mbytes of disk space.
 With \-g,
-the number doubles.
+the number doubles.  NOTE:  Do not compile Postgres with the optimizer level
+higher than 0 on Sparcstations running SunOS 4.1; due to an kernel bug Postgres
+compiled this way will CRASH YOUR SYSTEM.
 .sh 2 "Step 3 - Compiling \*(PG"
 .sh 3 "Compiling"
 .pp
@@ -707,7 +713,8 @@ changes directories,
 sets or unsets environment variables,
 and so on.
 .pp
-You should see no errors during this phase.
+You should see no errors during this phase, except possibly for warnings
+(which can be ignored) when compiling the output of YACC and LEX.
 .sh 3 "Creating the initial database"
 .pp
 \*(PG databases are stored in the directory ~postgres/data.
@@ -718,7 +725,7 @@ To do this,
 type 
 .(l
 % \fBsetenv POSTGRESHOME ~postgres
-% ~postgres/bin/createdb \-v off postgres\fR
+% ~postgres/bin/createdb postgres\fR
 .)l
 This will create the bootstrap template database, from which
 the database 
@@ -859,7 +866,6 @@ To start the postmaster, type:
 .)l
 Here we are using the default parameters for the postmaster.  For more
 details, consult the Reference Manual.
-number you use for \fIport\fR.
 .sh 2 "The \*(PG Terminal Monitor"
 .pp
 The \*(PG terminal monitor is a front-end user interface to the
@@ -867,7 +873,7 @@ The \*(PG terminal monitor is a front-end user interface to the
 To start a terminal monitor,
 type
 .(l
-% \fB~postgres/bin/monitor database\fR
+% \fBmonitor <database>\fR
 .)l
 .pp
 \fIDatabase\fR is the name of the database you want to use. 
@@ -953,11 +959,12 @@ If you run a backend in this manner,
 you will be talking to the backend parser directly.
 We recommend using the terminal monitor; if you are using Postgres as a
 multiuser system, running the backend can result in locking failures
-and corrupt databases.
+and corrupt databases, as the Postmaster handles shared resources such
+as semaphores and shared memory.
 In addition, returned tuples are displayed more usefully
 and input is buffered better.  
 The backend is used interactively primarily during debugging.
-Not that the program called "backend" is not really the backend; it is
+Note that the program called "backend" is not really the backend; it is
 a program used by createdb to initialize databases.
 .sh 2 "\*(PG Support Programs"
 .pp
@@ -966,10 +973,12 @@ Most of these are used internally by the system but here is a list of
 them for your information.
 .(l
 backend		\- used by createdb to create system relations
-createdb		\- creates new postgres databases
+createdb	\- creates new postgres databases
 destroydb	\- destroys postgres databases
-ipcclean		\- frees up garbage shared memory
-vacuumd	\- vacuum cleaner daemon
+ipcclean	\- frees up garbage shared memory from failed backends
+vacuumd		\- vacuum cleaner daemon
+pg_version	\- make version numbers for createdb
+pg_id		\- gets user id's for createdb
 .)l
 .\" ----------------
 .tm    Periodic Maintenance
