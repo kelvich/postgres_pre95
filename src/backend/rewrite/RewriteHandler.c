@@ -511,6 +511,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
     List new_queries	= NULL;
     List ruletrees	= NULL;
     List action_info	= NULL;
+    int user_command;
     int offset_trigger  = 0;
 
     Assert ( update_locks != NULL ); /* otherwise we won't have been called */
@@ -520,6 +521,11 @@ ModifyUpdateNodes( update_locks , user_parsetree,
      */
 
     Assert ( *drop_user_query == false );
+
+    /*
+     * find the type of the user command (APPEND, REPLACE, etc.)
+     */
+    user_command = root_command_type(parse_root(user_parsetree));
 
     foreach ( i , update_locks ) {
 	Prs2OneLock this_lock 	= (Prs2OneLock)CAR(i);
@@ -565,17 +571,17 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		case REPLACE:
 		case APPEND:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 , APPEND );
+				     offset_trigger, -2 , user_command);
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 , APPEND );
+				     -2 , user_command);
 		    break;
 		case RETRIEVE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 , RETRIEVE );
+				     offset_trigger, -2 , user_command);
 		    /*
 		     * reset the result relation
 		     * to point to the right one,
@@ -589,17 +595,17 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    }
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 , RETRIEVE );
+				     -2 , user_command);
 		    break;
 		case DELETE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 , DELETE);
+				     offset_trigger, -2 , user_command);
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 , DELETE);
+				     -2 , user_command);
 		    break;
 		default:
 		    elog(DEBUG,"unsupported action");
