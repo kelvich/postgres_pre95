@@ -9,3 +9,4 @@ extern LispValue subst_rangetable ARGS((LispValue root, LispValue index, LispVal
 extern LispValue fix_parsetree_attnums ARGS((LispValue rt_index, LispValue old_relid, LispValue new_relid, LispValue parsetree));
 extern LispValue fix_rangetable ARGS((LispValue rangetable, LispValue index, LispValue new_entry));
 extern TL fix_targetlist ARGS((TL oringtlist, TL tlist));
+extern Append make_append ARGS((List unionplans, List union_rt_entries, List tlist, Index rt_index));
