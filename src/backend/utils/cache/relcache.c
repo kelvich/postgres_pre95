@@ -410,7 +410,8 @@ scan_pg_rel_ind(buildinfo)
 	break;
 
     case INFO_RELNAME:
-	return_tuple = ClassNameIndexScan(pg_class_desc, buildinfo.i.info_name);
+	return_tuple = ClassNameIndexScan(pg_class_desc, 
+					  (char *) buildinfo.i.info_name);
 	break;
 
     default:
@@ -857,7 +858,7 @@ formrdesc(relationName, natts, att)
 
     bzero(relation->rd_rel, sizeof(struct RelationTupleFormD));
 
-    strncpy(&relation->rd_rel->relname, relationName, sizeof(NameData));
+    strncpy(relation->rd_rel->relname.data, relationName, NAMEDATALEN);
 
     /*
      *  For debugging purposes, it's important to distinguish between
@@ -967,7 +968,7 @@ RelationNameCacheGetRelation(relationName)
     /* make sure that the name key used for hash lookup is properly
        null-padded */
     bzero(&name, sizeof(NameData));
-    strncpy(&name, relationName, sizeof(NameData));
+    (void) namecpy(&name, relationName);
     RelationNameCacheLookup(&name, rd);
     
     if (RelationIsValid(rd)) {
@@ -1219,7 +1220,7 @@ RelationIdInvalidateRelationCacheByAccessMethodId(accessMethodId)
      *  fix this up.
      */
 
-    HashTableWalk(RelationNameCache, RelationFlushIndexes,
+    HashTableWalk(RelationNameCache, (hasht_func) RelationFlushIndexes,
 		  accessMethodId);
 # else
     return;
@@ -1237,7 +1238,7 @@ void
 RelationCacheInvalidate(onlyFlushReferenceCountZero)
     bool onlyFlushReferenceCountZero;
 {
-    HashTableWalk(RelationNameCache, RelationFlushRelation, 
+    HashTableWalk(RelationNameCache, (hasht_func) RelationFlushRelation, 
 		  onlyFlushReferenceCountZero);
 }
  
@@ -1431,13 +1432,13 @@ init_irels()
 
     for (relno = 0; relno < Num_indices_bootstrap; relno++) {
 	/* first read the relation descriptor */
-	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 	    write_irels();
 	    return;
 	}
 
 	ird = irel[relno] = (Relation) palloc(len);
-	if ((nread = FileRead(fd, ird, len)) != len) {
+	if ((nread = FileRead(fd, (String)ird, len)) != len) {
 	    write_irels();
 	    return;
 	}
@@ -1449,13 +1450,13 @@ init_irels()
 	ird->lockInfo = (char *) NULL;
 
 	/* next read the access method tuple form */
-	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 	    write_irels();
 	    return;
 	}
 
 	am = (AccessMethodTupleForm) palloc(len);
-	if ((nread = FileRead(fd, am, len)) != len) {
+	if ((nread = FileRead(fd, (String)am, len)) != len) {
 	    write_irels();
 	    return;
 	}
@@ -1463,13 +1464,13 @@ init_irels()
 	ird->rd_am = am;
 
 	/* next read the relation tuple form */
-	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 	    write_irels();
 	    return;
 	}
 
 	relform = (RelationTupleForm) palloc(len);
-	if ((nread = FileRead(fd, relform, len)) != len) {
+	if ((nread = FileRead(fd, (String)relform, len)) != len) {
 	    write_irels();
 	    return;
 	}
@@ -1479,27 +1480,27 @@ init_irels()
 	/* next read all the attribute tuple form data entries */
 	len = sizeof(RuleLock) + sizeof(*ird->rd_att.data[0]);
 	for (i = 0; i < relform->relnatts; i++) {
-	    if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 		write_irels();
 		return;
 	    }
 
 	    ird->rd_att.data[i] = (AttributeTupleForm) palloc(len);
 
-	    if ((nread = FileRead(fd, ird->rd_att.data[i], len)) != len) {
+	    if ((nread = FileRead(fd, (String)ird->rd_att.data[i], len)) != len) {
 		write_irels();
 		return;
 	    }
 	}
 
 	/* next read the index strategy map */
-	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 	    write_irels();
 	    return;
 	}
 
 	strat = (IndexStrategy) palloc(len);
-	if ((nread = FileRead(fd, strat, len)) != len) {
+	if ((nread = FileRead(fd, (String)strat, len)) != len) {
 	    write_irels();
 	    return;
 	}
@@ -1516,13 +1517,13 @@ init_irels()
 	*((IndexStrategy *) p) = strat;
 
 	/* finally, read the vector of support procedures */
-	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	if ((nread = FileRead(fd, (String)&len, sizeof(int))) != sizeof(int)) {
 	    write_irels();
 	    return;
 	}
 
 	support = (RegProcedure *) palloc(len);
-	if ((nread = FileRead(fd, support, len)) != len) {
+	if ((nread = FileRead(fd, (String)support, len)) != len) {
 	    write_irels();
 	    return;
 	}
