@@ -1724,6 +1724,7 @@ a_expr:
 	       else
 		{
 		    List temp = NULL;
+
 		    if (IsA(CAR($1),Param))
 		     {
 			 Param f = (Param)CAR($1); 
@@ -1752,9 +1753,9 @@ a_expr:
 			NewWasUsed = false;
 		    }
   		    if (IsA(temp,Var)) {
- 
- 			set_vardotfields ( (Var) temp , CDR(CDR($1)));
- 			if (null(CDR(CDR($1)))) 
+  			/* Obsolete, I think.  -- JMH  ??? 
+			  set_vardotfields ( (Var) temp , CDR(CDR($1)));  */
+ 			if (null(CDR(CDR($1))))
  			    $$ = lispCons ( lispInteger
  					   (get_vartype((Var)temp)),$$ );
  		    }
@@ -1817,7 +1818,7 @@ a_expr:
 	| name '(' expr_list ')'
 		{
 			extern List ParseFunc();
-			$$ = ParseFunc ( CString ( $1 ), $3 ); 
+			$$ = ParseFunc ( CString ( $1 ), $3 );
 			Typecast_ok = false; }
 	 | a_expr ISNULL
 			 {
