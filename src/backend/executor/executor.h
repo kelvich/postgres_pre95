@@ -210,8 +210,11 @@ typedef struct FragmentInfo {
  *	query feature accessors
  * ----------------
  */
-#define QdGetCommand(queryDesc)	    	CAR(QdGetFeature(queryDesc))
-#define QdGetCount(queryDesc)  	    	CAR(CDR(QdGetFeature(queryDesc)))
+#define FeatureGetCommand(feature)	CAR(feature)
+#define FeatureGetCount(feature)	CAR(CDR(feature))
+
+#define QdGetCommand(queryDesc)	FeatureGetCommand(QdGetFeature(queryDesc))
+#define QdGetCount(queryDesc)	FeatureGetCount(QdGetFeature(queryDesc))
 
 /* ----------------
  *	parse tree accessors
