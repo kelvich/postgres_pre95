@@ -114,7 +114,16 @@ environment variable is searched for an executable named
 The optional argument
 .IR debug_level
 determines the amount of debugging output the backend servers will
-produce.  Note that if no file is specified for backend servers to
+produce.
+If
+.I debug_level
+is one, the postmaster will trace all connection traffic,
+and nothing else.
+For levels two and higher,
+debugging is turned on in the backend process and the postmaster
+displays more information,
+including the backend environment and process traffic.
+Note that if no file is specified for backend servers to
 send their debugging output (e.g., using the
 .BR "-t"
 option of 
