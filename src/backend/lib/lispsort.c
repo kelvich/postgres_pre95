@@ -1,6 +1,8 @@
 /* #include <stdlib.h> */
 #include "nodes/pg_lisp.h"
 #include "nodes/primnodes.h"
+#include "nodes/plannodes.h"
+#include "nodes/relation.h"
 #include "lib/copyfuncs.h"
 #include "lib/lispsort.h"
 
