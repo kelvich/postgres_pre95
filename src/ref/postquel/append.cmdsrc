@@ -9,7 +9,7 @@ append \*- append tuples to a relation
 .lp
 .b append [\c
 .b * ]
-relname
+classname
 .b (
 att_name1
 .b =
@@ -30,18 +30,18 @@ qual ]
 .uh DESCRIPTION
 .lp
 .b Append 
-adds tuples which satisfy the qualification,
+adds instances which satisfy the qualification,
 .i qual ,
 to 
-.i relname .
-.i Relname 
-must be the name of an existing relation.
+.i classname .
+.i Classname 
+must be the name of an existing class.
 The target list 
 specifies
 the values of the fields to be appended to 
-.i relname .
+.i classname .
 The fields may be listed in any order.
-Fields of the result relation which do not appear in the 
+Fields of the result class which do not appear in the 
 target list
 (either explicitly or by default)
 are assigned default values.
@@ -52,7 +52,7 @@ There is no automatic coercion of expressions.
 The keyword
 .b all
 can be used when it is desired
-to append all domains of a relation to another relation.
+to append all domains of a class to another class.
 .sp
 The
 .q *
@@ -72,7 +72,7 @@ the command until it produces no further effect.
    from n in newemp
    where n.name = \*(lqJones\*(rq
 .sp
-/* Append the newemp1 relation to newemp */
+/* Append the newemp1 class to newemp */
 
    append newemp (newemp1.all)
 .fi
