@@ -28,6 +28,7 @@
  *	Enables system abort iff set to a non-empty string in environment.
  */
 #define EnableAbortEnvVarName	"POSTGRESABORT"
+#define DEFAULT_PGHOME		"/usr/postgres"
 
 typedef String	EnvVarName;
 extern String getenv ARGS((EnvVarName name));
@@ -230,4 +231,22 @@ void
 SetUserId()
 {
     UserId = getuid();
+}
+
+/* ----------------
+ *	GetPGHome
+ *
+ *  Get POSTGRESHOME from environment, or return default.
+ * ----------------
+ */
+char *
+GetPGHome()
+{
+    char *h;
+    extern char *getenv();
+
+    if ((h = getenv("POSTGRESHOME")) != (char *) NULL)
+	return (h);
+
+    return (DEFAULT_PGHOME);
 }
