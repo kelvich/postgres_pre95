@@ -157,7 +157,8 @@ ExecCheckPerms(operation, resultRelation, rangeTable, parseTree)
 		++i;
 	}
 	if (!ok)
-		elog(WARN, "%s on \"%s\": permission denied", opstr, rname);
+		elog(WARN, "%s on \"%-*s\": permission denied", opstr, 
+		     sizeof(NameData), rname.data);
 }
 
 /* ----------------------------------------------------------------
