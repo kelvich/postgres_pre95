@@ -6,7 +6,7 @@
 # Note - this should NOT be setuid.
 #
 
-if (test -z "$POSTGRESHOME")
+if (test -n "$POSTGRESHOME")
 then
     PG=$POSTGRESHOME
 else
@@ -181,7 +181,7 @@ else
 fi
 
 QUERY="append pg_user (usename=\"$NEWUSER\", usesysid=$SYSID, \
-      usecreatedb=\"$CANCREATEDB\", usetrace=\"t\", usesuper=\"$CANADDUSER\",
+      usecreatedb=\"$CANCREATE\", usetrace=\"t\", usesuper=\"$CANADDUSER\",
       usecatupd=\"t\")"
 
 RES=`$MONITOR -TN -c "$QUERY" template1`
