@@ -1,8 +1,20 @@
-#define MAXPATHLEN 1024
+/* ----------------------------------------------------------------
+ *   FILE
+ *	ylib.c
+ *
+ *   DESCRIPTION
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 
 #include <strings.h>
 #include <stdio.h>
 #include <pwd.h>
+#include <sys/param.h>		/* for MAXPATHLEN */
 
 #include "utils/log.h"
 #include "catalog_utils.h"
