@@ -11,9 +11,25 @@ SHCMD= PATH=${BINDIR}:$$PATH sh
 
 .if (${PORTNAME} == "ultrix4")
 CFLAGS+= -G 0
+.elif (${PORTNAME} == "sparc")
+#CFLAGS+=
+#SLSUFF=.so
+#.SUFFIXES: ${SLSUFF}
+#.o.sl:
+#	${LD} -o ${.TARGET} ${.ALLSRC}
+.elif (${PORTNAME} == "alpha")
+SLSUFF=.so
+.SUFFIXES: ${SLSUFF}
+.o.so:
+	${LD} -shared -expect_unresolved '*' -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= +z
+SLSUFF=.sl
+.SUFFIXES: ${SLSUFF}
+.o.sl:
+	${LD} -b -o ${.TARGET} ${.ALLSRC}
 .endif
+SLSUFF?=.o
 
 .SUFFIXES: .source .pq .sh
 
@@ -38,3 +54,9 @@ CFLAGS+= +z
 	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
 	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.sh
+
+#if (${PORTNAME} == "hpux")
+#endif
+
+#if (${PORTNAME} == "alpha")
+#endif

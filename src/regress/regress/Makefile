@@ -30,10 +30,14 @@ SRCS= iportal.c
 
 .include <postgres.prog.mk>
 
-CREATEFILES+= \
-	regress.o ufp1.o ufp2.o ufp3.o \
+DLOBJS= regress.o ufp1.o ufp2.o ufp3.o
+CREATEFILES= ${DLOBJS} \
 	create.pq queries.pq errors.pq destroy.pq \
 	fstest.sh
+.ifdef SLSUFF
+SLOBJS= ${DLOBJS:S/.o/${SLSUFF}/g}
+CREATEFILES+= ${SLOBJS}
+.endif
 OUTFILES= stud_emp.data onek.data regress.out
 CLEANFILES+= ${CREATEFILES} ${OUTFILES}
 
