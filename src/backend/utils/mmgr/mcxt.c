@@ -15,7 +15,7 @@ RcsId("$Header$");
 #include "mnodes.h"
 #include "oset.h"
 #include "tags.h"	/* for classTag */
-#include "tnodes.h"
+#include "nodes.h"
 
 #include "mcxt.h"
 
@@ -69,6 +69,13 @@ GlobalMemoryAlloc ARGS((
 	GlobalMemory	this,
 	Size		size
 ));
+
+/*
+static bool
+MemoryContextIsValid ARGS((
+        MemoryContext context;
+));
+*/
 
 /*
  * GlobalMemoryFree --
@@ -161,15 +168,22 @@ static MemoryContextMethodsData	GlobalContextMethodsData = {
  * Note:
  *	TopGlobalMemory is handled specially because of bootstrapping.
  */
-static classObj(GlobalMemory)	TopGlobalMemoryData = {
+extern void PrintGlobalMemory();
+/* extern bool EqualGlobalMemory(); */
+
+static classObj(GlobalMemory)	TopGlobalMemoryData   = {
 	classTag(GlobalMemory),		/* NodeTag		tag */
+	PrintGlobalMemory,
+	NULL,
 	&GlobalContextMethodsData,	/* ContextMethods	method */
 	{ 0 },	/* uninitialized */	/* OrderedSetData	allocSetD */
 	"TopGlobal",			/* String		name */
 	{ 0 }	/* uninitialized */	/* OrderedElemData	elemD */
 };
 
-MemoryContext	TopMemoryContext = (MemoryContext)&TopGlobalMemoryData;
+
+MemoryContext	TopMemoryContext =  (MemoryContext)&TopGlobalMemoryData;
+
 
 /*
  * Module State
@@ -355,7 +369,7 @@ CreateGlobalMemory(name)
 	AssertState(CurrentMemoryContext == TopMemoryContext);
 	AssertArg(StringIsValid(name));	/* XXX MemoryContextName */
 
-	context = NewNode(GlobalMemory);
+	context = CreateNode(GlobalMemory);
 	context->method = &GlobalContextMethodsData;
 	context->name = name;		/* assumes name is static */
 	AllocSetInit(&context->setData, DynamicAllocMode, (Size)0);
@@ -372,7 +386,7 @@ GlobalMemoryDestroy(context)
 {
 	AssertState(MemoryContextEnabled);
 	AssertState(CurrentMemoryContext == TopMemoryContext);
-	AssertArg(IsA(context, classTag(GlobalMemory)));
+	AssertArg(IsA(context,GlobalMemory));
 	AssertArg(context != &TopGlobalMemoryData);
 
 	/* step through remaining allocations and log */
@@ -462,4 +476,16 @@ DumpGlobalMemories()
 		context = (GlobalMemory)OrderedElemGetSuccessor(
 			&context->elemData);
 	}
+}
+bool
+MemoryContextIsValid(context)
+	MemoryContext	context;
+{
+	return((bool)IsA(context,MemoryContext));
+}
+
+void
+PrintGlobalMemory(foo)
+     GlobalMemory foo;
+{
 }

@@ -14,7 +14,7 @@ RcsId("$Header$");
 #include "hasht.h"
 #include "mcxt.h"
 #include "mnodes.h"
-#include "tnodes.h"
+#include "nodes.h"
 
 #include "portal.h"
 
@@ -378,12 +378,12 @@ CreatePortal(name)
 		sizeof *portal);
 
 	/* initialize portal variable context */
-	NodeSetNodeTag((Node)&portal->variable, classTag(PortalVariableMemory));
+	NodeSetTag((Node)&portal->variable, classTag(PortalVariableMemory));
 	AllocSetInit(&portal->variable.setData, DynamicAllocMode, (Size)0);
 	portal->variable.method = &PortalVariableContextMethodsData;
 
 	/* initialize portal heap context */
-	NodeSetNodeTag((Node)&portal->heap, classTag(PortalHeapMemory));
+	NodeSetTag((Node)&portal->heap, classTag(PortalHeapMemory));
 	portal->heap.block = NULL;
 	FixedStackInit(&portal->heap.stackData,
 		offsetof (HeapMemoryBlockData, itemData));
@@ -456,7 +456,7 @@ StartPortalAllocMode(mode, limit)
 	PortalHeapMemory	context;
 
 	AssertState(PortalManagerEnabled);
-	AssertState(IsA(CurrentMemoryContext, classTag(PortalHeapMemory)));
+	AssertState(IsA(CurrentMemoryContext,PortalHeapMemory));
 	/* AssertArg(AllocModeIsValid); */
 
 	context = (PortalHeapMemory)CurrentMemoryContext;
@@ -481,7 +481,7 @@ EndPortalAllocMode()
 	PortalHeapMemory	context;
 
 	AssertState(PortalManagerEnabled);
-	AssertState(IsA(CurrentMemoryContext, classTag(PortalHeapMemory)));
+	AssertState(IsA(CurrentMemoryContext,PortalHeapMemory));
 
 	context = (PortalHeapMemory)CurrentMemoryContext;
 	AssertState(PointerIsValid(context->block));	/* XXX Trap(...) */
