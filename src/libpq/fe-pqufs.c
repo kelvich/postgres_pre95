@@ -62,8 +62,6 @@
  * as queries.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include "tmp/libpq.h"
 #include "tmp/libpq-fe.h"
 #include "tmp/libpq-fs.h"
