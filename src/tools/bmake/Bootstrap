@@ -84,7 +84,7 @@ EOF
 		;;
 	*)
 		echo "$0: invalid port name:" $1
-		echo "$0: valid port names are: alpha hpux linux sparc ultrix4"
+		echo "$0: valid port names are: aix alpha hpux linux sparc ultrix4"
 		exit 1;
 		;;
 esac
