@@ -1003,6 +1003,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	    pfree((char *)*p--);
 	}
 	
+	pfree((char *)RelationGetLockInfo(relation));
 	pfree((char *)RelationGetRelationTupleForm(relation));
 	pfree((char *)relation);
 	
