@@ -82,7 +82,6 @@ ExecAgg(node)
     TupleDescriptor	outerTupDesc;
     HeapTuple		heapTuple;
     TupleTableSlot	outerslot;
-    Buffer		buffer;
     Relation		tempRelation;
     extern Datum 	fastgetattr();
     char		*running_comp[2];
@@ -268,7 +267,10 @@ ExecAgg(node)
  */
     set_agg_Flag(aggstate, true);
     return (TupleTableSlot)
-	ExecStoreTuple((Pointer) heapTuple, (Pointer) slot, buffer, false);
+	ExecStoreTuple((Pointer) heapTuple,
+		       (Pointer) slot,
+		       InvalidBuffer,
+		       false);
 }
 
 /* -----------------
