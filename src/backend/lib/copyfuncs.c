@@ -1184,6 +1184,46 @@ _copyResdom(from, to, alloc)
     return true;
 }
     
+bool
+_copyFjoin(from, to, alloc)
+    Fjoin	from;
+    Fjoin	*to;
+    char *	(*alloc)();
+{
+    Fjoin	newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(Fjoin);
+    
+    /* ----------------
+     *	copy node superclass fields
+     * ----------------
+     */
+    CopyNodeFields(from, newnode, alloc);
+
+    newnode->fj_initialized = from->fj_initialized;
+    newnode->fj_nNodes      = from->fj_nNodes;
+
+    Node_Copy(from, newnode, alloc, fj_innerNode);
+
+    newnode->fj_results     = (DatumPtr)
+	COPYALLOC((from->fj_nNodes)*sizeof(Datum));
+
+    newnode->fj_alwaysDone  = (BoolPtr)
+	COPYALLOC((from->fj_nNodes)*sizeof(bool));
+
+    bcopy(newnode->fj_results,
+	  from->fj_results,
+	  (from->fj_nNodes)*sizeof(Datum));
+
+    bcopy(newnode->fj_alwaysDone,
+	  from->fj_alwaysDone,
+	  (from->fj_nNodes)*sizeof(bool));
+    
+    (*to) = newnode;
+    return true;
+}
 /* ----------------
  *	CopyExprFields
  *
@@ -1227,6 +1267,25 @@ _copyExpr(from, to, alloc)
     return true;
 }
 
+bool
+_copyIter(from, to, alloc)
+    Iter	from;
+    Iter	*to;
+    char *	(*alloc)();
+{
+    Iter	newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(Iter);
+    
+    CopyNodeFields(from, newnode, alloc);
+
+    Node_Copy(from, newnode, alloc, iterexpr);
+
+    (*to) = newnode;
+    return true;
+}
 /* ----------------
  *	_copyVar
  * ----------------
@@ -1542,6 +1601,7 @@ _copyFunc(from, to, alloc)
     newnode->funcisindex = 	from->funcisindex;
     newnode->funcsize = 	from->funcsize;
     newnode->func_fcache = 	from->func_fcache;
+    Node_Copy(from, newnode, alloc, func_tlist);
     
     (*to) = newnode;
     return true;
