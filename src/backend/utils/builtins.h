@@ -188,7 +188,7 @@ extern void		btreeendscan();
  */
 extern char		*rtreeinsert();
 extern char		*rtreedelete();
-extern char		*rtreegetnext();
+extern char		*rtreegettuple();
 extern void		rtreebuild();
 
 /*
