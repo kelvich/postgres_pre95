@@ -329,6 +329,14 @@ ProcessUtility(command, args, commandString)
 	    break;
 	}
 	break;
+
+      case NEWVERSION:
+	commandTag = "VERSION";
+	CHECK_IF_ABORTED();
+
+	CreateVersion(CString(CAR(args)),    /* version name */
+		      CString(CADR(args)));  /* base name */
+	break;
 	
 	/* default */
       default:
