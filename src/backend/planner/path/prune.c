@@ -23,6 +23,7 @@
 #include "planner/pathnode.h"
 #include "planner/prune.h"
 
+extern int testFlag;
 /*    
  *    	prune-joinrels
  *    
@@ -156,7 +157,8 @@ prune_rel_path (rel,unorderedpath)
      if (!(eq (unorderedpath,cheapest))) {
 
 	  set_unorderedpath (rel,LispNil);
-	  set_pathlist (rel,LispRemove(unorderedpath,get_pathlist (rel)));
+	  if (!testFlag)
+	      set_pathlist (rel,LispRemove(unorderedpath,get_pathlist (rel)));
 
      } else {
 
