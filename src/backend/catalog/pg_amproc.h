@@ -83,7 +83,9 @@ DATA(insert OID = 0 (403 430 359 1));
 DATA(insert OID = 0 (403 431 360 1));
 DATA(insert OID = 0 (403 432 357 1));
 
+BKI_BEGIN
 #ifdef NOBTREE
+BKI_END
 DATA(insert OID = 0 (404 421 350 1));
 DATA(insert OID = 0 (404 423 355 1));
 DATA(insert OID = 0 (404 424 353 1));
@@ -95,6 +97,8 @@ DATA(insert OID = 0 (404 429 358 1));
 DATA(insert OID = 0 (404 430 359 1));
 DATA(insert OID = 0 (404 431 360 1));
 DATA(insert OID = 0 (404 432 357 1));
+BKI_BEGIN
 #endif /* NOBTREE */
+BKI_END
 
 #endif PgAmprocIncluded

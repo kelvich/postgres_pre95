@@ -411,7 +411,9 @@ DATA(insert OID = 751 (  array_out         6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 752 (  filename_in       6 11 f t f 2  605 foo bar ));
 DATA(insert OID = 753 (  filename_out      6 11 f t f 2  19 foo bar ));
 
+BKI_BEGIN
 #ifdef NOBTREE
+BKI_END
 DATA(insert OID = 800 (  nobtgettuple        6 11 f t f 6  23 foo bar ));
 DATA(insert OID = 801 (  nobtinsert          6 11 f t f 3  23 foo bar ));
 DATA(insert OID = 802 (  nobtdelete          6 11 f t f 2  23 foo bar ));
@@ -421,7 +423,9 @@ DATA(insert OID = 805 (  nobtendscan         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 806 (  nobtmarkpos         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 807 (  nobtrestrpos        6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 808 (  nobtbuild           6 11 f t f 7  23 foo bar ));
+BKI_BEGIN
 #endif /* NOBTREE */
+BKI_END
 
 /* ----------------
  *	old definition of struct proc

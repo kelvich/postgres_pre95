@@ -330,7 +330,9 @@ DATA(insert OID = 0 (  403 432 560 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 565 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 563 5 btreesel btreenpage ));
 
+BKI_BEGIN
 #ifdef NOBTREE
+BKI_END
 /*
  *  nobtree int2_ops
  */
@@ -441,7 +443,9 @@ DATA(insert OID = 0 (  404 432 560 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  404 432 565 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  404 432 563 5 btreesel btreenpage ));
 
+BKI_BEGIN
 #endif /* NOBTREE */
+BKI_END
 
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm
