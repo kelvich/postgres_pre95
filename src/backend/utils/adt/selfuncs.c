@@ -294,9 +294,9 @@ gethilokey(relid, attnum, opid, high, low)
 	extern char		*textout();
 
 	rdesc = RelationNameOpenHeapRelation(StatisticRelationName);
-	key[0].argument.objectId.value = relid;
-	key[1].argument.integer16.value = (int16) attnum;
-	key[2].argument.objectId.value = opid;
+	key[0].argument = ObjectIdGetDatum(relid);
+	key[1].argument = Int16GetDatum((int16) attnum);
+	key[2].argument = ObjectIdGetDatum(opid);
 	sdesc = RelationBeginHeapScan(rdesc, 0, NowTimeQual,
 				      3, (ScanKey) key);
 	tuple = amgetnext(sdesc, 0, (Buffer *) NULL);

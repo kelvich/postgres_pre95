@@ -293,7 +293,7 @@ RelationIdGetRelation(relationId)
 	key.data[0].flags = 0;
 	key.data[0].attributeNumber = ObjectIdAttributeNumber;
 	key.data[0].procedure = ObjectIdEqualRegProcedure;
-	key.data[0].argument.objectId.value = relationId;
+	key.data[0].argument = ObjectIdGetDatum(relationId);
 
 	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
@@ -380,7 +380,7 @@ getreldesc(relationName)
 	key.data[0].flags = 0;
 	key.data[0].attributeNumber = RelationNameAttributeNumber;
 	key.data[0].procedure = Character16EqualRegProcedure;
-	key.data[0].argument.name.value = relationName;
+	key.data[0].argument = NameGetDatum(relationName);
 
 	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
@@ -484,7 +484,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		key.data[0].flags = 0;
 		key.data[0].attributeNumber = ObjectIdAttributeNumber;
 		key.data[0].procedure = ObjectIdEqualRegProcedure;
-		key.data[0].argument.objectId.value = relationTupleForm->relam;
+		key.data[0].argument = ObjectIdGetDatum(relationTupleForm->relam);
 
 		sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
@@ -531,7 +531,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	key.data[0].flags = 0;
 	key.data[0].attributeNumber = AttributeRelationIdAttributeNumber;
 	key.data[0].procedure = ObjectIdEqualRegProcedure;
-	key.data[0].argument.objectId.value = relid;
+	key.data[0].argument = ObjectIdGetDatum(relid);
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	attrioid = GetAttributeRelationIndexRelationId();

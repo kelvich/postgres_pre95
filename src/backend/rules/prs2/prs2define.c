@@ -233,7 +233,7 @@ AttributeNumber eventAttributeNumber;
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument.objectId.value = eventRelationOid;
+    scanKey.data[0].argument = ObjectIdGetDatum(eventRelationOid);
     scanDesc = RelationBeginHeapScan(relationRelation,
 					0, NowTimeQual,
 					1, &scanKey);
@@ -332,7 +332,7 @@ char * ruleText;
     ruleNameKey[0].flags = 0;
     ruleNameKey[0].attributeNumber= Prs2RuleNameAttributeNumber;
     ruleNameKey[0].procedure = F_CHAR16EQ;
-    ruleNameKey[0].argument.name.value = ruleName;
+    ruleNameKey[0].argument = NameGetDatum(ruleName);
 
     heapScan = RelationBeginHeapScan(prs2RuleRelation, 0, NowTimeQual,
 				     1, (ScanKey) ruleNameKey);
@@ -621,7 +621,7 @@ Name ruleName;
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = Prs2RuleNameAttributeNumber;
     scanKey.data[0].procedure = Character16EqualRegProcedure;
-    scanKey.data[0].argument.name.value = ruleName;
+    scanKey.data[0].argument = NameGetDatum(ruleName);
     scanDesc = RelationBeginHeapScan(prs2RuleRelation,
 				    0, NowTimeQual, 1, &scanKey);
 
@@ -667,7 +667,7 @@ Name ruleName;
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = Prs2PlansRuleIdAttributeNumber;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument.objectId.value = ruleId;
+    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
     scanDesc = RelationBeginHeapScan(prs2PlansRelation,
 				    0, NowTimeQual, 1, &scanKey);
 
@@ -723,7 +723,7 @@ ObjectId eventRelationOid;
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument.objectId.value = eventRelationOid;
+    scanKey.data[0].argument = ObjectIdGetDatum(eventRelationOid);
     scanDesc = RelationBeginHeapScan(relationRelation,
 					0, NowTimeQual,
 					1, &scanKey);

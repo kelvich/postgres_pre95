@@ -122,7 +122,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 			RelationCloseHeapRelation(relation);
 		if (HeapScanIsValid(scan))
 			HeapScanEnd(scan);
-		indexKey[0].argument.objectId.value = indrelid;
+		indexKey[0].argument = ObjectIdGetDatum(indrelid);
 		relation = RelationNameOpenHeapRelation(IndexRelationName);
 		scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 					     1, (ScanKey) indexKey);
@@ -401,8 +401,7 @@ find_inheritance_children (inhparent)
 	LispValue		list = LispNil;
 
 
-	key[0].argument.objectId.value =
-	  (ObjectId) LISPVALUE_INTEGER(inhparent);
+	key[0].argument = ObjectIdGetDatum((ObjectId) LISPVALUE_INTEGER(inhparent));
 	relation = RelationNameOpenHeapRelation(InheritsRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) key);
@@ -438,8 +437,7 @@ VersionGetParents(verrelid, list)
 	ObjectId		verbaseid;
 
 	relation = RelationNameOpenHeapRelation(VersionRelationName);
-	key[0].argument.objectId.value =
-		(ObjectId) LISPVALUE_INTEGER(verrelid);
+	key[0].argument = ObjectIdGetDatum((ObjectId) LISPVALUE_INTEGER(verrelid));
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) key);
 	for (;;) {
@@ -453,7 +451,7 @@ VersionGetParents(verrelid, list)
 		CAR(lp) = lispInteger(verbaseid);
 		CDR(lp) = CAR(list);
 		CAR(list) = lp;
-		key[0].argument.objectId.value = verbaseid;
+		key[0].argument = ObjectIdGetDatum(verbaseid);
 		HeapScanRestart(scan, 0, (ScanKey) key);
 	}
 	HeapScanEnd(scan);
