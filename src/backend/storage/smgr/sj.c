@@ -729,20 +729,18 @@ _sjallocgrp(grpno)
 {
     SJCacheItem *item;
 
-    /*
-     *  If the cache is full, we call a routine to get rid of the least
-     *  recently used group.
-     */
-
+    /* free list had better not be empty */
     if (SJHeader->sjh_nentries == SJCACHESIZE)
 	elog(FATAL, "_sjallocgrp:  no groups on free list!");
-    else
-	*grpno = _sjgetgrp();
+
+    /*
+     *  Get a new group off the free list.  As a side effect, _sjgetgrp()
+     *  bumps the ref count on the group for us.
+     */
+
+    *grpno = _sjgetgrp();
 
     item = &SJCache[*grpno];
-
-    /* bump ref count */
-    _sjtouch(item);
 
     return (item);
 }
@@ -758,6 +756,19 @@ _sjallocgrp(grpno)
  *
  *	We know that there's something on the free list when we call this
  *	routine.
+ *
+ *	There's an interesting problem with write-once media that we have
+ *	to deal with here.  It is possible in postgres for a half-full
+ *	buffer to be flushed to stable storage, then to be reloaded into
+ *	the buffer cache, filled completely, and for a new page to be
+ *	allocated before the old page is flushed again.  If this happens
+ *	to us, it's possible for the half-full page to get flushed all the
+ *	way through to an optical disk platter, where it can never be
+ *	overwritten.
+ *
+ *	In order to deal with this, we probe the buffer manager for all
+ *	dirty blocks it has that live on an extent before we flush the
+ *	extent to permanent storage.
  */
 
 static int
@@ -773,6 +784,10 @@ _sjgetgrp()
     Relation reln;
     bool dirty;
     int i;
+    int offset;
+    ObjectId dbid;
+    ObjectId relid;
+    BlockNumber base;
 
     /* pull the least-recently-used group off the free list */
     grpno = SJHeader->sjh_freehead;
@@ -814,9 +829,24 @@ _sjgetgrp()
 	elog(FATAL, "_sjgetgrp:  cannot read group %d", grpno);
     }
 
-    /* if necessary, put the highest block in the relation on mag disk */
-    nblocks = _sjfindnblocks(&(item->sjc_tag));
+    /*
+     *  Probe the buffer manager for dirty blocks that belong in this
+     *  extent.  The buffer manager will copy them into the space we
+     *  pass in, and will mark them clean in the buffer cache.
+     */
 
+    dbid = item->sjc_tag.sjct_dbid;
+    relid = item->sjc_tag.sjct_relid;
+    base = item->sjc_tag.sjct_base;
+
+    for (i = 0; i < SJGRPSIZE; i++) {
+	if (item->sjc_flags[i] & SJC_DIRTY) {
+	    offset = (i * BLCKSZ) + JBBLOCKSZ;
+	    DirtyBufferCopy(dbid, relid, base + i, &(SJCacheBuf[offset]));
+	}
+    }
+
+    /* if necessary, put the highest block in the relation on mag disk */
     if ((item->sjc_tag.sjct_base + SJGRPSIZE) >= nblocks) {
 	grpoffset = (nblocks % SJGRPSIZE) - 1;
 
@@ -921,10 +951,13 @@ _sjfetchgrp(dbid, relid, blkno, grpno)
 
 	    SET_IO_LOCK(item);
 
-	    /* read the extent */
+	    /* read the extent off the optical platter */
 	    _sjrdextent(item);
 
-	    /* release IO lock */
+	    /* update the magnetic disk cache */
+	    _sjwritegrp(item, *grpno);
+
+	    /* done, release IO lock */
 	    _sjunwait_io(item);
 	}
     }
@@ -964,7 +997,7 @@ _sjrdextent(item)
     ScanKeyEntryInitialize(&skey[1], 0x0, Anum_pg_plmap_plrelid,
 			   ObjectIdEqualRegProcedure,
 			   ObjectIdGetDatum(item->sjc_tag.sjct_relid));
-    ScanKeyEntryInitialize(&skey[0], 0x0, Anum_pg_plmap_plblkno,
+    ScanKeyEntryInitialize(&skey[2], 0x0, Anum_pg_plmap_plblkno,
 			   Integer32EqualRegProcedure,
 			   Int32GetDatum(item->sjc_tag.sjct_base));
     hscan = heap_beginscan(reln, false, NowTimeQual, 3, &skey[0]);
@@ -1198,6 +1231,7 @@ _sjreadgrp(item, grpno)
     if (gdesc->sjgd_magic != SJGDMAGIC
 	|| gdesc->sjgd_version != SJGDVERSION
 	|| gdesc->sjgd_groupoid != item->sjc_oid) {
+
 	elog(NOTICE, "_sjreadgrp: trashed cache");
 	return (SM_FAIL);
     }
@@ -1211,6 +1245,10 @@ sjunlink(reln)
 {
     return (SM_FAIL);
 }
+
+/*
+ *  sjextend() -- extend a relation by one block.
+ */
 
 int
 sjextend(reln, buffer)
@@ -1378,7 +1416,7 @@ _sjnewextent(reln, base)
 	    &(reln->rd_rel->relname.data[0]),
 	    sizeof(NameData));
     group->sjgd_relid = reln->rd_id;
-    group->sjgd_relblkno = 0;
+    group->sjgd_relblkno = base;
     item->sjc_oid = group->sjgd_groupoid = newoid();
 
     /*

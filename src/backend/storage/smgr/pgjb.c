@@ -467,7 +467,9 @@ pgjb_wrtextent(item, buf)
 {
     SJGroupDesc *group;
     JBPlatDesc *jbp;
-    int i, low, high;
+    int i;
+    int startoff, startblk;
+    int nblocks;
     int status;
     char *plname;
 
@@ -495,10 +497,11 @@ pgjb_wrtextent(item, buf)
     if (item->sjc_gflags & SJC_DIRTY) {
 	item->sjc_gflags &= ~SJC_DIRTY;
 	item->sjc_gflags |= SJC_ONPLATTER;
-	low = 0;
-	high = 0;
+	nblocks = 1;
+	startoff = 0;
+	startblk = 0;
     } else {
-	low = -1;
+	nblocks = 0;
     }
 
     /*
@@ -514,28 +517,44 @@ pgjb_wrtextent(item, buf)
 
     for (i = 0; i < SJGRPSIZE; i++) {
 	if (item->sjc_flags[i] & SJC_DIRTY) {
-	    if (low == -1)
-		low = ((BLCKSZ / JBBLOCKSZ) * i) + 1;
+	    if (nblocks == 0) {
+		startblk = i;
+		startoff = (BLCKSZ * i) + JBBLOCKSZ;
+	    }
 
-	    high = ((BLCKSZ / JBBLOCKSZ) * (i + 1));
+	    nblocks += 8;
 
 	    item->sjc_flags[i] &= ~SJC_DIRTY;
 	    item->sjc_flags[i] |= SJC_ONPLATTER;
 	} else {
-	    if (low != -1) {
+	    if (nblocks > 0) {
 		/* got some blocks -- write them */
 		status = jb_write(jbp->jbpd_platter,
-				  &(buf[low * JBBLOCKSZ]),
-				  group->sjgd_jboffset + low,
-				  (high - low) + 1);
+				  &(buf[startoff]),
+				  group->sjgd_jboffset + startblk,
+				  nblocks);
 
 		if (status < 0) {
 		    elog(NOTICE, "_pgjb_wrtextent: write failed");
 		    return (SM_FAIL);
 		}
 
-		low = -1;
+		nblocks = 0;
 	    }
+	}
+    }
+
+    /* handle any blocks not written above */
+    if (nblocks > 0) {
+	/* got some blocks -- write them */
+	status = jb_write(jbp->jbpd_platter,
+			  &(buf[startoff]),
+			  group->sjgd_jboffset + startblk,
+			  nblocks);
+
+	if (status < 0) {
+	    elog(NOTICE, "_pgjb_wrtextent: write failed");
+	    return (SM_FAIL);
 	}
     }
 
