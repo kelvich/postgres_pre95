@@ -4236,6 +4236,20 @@ WARN:Mar 11 14:41:29: cannot write block 34 of myclass [mydb] blind
 In this case, you should kill the 
 .cW postmaster
 and restart it.
+.np
+When the system crashes while updating the system catalogs (e.g., when
+you are creating a class, defining an index, retrieving into a table,
+etc.) the B-tree indices defined on the catalogs are sometimes
+corrupted.  The general (and non-unique) symptom is that 
+.b all
+queries stop working.  If you have tried all of the above steps and
+nothing else seems to work, try using the
+.cW reindexdb 
+command.  If 
+.cW reindexdb
+succeeds but things still don't work, you have another problem; if it
+fails, the system catalogs themselves were almost certainly corrupted
+and you will have to go back to your backups.
 .lp
 The
 .cW postmaster
@@ -4468,11 +4482,13 @@ Before executing any of the queries below, be sure to execute the
 \*(PP
 .cW vacuum
 command.  (The queries will run much more quickly that way.)  Also,
-note that the text used to generate this document can be found in
+note that these queries are also listed in
 .(C
 /usr/local/postgres/src/examples/chapter15
 .)C
-so use cut-and-paste instead of doing a lot of typing.
+so use cut-and-paste (or the
+.cW \ei
+command) instead of doing a lot of typing.
 .lp
 This query prints the names of all database adminstrators and the name
 of their database(s).
