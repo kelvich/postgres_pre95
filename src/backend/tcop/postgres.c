@@ -1047,6 +1047,12 @@ PostgresMain(argc, argv)
 
       case 'x':
 	  /* control joey hellerstein's expensive function optimization */
+	  if (XfuncMode != 0)
+	   {
+	       fprintf(stderr, "only one -x flag is allowed\n");
+	       errs++;
+	       break;
+	   }
 	  if (strcmp(optarg, "off") == 0)
 	    XfuncMode = XFUNC_OFF;
 	  else if (strcmp(optarg, "nor") == 0)
