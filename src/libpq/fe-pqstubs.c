@@ -113,7 +113,7 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
     fileName = fileName;
     lineNumber = lineNumber;
 
-    fprintf(stderr, "ExceptionalCondition called!\n");
+    fprintf(stderr, "ExceptionalCondition called (%s,%s,file %s, line %d)!\n",conditionName,detail,fileName,lineNumber);
     exit(1);
 }
 
