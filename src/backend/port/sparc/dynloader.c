@@ -26,7 +26,7 @@ extern char pg_pathname[];
 #define FUDGE 10000
 
 static char *temp_file_name = NULL;
-static char *path = "/usr/tmp/postgres%6d";
+static char *path = "/usr/tmp/postgres";
 
 DynamicFunctionList *
 dynamic_file_load(err, filename, address, size)
@@ -44,6 +44,7 @@ long *size;
 	FILE *temp_file = NULL;
 	DynamicFunctionList *retval = NULL, *load_symbols();
 	int fd;
+	char foo[10];
 
 	fd = open(filename, O_RDONLY);
 
@@ -67,8 +68,10 @@ long *size;
 
 	if (temp_file_name == NULL)
 	{
-		temp_file_name = (char *)malloc(strlen(path) + 4);
-		sprintf(temp_file_name, path, getpid());
+		sprintf(foo, "%d", getpid());
+		temp_file_name = (char *)malloc(strlen(path) + strlen(foo) + 2);
+		strcpy(temp_file_name, path);
+		strcat(temp_file_name, foo);
 	}
 
 	if(execld(load_address, temp_file_name, filename))
