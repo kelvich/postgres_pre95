@@ -9,7 +9,11 @@ define operator \*- define a new user operator
 .lp
 .b "define operator"
 operator_name
-.b "( procedure ="
+.b "( arg1 ="
+type-1
+.b "[, arg2 ="
+type-2 ]
+.b " procedure ="
 func_name
 [
 .b ", precedence ="
@@ -232,6 +236,8 @@ while operators are restricted to one or two.
    for the BOX data type. */
 
 define operator === (
+	arg1 = box,
+	arg2 = box,
 	procedure = area_equal_procedure,
 	precedence = 30,
 	associativity = left,
