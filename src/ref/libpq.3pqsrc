@@ -263,6 +263,43 @@ char * PQgetvalue ( portal, tuple_index, field_number )
 All values are returned
 as string.  It is the programmer's responsibility to
 convert them to the correct type.
+.uh FUNCTIONS ASSOCIATED WITH THE COPY COMMAND
+.lp
+The
+.i copy
+command in \*PP has options to read from or write to the network
+connection used by LIBPQ.  Therefore, functions are necessary to access
+this network connection directly so applications may take full advantage
+of this capability.
+.lp
+For more information about the 
+.i copy
+command, see copy(postquel).
+.lp
+
+.(1
+PQgetline(string, length) \*- Reads a null-terminated line into string.
+
+char *string;
+int length
+
+PQputline(string) \*- Sends a null-terminated string.
+
+char *string;
+
+int
+PQendcopy() \*- Syncs with the backend.
+
+This function waits until the backend has finished processing the copy.
+It should either be issued when the last string has been sent to the
+backend using PQputline() or when the last string has been received from
+the backend using PGgetline().  It must be issued or the backend may get
+"out of sync" with the frontend.  Upon return from this function, the
+backend is ready to receive the next query.
+
+The return value is 0 on successful completion, nonzero otherwise.
+.)1
+
 .uh TRACING FUNCTIONS
 .lp
 .(1
