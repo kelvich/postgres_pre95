@@ -8,6 +8,7 @@
 #define XFUNC_NOPULL 4
 #define XFUNC_NOPM 8
 #define XFUNC_NOPRUNE 16
+#define XFUNC_PULLALL 32
 
 /* constants for local and join predicates */
 #define XFUNC_LOCPRD 1

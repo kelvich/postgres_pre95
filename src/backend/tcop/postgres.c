@@ -1057,8 +1057,10 @@ PostgresMain(argc, argv)
 	    XfuncMode = XFUNC_NOPM;
 	  else if (strcmp(optarg, "noprune") == 0)
 	    XfuncMode = XFUNC_NOPRUNE;
+	  else if (strcmp(optarg, "pullall") == 0)
+	    XfuncMode = XFUNC_PULLALL;
 	  else {
-	       fprintf(stderr, "use -x {off,nor,nopull,nopm,noprune}\n");
+	       fprintf(stderr, "use -x {off,nor,nopull,nopm,noprune,pullall}\n");
 	       errs++;
 	  }
 	  break;

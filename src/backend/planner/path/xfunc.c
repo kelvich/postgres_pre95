@@ -203,23 +203,24 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
 	 joinselec = compute_clause_selec(primjoinclause, LispNil);
 	 joincost = xfunc_join_expense(parentpath);
 	 
-	 if (XfuncMode != XFUNC_NOPRUNE &&
-	     ((joincost != 0 &&
-	       (maxrank = xfunc_rank(get_clause(maxcinfo))) > 
-	       ((joinselec - 1.0) / joincost))
-	      || (joincost == 0 && joinselec < 1)
-	      || IsA(childpath,IndexPath) && IsA(parentpath,JoinPath)))
+	 if (XfuncMode == XFUNC_PULLALL ||
+	     (XfuncMode != XFUNC_NOPRUNE &&
+	      ((joincost != 0 &&
+		(maxrank = xfunc_rank(get_clause(maxcinfo))) > 
+		((joinselec - 1.0) / joincost))
+	       || (joincost == 0 && joinselec < 1)
+	       || IsA(childpath,IndexPath) && IsA(parentpath,JoinPath))))
 	  {
 	      *maxcinfopt = maxcinfo;
 	      return(retval);
 	  }
 	 else if (maxrank != -(HUGE_VAL))
-	   set_pruneable(get_parent(parentpath), false);
-	 /* else drop through */
+	  {
+	      set_pruneable(get_parent(parentpath), false);
+	      /* and fall through */
+	  }
      }
-
     return(0);
-
 }
 
 
