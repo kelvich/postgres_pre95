@@ -13,14 +13,14 @@
 #include <strings.h>
 #include <stdio.h>
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "palloc.h"
-#include "pg_lisp.h"
-#include "log.h"
-#include "atoms.h"
+#include "nodes/pg_lisp.h"
+#include "parser/atoms.h"
+#include "utils/palloc.h"
+#include "utils/log.h"
 
 /*
  * 	Global declaration for LispNil.
@@ -961,8 +961,6 @@ some(foo,bar)
 {
     LispValue i = LispNil;
     LispValue temp = LispNil;
-
-    elog(NOTICE,"some called");
 
     foreach(i,bar) {
 	temp =CAR(i);
