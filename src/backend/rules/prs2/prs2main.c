@@ -14,13 +14,13 @@
  * ----------------------------------------------------------------
  */
 
-#include "parse.h"	/* RETRIEVE et all are defined here */
-#include "log.h"
-#include "rel.h"
-#include "htup.h"
-#include "buf.h"
-#include "prs2.h"
-#include "executor.h"
+#include "parser/parse.h"	/* RETRIEVE et all are defined here */
+#include "utils/log.h"
+#include "utils/rel.h"
+#include "access/htup.h"
+#include "storage/buf.h"
+#include "rules/prs2.h"
+#include "executor/executor.h"
 
 /*------------------------------------------------------------------
  *
