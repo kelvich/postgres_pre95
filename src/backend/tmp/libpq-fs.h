@@ -2,25 +2,36 @@
 #define libpq_fs_H
 
 #include "tmp/simplelists.h"
-/* open(2) compatibility */
-#define O_RDONLY        0               /* +1 == FREAD */
-#define O_WRONLY        1               /* +1 == FWRITE */
-#define O_RDWR          2               /* +1 == FREAD|FWRITE */
-#define O_APPEND        _FAPPEND
-#define O_CREAT         _FCREAT
-#define O_TRUNC         _FTRUNC
-#define _FAPPEND        0x0008  /* append (writes guaranteed at the end) */
-#define _FCREAT         0x0200  /* open with file create */
-#define _FTRUNC         0x0400  /* open with truncation */
+#include <sys/file.h>
 
-struct  dirent {
-        off_t           d_off;          /* offset of next disk dir entry */
-        unsigned long   d_fileno;       /* file number of entry */
-        unsigned short  d_reclen;       /* length of this record */
-        unsigned short  d_namlen;       /* length of string in d_name */
-        char            d_name[255+1];  /* name (up to MAXNAMLEN + 1) */
-};
-#define d_ino d_fileno          /* this is meaningless */
+/* UNIX compatibility junk.  This should be in all system''s include files,
+   but this is not always the case. */
+
+/* for lseek(2) */
+#ifndef SEEK_SET
+#define SEEK_SET 0
+#endif
+
+/* for stat(2) */
+#ifndef S_IRUSR /* this not defined means rest are probably not defined */
+/* file modes */
+#define S_IRWXU 00700           /* read, write, execute: owner */
+#define S_IRUSR 00400           /*  read permission: owner */
+#define S_IWUSR 00200           /*  write permission: owner */
+#define S_IXUSR 00100           /*  execute permission: owner */
+
+#define S_IRWXG 00070           /* read, write, execute: group */
+#define S_IRGRP 00040           /*  read permission: group */
+#define S_IWGRP 00020           /*  write permission: group */
+#define S_IXGRP 00010           /*  execute permission: group */
+
+#define S_IRWXO 00007           /* read, write, execute: other */
+#define S_IROTH 00004           /*  read permission: other */
+#define S_IWOTH 00002           /*  write permission: other */
+#define S_IXOTH 00001           /*  execute permission: other */
+#endif
+
+
 
 typedef struct Direntry_ {
     struct dirent d;
