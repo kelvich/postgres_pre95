@@ -99,21 +99,31 @@ struct lpgroupinfo {
 typedef struct lpgroupinfo ProcGroupLocalInfoData;
 typedef ProcGroupLocalInfoData *ProcGroupLocalInfo;
 extern ProcGroupLocalInfo ProcGroupLocalInfoP;
-extern int getFreeProcGroup();
-extern void addSlaveToProcGroup();
-extern int getFinishedProcGroup();
-extern void freeProcGroup();
-extern void freeSlave();
-extern void wakeupProcGroup();
-extern void signalProcGroup();
-extern void ProcGroupSMBeginAlloc();
-extern void ProcGroupSMEndAlloc();
-extern char *ProcGroupSMAlloc();
-extern void ProcGroupSMClean();
-extern void SlaveTmpRelDescInit();
-extern char *SlaveTmpRelDescAlloc();
-extern int getProcGroupMaxPage();
-extern int paradj_nextpage();
+
+/* slaves.c */
+void SendAbortSignals ARGS((void ));
+void SlaveRestart ARGS((void ));
+void SlaveBackendsAbort ARGS((void ));
+void SlaveMain ARGS((void ));
+void MoveTransactionState ARGS((void ));
+void SlaveBackendsInit ARGS((void ));
+int getFreeSlave ARGS((void ));
+void freeSlave ARGS((int i ));
+int getFreeProcGroup ARGS((int nproc ));
+void addSlaveToProcGroup ARGS((int slave , int group , int groupid ));
+void freeProcGroup ARGS((int gid ));
+int getFinishedProcGroup ARGS((void ));
+void wakeupProcGroup ARGS((int groupid ));
+void signalProcGroup ARGS((int groupid , int sig ));
+void ProcGroupSMBeginAlloc ARGS((int groupid ));
+void ProcGroupSMEndAlloc ARGS((void ));
+char *ProcGroupSMAlloc ARGS((int size ));
+void ProcGroupSMClean ARGS((int groupid ));
+void SlaveTmpRelDescInit ARGS((void ));
+char *SlaveTmpRelDescAlloc ARGS((int size ));
+int getProcGroupMaxPage ARGS((int groupid ));
+int paradj_handler ARGS((void ));
+int paradj_nextpage ARGS((int page , int dir ));
 
 #define SIGPARADJ	SIGUSR1
 

@@ -16,9 +16,9 @@
 extern
 void
 DefineRelation ARGS((
-	LispValue	relationName;
-	LispValue	parameters;
-	LispValue	schema;
+	char		*relationName,
+	LispValue	parameters,
+	LispValue	schema
 ));
 
 /*
@@ -35,7 +35,7 @@ DefineRelation ARGS((
 extern
 void
 RemoveRelation ARGS((
-	Name	name;
+	Name	name
 ));
 
 #endif CreatinhHIncluded

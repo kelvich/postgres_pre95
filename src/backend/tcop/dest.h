@@ -49,4 +49,11 @@ typedef enum {
 	CopyEnd		/* results sent to frontend process but are strings */
 } CommandDest;
 
+/* dest.c */
+void donothing ARGS((List tuple , List attrdesc ));
+void EndCommand ARGS((String commandTag , CommandDest dest ));
+void SendCopyBegin ARGS((void ));
+void ReceiveCopyBegin ARGS((void ));
+void NullCommand ARGS((CommandDest dest ));
+void BeginCommand ARGS((char *pname , int operation , LispValue attinfo , bool isIntoRel , bool isIntoPortal , char *tag , CommandDest dest ));
 #endif  DestIncluded
