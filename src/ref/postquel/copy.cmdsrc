@@ -86,12 +86,14 @@ the input file denote a
 attribute.
 .lp
 In the case of
-.b copy binary,
+.b copy
+.b binary,
 the first four bytes in the file will be the number of instances in the file.
 If this number is
 .i zero,
 the
-.b copy binary
+.b copy
+.b binary
 command will read until end of file is encountered.  Otherwise, it will
 .i stop
 reading when this number of instances has been read.  Remaining data in the
@@ -128,6 +130,7 @@ contiguous streams of the array element type.
 .lp
 append(postquel),
 create(postquel),
+vacuum(postquel),
 libpq(commands).
 .uh BUGS
 .lp
@@ -142,10 +145,13 @@ file system.
 stops operation at the first error.
 This should not lead to problems
 in the event of a
-copy \fBfrom\fR,
+.b copy
+.b from,
 but the target relation will, of course, be partially modified
 in a
-.b copy \fBto\fR.  The ``vacuum'' query can be used to clean up after a
+.b copy 
+.b to.
+The ``vacuum'' query should be used to clean up after a
 failed copy.
 .lp
 Because \*(PP operates out of a different directory 
