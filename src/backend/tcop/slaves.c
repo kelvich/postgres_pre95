@@ -72,7 +72,7 @@ SendAbortSignals()
     if (! IsMaster) {
 	p = (*MasterProcessIdP);
 	if (kill(p, SIGHUP) != 0) {
-	    fprintf(stderr, "signaling master (pid %d): ", i, p);
+	    fprintf(stderr, "signaling master (pid %d): ", p);
 	    perror("kill");
 	}
     }
@@ -251,6 +251,7 @@ SlaveMain()
 	 */
 	queryDesc = (List) SlaveQueryDescsP[SlaveId];
 
+#if 0
 	/* ----------------
 	 *	for now, just test synchronization.
 	 * ----------------
@@ -266,6 +267,7 @@ SlaveMain()
 	    
 	    elog(DEBUG, "Slave Backend %d finished", SlaveId);
 	}
+#endif	
 #if 0
 	/* ----------------
 	 *  If the query desc is NULL, then we assume the master
@@ -274,13 +276,13 @@ SlaveMain()
 	 */
 	if (queryDesc == NULL)
 	    exitpg();
-
+#endif	
 	/* ----------------
 	 *  process the query descriptor
 	 * ----------------
 	 */
-	ProcessQueryDesc(queryDesc);
-#endif	
+	if (queryDesc != NULL)
+	    ProcessQueryDesc(queryDesc);
 
 	/* ----------------
 	 *  clean caches, lock tables and memory stuff just
