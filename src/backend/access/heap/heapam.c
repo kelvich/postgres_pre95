@@ -84,21 +84,42 @@ Relation
 ObjectIdOpenHeapRelation(relationId)	/* XXX should be RelationIdOpenHeapRelation */
 	ObjectId	relationId;
 {
-	return (RelationIdGetRelation(relationId));
+    /* ----------------
+     *	increment access statistics
+     * ----------------
+     */
+    IncrHeapAccessStat(local_ObjectIdOpenHeapRelation);
+    IncrHeapAccessStat(global_ObjectIdOpenHeapRelation);
+
+    return (RelationIdGetRelation(relationId));
 }
 
 Relation
 RelationNameOpenHeapRelation(relationName)
 	Name	relationName;
 {
-	return (amopenr(relationName));
+    /* ----------------
+     *	increment access statistics
+     * ----------------
+     */
+    IncrHeapAccessStat(local_RelationNameOpenHeapRelation);
+    IncrHeapAccessStat(global_RelationNameOpenHeapRelation);
+
+    return (amopenr(relationName));
 }
 
 void
 RelationCloseHeapRelation(relation)
 	Relation	relation;
 {
-	amclose (relation);
+    /* ----------------
+     *	increment access statistics
+     * ----------------
+     */
+    IncrHeapAccessStat(local_RelationCloseHeapRelation);
+    IncrHeapAccessStat(global_RelationCloseHeapRelation);
+
+    amclose (relation);
 }
 
 HeapTuple

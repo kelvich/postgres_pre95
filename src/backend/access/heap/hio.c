@@ -11,6 +11,7 @@
 #include "bufmgr.h"
 #include "bufpage.h"
 #include "htup.h"
+#include "heapam.h"
 #include "itemid.h"
 #include "itemptr.h"
 #include "log.h"
@@ -48,6 +49,13 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	Item		item;
 	RuleLock	lock;
 
+	/* ----------------
+	 *	increment access statistics
+	 * ----------------
+	 */
+	IncrHeapAccessStat(local_RelationPutHeapTuple);
+	IncrHeapAccessStat(global_RelationPutHeapTuple);
+			
 	Assert(RelationIsValid(relation));
 	Assert(HeapTupleIsValid(tuple));
 
@@ -117,6 +125,13 @@ RelationPutLongHeapTuple(relation, tuple)
 	unsigned long	blocks;
 	BlockNumber	blockNumber;
 
+	/* ----------------
+	 *	increment access statistics
+	 * ----------------
+	 */
+	IncrHeapAccessStat(local_RelationPutLongHeapTuple);
+	IncrHeapAccessStat(global_RelationPutLongHeapTuple);
+	
 	Assert(RelationIsValid(relation));
 	Assert(HeapTupleIsValid(tuple));
 
