@@ -180,10 +180,25 @@ TupleDescriptor tupleDescriptor;
 
 
     t = HeapTupleGetRuleLock(tuple, buffer);
-    /*
-     * Make a copy of the locks
-     */
-    locks = prs2CopyLocks(t);
+
+	/* 
+	 * If we got an empty lock, return it.  Otherwise, we have one too many
+	 * palloc's and we'll drop the space for the empty lock on the floor.
+	 * 
+	 * Anyway, an empty lock means that the rule system should do nothing.
+	 */
+
+	if (prs2GetNumberOfLocks(t) == 0)
+	{
+		locks = t;
+	}
+	else
+	{
+    	/*
+     	 * Make a copy of the locks
+     	 */
+    	locks = prs2CopyLocks(t);
+	}
 
     return(locks);
 }
