@@ -138,6 +138,7 @@ ExecCheckPerms(operation, resultRelation, rangeTable, parseTree)
 					CHECK(ACL_WR);
 				opstr = "append";
 				break;
+			case NOTIFY: /* what does this mean?? -- jw, 1/6/94 */
 			case DELETE:
 			case REPLACE:
 				ok = CHECK(ACL_WR);
