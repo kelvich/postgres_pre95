@@ -97,6 +97,7 @@ ExecHashJoin(node)
     int			len;
     
     TupleTableSlot	outerTupleSlot;
+    TupleTableSlot	innerTupleSlot;
     int			nbatch;
     int			curbatch;
     File		*outerbatches;
@@ -166,7 +167,13 @@ ExecHashJoin(node)
 	     * ----------------
 	     */
 	    set_hashtable(hashNode, hashtable);
-	    ExecProcNode(hashNode);
+	    innerTupleSlot = ExecProcNode(hashNode);
+	    /* ----------------
+	     * Initialize the tuple descriptor for the saved
+	     * tuple slot in the hash join state
+	     */
+	    SetSlotTupleDescriptor(get_hj_SavedTupleSlot(hjstate),
+				SlotTupleDescriptor(innerTupleSlot));
 	}
 	bucket = NULL;
 	curtuple = NULL;
