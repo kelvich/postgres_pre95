@@ -45,28 +45,17 @@ CreateSharedMemoryAndSemaphores(key)
 {
 	int		status;
 
-	/* REMOVED
 	LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
-	*/
-	/* REMOVED
-	 * LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
-	*/
-
-	status = LMSegmentInit(true, IPCKeyGetLockTableMemoryKey(key));
+	LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
 
 	/* kill and create the buffer manager buffer pool (and semaphore) */
-	/* REMOVED
-	 * CreateBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-	*/
+	CreateBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
 	CreateBufferPoolMemory(IPCKeyGetBufferMemoryKey(key));
 
-	/* REMOVED
 	LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-	*/
-	/* REMOVED
-	 *LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
-	*/
+	LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
 
+	status = LMSegmentInit(true, IPCKeyGetLockTableSemaphoreBlockKey(key));
 
 	if (status == -1) {
 		elog(FATAL, "CreateSharedMemory: failed segment init");
@@ -92,21 +81,14 @@ AttachSharedMemoryAndSemaphores(key)
 	}
 
 	/* attach the buffer manager buffer pool (and semaphore) */
-	/* REMOVED
-	 * InitBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-	*/
+	InitBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
 	InitBufferPoolMemory(IPCKeyGetBufferMemoryKey(key), false);
-
-	/* REMOVED
-	LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-	*/
-	/* REMOVED 
-	 * LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
-	*/
-
-	status = LMSegmentInit(false, IPCKeyGetLockTableMemoryKey(key));
-
 	AttachSharedBuffers(IPCKeyGetBufferMemoryKey(key));
+
+	LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
+	LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
+
+	status = LMSegmentInit(false, IPCKeyGetLockTableSemaphoreBlockKey(key));
 
 	if (status == -1) {
 		elog(FATAL, "AttachSharedMemory: failed segment init");

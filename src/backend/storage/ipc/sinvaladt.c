@@ -21,7 +21,7 @@
 
 #include "sinvaladt.h"
 
-/*REMOVED IpcSemaphoreId	SharedInvalidationSemaphore;*/
+IpcSemaphoreId	SharedInvalidationSemaphore;
 SISeg		*shmInvalBuffer;	/* the shared buffer segment, set by */
     	    	    	    	    	/*   SISegmentAttach()	    	    */
 
@@ -860,7 +860,6 @@ SISegmentInit(killExistingSegment, key)
 
 /* synchronization of the shared buffer access	    	    */
 
-/* PROCEDURE REMOVED
 void
 SISyncInit(key)
 IPCKey	key;
@@ -869,12 +868,10 @@ IPCKey	key;
     SharedInvalidationSemaphore =
     	IpcSemaphoreCreate(key, 1, IPCProtection, SI_LockStartValue,
     	                   &status);
-    if(0) { /* XXX use validity function and check status 
+    if(0) { /* XXX use validity function and check status */
     	elog(FATAL, "SISynchInit: %m");
     }
 }
-*/
-
 void
 SISyncKill(key)
 IPCKey	key;
@@ -886,11 +883,9 @@ IPCKey	key;
 void
 SIReadLock()
 {
-    TASReadLock(TASLOCK_BUFINVAL);
+    int	    status;
+    struct sembuf   sops;
 
-	/* REMOVED
-    
-    TASLOCK_BUFINVAL
     sops.sem_op = SI_SharedLock;
     sops.sem_flg = 0;
     sops.sem_num = 0;
@@ -900,16 +895,14 @@ SIReadLock()
     	perror("semop");
     	exit(255);
     }
-	*/
 }
 
 void
 SIWriteLock()
 {
+    int	    status;
+    struct sembuf   sops;
 
-    TASWriteLock(TASLOCK_BUFINVAL);
-
-	/* REMOVED
     sops.sem_op = SI_ExclusiveLock;
     sops.sem_flg = 0;
     sops.sem_num = 0;
@@ -919,15 +912,11 @@ SIWriteLock()
     	perror("semop");
     	exit(255);
     }
-	*/
 }
 
 void
 SIReadUnlock()
 {
-    TASReadUnLock(TASLOCK_BUFINVAL);
-
-    /* REMOVED 
     int	    status;
     struct sembuf   sops;
 
@@ -940,15 +929,11 @@ SIReadUnlock()
     	perror("semop");
     	exit(255);
     }
-    */
 }
 
 void
 SIWriteUnlock()
 {
-    TASWriteUnLock(TASLOCK_BUFINVAL);
-
-    /* REMOVED
     int	    status;
     struct sembuf   sops;
 
@@ -961,7 +946,6 @@ SIWriteUnlock()
     	perror("semop");
     	exit(255);
     }
-    */
 }
 
 
