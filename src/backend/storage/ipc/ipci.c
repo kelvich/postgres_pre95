@@ -71,6 +71,7 @@ CreateSharedMemoryAndSemaphores(key)
 #endif /* MAIN_MEMORY */
 
     ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
+    ShmemBindingTabReset();
     InitShmem(key, size);
     InitBufferPool(key);
 
