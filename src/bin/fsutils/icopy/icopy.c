@@ -431,7 +431,7 @@ icopy_out(srcfname, destfname, smgrno)
 	if (cplist->cl_isdir) {
 	    if (Verbose)
 		printf("mkdir %s\n", cplist->cl_dest);
-	    if (mkdir(cplist->cl_dest) < 0)
+	    if (mkdir(cplist->cl_dest, 0775) < 0)
 		errs++;
 	} else {
 	    if (Verbose)
@@ -547,9 +547,11 @@ build_outlist(srcfname, destfname)
 	    if (strcmp(entry->d_name, ".") == 0
 		|| strcmp(entry->d_name, "..") == 0)
 		continue;
-	    newsrc = (char *) palloc(strlen(srcfname) + entry->d_namlen + 2);
+	    newsrc = (char *) palloc(strlen(srcfname)
+				     + strlen(entry->d_name) + 2);
 	    sprintf(newsrc, "%s/%s", srcfname, entry->d_name);
-	    newdest = (char *) palloc(strlen(destfname) + entry->d_namlen + 2);
+	    newdest = (char *) palloc(strlen(destfname)
+				      + strlen(entry->d_name) + 2);
 	    sprintf(newdest, "%s/%s", destfname, entry->d_name);
 	    tail->cl_next = build_outlist(newsrc, newdest);
 	    while (tail->cl_next != (COPYLIST *) NULL)
