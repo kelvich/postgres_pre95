@@ -66,6 +66,9 @@ Fragment rootFragment;
     List		tempRelationDescList;
     Relation		shmTempRelationDesc;
     List		finalResultRelation;
+    int			hashTableMemorySize;
+    IpcMemoryKey	hashTableMemoryKey;
+    IpcMemoryKey	getNextHashTableMemoryKey();
     
     /* ----------------
      *	execute the query appropriately if we are running one or
@@ -100,8 +103,11 @@ Fragment rootFragment;
 	   parseTree = QdGetParseTree(queryDesc);
 	   finalResultRelation = parse_tree_result_relation(parseTree);
 	   if (ExecIsHash(plan))  {
+	      hashTableMemoryKey = getNextHashTableMemoryKey();
+	      set_hashtablekey(plan, hashTableMemoryKey);
 	      hashtable = ExecHashTableCreate(plan);
 	      set_hashtable(plan, hashtable);
+	      hashTableMemorySize = get_hashtablesize(plan);
 	      }
 	   else if (fragment != rootFragment || nparallel > 1) {
 	      parse_tree_result_relation(parseTree) =
@@ -157,6 +163,8 @@ Fragment rootFragment;
 	    }
 	   if (ExecIsHash(plan)) {
 	       set_hashjointable(parentPlan, hashtable);
+	       set_hashjointablekey(parentPlan, hashTableMemoryKey);
+	       set_hashjointablesize(parentPlan, hashTableMemorySize);
 	       set_hashdone(parentPlan, true);
 	      }
    	   else {
@@ -455,3 +463,11 @@ Fragment	planFragments;
     return fireFragments;
 }
 
+#define MINHASHTABLEMEMORYKEY	1000
+static IpcMemoryKey nextHashTableMemoryKey = 0;
+
+IpcMemoryKey
+getNextHashTableMemoryKey()
+{
+    return (nextHashTableMemoryKey++ + MINHASHTABLEMEMORYKEY);
+}
