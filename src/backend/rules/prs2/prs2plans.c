@@ -75,9 +75,14 @@ ParamListInfo *paramListP;
 
     /*
      * This is a little bit tricky but it works!
+     *
+     * t = VARDATA(&planStruct->prs2code);
+     * planString = PSIZESKIP(t);
+     *
+     * Unfortunately it assumes the wrong semantics, and this
+     * causes problems when things change.
      */
-    t = VARDATA(&planStruct->prs2code);
-    planString = PSIZESKIP(t);
+     planString = VARDATA(&(planStruct->prs2code));
 
     if (paramListP == NULL)
 	plan = StringToPlan(planString);
