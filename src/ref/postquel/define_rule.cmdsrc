@@ -256,3 +256,8 @@ is not
 The query rewrite rule system now supports most rule semantics, and
 closely parallels the tuple system.  It also attempts to avoid odd
 semantics by running instead rules before non-instead rules.
+.PP
+Both rule systems store the rule text and query plans as text 
+attributes.  This implies that creation of rules may fail if the
+rule plus its various internal representations exceed some value
+that is on the order of one page (8KB).
