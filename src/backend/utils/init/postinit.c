@@ -318,6 +318,35 @@ InitCommunication()
 
 	key = SystemPortAddressCreateIPCKey(address);
 
+/*
+ * Enable this if you are trying to force the backend to run as if it is
+ * running under the postmaster.
+ *
+ * This goto forces Postgres to attach to shared memory instead of using
+ * malloc'ed memory (which is the normal behavior if run directly).
+ *
+ * To enable emulation, run the following shell commands (in addition
+ * to enabling this goto)
+ *
+ *     % setenv POSTID 1
+ *     % setenv POSTPORT 4321
+ *     % postmaster &
+ *     % kill -9 %1
+ *
+ * Upon doing this, Postmaster will have allocated the shared memory resources
+ * that Postgres will attach to if you enable EMULATE_UNDER_POSTMASTER.
+ *
+ * This comment may well age with time - it is current as of 8 January 1990
+ * 
+ * Greg
+ */
+
+#ifdef EMULATE_UNDER_POSTMASTER
+
+	goto forcesharedmemory;
+
+#endif
+
     } else if (IsUnderPostmaster) {
 	elog(FATAL,
 	     "InitCommunication: under postmaster and POSTPORT not set");
@@ -338,6 +367,12 @@ InitCommunication()
      *  initialize shared memory and semaphores appropriately.
      * ----------------
      */
+#ifdef EMULATE_UNDER_POSTMASTER
+
+forcesharedmemory:
+
+#endif
+
     AttachSharedMemoryAndSemaphores(key);
 }
 
