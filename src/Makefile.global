@@ -64,6 +64,12 @@ PORTNAME=	ultrix4
 # access).
 POSTGRESLOGIN= postgres
 
+#
+# For convenience, POSTGRESDIR is where DATADIR, BINDIR, and LIBDIR 
+# are rooted.  Of course, each of those is changable separately.  This
+# is usually "/usr/local" but may be different for the postgres development
+# team and sequoia users.
+#
 POSTGRESDIR=	/private/devel/postgres
 #
 # Where the database lives (changeable at run time by setting PGDATA
