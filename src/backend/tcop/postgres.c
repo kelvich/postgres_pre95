@@ -52,6 +52,8 @@ RcsId("$Header$");
 #include "tmp/miscadmin.h"
 
 #include "nodes/pg_lisp.h"
+#include "nodes/mnodes.h"
+#include "utils/mcxt.h"
 
 #ifdef PARALLELDEBUG
 #include <usclkc.h>
@@ -82,6 +84,7 @@ extern char	*PG_username;
 /* this global is defined in utils/init/postinit.c */
 extern int	testFlag;
 extern int	lockingOff;
+static int	confirmExecute = 0;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
@@ -393,6 +396,7 @@ char ReadCommand(inBuf)
  * ----------------------------------------------------------------
  */
 extern int _exec_repeat_;
+GlobalMemory ParserPlannerContext;
 
 void
 pg_eval(query_string, dest)
@@ -403,6 +407,14 @@ pg_eval(query_string, dest)
     LispValue i;
     int j;
     bool unrewritten = true;
+    MemoryContext oldcontext;
+
+    /*
+    if (testFlag) {
+	ParserPlannerContext = CreateGlobalMemory("ParserPlannerContext");
+	oldcontext = MemoryContextSwitchTo(ParserPlannerContext);
+      }
+    */
 
     /* ----------------
      *	(1) parse the request string into a set of plans
@@ -414,6 +426,10 @@ pg_eval(query_string, dest)
 	fprintf(stderr, "! Parser Stats:\n");
 	ShowUsage();
       }
+    /*
+    if (testFlag)
+       MemoryContextSwitchTo(oldcontext);
+    */
 
     /* ----------------
      *	(2) rewrite the queries, as necessary
@@ -601,17 +617,36 @@ pg_eval(query_string, dest)
 		List planlist;
 		LispValue x;
 		List setRealPlanStats();
+		List pruneHashJoinPlans();
 
 		planlist = get_chooseplanlist(plan);
 		planlist = setRealPlanStats(parsetree, planlist);
+		planlist = pruneHashJoinPlans(planlist);
+		/*
+		MemoryContextSwitchTo(oldcontext);
+		*/
 		foreach (x, planlist) {
+		    char s[10];
 		    p = (Plan)CAR(x);
 		    p_plan(p);
+		    if (confirmExecute) {
+		        printf("execute (y/n/q)? ");
+		        scanf("%s", s);
+		        if (s[0] == 'n') continue;
+			if (s[0] == 'q') break;
+		      }
 		    BufferPoolBlowaway();
+		    /*
+		    CommitTransactionCommand();
+		    StartTransactionCommand();
+		    */
 		    ResetUsage();
 		    ProcessQuery(parsetree, p, dest);
 		    ShowUsage();
 		  }
+		/*
+		 GlobalMemoryDestroy(ParserPlannerContext);
+		*/
 	       }
 	    else {
 	    /* ----------------
@@ -728,7 +763,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:b:Cd:EGM:NnOP:pQSsLt:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:b:Cd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -963,6 +998,9 @@ PostgresMain(argc, argv)
 	   *	default: bad command line option
 	   * ----------------
 	   */
+      case 'i':
+	  confirmExecute = 1;
+	  break;
       default:
 	  errs++;
       }
