@@ -823,12 +823,18 @@ ExceptionalCondition ARGS((
  *	Return the maximum of two numbers.
  */
 #define Max(x, y)	((x) > (y) ? (x) : (y))
+#ifndef MAX
+#define MAX(x, y)	((x) > (y) ? (x) : (y))
+#endif /* MAX */
 
 /*
  * Min --
  *	Return the minimum of two numbers.
  */
 #define Min(x, y)	((x) < (y) ? (x) : (y))
+#ifndef MIN
+#define MIN(x, y)	((x) < (y) ? (x) : (y))
+#endif /* MIN */
 
 /*
  * Abs --
