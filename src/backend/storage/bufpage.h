@@ -420,6 +420,10 @@ PageRestoreTempPage ARGS((
 /*
  * PageGetMaxOffsetIndex --
  *	Returns the maximum offset index used by the given page.
+ *
+ *	NOTE: The offset is invalid if the page is non-empty.
+ *	Test whether PageIsEmpty before calling this routine
+ *	and/or using its return value.
  */
 extern
 OffsetIndex
