@@ -3,24 +3,25 @@
  *	POSTGRES heap access method input/output code.
  */
 
-#include "c.h"
-
-#include "align.h"
-#include "block.h"
-#include "buf.h"
-#include "bufmgr.h"
-#include "bufpage.h"
-#include "htup.h"
-#include "heapam.h"
-#include "itemid.h"
-#include "itemptr.h"
-#include "log.h"
-#include "off.h"
-#include "rel.h"
-
-#include "hio.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
+
+#include "access/heapam.h"
+#include "access/hio.h"
+#include "access/htup.h"
+
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "storage/itemid.h"
+#include "storage/itemptr.h"
+#include "storage/off.h"
+
+#include "utils/memutils.h"
+#include "utils/log.h"
+#include "utils/rel.h"
 
 /*
  *	amputunique	- place tuple at tid
@@ -65,10 +66,12 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	lock = tuple->t_lock.l_lock;
 
 	buffer = RelationGetBuffer(relation, blockIndex, L_UP);
+#ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(buffer)) {
 		elog(WARN, "RelationPutHeapTuple: no buffer for %ld in %s",
 			blockIndex, &relation->rd_rel->relname);
 	}
+#endif
 
 	pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
 	len = (unsigned)LONGALIGN(tuple->t_len);
@@ -137,10 +140,12 @@ RelationPutLongHeapTuple(relation, tuple)
 
 /* correct validity checking here and elsewhere */
 	headb = RelationGetBuffer(relation, P_NEW, L_NEW);
+#ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(headb)) {
 		elog(WARN,
 			"RelationPutLongHeapTuple: no new buffer for block #1");
 	}
+#endif
 	dp = LintCast(PageHeader, BufferSimpleGetPage(headb));
 	len = (unsigned long)LONGALIGN(tuple->t_len);
 	ItemPointerSimpleSet(&tuple->t_ctid, BufferGetBlockNumber(headb), 1);
@@ -229,10 +234,12 @@ RelationPutLongHeapTuple(relation, tuple)
 			elog(WARN, "RelationPutLongHeapTuple: no BufferPut #$");
 		while (blocks--) {
 			b = RelationGetBuffer(relation, P_NEW, L_NEW);
+#ifndef NO_BUFFERISVALID
 			if (!BufferIsValid(b)) {
 				elog(WARN,
 					"RelationPutLongHeapTuple: no new #n");
 			}
+#endif
 			dp = (PageHeader)BufferSimpleGetPage(b);
 			tp -= MAXTCONTLEN;
 			tcp = (ItemContinuation)(dp + 1);
