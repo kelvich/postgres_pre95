@@ -6,7 +6,7 @@
 
 #include <strings.h>
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
@@ -59,7 +59,7 @@ int32
 cidin(s)
 char *s;
 {
-    unsigned char c;
+    CommandId c;
 
     if (s==NULL)
 	c = 0;
@@ -80,16 +80,16 @@ cidout(c)
 int32 c;
 {
     char *result;
-    unsigned char c2;
+    CommandId c2;
 
     /*
-     * cid is a number between 0 .. 255, therefore we need at most
-     * 4 chars for the string (3 digits + '\0')
+     * cid is a number between 0 .. 2^16-1, therefore we need at most
+     * 4 chars for the string (6 digits + '\0')
      * NOTE: print it as an UNSIGNED int!
      */
-    result = palloc(4);
-    c2 = c;
-    sprintf(result, "%d", (int)(c2));
+    result = palloc(8);
+    c2 = (CommandId)c;
+    sprintf(result, "%u", (unsigned)(c2));
     return(result);
 }
 
