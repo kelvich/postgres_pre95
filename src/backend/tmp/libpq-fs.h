@@ -7,6 +7,13 @@
 /* UNIX compatibility junk.  This should be in all system''s include files,
    but this is not always the case. */
 
+#define MAXNAMLEN 255
+struct pgdirent {
+	unsigned long d_ino;
+	unsigned short d_namlen;
+	char d_name[MAXNAMLEN+1];
+};
+
 /* for lseek(2) */
 #ifndef SEEK_SET
 #define SEEK_SET 0
@@ -31,10 +38,17 @@
 #define S_IXOTH 00001           /*  execute permission: other */
 #endif
 
-
+/* Temp workaround until we make unix stuff compile under all oses */
+struct stat {
+	int st_mode;
+	int b;
+	int c;
+	int d;
+	int e;
+};
 
 typedef struct Direntry_ {
-    struct dirent d;
+    struct pgdirent d;
     SLNode Node;
 } Direntry;
 
@@ -57,7 +71,7 @@ int p_ferror ARGS((int fd ));
 int p_rename ARGS((char *path , char *pathnew ));
 int p_stat ARGS((char *path , struct stat *statbuf ));
 PDIR *p_opendir ARGS((char *path ));
-struct dirent *p_readdir ARGS((PDIR *dirp ));
+struct pgdirent *p_readdir ARGS((PDIR *dirp ));
 void p_rewinddir ARGS((PDIR *dirp ));
 int p_closedir ARGS((PDIR *dirp ));
 int p_chdir ARGS((char *path ));
