@@ -223,7 +223,10 @@ kill -9
 as this will prevent the
 .IR postmaster
 from freeing the system resources (e.g., shared memory and semaphores)
-that it holds before dying.
+that it holds before dying.  This prevents you from having to deal with
+the problem with
+.IR shmat (2)
+described below.
 .SH "EXAMPLES"
 .(C
 # start postmaster using default values
@@ -270,7 +273,12 @@ command.  After doing this, try starting the
 .IR "postmaster"
 again.  If this still doesn't work, you probably need to configure
 your kernel for shared memory and semaphores as described in the
-installation notes.
+installation notes.  If you run multiple 
+.IR postmaster s
+on a single host, or have reduced the shared memory and semaphore
+parameters from the defaults in the generic kernel, you may have to 
+go back and increase the shared memory and semaphores configured 
+into your kernel.
 .TP
 .BR "StreamServerPort: cannot bind to port"
 If you see this message, you should be certain that there is no other 
@@ -294,14 +302,25 @@ option.  You may also get this error if you terminate the
 .IR "postmaster"
 and immediately restart it using the same port; in this case, you must
 simply wait a few seconds until the operating system closes the port
-before trying again.
+before trying again.  Finally, you may get this error if you specify
+a port number that your operating system considers to be reserved.
+For example, many versions of \*(UU consider port numbers under 1024 to
+be \*(lqtrusted\*(rq and only permit the \*(UU superuser to access them.
 .TP
 .BR "IpcMemoryAttach: shmat() failed: Permission denied"
-A likely explanation is that a
+A likely explanation is that another user attempted to start a
 .IR "postmaster"
-process owned by another user has acquired all of the shared resources
-on the machine.  If there are no other
+process on the same port which acquired shared resources and then 
+died.  Since \*(PG shared memory keys are based on the port number 
+assigned to the
+.IR "postmaster" ,
+such conflicts are likely if there is more than one installation on 
+a single host.  If there are no other
 .IR "postmaster"
-processes running (see above), run
+processes currently running (see above), run
 .IR "ipcclean"
-and try again.
+and try again.  If other 
+.IR "postmaster" s
+are running, you will have to find the owners of those processes to
+coordinate the assignment of port numbers and/or removal of unused
+shared memory segments.
