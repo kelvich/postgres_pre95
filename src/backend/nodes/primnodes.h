@@ -358,8 +358,9 @@ class (Array) public (Expr) {
 class (ArrayRef) public (Expr) {
  /* private: */
 	inherits1(Expr);
-	ObjectId		refelemtype;
+	int			refattrlength;
 	int			refelemlength;
+	ObjectId		refelemtype;
 	bool			refelembyval;
 	LispValue		refindexpr;
 	LispValue		refexpr;
