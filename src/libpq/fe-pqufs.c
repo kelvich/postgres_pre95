@@ -73,6 +73,7 @@
 #define MAXPATHLEN 1024
 #endif
 
+/* cwdir set from PFCWD environment variable, if available, else default */
 char cwdir[MAXPATHLEN] = "/";			/* current working directory */
 
 /*
@@ -81,6 +82,7 @@ char cwdir[MAXPATHLEN] = "/";			/* current working directory */
 static PDIR *new_PDIR ARGS((void ));
 static Direntry *new_Direntry ARGS((char *name , oid OIDf ));
 static char *resolve_path ARGS((char *path ));
+int p_errno = 0;			/* error code */
 
 int p_open(fname,mode)
      char *fname;
@@ -103,8 +105,10 @@ int p_open(fname,mode)
       return -1;
     else if (*ret == 'V')
       return -1;
-    else
-      return fd;
+    else {
+	p_errno = fd>=0 ? 0 : -fd;
+	return fd;
+    }
 }
 
 int p_close(fd)
@@ -122,8 +126,10 @@ int p_close(fd)
       return -1;
     else if (*pqret == 'V')
       return -1;
-    else
-      return retval;
+    else {
+	p_errno = retval>=0 ? 0 : -retval;
+	return retval;
+    }
 }
 
 int p_read(fd,buf,len)
@@ -152,6 +158,7 @@ int p_read(fd,buf,len)
     else {
 /*	readlen = ((struct varlena *)buf)->vl_len;
 	bcopy(((struct varlena *)buf)->vl_dat,buf, readlen);*/
+	p_errno = readlen>=0 ? 0 : -readlen;
 	return readlen;
     }
 }
@@ -180,6 +187,7 @@ int p_write(fd,buf,len)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = written>=0 ? 0 : -written;
 	return written;
     }
 }
@@ -210,15 +218,17 @@ int p_lseek(fd,offset,whence)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
 
-int p_creat(path,mode)
+int p_creat(path,mode,objtype)
      char *path;
      int mode;
+     int objtype;
 {
-    PQArgBlock argv[2];
+    PQArgBlock argv[3];
     char *pqret;
     int retval;
 
@@ -230,13 +240,18 @@ int p_creat(path,mode)
     argv[1].len = 4;
     argv[1].u.integer = mode;
 
-    pqret = PQfn(F_LOCREAT,&retval,sizeof(int32),NULL,1,argv,2);
+    argv[2].isint = 1;
+    argv[2].len = 4;
+    argv[2].u.integer = objtype;
+
+    pqret = PQfn(F_LOCREAT,&retval,sizeof(int32),NULL,1,argv,3);
 
     if (pqret == NULL)
       return -1;
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -259,6 +274,7 @@ int p_tell(fd)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -286,6 +302,7 @@ int p_mkdir(path,mode)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -308,6 +325,7 @@ int p_unlink(path)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -330,6 +348,7 @@ int p_rmdir(path)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -346,10 +365,11 @@ int p_rename(path,pathnew)
     PQArgBlock argv[2];
     char *pqret;
     int retval;
-
+    static char tmpdir[MAXPATHLEN];
+    strcpy(tmpdir,resolve_path(path));
     argv[0].isint = 0;
     argv[0].len = VAR_LENGTH_ARG;
-    argv[0].u.ptr = (int *)resolve_path(path);
+    argv[0].u.ptr = (int *)tmpdir;
 
     argv[1].isint = 0;
     argv[1].len = VAR_LENGTH_ARG;
@@ -362,6 +382,7 @@ int p_rename(path,pathnew)
     else if (*pqret == 'V')
       return -1;
     else {
+	p_errno = retval>=0 ? 0 : -retval;
 	return retval;
     }
 }
@@ -380,8 +401,10 @@ int p_stat(path,statbuf)
 
     pqret = PQfn(F_LOSTAT,(int *)statbuf,sizeof(struct pgstat),&stlen,2,argv,1);
 
-    if (stlen == 5)
-      return -1;
+    if (stlen == 5) {
+	p_errno = PENOENT;
+        return -1;
+    }
 
     if (pqret == NULL)
       return -1;
@@ -481,21 +504,27 @@ int p_chdir(path)
 {
     struct pgstat st;
 
-    if (p_stat(path,&st) < 0)
-      return -1;
-    if (!S_ISDIR(st.st_mode))
-      return -1;
+    if (p_stat(path,&st) < 0) {
+	return -1;
+    }
+    if (!S_ISDIR(st.st_mode)) {
+	p_errno = PENOTDIR;
+	return -1;
+    }
     
     if (*path == '/') {
 	strcpy(cwdir,path);
     } else {
 	strcpy(cwdir,resolve_path(path));
     }
+    return 0;
 }
 
 char *p_getwd(path)
      char *path;
 {
+    char *foo;
+    foo = resolve_path("/"); 	/* initialize cwdir, if necessary */
     strcpy(path,cwdir);
     return path;
 }
@@ -511,6 +540,7 @@ static PDIR *new_PDIR()
     p = (PDIR *)palloc(sizeof(PDIR));
     SLNewList(&p->dirlist,offsetof(Direntry,Node));
     p->current_entry = NULL;
+    return p;
 }
 
 static Direntry *new_Direntry(name,OIDf)
@@ -527,11 +557,24 @@ static Direntry *new_Direntry(name,OIDf)
 /* use by all the p_* routines to map relative to absolute path */
 #define EOP(x) ((x)=='/' ||(x) =='\0')
 #define DOT(x) ((x) =='.')
-static char *resolve_path(path)
-     char *path;
-{
-    static char thenewdir[MAXPATHLEN];
 
+static int cwdinit = 0;
+
+/* Be careful, the result returned is statically allocated*/
+static char *resolve_path(gpath)
+     char *gpath;
+{
+    char *cp;
+    static char thenewdir[MAXPATHLEN];
+    char tpath[MAXPATHLEN];
+    char *path = tpath;
+    strcpy(path,gpath);
+
+    if (!cwdinit) {
+	if ((cp = (char *)getenv("PFCWD")) != NULL)
+		strcpy(cwdir,cp);
+	cwdinit = 1;
+    }
     if (*path == '/') {
 	strcpy(thenewdir,path);
 	return thenewdir;
@@ -564,7 +607,7 @@ static char *resolve_path(path)
 		*comp='\0';
 		if (thenewdir[1]) /* not simply "/" */
 		  strcat(thenewdir,"/");
-		strcat(thenewdir,comp);
+		strcat(thenewdir,path);
 		path = comp+1;
 	    } else {
 		if (thenewdir[1]) /* not simply "/" */
