@@ -1,3 +1,4 @@
+#
 # $Header$
 #
 # Makefile for Justin Smith's C++/POSTGRES interface package.
@@ -6,21 +7,8 @@
 .include <postgres.global.mk>
 
 NOMAN=
-
 LDFLAGS= -g
-
 CFLAGS= -g
-
-#
-# set POSTGRESDIR to the top directory of postgres (one above src/).
-#	spog will be installed in BINDIR.
-#	HEADERDIR and LIBDIR should point to the install libpq.
-#
-#POSTGRESDIR=${.CURDIR}/../../..
-POSTGRESDIR= /private/devel/postgres
-BINDIR= ${POSTGRESDIR}/bin
-HEADERDIR= ${POSTGRESDIR}/include
-LIBDIR= ${POSTGRESDIR}/lib
 CFLAGS+= -I${HEADERDIR}
 LDADD+= -L${LIBDIR}
 
@@ -59,8 +47,13 @@ LDADD+= -lpq
 .MAIN: ${PROG}
 
 PROG= pgtest
+TESTOBJ = pgtest.out
 
-runtest: pgtest
-	./pgtest
+runtest: ${TESTOBJ}
+
+${TESTOBJ}:
+	./${PROG} 2>&1 | tee ${TESTOBJ}
+
+CLEANFILES+= ${TESTOBJ}
 
 .include <postgres.prog.mk>
