@@ -295,9 +295,9 @@ index_endscan(scan)
     SCAN_CHECKS;
     GET_SCAN_PROCEDURE(endscan,amendscan);
 
-    RelationUnsetRIntentLock(scan->relation);
-
     (void) fmgr(procedure, scan);
+
+    RelationUnsetRIntentLock(scan->relation);
 }
 
 /* ----------------
