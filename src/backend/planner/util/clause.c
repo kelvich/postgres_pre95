@@ -28,12 +28,18 @@
 #include "c.h"
 #include "internal.h"
 #include "clause.h"
+#include "var.h"
+#include "primnodes.a.h"
+#include "clauses.h"
+#include "relation.h"
+#include "relation.a.h"
 
-/* XXX - remove these phoney defns once we find the appropriate defn */
+/* XXX - remove these phoney defns once we find the appropriate defn 
 extern get_varno();
 extern get_varattno();
 extern var_equal();
 extern bool is_clause();
+*/
 
 /*    
  *    	pull-constant-clauses
@@ -74,11 +80,14 @@ pull_constant_clauses (quals)
 
 /*  .. query_planner
  */
-LispValue
+static bool
 lambda2 (qual)
      LispValue qual ;
 {
-	and (relation_level_clause_p (qual),not (nested_clause_p (qual)));
+    if (relation_level_clause_p (qual) && !(nested_clause_p (qual)))
+      return(true);
+    else
+      return(false);
 }
 
 LispValue
@@ -111,27 +120,32 @@ LispValue clause ;
 {
 	LispValue vars = pull_var_clause (clause);
 	LispValue retval;
-	retval = list (nreverse (remove_duplicates 
-				 (mapcar ( get_varno,vars))),
-		       nreverse (remove_duplicates (vars, 
-						    /*test*/ var_equal)));
+	LispValue var_list,varno_list;
+
+	varno_list = nreverse (remove_duplicates 
+				 (mapcar ( get_varno,vars)));
+	var_list = nreverse (remove_duplicates (vars, 
+						/*test*/ var_equal));
+	retval = list (varno_list,var_list);
+		   
+	return(retval);
 }
 
 /*    
- *    	clause-relids
+ *	NumRelids
+ *    	(formerly clause-relids)
  *    
  *    	Returns the number of different relations referenced in 'clause'.
- *    
  */
 
 /*  .. compute_selec
  */
-LispValue
-clause_relids (clause)
+int
+NumRelids (clause)
      LispValue clause ;
 {
-	length (remove_duplicates (mapcar (get_varno,
-					   pull_var_clause (clause))));
+	return(length (remove_duplicates (mapcar (get_varno,
+					   pull_var_clause (clause)))));
 }
 
 /*    
@@ -145,32 +159,30 @@ clause_relids (clause)
 
 /*  .. add-clause-to-rels, in-line-lambda%598037258, nested-clause-p
  */
-LispValue
+bool
 nested_clause_p (clause)
      LispValue clause ;
 {
-	LispValue retval;
+	bool retval = false;
 
 	if(or (null (clause),single_node (clause))) {
-		retval = LispNil;
-
+		/* retval = false;  by default */
 	} 
 	else if (and (var_p (clause),var_is_nested (clause))) {
-		retval = LispTrue;
-
+		retval = true;
 	} else if (or_clause (clause)) {
-		retval = some ( nested_clause_p,get_orclauseargs (clause));
+		if (some ( nested_clause_p,get_orclauseargs (clause)))
+		  retval = true;
 	} else if (is_funcclause (clause)) {
-		retval = some (nested_clause_p,get_funcargs (clause));
-
+		if (some (nested_clause_p,get_funcargs (clause)))
+		  retval = true;
 	} 
 	else if (not_clause (clause)) {
 		retval = nested_clause_p (get_notclausearg (clause));
-
 	} 
 	else {
-		retval = nested_clause_p (get_leftop (clause)) ||
-		  nested_clause_p (get_rightop (clause));
+	    retval = (bool)(nested_clause_p (get_leftop (clause)) ||
+			    nested_clause_p (get_rightop (clause)));
 	}
 	return(retval);
 }
@@ -211,7 +223,7 @@ relation_level_clause_p (clause)
 
 /*  .. add-clause-to-rels
  */
-LispValue
+bool
 contains_not (clause)
      LispValue clause ;
 {
@@ -235,7 +247,7 @@ contains_not (clause)
  *  .. initialize-join-clause-info, other-join-clause-var
  */
 
-LispValue
+bool
 join_clause_p (clause)
      LispValue clause ;
 {
@@ -256,7 +268,7 @@ join_clause_p (clause)
 
 /*  .. create_nestloop_node, in-line-lambda%598037345
  */
-LispValue
+bool
 qual_clause_p (clause)
      LispValue clause ;
 {
@@ -278,19 +290,24 @@ qual_clause_p (clause)
 /*  .. in-line-lambda%598037345
  */
 
-LispValue
-lambda3 (arg)
+bool
+lambda3 (arg,rel)
      LispValue arg ;
+     LispValue rel;
 {
 	/*   correct relation */
 	/* declare (special (rel)); */
-	LispValue rel;
-	return( var_p (arg) && equal (get_relid (rel) && get_varno (arg)));
+	/* LispValue rel; */
+	if ( (var_p (arg) && equal (get_relid (rel) && get_varno (arg))) )
+	  return(true);
+	else
+	  return(false);
 }
 
 bool
 function_index_clause_p (clause,rel,index)
-     LispValue clause,rel,index ;
+     LispValue clause,rel;
+     Rel index;
 {
 	extern LispValue lispEvery();
 	if (is_clause (clause) &&
@@ -299,7 +316,7 @@ function_index_clause_p (clause,rel,index)
 		LispValue funcclause = get_leftop (clause);
 		LispValue function = get_function (funcclause);
 		LispValue funcargs = get_funcargs (funcclause);
-		LispValue index_keys = get_indexkeys (index);
+		List index_keys = get_indexkeys (index);
 		if ( function_index_info (get_funcid (function),
 					  car(get_indexid (index))) &&
 		    equal (length (funcargs),length (index_keys)) &&
@@ -459,12 +476,12 @@ get_relsatts (clause)
 	LispValue right = get_rightop (clause);
 
 	bool isa_clause = is_clause (clause);
-	bool var_left = var_p (left) && !var_is_mat (left) ;
-	bool var_right = var_p (right) && !var_is_mat (right) ;
-	bool varexpr_left = ((func_p (left) || oper_p (left)) &&
-			     pull_var_clause (left) );
-	bool varexpr_right = (( func_p (right) || oper_p (right)) &&
-			      pull_var_clause (right));
+	bool var_left = ( (var_p(left) && !var_is_mat (left) ) ?true : false);
+	bool var_right = ( (var_p(right) && !var_is_mat(right)) ? true:false);
+	bool varexpr_left = (bool)((func_p (left) || oper_p (left)) &&
+				   pull_var_clause (left) );
+	bool varexpr_right = (bool)(( func_p (right) || oper_p (right)) &&
+				     pull_var_clause (right));
 
 	if(isa_clause && var_left && var_right) {
 		list (get_varno (left),get_varattno (left),
