@@ -29,8 +29,8 @@
 
 #include <errno.h>
 
-#include "ipci.h"		/* for PrivateIPCKey XXX */
-#include "ipc.h"
+#include "storage/ipci.h"		/* for PrivateIPCKey XXX */
+#include "storage/ipc.h"
 
 /* ----------------------------------------------------------------
  *			exit() handling stuff
