@@ -40,7 +40,7 @@ RcsId("$Header$");
  *  	NOTE: see also bkint.h
  * ----------------
  */
-#include "support/bkint.h"
+#include "bootstrap/bkint.h"
 
 extern int setjmp();
 extern int chdir();
