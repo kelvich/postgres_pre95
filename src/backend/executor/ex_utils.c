@@ -335,8 +335,11 @@ ExecAssignResultTypeFromTL(node, commonstate)
     
     targetList =  get_qptargetlist(node);
     origTupDesc = ExecTypeFromTL(targetList);
-    len = ExecTargetListLength(targetList);
-    execTupDesc = ExecMakeExecTupDesc(len);
+    if ((len = ExecTargetListLength(targetList)) != 0)
+	execTupDesc = ExecMakeExecTupDesc(len);
+    else
+	execTupDesc = (ExecTupDescriptor)NULL;
+
     fjtl = LispNil;
     tl = targetList;
     i = 0;
@@ -369,8 +372,14 @@ ExecAssignResultTypeFromTL(node, commonstate)
 	  }
 	i++;
       }
-    tupDesc = ExecTupDescToTupDesc(execTupDesc, len);
-    ExecAssignResultType(commonstate, execTupDesc, tupDesc);
+    if (len > 0) {
+	tupDesc = ExecTupDescToTupDesc(execTupDesc, len);
+	ExecAssignResultType(commonstate, execTupDesc, tupDesc);
+    }
+    else
+	ExecAssignResultType(commonstate,
+			     (ExecTupDescriptor)NULL,
+			     (TupleDescriptor)NULL);
 }
 
 /* ----------------
