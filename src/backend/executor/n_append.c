@@ -280,7 +280,9 @@ ExecInitAppend(node, estate, parent)
      * ----------------
      */
     initNode = (Plan) nth(0, unionplans);
-    ExecAssignResultType((CommonState) unionstate, ExecGetTupType(initNode));
+    ExecAssignResultType((CommonState) unionstate,
+			 ExecGetExecTupDesc(initNode),
+			 ExecGetTupType(initNode));
     set_cs_ProjInfo((CommonState) unionstate, NULL);
     
     /* ----------------

@@ -714,6 +714,7 @@ ExecSlotDescriptorIsNew(slot)
     SetSlotContents((TupleTableSlot) slot, NULL); \
     SetSlotShouldFree((TupleTableSlot) slot, true); \
     SetSlotTupleDescriptor((TupleTableSlot) slot, (TupleDescriptor) NULL); \
+    SetSlotExecTupDescriptor((TupleTableSlot) slot, (ExecTupDescriptor) NULL); \
     SetSlotWhichPlan((TupleTableSlot) slot, -1); \
     SetSlotTupleDescriptorIsNew((TupleTableSlot) slot, true)
     
@@ -801,6 +802,129 @@ ExecInitHashTupleSlot(estate, hashstate)
     set_hj_HashTupleSlot(hashstate, slot);
 }
 
+TupleTableSlot
+NodeGetResultTupleSlot(node)
+Plan node;
+{
+    TupleTableSlot slot;
+    union {
+	ResultState    	resstate;
+	ScanState      	scanstate;
+	NestLoopState  	nlstate;
+	MaterialState	matstate;
+	SortState	sortstate;
+	AggState	aggstate;
+	HashState	hashstate;
+	UniqueState	uniquestate;
+	MergeJoinState 	mergestate;
+	HashJoinState 	hashjoinstate;
+	ScanTempState	scantempstate;
+    } s;
+
+    switch(NodeType(node)) {
+	
+    case classTag(Result):
+	s.resstate = 		get_resstate((Result) node);
+	slot = 			get_cs_ResultTupleSlot(
+						       (CommonState)
+						       s.resstate);
+	break;
+    
+    case classTag(SeqScan):
+	s.scanstate = 		get_scanstate((Scan) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.scanstate);
+	break;
+    
+    case classTag(ScanTemps):
+	s.scantempstate = 	get_scantempState((ScanTemps) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.scantempstate);
+	break;
+
+    case classTag(NestLoop):
+	s.nlstate =  		get_nlstate((NestLoop) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.nlstate);
+	break;
+       
+    case classTag(Append):
+	{
+	    AppendState 	unionstate;
+	    List 		unionplans;
+	    int  		whichplan;
+	    Plan 		subplan;
+	    
+	    unionstate = 	get_unionstate((Append) node);
+	    unionplans = 	get_unionplans((Append) node);
+	    whichplan = 	get_as_whichplan(unionstate);
+      
+	    subplan = (Plan) nth(whichplan, unionplans);
+	    slot = NodeGetResultTupleSlot(subplan);
+	    break;
+	}
+    
+    case classTag(IndexScan):
+	s.scanstate = 		get_scanstate((Scan) node);
+	slot =  		get_cs_ResultTupleSlot((CommonState)
+						       s.scanstate);
+	break;
+    
+    case classTag(Material):
+	s.matstate = 		get_matstate((Material) node);
+	slot = 			get_css_ScanTupleSlot((CommonScanState)
+						      s.matstate);
+	break;
+	
+    case classTag(Sort):
+	s.sortstate = 		get_sortstate((Sort) node);
+	slot = 			get_css_ScanTupleSlot((CommonScanState)
+						      s.sortstate);
+	break;
+        
+    case classTag(Agg):
+	s.aggstate = 		get_aggstate((Agg) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.aggstate);
+	break;
+
+    case classTag(Hash):
+	s.hashstate = 		get_hashstate((Hash) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.hashstate);
+	break;
+        
+    case classTag(Unique):
+	s.uniquestate = 	get_uniquestate((Unique) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.uniquestate);
+	break;
+    
+    case classTag(MergeJoin):
+	s.mergestate = 		get_mergestate((MergeJoin) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.mergestate);
+	break;
+    
+    case classTag(HashJoin):
+	s.hashjoinstate = 	get_hashjoinstate((HashJoin) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.hashjoinstate);
+	break;
+
+    default:
+	/* ----------------
+	 *    should never get here
+	 * ----------------
+	 */
+	elog(DEBUG, "NodeGetResultTupleSlot: node not yet supported: %d ",
+	     NodeGetTag(node));
+    
+	return NULL;
+    }
+    return slot;
+}
+
 /* ----------------------------------------------------------------
  *		      old lisp support routines
  * ----------------------------------------------------------------
@@ -837,138 +961,50 @@ ExecGetTupType(node)
 {
     TupleTableSlot    slot;
     TupleDescriptor   tupType;
-    union {
-	ResultState    	resstate;
-	ScanState      	scanstate;
-	NestLoopState  	nlstate;
-	MaterialState	matstate;
-	SortState	sortstate;
-	AggState	aggstate;
-	HashState	hashstate;
-	UniqueState	uniquestate;
-	MergeJoinState 	mergestate;
-	HashJoinState 	hashjoinstate;
-	ScanTempState	scantempstate;
-    } s;
     
     if (node == NULL)
 	return NULL;
 
-    switch(NodeType(node)) {
-	
-    case classTag(Result):
-	s.resstate = 		get_resstate((Result) node);
-	slot = 			get_cs_ResultTupleSlot(
-						       (CommonState)
-						       s.resstate);
-	tupType =		ExecSlotDescriptor((Pointer) slot);
-	return tupType;
-    
-    case classTag(SeqScan):
-	s.scanstate = 		get_scanstate((Scan) node);
-	slot = 			get_cs_ResultTupleSlot((CommonState)
-						       s.scanstate);
-	tupType =  		ExecSlotDescriptor((Pointer) slot);
-	return tupType;
-    
-    case classTag(ScanTemps):
-	s.scantempstate = 	get_scantempState((ScanTemps) node);
-	slot = 			get_cs_ResultTupleSlot((CommonState)
-						       s.scantempstate);
-	tupType = 		ExecSlotDescriptor((Pointer) slot);
-	return tupType;
-
-    case classTag(NestLoop):
-	s.nlstate =  		get_nlstate((NestLoop) node);
-	slot = 			get_cs_ResultTupleSlot((CommonState)
-						       s.nlstate);
-	tupType =  		ExecSlotDescriptor((Pointer) slot);
-	return tupType;
-       
-    case classTag(Append):
-	{
-	    AppendState 	unionstate;
-	    List 		unionplans;
-	    int  		whichplan;
-	    Plan 		subplan;
-	    
-	    unionstate = 	get_unionstate((Append) node);
-	    unionplans = 	get_unionplans((Append) node);
-	    whichplan = 	get_as_whichplan(unionstate);
-      
-	    subplan = (Plan) nth(whichplan, unionplans);
-	    return
-		ExecGetTupType(subplan);
-	}
-    
-    case classTag(IndexScan):
-	s.scanstate = 		get_scanstate((Scan) node);
-	slot =  		get_cs_ResultTupleSlot((CommonState)
-						       s.scanstate);
-	tupType  =  		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-    
-    case classTag(Material):
-	s.matstate = 		get_matstate((Material) node);
-	slot = 			get_css_ScanTupleSlot((CommonScanState)
-						      s.matstate);
-	tupType =  		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-	
-    case classTag(Sort):
-	s.sortstate = 		get_sortstate((Sort) node);
-	slot = 			get_css_ScanTupleSlot((CommonScanState)
-						      s.sortstate);
-	tupType =  		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-        
-    case classTag(Agg):
-	s.aggstate = 		get_aggstate((Agg) node);
-	slot = 			get_cs_ResultTupleSlot((CommonState)
-						       s.aggstate);
-	tupType = 		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-
-    case classTag(Hash):
-	s.hashstate = 		get_hashstate((Hash) node);
-	slot =			get_cs_ResultTupleSlot((CommonState)
-						       s.hashstate);
-	tupType =  		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-        
-    case classTag(Unique):
-	s.uniquestate = 	get_uniquestate((Unique) node);
-	slot =			get_cs_ResultTupleSlot((CommonState)
-						       s.uniquestate);
-	tupType =  		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-    
-    case classTag(MergeJoin):
-	s.mergestate = 		get_mergestate((MergeJoin) node);
-	slot =			get_cs_ResultTupleSlot((CommonState)
-						       s.mergestate);
-	tupType =    		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-    
-    case classTag(HashJoin):
-	s.hashjoinstate = 	get_hashjoinstate((HashJoin) node);
-	slot =			get_cs_ResultTupleSlot((CommonState)
-						       s.hashjoinstate);
-	tupType =    		ExecSlotDescriptor( (Pointer) slot);
-	return tupType;
-
-    default:
-	/* ----------------
-	 *    should never get here
-	 * ----------------
-	 */
-	elog(DEBUG, "ExecGetTupType: node not yet supported: %d ",
-	     NodeGetTag(node));
-    
-	return NULL;
-    }
+    slot = NodeGetResultTupleSlot(node);
+    tupType = ExecSlotDescriptor((Pointer) slot);
+    return tupType;
 }
  
+TupleDescriptor
+ExecCopyTupType(td, natts) 
+    TupleDescriptor td;
+    int             natts;
+{
+    TupleDescriptor newTd;
+    int             i;
+
+    newTd = CreateTemplateTupleDesc(natts);
+    i = 0;
+    while (i < natts)
+    {
+	newTd->data[i] =
+		(AttributeTupleForm)palloc( sizeof(AttributeTupleFormD) );
+	bcopy(td->data[i], newTd->data[i], sizeof(AttributeTupleFormD));
+	i++;
+    }
+    return newTd;
+}
+
+ExecTupDescriptor
+ExecGetExecTupDesc(node) 
+    Plan node;
+{
+    TupleTableSlot    slot;
+    ExecTupDescriptor execTupDesc;
+    
+    if (node == NULL)
+	return NULL;
+
+    slot = NodeGetResultTupleSlot(node);
+    execTupDesc = ExecSlotExecDescriptor(slot);
+    return execTupDesc;
+}
+
 /* ----------------------------------------------------------------
  *   	ExecTypeFromTL
  *   	
@@ -1080,4 +1116,53 @@ ExecTypeFromTL(targetList)
     } /* while (! lispNullp(tlcdr)) */
    
     return typeInfo;
+}
+
+/*
+ * function to convert from an ExecTupDescriptor to a flat Tuple Descriptor
+ */
+TupleDescriptor
+ExecTupDescToTupDesc(execTupDesc,len)
+ExecTupDescriptor execTupDesc;
+int len;
+{
+    int i, j;
+    TupleDescriptor tupdesc;
+    int tdlen;
+    int count;
+
+    tdlen = 0;
+    for (i=0; i<len; i++)
+	tdlen += execTupDesc->data[i]->len;
+    tupdesc = CreateTemplateTupleDesc(tdlen);
+    count = 0;
+    for (i=0; i<len; i++) {
+        for (j=0; j<execTupDesc->data[i]->len; j++) {
+	    tupdesc->data[count] = (AttributeTupleForm)
+			palloc(sizeof(AttributeTupleFormD));
+	    bcopy(execTupDesc->data[i]->attdesc->data[j],
+		  tupdesc->data[count],
+		  sizeof(AttributeTupleFormD));
+	    tupdesc->data[count++]->attcacheoff = -1;
+	  }
+      }
+    return tupdesc;
+}
+
+/*
+ * function to convert from a Tuple Descriptor to an ExecTupDescriptor
+ */
+ExecTupDescriptor
+TupDescToExecTupDesc(tupDesc, len)
+TupleDescriptor tupDesc;
+int len;
+{
+    ExecTupDescriptor execTupDesc;
+    int i;
+
+    execTupDesc = ExecMakeExecTupDesc(len);
+    for (i=0; i<len; i++) {
+        execTupDesc->data[i] = MakeExecAttDesc(ATTVAL, 1, tupDesc->data[i]);
+      }
+    return execTupDesc;
 }

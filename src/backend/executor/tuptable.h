@@ -71,8 +71,14 @@ typedef TupleTableData *TupleTable;
 #define SlotTupleDescriptor(slot) \
     get_ttc_tupleDescriptor(slot)
 
+#define SlotExecTupDescriptor(slot) \
+    get_ttc_execTupDescriptor(slot)
+
 #define SetSlotTupleDescriptor(slot, desc) \
     set_ttc_tupleDescriptor(slot, desc)
+        
+#define SetSlotExecTupDescriptor(slot, desc) \
+    set_ttc_execTupDescriptor(slot, desc)
         
 #define SlotTupleDescriptorIsNew(slot) \
     get_ttc_descIsNew(slot)
@@ -105,6 +111,12 @@ typedef TupleTableData *TupleTable;
 #define ExecSlotDescriptor(slot) \
 	((TupleDescriptor)SlotTupleDescriptor((TupleTableSlot) slot))
 
+#define ExecSlotExecDescriptor(slot) \
+	((ExecTupDescriptor)SlotExecTupDescriptor((TupleTableSlot) slot))
+
+#define ExecSetSlotExecDescriptor(slot, exectupdesc) \
+	SetSlotExecTupDescriptor((TupleTableSlot)slot, \
+				 (ExecTupDescriptor)exectupdesc)
 #define ExecSlotBuffer(slot) ((Buffer)SlotBuffer((TupleTableSlot) slot))
 
 #endif ExecTupTableHIncluded

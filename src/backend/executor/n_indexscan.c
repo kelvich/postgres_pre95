@@ -1488,6 +1488,8 @@ ExecInitIndexScan(node, estate, parent)
      * ----------------
      */
     ExecAssignScanType((CommonScanState)scanstate,
+		       TupDescToExecTupDesc(&currentRelation->rd_att,
+					currentRelation->rd_rel->relnatts),
 		       &currentRelation->rd_att); /* bug -- glass */
     ExecAssignResultTypeFromTL((Plan) node, (CommonState)scanstate);
 	

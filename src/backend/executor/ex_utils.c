@@ -279,14 +279,16 @@ ExecAssignExprContext(estate, commonstate)
  * ----------------
  */
 void
-ExecAssignResultType(commonstate, tupType)
+ExecAssignResultType(commonstate, execTupDesc, tupDesc)
     CommonState		commonstate;
-    TupleDescriptor	tupType;
+    ExecTupDescriptor	execTupDesc;
+    TupleDescriptor	tupDesc;
 {
     TupleTableSlot	slot;
     
     slot = get_cs_ResultTupleSlot(commonstate);
-    (void) ExecSetSlotDescriptor((Pointer) slot, tupType);
+    ExecSetSlotExecDescriptor(slot, execTupDesc);
+    (void) ExecSetSlotDescriptor((Pointer) slot, tupDesc);
 }
 
 /* ----------------
@@ -299,12 +301,14 @@ ExecAssignResultTypeFromOuterPlan(node, commonstate)
     CommonState	commonstate;
 {
     Plan		outerPlan;
-    TupleDescriptor	tupType;
+    ExecTupDescriptor	execTupDesc;
+    TupleDescriptor	tupDesc;
     
     outerPlan =   get_outerPlan(node);
-    tupType = 	  ExecGetTupType(outerPlan);
+    execTupDesc = ExecGetExecTupDesc(outerPlan);
+    tupDesc = ExecGetTupType(outerPlan);
     
-    ExecAssignResultType(commonstate, tupType);
+    ExecAssignResultType(commonstate, execTupDesc, tupDesc);
 }
 
 /* ----------------
@@ -317,12 +321,56 @@ ExecAssignResultTypeFromTL(node, commonstate)
     CommonState	commonstate;
 {
     List	        targetList;
-    TupleDescriptor	tupType;
+    Var			tlvar;
+    int			i;
+    int			len;
+    List		tl, tle;
+    List		fjtl;
+    ExecTupDescriptor	execTupDesc;
+    TupleDescriptor	tupDesc;
+    int			fjcount;
+    int			varlen;
+    TupleDescriptor	varTupDesc;
+    TupleDescriptor	origTupDesc;
     
     targetList =  get_qptargetlist(node);
-    tupType = 	  ExecTypeFromTL(targetList);
-    
-    ExecAssignResultType(commonstate, tupType);
+    origTupDesc = ExecTypeFromTL(targetList);
+    len = ExecTargetListLength(targetList);
+    execTupDesc = ExecMakeExecTupDesc(len);
+    fjtl = LispNil;
+    tl = targetList;
+    i = 0;
+    while (!lispNullp(tl) || !lispNullp(fjtl)) {
+	if (!lispNullp(fjtl)) {
+	    tle = CAR(fjtl);
+	    fjtl = CDR(fjtl);
+	  }
+	else {
+	    tle = CAR(tl);
+	    tl = CDR(tl);
+	  }
+	if (!tl_is_resdom(tle)) {
+	    /* it is a FJoin */
+	    fjtl = CDR(tle);
+	    tle = get_fj_innerNode((Fjoin)CAR(tle));
+	  }
+	if (get_rescomplex((Resdom)CAR(tle))) {
+	    /* if it is a composite type, i.e., a tuple */
+	    tlvar = (Var)get_expr(tle);
+	    Assert(IsA(tlvar,Var));
+	    varlen = ExecGetVarLen(node, commonstate, tlvar);
+	    varTupDesc = ExecGetVarTupDesc(node, commonstate, tlvar);
+	    execTupDesc->data[i] = MakeExecAttDesc(ATTTUP, varlen, varTupDesc);
+	  }
+	else {
+	    /* this means that it is a base type */
+	    execTupDesc->data[i] = ExecMakeExecAttDesc(ATTVAL, 1);
+	    execTupDesc->data[i]->attdesc->data[0] = origTupDesc->data[i];
+	  }
+	i++;
+      }
+    tupDesc = ExecTupDescToTupDesc(execTupDesc, len);
+    ExecAssignResultType(commonstate, execTupDesc, tupDesc);
 }
 
 /* ----------------
@@ -465,14 +513,16 @@ ExecFreeScanType(csstate)
  * ----------------
  */
 void
-ExecAssignScanType(csstate, tupType)
+ExecAssignScanType(csstate, execTupDesc, tupDesc)
     CommonScanState	csstate;
-    TupleDescriptor	tupType;
+    ExecTupDescriptor	execTupDesc;
+    TupleDescriptor	tupDesc;
 {
     TupleTableSlot	slot;
     
     slot = (TupleTableSlot) get_css_ScanTupleSlot(csstate);
-    (void) ExecSetSlotDescriptor((Pointer) slot, tupType);
+    (void) ExecSetSlotDescriptor((Pointer) slot, tupDesc);
+    ExecSetSlotExecDescriptor(slot, execTupDesc);
 }
 
 /* ----------------
@@ -485,12 +535,14 @@ ExecAssignScanTypeFromOuterPlan(node, commonstate)
     CommonState	commonstate;
 {
     Plan		outerPlan;
-    TupleDescriptor	tupType;
+    TupleDescriptor	tupDesc;
+    ExecTupDescriptor	execTupDesc;
     
     outerPlan =   get_outerPlan(node);
-    tupType = 	  ExecGetTupType(outerPlan);
+    tupDesc = 	  ExecGetTupType(outerPlan);
+    execTupDesc = ExecGetExecTupDesc(outerPlan);
     
-    ExecAssignScanType((CommonScanState) commonstate, tupType);
+    ExecAssignScanType((CommonScanState) commonstate, execTupDesc, tupDesc);
 }
 
 
@@ -662,6 +714,42 @@ ExecSetTypeInfo(index, typeInfo, typeID, attNum, attLen, attName, attbyVal)
     att->attcacheoff = 	-1;
 }
 
+ExecTupDescriptor
+ExecMakeExecTupDesc(len)
+int len;
+{
+    ExecTupDescriptor retval;
+
+    retval = (ExecTupDescriptor)palloc(len * sizeof(ExecTupDescriptorData));
+    return retval;
+}
+
+ExecAttDesc
+ExecMakeExecAttDesc(tag, len)
+AttributeTag tag;
+int len;
+{
+    ExecAttDesc attdesc;
+    attdesc = (ExecAttDesc)palloc(sizeof(ExecAttDescData));
+    attdesc->tag = tag;
+    attdesc->len = len;
+    attdesc->attdesc = CreateTemplateTupleDesc(len);
+    return attdesc;
+}
+
+ExecAttDesc
+MakeExecAttDesc(tag, len, tupdesc)
+AttributeTag tag;
+int len;
+TupleDescriptor tupdesc;
+{
+    ExecAttDesc attdesc;
+    attdesc = (ExecAttDesc)palloc(sizeof(ExecAttDescData));
+    attdesc->tag = tag;
+    attdesc->len = len;
+    attdesc->attdesc = tupdesc;
+    return attdesc;
+}
 
 /* ----------------
  *	ExecFreeTypeInfo frees the array of attrbutes
@@ -1244,3 +1332,77 @@ ExecFreeScanAttributes(ptr)
 	pfree(ptr);
 }
  
+/* function that returns number of atts in a var */
+int
+ExecGetVarLen(node, commonstate, var)
+Plan node;
+CommonState commonstate;
+Var var;
+{
+    int varno, varattno;
+    TupleTableSlot    slot;
+    ExecTupDescriptor   execTupDesc;
+    int len;
+    Plan varplan;
+
+    if (node == NULL) return 0;
+    varno = get_varno(var);
+    varattno = get_varattno(var);
+    if (varno == INNER)
+	varplan = get_innerPlan(node);
+    else
+	varplan = get_outerPlan(node);
+    if (varattno == 0) {
+	if (varplan == NULL) {
+	    /* this must be a scan */
+	    Relation curRel;
+	    curRel = get_css_currentRelation((CommonScanState)commonstate);
+	    len = curRel->rd_rel->relnatts;
+	  }
+	else
+	    len = ExecTargetListLength(get_qptargetlist(varplan));
+      }
+    else {
+	    slot = NodeGetResultTupleSlot(varplan);
+	    execTupDesc = ExecSlotExecDescriptor(slot);
+	    len = execTupDesc->data[varattno-1]->len;
+      }
+    return len;
+}
+
+/* function that returns the Tuple Descriptor for a var */
+TupleDescriptor
+ExecGetVarTupDesc(node, commonstate, var)
+Plan node;
+CommonState commonstate;
+Var var;
+{
+    int varno, varattno;
+    TupleTableSlot    slot;
+    ExecTupDescriptor   execTupDesc;
+    TupleDescriptor tupdesc;
+    Plan varplan;
+
+    if (node == NULL) return 0;
+    varno = get_varno(var);
+    varattno = get_varattno(var);
+    if (varno == INNER)
+	varplan = get_innerPlan(node);
+    else
+	varplan = get_outerPlan(node);
+    if (varattno == 0) {
+	if (varplan == NULL) {
+	    /* this must be a scan */
+	    Relation curRel;
+	    curRel = get_css_currentRelation((CommonScanState)commonstate);
+	    tupdesc = &curRel->rd_att;
+	  }
+	else
+	    tupdesc = ExecGetTupType(varplan);
+      }
+    else {
+	    execTupDesc = ExecGetExecTupDesc(varplan);
+	    tupdesc = execTupDesc->data[varattno-1]->attdesc;
+      }
+    return tupdesc;
+}

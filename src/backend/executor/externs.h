@@ -113,6 +113,10 @@ void ExecInitOuterTupleSlot ARGS((EState estate , HashJoinState hashstate ));
 void ExecInitHashTupleSlot ARGS((EState estate , HashJoinState hashstate ));
 TupleDescriptor ExecGetTupType ARGS((Plan node ));
 TupleDescriptor ExecTypeFromTL ARGS((List targetList ));
+TupleTableSlot NodeGetResultTupleSlot ARGS((Plan node));
+ExecTupDescriptor ExecGetExecTupDesc ARGS((Plan node));
+TupleDescriptor ExecTupDescToTupDesc ARGS((ExecTupDescriptor execTupDesc, int len));
+ExecTupDescriptor TupDescToExecTupDesc ARGS((TupleDescriptor tupDesc, int len));
 
 /* ex_utils.c */
 void ResetTupleCount ARGS((void ));
@@ -121,7 +125,7 @@ BaseNode ExecGetPrivateState ARGS((Plan node ));
 void ExecAssignNodeBaseInfo ARGS((EState estate , BaseNode basenode , Plan parent ));
 void ExecAssignDebugHooks ARGS((Plan node , BaseNode basenode ));
 void ExecAssignExprContext ARGS((EState estate , CommonState commonstate ));
-void ExecAssignResultType ARGS((CommonState commonstate , TupleDescriptor tupType ));
+void ExecAssignResultType ARGS((CommonState commonstate , ExecTupDescriptor execTupDesc, TupleDescriptor tupDesc ));
 void ExecAssignResultTypeFromOuterPlan ARGS((Plan node , CommonState commonstate ));
 void ExecAssignResultTypeFromTL ARGS((Plan node , CommonState commonstate ));
 TupleDescriptor ExecGetResultType ARGS((CommonState commonstate ));
@@ -130,7 +134,7 @@ void ExecAssignProjectionInfo ARGS((Plan node , CommonState commonstate ));
 void ExecFreeProjectionInfo ARGS((CommonState commonstate ));
 TupleDescriptor ExecGetScanType ARGS((CommonScanState csstate ));
 void ExecFreeScanType ARGS((CommonScanState csstate ));
-void ExecAssignScanType ARGS((CommonScanState csstate , TupleDescriptor tupType ));
+void ExecAssignScanType ARGS((CommonScanState csstate , ExecTupDescriptor execTupDesc, TupleDescriptor tupDesc ));
 void ExecAssignScanTypeFromOuterPlan ARGS((Plan node , CommonState commonstate ));
 Attribute ExecGetTypeInfo ARGS((Relation relDesc ));
 TupleDescriptor ExecMakeTypeInfo ARGS((int nelts ));
@@ -145,6 +149,11 @@ AttributeNumberPtr ExecMakeAttsFromList ARGS((List attlist , int *numAttsPtr ));
 void ExecInitScanAttributes ARGS((Plan node ));
 AttributeNumberPtr ExecMakeBogusScanAttributes ARGS((int natts ));
 void ExecFreeScanAttributes ARGS((AttributeNumberPtr ptr ));
+int ExecGetVarLen ARGS((Plan node, Var var));
+TupleDescriptor ExecGetVarTupDesc ARGS((Plan node, Var var));
+ExecTupDescriptor ExecMakeExecTupDesc ARGS((int len));
+ExecAttDesc ExecMakeExecAttDesc ARGS((AttributeTag tag, int len));
+ExecAttDesc MakeExecAttDesc ARGS((AttributeTag tag, int len, tupdesc));
 
 /* ex_xdebug.c */
 void ExecXInitialize ARGS((void ));

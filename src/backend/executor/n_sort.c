@@ -253,6 +253,9 @@ ExecSort(node)
 	    get_css_ScanTupleSlot((CommonScanState) sortstate);
     
 	ExecSetSlotDescriptor((Pointer) slot, &currentRelation->rd_att);
+	ExecSetSlotExecDescriptor(slot,
+				  TupDescToExecTupDesc(&currentRelation->rd_att,
+				           currentRelation->rd_rel->relnatts));
 	
 	/* ----------------
 	 *  finally set the sorted flag to true

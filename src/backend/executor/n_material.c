@@ -140,6 +140,8 @@ ExecMaterial(node)
 	set_css_currentScanDesc((CommonScanState)matstate, currentScanDesc);
 	
 	ExecAssignScanType((CommonScanState)matstate,
+			   TupDescToExecTupDesc(&currentRelation->rd_att,
+					currentRelation->rd_rel->relnatts),
 			   &currentRelation->rd_att);
 	
 	/* ----------------

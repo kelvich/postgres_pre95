@@ -569,6 +569,8 @@ ExecMergeJoin(node)
 	    ExecClearTuple((Pointer)get_mj_MarkedTupleSlot(mergestate));
 	    SetSlotTupleDescriptor(get_mj_MarkedTupleSlot(mergestate), 
 			SlotTupleDescriptor(innerTupleSlot));
+	    SetSlotExecTupDescriptor(get_mj_MarkedTupleSlot(mergestate), 
+			SlotExecTupDescriptor(innerTupleSlot));
 	    
 	    /* ----------------
 	     *  initialize merge join state to skip inner tuples.

@@ -245,22 +245,7 @@ copy_function_result(fcache, resultSlot)
 	}
     }
 
-    newTuple = (HeapTuple)palloc(oldTuple->t_len);
-    bcopy(oldTuple, newTuple, oldTuple->t_len);
-
-    /* XXX^3  (i.e. triple X cubed)
-     * AAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhh!
-     * We have to copy to copy the RuleLock pointer too if it is in
-     * memory!!!!!!!!! May the Gods forgive me for the hack that is about
-     * to follow...  -mer 21:10:00 7 July 1992
-     */
-    if (oldTuple->t_locktype == MEM_RULE_LOCK &&
-	RuleLockIsValid(oldTuple->t_lock.l_lock))
-    {
-	newTuple->t_lock.l_lock = prs2CopyLocks(oldTuple->t_lock.l_lock);
-    }
-    else
-	newTuple->t_lock.l_lock = InvalidRuleLock;
+    newTuple = (HeapTuple)heap_copysimple(oldTuple);
 
     ExecStoreTuple((Pointer)newTuple,
 		   (Pointer)funcSlot,

@@ -247,6 +247,8 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	}
 	    
 	ExecAssignScanType((CommonScanState) scanstate,
+			   TupDescToExecTupDesc(&currentRelation->rd_att,
+					currentRelation->rd_rel->relnatts),
 			   &currentRelation->rd_att);
 	
 	set_ss_ProcOuterFlag(scanstate, false);
@@ -263,7 +265,7 @@ InitScanRelation(node, estate, scanstate, outerPlan)
 	set_css_currentRelation((CommonScanState) scanstate, NULL);
 	set_css_currentScanDesc((CommonScanState) scanstate, NULL);
 	set_css_ruleInfo((CommonScanState)scanstate, NULL);
-	ExecAssignScanType((CommonScanState)scanstate, NULL);
+	ExecAssignScanType((CommonScanState)scanstate, NULL, NULL);
 	set_ss_ProcOuterFlag((ScanState)scanstate, true);
 
 	reloid = InvalidObjectId;
@@ -350,13 +352,6 @@ ExecInitSeqScan(node, estate, parent)
     }
     
     /* ----------------
-     * 	initialize tuple type
-     * ----------------
-     */
-    ExecAssignResultTypeFromTL(node, (CommonState) scanstate);
-    ExecAssignProjectionInfo(node, (CommonState) scanstate);
-    
-    /* ----------------
      *	initialize scanAttributes (used by rule_manager)
      * ----------------
      */
@@ -381,6 +376,13 @@ ExecInitSeqScan(node, estate, parent)
 
     set_cs_TupFromTlist((CommonState) scanstate, false);
 
+    /* ----------------
+     * 	initialize tuple type
+     * ----------------
+     */
+    ExecAssignResultTypeFromTL(node, (CommonState) scanstate);
+    ExecAssignProjectionInfo(node, (CommonState) scanstate);
+    
     /* ----------------
      * return the object id of the relation
      * (I don't think this is ever used.. -cim 10/16/89)

@@ -551,6 +551,8 @@ ExecInitHashJoin(node, estate, parent)
     }
     (void)ExecSetSlotDescriptor(get_hj_OuterTupleSlot(hjstate),
 				ExecGetTupType(outerNode));
+    ExecSetSlotExecDescriptor(get_hj_OuterTupleSlot(hjstate),
+				ExecGetExecTupDesc(outerNode));
 			      
     /* ----------------
      * 	initialize tuple type and projection info
