@@ -212,13 +212,18 @@ index_insert(relation, indexTuple, offsetOutP)
      *  2/28/91
      * ----------------
      */
-    returnResult = (GeneralInsertIndexResult) palloc(sizeof *returnResult);
-    returnResult->pointerData = specificResult->pointerData;
+    if (specificResult != (InsertIndexResult) NULL) {
+	returnResult = (GeneralInsertIndexResult) palloc(sizeof *returnResult);
+	returnResult->pointerData = specificResult->pointerData;
 
-    if (PointerIsValid(offsetOutP))
-	*offsetOutP = specificResult->offset;
-    
-    pfree(specificResult);
+	if (PointerIsValid(offsetOutP))
+	    *offsetOutP = specificResult->offset;
+	
+	pfree(specificResult);
+    } else {
+	returnResult = (GeneralInsertIndexResult) NULL;
+    }
+
     return (returnResult);
 }
 
@@ -464,6 +469,9 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
     indexTuple->t_tid = heapTuple->t_ctid;
 
     insertResult = index_insert(indexRelation, indexTuple, (double *) 0);
+
+    if (insertResult != (GeneralInsertIndexResult) NULL)
+	pfree (insertResult);
 	
     pfree(indexTuple);
     pfree(nullv);
