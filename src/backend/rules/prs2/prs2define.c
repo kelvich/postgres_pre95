@@ -713,6 +713,13 @@ Prs2RuleData r;
 	result = nappend1(result, oneEntry);
     }
 
+    /*
+     * finally insert itn the beginning of the list the
+     * string Prs2RulePlanType_ACTION to show that this is
+     * an action plan (as opposed to an import/export plan).
+     */
+    result = lispCons(lispString(Prs2RulePlanType_ACTION), result);
+
     return(result);
 }
 

@@ -223,17 +223,17 @@ prs2OneLockIsMemberOfLocks ARGS((
 
 /*------------------------------------------------------------------
  * prs2GetLocksFromTuple
- *    Extract the locks from a tuple. It returns a 'RuleLock',
- *    (NOTE:it will never return NULL! Even if the tuple has no
- *    locks in it, it will return a 'RuleLock' with 'numberOfLocks'
- *    equal to 0.
+ *  Extract the locks from a tuple. It returns a 'RuleLock',
+ *  (NOTE:it will never return NULL! Even if the tuple has no
+ *  locks in it, it will return a 'RuleLock' with 'numberOfLocks'
+ *  equal to 0.
+ *  The returned rule lock is a copy, and must be pfreed to avoid memory leaks.
  */
 extern
 RuleLock
 prs2GetLocksFromTuple ARGS((
     HeapTuple		tuple,
     Buffer		buffer,
-    TupleDescriptorData	tupleDescriptor
 ));
 
 /*------------------------------------------------------------------
@@ -544,14 +544,14 @@ extern void prs2AddRelationLevelLock();
 #define Prs2RulePlanType_ACTION			("action")
 
 #define prs2GetTypeOfRulePlan(x)		(CAR(x))
-#define prs2GetPlanInfoFromRulePlan(x)		(CADR(x))
+#define prs2GetPlanInfoFromRulePlan(x)		(CDR(x))
 
-#define prs2GetRuleInfoFromActionPlan(x)	(CAR(CADR(x)))
-#define prs2GetQualFromActionPlan(x)		(CADR(CADR(x)))
-#define prs2GetActionsFromActionPlan(x)		(CDR(CDR(CADR(x))))
+#define prs2GetRuleInfoFromActionPlan(x)	(CAR(CDR(x)))
+#define prs2GetQualFromActionPlan(x)		(CADR(CDR(x)))
+#define prs2GetActionsFromActionPlan(x)		(CDR(CDR(CDR(x))))
 
-#define prs2GetLockInfoFromExportPlan(x)	(CAR(CADR(x)))
-#define prs2GetActionPlanFromExportPlan(x)	(CADR(CADR(x)))
+#define prs2GetLockInfoFromExportPlan(x)	(CAR(CDR(x)))
+#define prs2GetActionPlanFromExportPlan(x)	(CADR(CDR(x)))
 
 extern
 Boolean
