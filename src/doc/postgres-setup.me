@@ -1,3 +1,4 @@
+.\" This is -*-nroff-*- with -me macros
 .\" 
 .\" POSTGRES Data Base Management System
 .\" 
@@ -38,20 +39,21 @@
 .hx
 .fo ''%''
 .ce 99
+.ds PG "\\s-2POSTGRES\\s+2
+.ds PV 4.1
 .ps 18
 .b
 POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-Release 4.1
+Release \*(PV
 .sp 0.25v
 .ce 0
 .sp
 .\" ----------------
 .\"    Document Overview
 .\" ----------------
-.ds PG "\\s-2POSTGRES\\s+2
 .sh 0 "Document Overview"
 .(l
     Introduction
@@ -92,7 +94,7 @@ Release 4.1
     Miscellaneous
 	Bug Reports
 	Consulting
-	\*(PG BBS
+	\*(PG Mailing List
 .)l
 .bp
 .\" ----------------
@@ -112,11 +114,10 @@ For further information, consult the Berkeley Campus
 Software Office, 295 Evans Hall, University of
 California, Berkeley, CA 94720.
 .lp
-The University and the \*(PG development group
-provide no warranty as to the fitness of the code for
-any purpose whatsoever,
-and cannot guarantee to assist in fixing problems.
-This is \fIunsupported\fP software.
+The University and the \*(PG development group provide no warranty as
+to the fitness of the code for any purpose whatsoever, and cannot
+guarantee assistance in fixing problems.  This is \fIunsupported\fP
+software.
 .\" ----------------
 .\"    Site Requirements
 .\" ----------------
@@ -125,32 +126,29 @@ This is \fIunsupported\fP software.
 .sh 2 "Hardware"
 .lp
 \*(PG currently has been tested by the \*(PG development team on Sun
-Microsystems Sparc architecture machines
-running SunOS 4.1 and higher.  \*(PG is also
-supported on DECstations 3100's and 5000's running Ultrix 4.1 and higher.
-In order to use \*(PG,
-your machine should have at least 8 megabytes of memory
-and you will require at least 45 megabytes of disk space
-to hold source,
-binaries,
-and user databases.
-If you choose to compile \*(PG for source-level debugging,
-you will need roughly twice as much disk space.
-See the section on compilation for details.
+Microsystems SPARC architecture machines running SunOS 4.1 (Solaris
+1.x).  (\*(PG will \fBnot\fP run on machines running SunOS 5 (Solaris
+2.x)).  \*(PG also runs on DECstation 3100s and 5000s running Ultrix
+4.1 and higher.  In order to use \*(PG, your machine should have at
+least 8 megabytes of memory and you will require at least 45 megabytes
+of disk space to hold source, binaries, and user databases.  If you
+choose to compile \*(PG for source-level debugging, you will need
+roughly twice as much disk space.  See the section on compilation for
+details.
 .lp
 The Ultrix version requires a kernel which allows 4 megabytes of
-shared memory.
-Also, the original release of Ultrix 4.3 has a kernel bug that causes
-the operating system to hang when running \*(PG.  The bug is in the
-shared memory module in the kernel, and a patch is available from
-DEC which fixes the bug.  Contact your DEC representative for the
-patch.
+shared memory.  Also, the original release of Ultrix 4.3 has a kernel
+bug that causes the operating system to hang when running \*(PG.  The
+bug is in the shared memory module in the kernel, and a patch is
+available from DEC which fixes the bug.  Contact your DEC
+representative for patch number CLD-CXO09447.  (This patch has been
+included in Ultrix 4.3a.)
 .sh 2 "Software"
 .sh 2 "Distribution Tape"
 .lp
-These instructions assume you have a \*(PG Version 4.1
-distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
-format)
+These instructions assume you have a \*(PG Version \*(PV
+distribution tape (in either 1600bpi 9-track, SCSI cartridge, or DEC TK50
+cartridge format)
 or a \*(PG tar file.
 This release comes with a pre-installed version of \*(PG ready to run
 for the two platforms we officially support.  
@@ -159,12 +157,13 @@ if our users can run the pre-installed system to avoid compiling
 the sources from scratch.
 Should
 any problems arise with the pre-installed system, it is recommended
-that the sources be rebuilt from scratch to rule out any compatability
+that the sources be rebuilt from scratch to rule out any compatibility
 problems between the system we compiled on here and your own.  There
 are two potential releases you may want (same source, different binaries).
-The tar version of the ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
-and the sparc release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available via
-anonymous ftp from postgres.cs.berkeley.edu.
+The tar version of the Ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
+and the SPARC release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available via
+anonymous ftp from \f(CWpostgres.berkeley.edu\fP.  No sources-only tar
+file is currently available.
 .sh 2 "Expertise"
 .lp
 Once a site is properly configured and \*(PG is installed,
@@ -190,7 +189,7 @@ document.
 .sh 3 "Operating System"
 .lp
 \*(PG expects things to be configured for BSD by default.
-If the default on your site is to use the SunOS SysV compiler
+If the default on your site is to use the SunOS System V compiler
 and libraries then you may have to make some changes to this
 procedure before compiling \*(PG.
 .lp
@@ -279,8 +278,10 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 /dev/xy0g	156033  135499	 4930	   96%      /usr2
 /dev/rf0d	539421  465026  20452	   96%      /a
 .i
+
 	/usr/local looks like a good place (it has 60 megs free)
 	so we decide to create the \*(PG directory there...
+
 .r
 # \fBcd /usr/local\fR
 # \fBmkdir postgres\fR
@@ -295,18 +296,20 @@ Finally, we need to create a user called \*(PG whose
 shell is \f(CW/bin/csh\fP.  Though not necessary, it is convenient to
 make the home directory of the \*(PG user
 the pathname where we install the system. 
-This can be done using the "adduser" procedures particular to your
+This can be done using the \*(lqadduser\*(rq procedures particular to your
 platform and site.  See your system administration manual for details.
 .lp
-The reason we make a postgres login is so that when we install the
-system and create the database directory, everything is owned by this
-postgres user.  Then, we start the postmaster when logged in
-as this postgres user, and all the backends are also started by 
-the user postgres
-and are able to access the databases.  Although you can probably make this work
-without creating a postgres login (note that the restriction about
-having a postgres login with uid 6 was removed a while ago), we
-provide no support for doing so (you are, as they say, "on your own").
+The reason we make a \*(lqpostgres\*(rq login is so that when we
+install the system and create the database directory, everything is
+owned by this \*(lqpostgres\*(rq user.  Then, we start the postmaster
+when logged in as this \*(lqpostgres\*(rq user, and all the backends
+are also started by the user \*(lqpostgres\*(rq and are able to access
+the databases.  Although you can make this work without creating a
+\*(lqpostgres\*(rq login, we provide no support for doing so (you are,
+as they say, \*(lqon your own\*(rq).
+.lp
+Note that the restriction about having a \*(lqpostgres\*(rq login with
+UID 6 was removed in \*(PG Version 4.0.1.
 .\" ----------------
 .\"    Loading
 .\" ----------------
@@ -316,60 +319,61 @@ Now you are ready to load
 the \*(PG files onto your system.
 To do this,
 you will need either
-a distribution tape or a \*(PG tar file (available via anonymous ftp
-from postgres.cs.berkeley.edu).
+a distribution tape or a \*(PG tar file (available via anonymous FTP
+from \f(CWpostgres.berkeley.edu\fP).
 .lp
 If you are loading \*(PG from a tape, follow these instructions;
 if you are loading from a tar file obtained via FTP, skip to the
-section "Loading \*(PG from a Tar File".
+section \*(lqLoading \*(PG from a Tar File.\*(rq
 .sh 3 "Loading \*(PG from a Tape"
 .lp
-Login as postgres and change directories to the postgres directory
+Login as \*(lqpostgres\*(rq and change directories to the postgres directory
 that was created.
 .lp
-3.  Run "tar" with the following options
-.lp
-% tar xvf <tape-device>
+3.  Run \f(CWtar\fP with the following options
+.(l
+% \fBtar xvf\fP \fI<tape-device>\fP
+.)l
 .sp
-where <tape-device> is the name for your tape device, i.e.,
-/dev/rmt0, /dev/rst8, etc.
+where \fI<tape-device>\fP is the name for your tape device, i.e.,
+\f(CW/dev/rmt0\fP, \f(CW/dev/rst8\fP, etc.
 .lp
-The file "postgres-v4r1.XXX.tar.Z" will appear in your \*(PG home directory,
-where XXX is the name of the platform.
-You may need to re-wind your tape to get it out of your tape
-drive - see your system administrator for instructions.
+The file \f(CWpostgres-v4r1.XXX.tar.Z\fP will appear in your \*(PG
+home directory, where XXX is the name of the platform.  You may need
+to re-wind your tape to get it out of your tape drive - see your
+system administrator for instructions.
 .lp
-Proceed to the next section "Loading \*(PG from a Tar File".
+Proceed to the next section \*(lqLoading \*(PG from a Tar File.\*(rq
 .lp
 .sh 2 "Loading \*(PG from a Tar File"
 .lp
 If you are not logged in as \f(CWpostgres\fP already, do so now.
 For the purpose of this discussion, the \*(PG tar file will be called
-\f(CWpostgres-v4r1.XXX.tar.Z\fP
+\f(CWpostgres-v4r1.XXX.tar.Z\fP.
 .lp
 Uncompress the tar file.
 .(l
-% uncompress postgres-v4r1.XXX.tar.Z
+% \fBuncompress postgres-v4r1.XXX.tar.Z\fP
 .)l
 .lp
-A larger file should now be in the \*(PG home directory, and the '.Z'
-ending should be gone, so it is now named
-postgres-v4r1.XXX.tar
+A larger file should now be in the \*(PG home directory, and the
+\*(lq.Z\*(rq ending should be gone, so it is now named
+\f(CWpostgres-v4r1.XXX.tar\fP.
 .lp
 Extract \*(PG from the tar file using the following command:
 .(l
-% tar xvf postgres-v4r1.XXX.tar
+% \fBtar xvf postgres-v4r1.XXX.tar\fP
 .)l
 .lp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
 .lp
-Now do an "ls":
+Now do an \f(CWls\fP:
 .(l
-% ls
+% \fBls\fP
 .)l
 .lp
-The output of the ls should look something like:
+The output should look something like:
 .(l
 .ft CW
 COPYRIGHT      README         doc            local          src
@@ -381,7 +385,7 @@ Makefile       data           lib            obj
 At this point you have loaded the \*(PG files.  Remove the tar
 file to get back the space.
 .(l
-% rm postgres-v4r1.XXX.tar
+% \fBrm postgres-v4r1.XXX.tar\fP
 .)l
 .sp
 .\" ----------------
@@ -411,47 +415,55 @@ the system administration section of your manual
 before doing this step.
 .lp
 For a brief discussion of shared memory,
-you may want to consult the Man pages for \fIshmget()\fR,
-\fIshmop()\fR, \fIshmctl()\fR, etc.  Now proceed to the appropriate
+you may want to consult the manual pages for \f(CWshmget()\fP,
+\f(CWshmop()\fP, \f(CWshmctl()\fP, etc.  Now proceed to the appropriate
 section for your machine.
 .lp
 .sh 3 "Kernel reconfiguration for Sparcs"
 .lp
-In order to reconfigure Sun or Sparc kernel, you will have to become root
-and add some lines to /usr/sys/conf (your kernel config file)
-and /usr/sys/conf/param.c (your kernel parameters file).
-We
+In order to reconfigure Sun or Sparc kernel, you will have to become
+the superuser and add some lines to \f(CW/usr/sys/conf/KERNEL\fP (your
+kernel config file) and \f(CW/usr/sys/conf/param.c\fP (your kernel
+parameters file).  We
 .i strongly
 advise you to make a spare copy of your system's original config
 and parameter files before you make any changes.
 .lp
-The following lines should be added to /usr/sys/conf/KERNEL:
+The following lines should be added to \f(CW/usr/sys/conf/KERNEL\fP:
 .sp
 .(l
+.ft CW
 options		IPCMESSAGE		# SystemV IPC Message Facility 
 options		IPCSEMAPHORE	# SystemV IPC Semaphore Facility
 options		IPCSHMEM		# SystemV IPC Shared-Memory Facility
 options		EMOREIPCS	# more semaphores and shared memory (for 8M)
+.ft
 .)l
 .sp
 .lp
 At Berkeley, we substitute the line: 
 .(l 
+.ft CW
 options		EMOREIPCS	# more semaphores and shared memory (for 8M)
+.ft
 .)l
 .lp
 with the line:
 .(l
+.ft CW
 options		TTMOREIPCS	# more semaphores and shared memory (for 32M)
+.ft
 .)l
 .lp
 to allocate more shared memory so that we can run more \*(PG backends
 at the same time.  Either of the lines will result in a kernel that
 has enough shared memory allocated.
 .lp
-Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
+Also add the following lines to the \fItop\fR of
+\f(CW/usr/sys/conf/param.c\fP: 
 .sp
 .(l
+.ft CW
 /*
  * LOCAL DEFINITIONS START
  */
@@ -470,7 +482,7 @@ Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
 #define SEMUME		10	/* max # of undo entries per process */
 #define SEMMNU		30	/* # of undo structures in system */
 
-#define SHMPOOL 	1536		/* max total shared memory system wide (in Kbytes) */
+#define SHMSIZE 	1536		/* max total shared memory system wide (in Kbytes) */
 #define SHMSEG		6	/* max attached shared memory segments per process */
 #define SHMMNI		100	/* # of shared memory identifiers */
 #endif	/* defined(EMOREIPCS) */
@@ -481,7 +493,7 @@ Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
 #define SEMUME		10	/* max # of undo entries per process */
 #define SEMMNU		30	/* # of undo structures in system */
 
-#define SHMPOOL 	8192		/* max total shared memory system wide (in Kbytes) */
+#define SHMSIZE 	8192		/* max total shared memory system wide (in Kbytes) */
 #define SHMSEG		6	/* max attached shared memory segments per process */
 #define SHMMNI		100	/* # of shared memory identifiers */
 #endif				/* defined(TTMOREIPCS) */
@@ -489,114 +501,129 @@ Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
 /*
  * LOCAL DEFINITIONS END
  */
+.ft
 .)l
 .lp
-After adding these lines,
-run config over the config file,
-install the new kernel,
-and reboot.
+After adding these lines, run \f(CWconfig\fP over the config file,
+install the new kernel (saving a copy of the old kernel first!) and
+reboot.
 .sp
 .sh 3 "Kernel reconfiguration for DECs"
 .lp
 In order to reconfigure your DECstation 3100 or 5000 Ultrix kernel,
-you will have to become root and add some lines to /usr/sys/conf
-(your kernel config file).
-.sp
-The following lines should be added to /usr/sys/conf/KERNEL:
-.sp
-.(l
-smmax           256
-smseg           12
-smbrk           1024
-.)l
+you will have to become the superuser and add some lines to
+\f(CW/usr/sys/conf/KERNEL\fP (your kernel config file).
 .lp
-After adding these lines, run 
-.i config
-over the configuration file,
-install the new kernel, and reboot.
-.lp
-Also, remember that Ultrix 4.3 has a kernel bug that causes the
+Remember that Ultrix 4.3 has a kernel bug that causes the
 operating system to hang when running \*(PG.  You should apply
 the DEC supplied patch at this point if you have not already.
+.lp
+The following lines should be added to \f(CW/usr/sys/conf/KERNEL\fP:
+.sp
+.(l
+.ft CW
+smmax	256
+smseg	12
+smbrk	1024
+.ft
+.)l
+.lp
+After adding these lines, run \f(CWconfig\fP over the configuration
+file, install the new kernel (saving a copy of the old kernel first!)
+and reboot.
 .sp
 .\" ----------------
 .\"    Running the pre-installed system
 .\" ----------------
 .sh 2 "Running the pre-installed \*(PG system"
 .lp
-Assuming you have loaded the system into /usr/local/postgres, there
-is very little else to do.  Add /usr/local/postgres/bin to your
-shell path.  If you run csh, you would put
+Assuming you have loaded the system into \f(CW/usr/local/postgres\fP,
+there is very little else to do.  Add \f(CW/usr/local/postgres/bin\fP
+to your shell path.  If you run \f(CWcsh\fP, you would put
 .(l
+.ft CW
 set path=(/usr/local/postgres/bin $path)
+.ft
 .)l
-in the .login for the postgres user.  Or if you run sh or ksh, put
+in the \f(CW.login\fP for the \*(lqpostgres\*(rq user.  If you run
+\f(CWsh\fP or \f(CWksh\fP, put 
 .(l
+.ft CW
 PATH=/usr/local/postgres/bin:$PATH
 export PATH
+.ft
 .)l
-in your .profile.  Then log back in so the change takes effect.
-Now run the following command
+in your \f(CW.profile\fP.  Then log back in so the change takes
+effect.  Now run the following command
 .(l
-% newbki
+% \fBnewbki\fP
 .)l
 This will reset the userid of the special \*(PG user of the database to
-have the proper value.  Even though newbki allows you to enter a login
-name, you should select the default value of \f(CWpostgres\fP.  It allows a
-different name because at some point we plan to remove the restriction
-that a special user called \f(CWpostgres\fP even exists -- but not yet...
+have the proper value.  Even though the \f(CWnewbki\fP command allows
+you to enter a login name, you should select the default value of
+\f(CWpostgres\fP.
 .lp
 After doing this, you may wish to install the precompiled version of
-bmake into /usr/local/bin.  This will allow you to recompile \*(PG
-right away without bootstrapping bmake.  To do this, cd into the
-directory called "local".  You will see two directories and a README.
-Become the superuser and do the following:
+\f(CWbmake\fP into \f(CW/usr/local/bin\fP.  This will allow you to
+recompile \*(PG right away without bootstrapping \f(CWbmake\fP.  To do
+this, \f(CWcd\fP into the directory called \f(CWlocal\fP.  You will see two
+directories and a README.  Become the superuser and do the following:
 .(l
-# cp bin/bmake /usr/local/bin
-# mkdir /usr/local/lib /usr/local/lib/mk
-(you may get an error if this directory alreadt exists - ignore it)
-# cp lib/mk/* /usr/local/lib/mk
+# \fBcp bin/bmake /usr/local/bin\fP
+# \fBmkdir /usr/local/lib /usr/local/lib/mk\fP
+
+\fI(you may get an error if this directory already exists - ignore it)\fP
+
+# \fBcp lib/mk/* /usr/local/lib/mk\fP
 .)l
 .lp
-If you installed \*(PG somewhere other than /usr/local/postgres, everything
-can still work right if you set the environment variable PGDATA for
-the special \*(PG user.  Lets assume you installed \*(PG in
-the directory "/private/packages/postgres".  If you run csh, put 
-the following in the .login for the \*(PG user
+If you installed \*(PG somewhere other than
+\f(CW/usr/local/postgres\fP, everything can still work right if you
+set the environment variable PGDATA for the special \*(PG user.  Lets
+assume you installed \*(PG in the directory
+\f(CW/private/packages/postgres\fP.  If you run \f(CWcsh\fP, put the
+following in the \f(CW.login\fP for the \*(PG user
 .(l
+.ft CW
 setenv PGDATA /private/packages/postgres/data
+.ft
 .)l
-or if you run sh or ksh, put the following in .profile
+If you run \f(CWsh\fP or \f(CWksh\fP, put the following in
+\f(CW.profile\fP:
 .(l
+.ft CW
 PGDATA=/private/packages/postgres/data
 export PGDATA
+.ft
 .)l
 This will instruct the postmaster and backends to look in that
 directory for the databases.
 .lp
-You can now skip to the setion called "Creating the initial database".
+You can now skip to the section called \*(lqCreating the initial
+database.\*(rq
 .sp
 .\" ----------------
 .\"    Compiling and installing postgres
 .\" ----------------
 .sh 2 "Compiling and Installing \*(PG"
 .lp
-The sources for \*(PG are all under the directory src/.  The first
-step is to install the new bmake program.  By the way, you can look at 
-the previous
-section entitled "Running the pre-installed system" in the paragraph
-about bmake, and just copy the pre-compiled bmake to /usr/local/{bin,lib}
-if you want and skip step 2) in this section.  What follows is a step by step 
-list to compile and install this release from sources:
+The sources for \*(PG are all under the directory \f(CWsrc/\fP.  The
+first step is to install the new \f(CWbmake\fP program.  By the way,
+you can look at the previous section entitled \*(lqRunning the
+pre-installed system\*(rq in the paragraph about \f(CWbmake\fP, and
+just copy the pre-compiled \f(CWbmake\fP to
+\f(CW/usr/local/{bin,lib}\fP if you want and skip step 2) in this
+section.  What follows is a step by step list to compile and install
+this release from sources:
 .lp
 - build step 1: customization -
 .lp
-Cd into the src/ directory and edit the file "Makefile.global".
-By default the PORTNAME is "ultrix4".  Change this to "sparc"
-if you are running on the sparcstation.  Also, if you do not
-want "bmake" installed into /usr/local/bin and /usr/local/lib,
-change the values of TOOLSBINDIR and TOOLSLIBDIR and make sure
-these directories exist.  
+\f(CWCd\fP into the \f(CWsrc/\fP directory and edit the file
+\f(CWMakefile.global\fP.  By default the PORTNAME is \f(CWultrix4\fP.
+Change this to \f(CWsparc\fP if you are running on a SPARC-based
+machine.  Also, if you do not want \f(CWbmake\fP installed into
+\f(CW/usr/local/bin\fP and \f(CW/usr/local/lib\fP, change the values
+of TOOLSBINDIR and TOOLSLIBDIR and make sure these directories exist.
 .lp
 At this point you can also change where the \*(PG executable
 files are installed and where it looks for the database
@@ -606,99 +633,108 @@ are self-explanatory.  The only one which must be set is PORTNAME.
 .lp
 - build step 2: bootstrapping the new bmake program -
 .lp
-Cd into src/tools/bmake and type
+\f(CWCd\fP into \f(CWsrc/tools/bmake\fP and type
 .(l
-% make -f Makefile.boot
+% \fBmake -f Makefile.boot\fP
 .)l
-You may get warning messages during this bootstapping process
-about "illegal combination of pointer and integer" -- just ignore them.
-This should compile and install the "bmake" program and
-its supporting files, including the \*(PG related
-makefile templates.  If all went well you will now be able
-to use the new make program by typing "bmake", assuming you
-have /usr/local/bin in your shell path.  You may have to
-type "rehash" if you run csh(1), since it's too stupid to
-know new executables have been placed in its path.
+You may get warning messages during this bootstrapping process about
+\*(lqillegal combination of pointer and integer\*(rq \(em just ignore
+them.  This should compile and install the \f(CWbmake\fP program and
+its supporting files, including the \*(PG-related Makefile templates.
+If all went well you will now be able to use the new make program by
+typing \f(CWbmake\fP, assuming you have \f(CW/usr/local/bin\fP in your
+shell path.  You may have to type \f(CWrehash\fP if you run
+\f(CWcsh\fP.
 .lp
 - build step 3: compile and install the world -
 .lp
-Cd back to the src/ directory (i.e. cd ../..) and type
+\f(CWCd\fP back to the \f(CWsrc/\fP directory (i.e., \f(CWcd ../..\fP)
+and type:
 .(l
-% bmake all install
+% \fBbmake all install\fP
 .)l
-This builds and installs the entire system.  The Makefiles
-contain directives for running all the underlying Makefiles
+This builds and installs the entire system.  The \f(CWMakefile\fPs
+contain directives for running all the underlying \f(CWMakefile\fPs
 in all the directories, so the whole thing should unfold and
 compile beautifully and install to the target directory.  Should
 this not be the case, it would be a good idea to save the results
-of the compile in a file.  If you run csh(1), you could type
+of the compile in a file.  If you run \f(CWcsh\fP, you could type
 .(l
-% bmake all install >& mk.log
+% \fBbmake all install >& mk.log\fP
 .)l
-and if you run ksh(1) or sh(1), type
+and if you run \f(CWksh\fP or \f(CWsh\fP, type
 .(l
-% bmake all install > mk.log 2>&1
+% \fBbmake all install > mk.log 2>&1\fP
 .)l
-This will save the results in the file "mk.log" so you
+This will save the results in the file \f(CWmk.log\fP so you
 can inspect it later.  This would be an ideal opportunity to get
-some donuts and coffee.
+some doughnuts and coffee.
 .sp
 .sh 2 "Creating the initial database"
 .lp
-\*(PG databases are stored in the directory .../postgres/data.
+\*(PG databases are stored in the directory \f(CW.../postgres/data\fP.
 After you have compiled \*(PG, you will need to create the
 initial database.  If you haven't already put the path to the \*(PG
 executable programs in the shell path, do the following (assuming
-\*(PG was loaded into /usr/local/postgres).
-If you run csh, you would put
+\*(PG was loaded into \f(CW/usr/local/postgres\fP).
+If you run \f(CWcsh\fP, you would put
 .(l
+.ft CW
 set path=(/usr/local/postgres/bin $path)
+.fT
 .)l
-in the .login for the \*(PG user.  Or if you run sh or ksh, put
+in the \f(CW.login\fP for the \*(PG user.  If you run \f(CWsh\fP or
+\f(CWksh\fP, put 
 .(l
+.ft CW
 PATH=/usr/local/postgres/bin:$PATH
 export PATH
+.ft
 .)l
-in your .profile.  Then log back in so the change takes effect.
+in your \f(CW.profile\fP.  Then log back in so the change takes effect.
 .lp
 Now you can create the initial database by running the following
-command.
+command:
 .(l
-% initdb
+% \fBinitdb\fP
 .)l
 If that completes successfully, congratulations.  
 .lp
 Now, to make the system operational you must run the postmaster.
-The section after "Testing" discusses this.
+The section after \*(lqTesting\*(rq discusses this.
 .\" ----------------
 .\"    Testing
 .\" ----------------
 .sh 2 "Step 4 - Testing"
 .lp
 We suggest you run the regression tests to make sure the release
-was installed successfully.  You must have installed the bmake program
-to run the test.  Also, you need to have the postmaste running to run
-the test, so type the following:
+was installed successfully.  You must have installed the \f(CWbmake\fP
+program to run the test.  Also, you need to have the postmaster
+running to run the test, so type the following:
 .(l
-% postmaster &
+% \fBpostmaster &\fP
 .)l
 .lp
-Change directories to src/regress/regress and type the following
-bmake command:
+Next, create a new user using the \f(CWcreateuser\fP command
+(see the reference manual).  \fBDo not\fP run the regression test
+script as user \*(lqpostgres\*(rq!
+.lp
+Change directories to \f(CWsrc/regress/regress\fP.  Type the following
+commands:
 .(l
-% cd src/regress/regress
-% bmake runtest
+% \fBcd src/regress/regress\fP
+% \fBbmake runtest\fP
 .)l
 .lp
 This will run a whole slew of regression tests and might take a long
 time to run.  When it's done, the output of the test is in the 
-file "obj/regress.out".  You can compare this to a sample run that
-we supply in the file "sample.regress.out" with the following
+file \f(CWobj/regress.out\fP.  You can compare this to a sample run that
+we supply in the file \f(CWsample.regress.out\fP with the following
 command:
 .(l
-% diff sample.regress.out obj/regress.out
+% \fBdiff sample.regress.out obj/regress.out\fP
 .)l
-Unfortunatly you will see many differences corresponding to
+Unfortunately you will see many differences corresponding to
 the timestamp lines and occasional lines where object id numbers (OID's)
 are different.  We regret that we do not have a more sophisticated
 script for weeding out these innocuous differences at this time.  If
@@ -734,14 +770,14 @@ Without a running postmaster,
 the terminal monitor will not be able to connect to a backend.
 In general, the postmaster must be running for you (or others) to
 run any of the normal \*(PG commands.  Always start the postmaster when
-logged in as the special "postgres" user, otherwise the system will
+logged in as the special \*(lqpostgres\*(rq user, otherwise the system will
 not be able to access the database files. To start it, type
 .(l
-% postmaster &
+% \fBpostmaster &\fP
 .)l
 Now you
 can leave the postmaster running if you wish to keep the
-database system accessable.  In general, when the postmaster
+database system accessible.  In general, when the postmaster
 is running, the system is running.  When it is not running,
 none of the frontend programs will work.
 .sp
@@ -754,30 +790,28 @@ Lets assume \fIdatabase\fR is the name of the database you want to use.
 It is an error if \fIdatabase\fR does not exist, so to create
 the database, you would type
 .(l
-createdb \fIdatabase\fR
+% \fBcreatedb\fP \fIdatabase\fP
 .)l
 Now we will run the monitor:
 .(l
-% monitor \fIdatabase\fR
+% \fBmonitor\fP \fIdatabase\fP
 .)l
 .(l
 .ft CW
-Welcome to the C POSTGRES terminal monitor
+Welcome to the POSTGRES terminal monitor
 
 Go 
 *
-.ft
 
-\fI
+.ft I
 The ``*'' is the terminal monitor prompt.  We are now
 talking to the backend, so let's send a simple test
 query:  list the names and user ids of the \*(PG users.
 We terminate the query with a \eg \*- the ``go'' command
 to the terminal monitor.
-\fR
 
-*\fBretrieve (u.usename, u.usesysid) from u in pg_user
-\eg\fP
+.ft CW
+* \fBretrieve (u.usename, u.usesysid) from u in pg_user\eg\fP
 
 .ft CW
 Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
@@ -816,16 +850,15 @@ Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
  -----------------------------
 
 Go 
-.ft
 .ft I
-.lp
-	Okay, this worked, too.  Now we'll quit.
-.lp
-*\fB\eq\fP
+
+Okay, this worked, too.  Now we'll quit.
+
 .ft CW
-I live to serve you.
-.ft
+* \fB\eq\fP
+.ft CW
 %
+.ft R
 .)l
 .sh 2 "The \*(PG Backend"
 .lp
@@ -844,7 +877,7 @@ you can do this by typing:
 where \fIdatabase\fR is the name of the database you wish to use.
 If you run a backend in this manner,
 you will be talking to the backend parser directly.
-We recommend using the terminal monitor; if you are using Postgres as a
+We recommend using the terminal monitor; if you are using \*(PG as a
 multiuser system, running the backend can result in locking failures
 and corrupt databases, as the Postmaster handles shared resources such
 as semaphores and shared memory.  In general, never do this if there
@@ -860,18 +893,19 @@ them for your information.
 .(l
 initdb		\- creates the initial template database
 cleardbdir	\- totally destroys the data/ directory, allowing a new initdb
-createdb	\- creates new \*(PG databases
+createdb		\- creates new \*(PG databases
 createuser	\- add a new user to the \*(PG system
 destroydb	\- destroys \*(PG databases
-destroyuser	\- delete a user from the datasbe system
-ipcclean	\- frees up garbage shared memory from failed backends
+destroyuser	\- delete a user from the database system
+ipcclean		\- frees up garbage shared memory from failed backends
 newbki		\- adjust userid of "postgres" in the database
 pg_version	\- make version numbers for createdb
 pg_id		\- gets user id's - used by various commands
 pagedoc		\- disk page doctor
 shmemdoc	\- shared memory buffer pool doctor
 vacuum		\- database vacuum cleaner
-pg_copytree	\- copy te source tree (probably shouldn't be shipped)
+pg_copytree	\- copy the source tree (probably shouldn't be shipped)
+icopy		\- inversion filesystem file management utility
 pcat		\- inversion filesystem cat command
 pcd		\- inversion filesystem cd command
 pls		\- inversion filesystem ls command
@@ -884,81 +918,93 @@ prmdir		\- inversion filesystem rmdir command
 .sh 1 "Optional Installation"
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
 .lp
-The file .../lib/libpq.a is created when you
+The file \f(CW.../lib/libpq.a\fP is created when you
 install the system (or on the pre-installed system).
 This library contains various 
 routines intended for use by frontend programs.
 You use this library if you want to execute \*(PG queries
 from a C program.  If you plan on doing software development,
 you may wish to copy this file to
-/usr/lib so that the C compiler can reference it with -lpq.
+\f(CW/usr/lib\fP so that the C compiler can reference it with
+\f(CW-lpq\fP.  If you do not, you will have to use the \f(CW-L\fP
+directive to the \f(CWcc\fP and \f(CWld\fP commands so that they can
+find \f(CWlibpq.a\fP.
 .sh 2 "Postgres header files"
 .lp
-The directory .../include contains copies of all the header
+The directory \f(CW.../include\fP contains copies of all the header
 files that front-end applications might need.  You can compile
-a frontend program with the -I cc directive as illustrated
-in the following example:
+a frontend program with the \f(CW-I\fP directive to \f(CWcc\fP
+as illustrated in the following example:
 .(l
-cc -I/usr/local/postgres/include -o foo foo.c -lpq
+% \fBcc -I/usr/local/postgres/include -o\fP \fIfoo foo.c\fP \fB-lpq\fP
 .)l
 .lp
-This feature of copying just the necessary header files into .../include 
+This feature of copying just the necessary header files into
+\f(CW.../include\fP 
 was incorporated right before we produced the release and
-has not had sufficient testing.  It your frontend programs
+has not had sufficient testing.  If your frontend programs
 complain about not being able to find header files, either
-add the missing header files to the include/ directory and
-notify us of the problem, or just point the -I compiler
-directive directly into the source as was done in the past. E.g.
+add the missing header files to the \f(CWinclude/\fP directory and
+notify us of the problem, or just point the \f(CW-I\fP compiler
+directive directly into the source as was done in the past.  E.g.,
 .(l
-cc -I/usr/local/postgres/src/backend -o foo foo.c -lpq
+% \fBcc -I/usr/local/postgres/src/backend -o\fP \fIfoo foo.c\fP \fB-lpq\fP
 .)l
-If you do this, you may need to add the following #define's in your
-source to set the PORTNAME - add them prior to any #includes:
+If you do this, you may need to add the following \f(CW#define\fPs in
+your source to set the PORTNAME \(em add them prior to any
+\f(CW#include\fPs: 
 .(l
+.ft CW
 #define PORTNAME ultrix4
 #define PORTNAME_ultrix4
+.ft
 .)l
-for ultrix, or
+for Ultrix, or
 .(l
+.ft CW
 #define PORTNAME sparc
 #define PORTNAME_sparc
+.ft
 .)l
+for SPARCs.
 We're sorry for any inconvenience this may cause, and fully intend
-that the include/ directory be more rigorously tested in the next release.
+that the \f(CWinclude/\fP directory be more rigorously tested in the
+next release. 
 .sh 2 "Wisconsin Benchmark Database"
 .lp
-In .../postgres/src/regress/bench are files which are the 
-queries used in the Postgres
+In \f(CW.../postgres/src/regress/bench\fP are files which are the 
+queries used in the \*(PG
 version of the Wisconsin benchmark.  The Wisconsin benchmark illustrates
-"basic" relational performance using B-Tree indices on nontrivial amounts
-of data.  To run the benchmark, type cd to that directory and
-type
+basic relational performance using B-tree indices on nontrivial amounts
+of data.  To run the benchmark, \f(CWcd\fP to that directory and type
 .(l
-bmake runtest
+% \fBbmake runtest\fP
 .)l
 .lp
 .sh 2 "Minimal Installation"
 .lp
-It is the intention that everything below the src/ directory can 
+It is the intention that everything below the \f(CWsrc/\fP directory can 
 be removed, however we didn't have time to test this.  Specifically,
-the include/ directory may not have all the necessary files to
+the \f(CWinclude/\fP directory may not have all the necessary files to
 compile all the frontend programs, so you may might get burned if you
 remove the source.  But if you'd like to try it out, we'd love to know if it
-works for you.... :)
+works for you.
 .\" ----------------
 .\"    Documentation
 .\" ----------------
 .sh 1 "Documentation"
-Clear text and postscript versions of the manpages and documents
-are available in the directories man/ and doc/ at the top level.
-To recreate these documents, there are corresponding directories
-in src/{man,doc}.  They are currently configured to require groff
-and friends, but you may be able to change the makefiles to use
-other facilities if you have them (good luck!).  If you change
-directories to man/ and doc/ and type a
+.lp
+Plain text and PostScript versions of the manual pages and documents are
+available in the directories \f(CWman/\fP and \f(CWdoc/\fP at the top
+level.  To recreate these documents, there are corresponding
+directories in \f(CWsrc/{man,doc}\fP.  They are currently configured
+to require \f(CWgroff\fP and friends, but you may be able to change
+the \f(CWMakefile\fP to use other facilities if you have them.
+If you change directories to \f(CWman/\fP and \f(CWdoc/\fP
+and type:
 .(l
-% bmake
-% bmake install
+% \fBbmake\fP
+% \fBbmake install\fP
 .)l
 in each, it will format and install the documents into the corresponding
 destination directories.
@@ -968,17 +1014,26 @@ destination directories.
 .sh 1 "Miscellaneous"
 .sh 2 "Bug reports"
 .lp
-If you find a bug with \*(PG,
+If you find a bug in \*(PG,
 please send mail to
 .(l
-\0\0\0\0\0bug-postgres@postgres.Berkeley.EDU
-or
-\0\0\0\0\0(ucbvax!postgres!bug-postgres)
+.ft CW
+bug-postgres@postgres.Berkeley.EDU
+.ft
 .)l
-describing as precisely as possible the command that caused
-the problem,
-instructions on how to repeat the bug,
-and a script showing the bug. 
+or
+.(l
+.ft CW
+uunet!ucbvax!postgres!bug-postgres
+.ft
+.)l
+describing as precisely as possible the command that caused the
+problem, concise instructions on how to repeat the bug, and a script
+showing the bug.  If possible, a stack trace (generated using a
+debugger such as \f(CWdbx\fP or \f(CWgdb\fP) should also be provided.
+(The backend program will leave its core dumps in the directory
+PGDATA\f(CW/base/your_database\fP, where \*(lqyour_database\*(rq is
+the name of your database.)
 .sh 2 "Consulting"
 .lp
 This software is unsupported,
@@ -987,31 +1042,61 @@ Although we are interested in feedback,
 it is impossible for us to make any
 commitment to support in a research environment. 
 .lp
-If you do want to talk directly to the Postgres
+If you do want to talk directly to the \*(PG
 group, electronic mail is strongly preferred.
 We can be reached via the Internet as
 .(l
-\0\0\0\0\0post_questions@postgres.Berkeley.EDU
-or
-\0\0\0\0\0(ucbvax!postgres!post_questions)
+.ft CW
+post_questions@postgres.Berkeley.EDU
+.ft
 .)l
-We can also be reached at (510) 642-7520,
-Monday through Friday,
+or
+.(l
+.ft CW
+uunet!ucbvax!postgres!post_questions
+.ft
+.)l
+We can also be reached at (510) 643-6448, Monday through Friday,
 between 1 and 4 PM Pacific Time.
 .lp
-.sh 2 "Postgres BBS"
-A mailing list for Postgres announcements and discussion
+.sh 2 "Postgres Mailing List"
+.lp
+A mailing list for \*(PG announcements and discussion
 is available for anyone who is interested.  If you wish
 to subscribe to this mailing list, send mail to
 .(l
-\0\0\0\0\0postgres-request@postgres.Berkeley.EDU
+.ft CW
+postgres-request@postgres.Berkeley.EDU
+.ft
 .)l
-with "Add" as the subject.  Note that mail sent to this address is processed
-.b electronically.
+or
+.(l
+.ft CW
+uunet!ucbvax!postgres!postgres-request
+.ft
+.)l
+with \f(CWADD\fP as the subject.  Note that mail sent to this address
+is processed
+.b electronically .
+(Deletion requests are handled by sending mail to the same address
+with subject \f(CWDEL\fP.)
 .lp
 The mailing list itself is called 
 .(l
-\0\0\0\0\0postgres@postgres.Berkeley.EDU
+.ft CW
+postgres@postgres.Berkeley.EDU
+.ft
+.)l
+or
+.(l
+.ft CW
+uunet!ucbvax!postgres!postgres
+.ft
 .)l
 and all mail sent to this address will be 
-will be routed to the mailing list membership.
+will be routed to the mailing list membership.  This list is
+distributed to over 500 sites around the world, so please do 
+.b NOT
+send administrative requests to this address.
+If you have any problems with the mailing list, send mail to
+\f(CWpost_questions\fP. 
