@@ -240,7 +240,11 @@ process_portal(rule_p)
 	    return(retbuf);
 
         case 'N': /* print notice and go back to processing return values */
-	    pq_getstr(errormsg, error_msg_length);
+	    /*
+	     * If we get an EOF (i.e. backend quickdies) return an R to the fe
+	     */
+	    if (pq_getstr(errormsg, error_msg_length) == EOF)
+		return ("R");
 	    pqdebug("%s notice encountered.", errormsg);
 	    /* get past gunk at front of errmsg */
 	    fprintf(stderr,"%s \n", &errormsg[0] + 4);
@@ -831,7 +835,11 @@ PQexec(query)
 	    return("R");
 	    
     	case 'N': /* print notice and go back to processing return values */
-	    pq_getstr(errormsg, error_msg_length);
+	    /*
+	     * If we get an EOF (i.e. backend quickdies) return an R to the fe
+	     */
+	    if (pq_getstr(errormsg, error_msg_length) == EOF)
+		return ("R");
 	    pqdebug("%s notice encountered.", errormsg);
 	    fprintf(stderr,"%s \n", errormsg);
 	    break;
