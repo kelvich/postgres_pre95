@@ -22,7 +22,7 @@ extern MemoryContext	CurrentMemoryContext;
 
 
 /*
- * EnableMemoryManagement --
+ * EnableMemoryContext --
  *	Enables/disables memory management and global contexts.
  *
  * Note:
@@ -31,12 +31,11 @@ extern MemoryContext	CurrentMemoryContext;
  *
  * Exceptions:
  *	BadArg if on is invalid.
- *	BadState if on is true when enabled.
  *	BadState if on is false when disabled.
  */
 extern
 void
-EnableMemoryManagement ARGS((
+EnableMemoryContext ARGS((
 	bool	on
 ));
 
@@ -180,7 +179,7 @@ CreateGlobalMemory ARGS((
 ));
 
 /*
- * DestroyGlobalMemory --
+ * GlobalMemoryDestroy --
  *	Destroys given global memory context.
  *
  * Exceptions:
