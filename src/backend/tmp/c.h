@@ -18,7 +18,7 @@
  *	these govern behaviour of palloc
  * ----------------
  */
-#define PALLOC_DEBUG 
+#undef PALLOC_DEBUG 
 
 /*
  * Begin COMPILER DEPENDENT section
