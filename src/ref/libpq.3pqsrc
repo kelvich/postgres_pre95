@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION LIBPQ 05/29/93
+.TH INTRODUCTION LIBPQ 08/13/93
 .XA 0 "Section 5 \(em Libpq"
 .BH "SECTION 5 \(em LIBPQ"
 .SH DESCRIPTION
@@ -185,16 +185,35 @@ char *PQfn(fnid, result_buf, result_len,
 .TP 15n
 .BR PQexec
 Submit a query to \*(PG.  Returns a status indicator or an error
-message.  If the query returns data (e.g.,
+message.
+.IP
+If the query returns data (e.g.,
 .IR fetch ),
 .IR PQexec
 returns a string consisting of the character \*(lqP\*(rq followed by
-the name of the portal buffer.  When the query does not return
-instances,
+the name of the portal buffer.
+.IP
+If the query does not return any instances, as in the case with update
+queries,
 .IR PQexec
 will return a string consisting of the character \*(lqC\*(rq followed
-by the command tag (e.g., \*(lqCREPLACE\*(rq).  If a non-fatal error
-occurred during the execution of the query,
+by the command tag (e.g., \*(lqCREPLACE\*(rq).
+.IP
+If a \*(lqcopy from stdin\*(rq or \*(lqcopy to stdout\*(rq query is
+executed (see
+.IR copy (commands)
+for more details), 
+.IR PQexec
+will return the strings \*(lqDCOPY\*(rq and \*(lqBCOPY\*(rq,
+respectively.
+.IP
+The current implementation can return strings beginning with the
+characters \*(lqA\*(rq and \*(lqI\*(rq.  These indicate that the
+backend server thinks that it is processing an asynchronous portal and
+indicate a serious bug (since asynchronous portals are not implemented
+in \*(PG Version \*(PV).
+.IP
+If a non-fatal error occurred during the execution of the query,
 .IR PQexec
 will return (for historical reasons) the character \*(lqR\*(rq and
 load an error message into
@@ -543,10 +562,36 @@ command, see
 .IR copy (commands).
 .TP 15n
 .BR PQgetline
-Reads a null-terminated line into a buffer
+Reads a newline-terminated line of characters (transmitted by the
+backend server) into a buffer 
 .IR string 
 of size
 .IR length .
+Like
+.IR fgets (3),
+this routine copies up to 
+.IR length "-1"
+characters into 
+.IR string .
+It is like 
+.IR gets (3),
+however, in that it converts the terminating newline into a null
+character.
+.IP
+Returns EOF at EOF, 0 if the entire line has been read, and 1 if the
+buffer is full but the terminating newline has not yet been read.
+.IP
+Notice that the application must check to see if a new line consists
+of the single character \*(lq.\*(rq, which indicates that the backend
+server has finished sending the results of the 
+.IR copy
+command.  Therefore, if the application ever expects to receive lines
+that are more than
+.IR length "-1"
+characters long, the application must be sure to check the return
+value of 
+.IR PQgetline
+carefully.
 .(C
 PQgetline(string, length)
 	char *string;
@@ -555,7 +600,11 @@ PQgetline(string, length)
 .TP 15n
 .BR PQputline
 Sends a null-terminated 
-.IR string .
+.IR string
+to the backend server.
+.IP
+The application must explicitly send the single character \*(lq.\*(rq
+to indicate to the backend that it has finished sending its data.
 .(C
 PQputline(string)
 	char *string;
@@ -580,8 +629,8 @@ As an example:
 .(C
 PQexec("create foo (a=int4, b=char16, d=float8)");
 PQexec("copy foo from stdin");
-PQputline("3<TAB>hello world<TAB>4.5\n");
-PQputline("4<TAB>goodbye world<TAB>7.11");
+PQputline("3<TAB>hello world<TAB>4.5\en");
+PQputline("4<TAB>goodbye world<TAB>7.11\en");
 \&...
 PQputline(".\en");
 PQendcopy();
@@ -655,7 +704,7 @@ void fe_setauthsvc(name)
 The query buffer is 8192 bytes long, and queries over that length will
 be silently truncated.
 .PP
-Asynchronous portals are not fully implemented in Version \*(PV.
+Asynchronous portals are not implemented in Version \*(PV.
 .bp
 .XA 1 "Sample Programs"
 .SH "SAMPLE PROGRAM 1"
