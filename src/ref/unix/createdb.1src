@@ -58,7 +58,7 @@ Unless otherwise instructed, \*(PP will place
 all new databases in a directory named \&.../data/base/dbname.
 To place a database elsewhere,
 the \*(PP superuser
-must first create a file in \&.../data/base/dbname
+must first create a \fIreference file\fR in \&.../data/base/dbname
 containing a single line which is the full pathname
 of the desired location of the database.
 (The file must be owned by
@@ -78,10 +78,14 @@ would be physically stored in the directory
 /mnt/user/database
 rather than in the directory
 \&.../data/base/userdb.
-.lp
-The
-.b \-v on or \-v off
-turns the vacuum daemon for a new database on or off (default is off).
+.uh "COMMAND OPTIONS"
+.sp
+.nf
+\fI\-v on\fR
+\fI\-v off\fR
+.pp
+Specifying the \fI\-v on\fR or \fI\-v off\fR option turns
+the vacuum daemon for a new database on or off (default is off).
 We suggest that you run a vacuum demon on each active
 database.  That way expired tuples will be purged 
 according to the criteria set in the
@@ -89,22 +93,27 @@ according to the criteria set in the
 command for each relation.  Also,
 this will ensure that the statistics kept in the RELATION
 relation are updated periodically.
-.lp
+.sp
+.nf
+\fI-p port\fR 
+\fI-h host\fR
+.pp
 The vacuum demon is associated with some postmaster process.
-Specifying the port and host using [-p port] and [-h host]
-will cause the vacuum demon to be started on the specified
-host using the postmaster associated with the specified
-host and port.  
-.lp
-A database option
-for an existing database
-may be modified
-by stating the
-.b \-e
-flag.
-The database is adjusted
-to conform to the specified option.
-.lp
+Specifying the port and host using \fI-p port\fR and \fI-h host\fR
+will cause the vacuum demon to use the postmaster associated
+with the specified host and port.  
+.sp
+.bp
+.nf
+\fI-e\fR
+.pp
+Often it is desireable to turn on or off a vacuum demon for 
+an existing database.  Specifying \fI-e\fR tells createdb not
+to attempt to create a new database in such circumstances.
+.sp
+.nf
+\fI-t template-name\fR
+.pp
 The optional
 .i template-name
 specifies a file,
@@ -130,15 +139,21 @@ createdb \-e \-v on production
 .fi
 .uh "ENVIRONMENT VARIABLES"
 .ip PGPORT
-The port on which the postmaster is running.
-This value is overridden by the
-.b -p
-option.
+The port on which the postmaster is running.  This value is
+used if the
+.i -p
+option is not specified.  If 
+.i -p
+is not specified and PGPORT is not set, then the port defaults
+to 4321.
 .ip PGHOST
-The host on which the postmaster is running.
-This value is overridden by the
+The host on which the postmaster is running.  This value is
+used if the
 .b -h
-option.
+option is not specified.  If
+.b -h
+is not specified and PGHOST is not set, then the host defaults
+to "localhost".
 .uh FILES
 .lp
 \&.../files/data/base/*
@@ -147,16 +162,12 @@ option.
 destroydb(unix).
 .uh DIAGNOSTICS
 .lp
-.in +4
-.ti -4
-
-.ti -4
 You are not a valid \*(PP user
-.br
+.pp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
-.ti -4
-<name> already exists
-.br
+.sp
+.lp
+<dbname> already exists
+.pp
 The database already exists.
-.ti -4
