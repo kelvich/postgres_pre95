@@ -82,7 +82,12 @@ char *timestr;
 	return EPOCH_ABSTIME;
     if (IsNowStr(timestr))
 	return GetCurrentTransactionStartTime();
-
+    if (IsCurrentStr(timestr))
+	return CURRENT_ABSTIME;
+    if (IsNoendStr(timestr))
+	return NOEND_ABSTIME;
+    if (IsNostartStr(timestr))
+	return NOSTART_ABSTIME;
     return (prsabsdate(timestr, NULL, &date, &tz) < 0) ?
 		INVALID_ABSTIME :
 		dateconv(&date, tz);
@@ -113,6 +118,55 @@ IsEpochStr(tstr)
 	    (tstr[3] == 'c' || tstr[3] == 'C') &&
 	    (tstr[4] == 'h' || tstr[4] == 'H'));
 }
+
+int
+IsCurrentStr(tstr)
+     char *tstr;
+{
+    while (ISSPACE(*tstr))
+	tstr++;
+    return ((tstr[0] == 'c' || tstr[0] == 'C') &&
+	    (tstr[1] == 'u' || tstr[1] == 'U') &&
+	    (tstr[2] == 'r' || tstr[2] == 'R') &&
+	    (tstr[3] == 'r' || tstr[3] == 'R') &&
+	    (tstr[4] == 'e' || tstr[4] == 'E') &&
+	    (tstr[5] == 'n' || tstr[5] == 'N') &&
+	    (tstr[6] == 't' || tstr[6] == 'T'));
+}
+
+int
+IsNoendStr(tstr)
+     char *tstr;
+{
+    while (ISSPACE(*tstr))
+	tstr++;
+    return ((tstr[0] == 'i' || tstr[0] == 'I') &&
+	    (tstr[1] == 'n' || tstr[1] == 'N') &&
+	    (tstr[2] == 'f' || tstr[2] == 'F') &&
+	    (tstr[3] == 'i' || tstr[3] == 'I') &&
+	    (tstr[4] == 'n' || tstr[4] == 'N') &&
+	    (tstr[5] == 'i' || tstr[5] == 'I') &&
+	    (tstr[6] == 't' || tstr[6] == 'T') &&
+	    (tstr[7] == 'y' || tstr[7] == 'Y'));
+}
+
+int
+IsNostartStr(tstr)
+     char *tstr;
+{
+    while (ISSPACE(*tstr))
+	tstr++;
+    return ((tstr[0] == '-' || tstr[0] == '-') &&
+	    (tstr[1] == 'i' || tstr[1] == 'I') &&
+	    (tstr[2] == 'n' || tstr[2] == 'N') &&
+	    (tstr[3] == 'f' || tstr[3] == 'F') &&
+	    (tstr[4] == 'i' || tstr[4] == 'I') &&
+	    (tstr[5] == 'n' || tstr[5] == 'N') &&
+	    (tstr[6] == 'i' || tstr[6] == 'I') &&
+	    (tstr[7] == 't' || tstr[7] == 'T') &&
+	    (tstr[8] == 'y' || tstr[8] == 'Y'));
+}
+
 
 /*
  * just parse the absolute date in timestr and get back a broken-out date.
@@ -411,6 +465,22 @@ nabstimeout(time)
 	strcpy(outStr, "Invalid Abstime");
 	return outStr;
     }
+    if (time == CURRENT_ABSTIME)
+    {
+	strcpy(outStr, "current");
+	return outStr;
+    }
+
+    if (time == NOEND_ABSTIME)
+    {
+	strcpy(outStr, "infinity");
+	return outStr;
+    }
+    if (time == NOSTART_ABSTIME)
+    {
+	strcpy(outStr, "-infinity");
+	return outStr;
+    }
 
     timeValp = localtime((time_t *)&time);
     MonthNumToStr(timeValp->tm_mon, month);
@@ -438,7 +508,8 @@ nabstimeout(time)
 	    timeValp->tm_hour,
 	    timeValp->tm_min,
 	    timeValp->tm_sec,
-	    (timeValp->tm_year >= 69) ? timeValp->tm_year+1900 :
+	    /* handle times before 1969 */
+	    (time < 0 || timeValp->tm_year >= 69) ? timeValp->tm_year+1900 :
 					timeValp->tm_year+2000,
 	    tzoneStr);
     return(outStr);
@@ -573,8 +644,6 @@ register struct tm *tp;
 	/* If it was a 2 digit year */
 	if (year < 100)
 		year += 1900;
-	if (year < EPOCH)
-		return -1;		/* can't represent early date */
 
 	/*
 	 * validate day against days-per-month table, with leap-year
@@ -618,7 +687,7 @@ register struct tm *tp;
 	if (tp->tm_isdst > 0)
 		daynum -= 60*60;
 
-	return daynum < 0? -1: daynum;
+	return daynum;
 }
 
 /* Globals */
@@ -892,14 +961,6 @@ static unsigned int szdatetktbl = sizeof datetktbl / sizeof datetktbl[0];
 
 /*
  *  AbsoluteTimeIsBefore -- true iff time1 is before time2.
- *
- *	Since we store AbsoluteTimes as unsigned quantities, the comparison
- *	below would fail for times before the Unix epoch.  We cast them to
- *	signed quantities for the sake of this comparison, even though it
- *	violates the type-hiding abstraction.
- *
- *	The above comment isn't really valid anymore since the change
- *	to absolute time storage. -mer 15 Feb. 1992
  */
 
 bool
@@ -907,15 +968,19 @@ AbsoluteTimeIsBefore(time1, time2)
 	AbsoluteTime	time1;
 	AbsoluteTime	time2;
 {
+    AbsoluteTime tm = GetCurrentTransactionStartTime();
+
     Assert(AbsoluteTimeIsValid(time1));
     Assert(AbsoluteTimeIsValid(time2));
 
-    if ((time1 == time2) || (time2 == EPOCH_ABSTIME))
+    if ((time1 == CURRENT_ABSTIME) || (time2 == CURRENT_ABSTIME))
 	return false;
-    if (time1 == EPOCH_ABSTIME)
-	return true;
+    if (time1 == CURRENT_ABSTIME)
+	return (tm < time2);
+    if (time2 == CURRENT_ABSTIME)
+	return (time1 < tm);
 
-    return ((bool)((int32) time1 < (int32) time2));
+    return (time1 < time2);
 }
 
 bool
@@ -923,15 +988,19 @@ AbsoluteTimeIsAfter(time1, time2)
 	AbsoluteTime	time1;
 	AbsoluteTime	time2;
 {
+    AbsoluteTime tm = GetCurrentTransactionStartTime();
+
     Assert(AbsoluteTimeIsValid(time1));
     Assert(AbsoluteTimeIsValid(time2));
 
-    if ((time1 == time2) || (time1 == EPOCH_ABSTIME))
+    if ((time1 == CURRENT_ABSTIME) || (time2 == CURRENT_ABSTIME))
 	return false;
-    if (time2 == EPOCH_ABSTIME)
-	return true;
+    if (time1 == CURRENT_ABSTIME)
+	return (tm > time2);
+    if (time2 == CURRENT_ABSTIME)
+	return (time1 > tm);
 
-    return ((bool) ((int32) time1 > (int32) time2));
+    return (time1 > time2);
 }
 
 
@@ -947,55 +1016,85 @@ AbsoluteTimeIsAfter(time1, time2)
 int32
 abstimeeq(t1,t2)
 	AbsoluteTime	t1,t2;
-{ return(t1 == t2); }
+{
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
+
+	return(t1 == t2);
+ }
 
 int32
 abstimene(t1, t2)
 	AbsoluteTime	t1,t2;
-{ return(t1 != t2); }
+{ 
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
+
+	return(t1 != t2);
+}
 
 int32
 abstimelt(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 < t2); }
+	AbsoluteTime	t1,t2;
+{ 
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
+
+	return(t1 < t2);
+}
 
 int32
 abstimegt(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 > t2); }
+	AbsoluteTime	t1,t2;
+{ 
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
+
+	return(t1 > t2);
+}
 
 int32
 abstimele(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 <= t2); }
+	AbsoluteTime	t1,t2;
+{ 
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
+
+	return(t1 <= t2);
+}
 
 int32
 abstimege(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 >= t2); }
+	AbsoluteTime	t1,t2;
+{ 
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        return 0;
+        if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+        if (t2 == CURRENT_ABSTIME)
+	        t2 = GetCurrentTransactionStartTime();
 
-
-/*
- *	isabstime	- returns 1, iff datestring is of type abstime
- *				(and returns the convertion in brokentime)
- *			  returns 0 for any syntax error
- *			  returns 2 for time 'now'
- *
- */
-int
-isabstime(datestring, brokentime)
-	char	*datestring;
-	struct tm	*brokentime;
-{
-    int tz = 0;
-    struct tm dummy;
-
-    if (brokentime == NULL)
-	brokentime = &dummy;
-
-    if (IsNowStr(datestring))
-	return 2;
-    if (prsabsdate(datestring, NULL, brokentime, &tz) >= 0)
-	return 1;
-    return 0;
+	return(t1 >= t2);
 }
+
+
