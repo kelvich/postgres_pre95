@@ -317,6 +317,28 @@ _equalJoinMethod(a,b)
 }
 
 bool
+_equalMergeOrder(a,b)
+     register MergeOrder a,b;
+{
+    if (a == (MergeOrder)NULL && b == (MergeOrder)NULL)
+       return(true);
+    Assert(IsA(a,MergeOrder));
+    Assert(IsA(b,MergeOrder));
+
+    if (a->join_operator != b->join_operator)
+      return(false);
+    if (a->left_operator != b->left_operator)
+      return(false);
+    if (a->right_operator != b->right_operator)
+      return(false);
+    if (a->left_type != b->left_type)
+      return(false);
+    if (a->right_type != b->right_type)
+      return(false);
+    return(true);
+}
+
+bool
 _equalHInfo(a,b)
      register HInfo a,b;
 {
