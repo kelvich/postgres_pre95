@@ -282,7 +282,14 @@ DATA(insert OID = 0 (  90 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  90 vtype            18 0 0 0  1 -12 0 t t 0 ));
 DATA(insert OID = 0 (  99 logfoo           26 0 0 0  4   1 0 t t 0 ));
 DATA(insert OID = 0 (  100 timefoo         26 0 0 0  4   1 0 t t 0 ));
-
+    
+/* ----------------
+ *	dummy attribute definition.  
+ * ----------------
+ */
+#define DummyAttributeTupleForm \
+{ 0l, "dummy", 28, 0l, 0l, 0l, 5, 1, 0, '\000', '\001', 0 }
+    
 /* ----------------
  *	old definition of AttributeTupleForm
  * ----------------
