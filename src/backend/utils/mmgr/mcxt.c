@@ -13,6 +13,7 @@ RcsId("$Header$");
 #include "excid.h"
 #include "mnodes.h"
 #include "oset.h"
+#include "tags.h"	/* for classTag(Foo) */
 #include "tnodes.h"
 
 #include "mcxt.h"
@@ -27,6 +28,22 @@ static OrderedSetData	ActiveGlobalMemorySetData;	/* uninitialized */
 #define ActiveGlobalMemorySet	(&ActiveGlobalMemorySetData)
 
 MemoryContext	CurrentMemoryContext = NULL;
+
+/*
+ * description of allocated memory representation goes here
+ */
+
+#define PSIZE(PTR)	(*((int32 *)(PTR) - 1))
+#define PSIZEALL(PTR)	(*((int32 *)(PTR) - 1) + sizeof (int32))
+#define PSIZESKIP(PTR)	((char *)((int32 *)(PTR) + 1))
+#define PSIZEFIND(PTR)	((char *)((int32 *)(PTR) - 1))
+#define PSIZESPACE(LEN)	((LEN) + sizeof (int32))
+
+/*
+ * AllocSizeIsValid --
+ *	True iff 0 < size and size <= MaxAllocSize.
+ */
+#define	AllocSizeIsValid(size)	SizeIsInBounds(size, MaxAllocSize)
 
 /*
  * PRIVATE DEFINITIONS
@@ -208,6 +225,89 @@ EnableMemoryContext(on)
 	MemoryContextEnabled = on;
 }
 
+Pointer
+MemoryContextAlloc(context, size)
+	MemoryContext	context;
+	Size		size;
+{
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+	AssertArg(SizeIsValid(size));
+
+	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
+		("size=%d [0x%x]", size, size));
+
+	return (context->method->alloc(context, size));
+}
+
+void
+MemoryContextFree(context, pointer)
+	MemoryContext	context;
+	Pointer		pointer;
+{
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+	AssertArg(PointerIsValid(pointer));
+
+	context->method->free(context, pointer);
+}
+
+Pointer
+MemoryContextRealloc(context, pointer, size)
+	MemoryContext	context;
+	Pointer		pointer;
+	Size		size;
+{
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+	AssertArg(PointerIsValid(pointer));
+	AssertArg(SizeIsValid(size));
+
+	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
+		("size=%d [0x%x]", size, size));
+
+	return (context->method->realloc(context, pointer, size));
+}
+
+String
+MemoryContextGetName(context)
+	MemoryContext	context;
+{
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+
+	return (context->method->getName(context));
+}
+
+Size
+PointerGetAllocSize(pointer)
+	Pointer	pointer;
+{
+	AssertState(MemoryContextEnabled);
+	AssertArg(PointerIsValid(pointer));
+
+	return (PSIZE(pointer));
+}
+
+MemoryContext
+MemoryContextSwitchTo(context)
+	MemoryContext	context;
+{
+	MemoryContext	old;
+
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+
+	old = CurrentMemoryContext;
+	CurrentMemoryContext = context;
+	return (old);
+}
+
+/*
+ * START HERE
+ *	Add routines to move memory between contexts.
+ */
+
 /*
  * DEBUGGING
  */
@@ -273,20 +373,6 @@ GlobalMemoryDestroy(context)
 	/* unlink and delete the context */
 	OrderedElemPop(&context->elemData);
 	MemoryContextFree(TopMemoryContext, (Pointer)context);
-}
-
-MemoryContext
-MemoryContextSwitchTo(context)
-	MemoryContext	context;
-{
-	MemoryContext	old;
-
-	AssertState(MemoryContextEnabled);
-	AssertArg(MemoryContextIsValid(context));
-
-	old = CurrentMemoryContext;
-	CurrentMemoryContext = context;
-	return (old);
 }
 
 /*
