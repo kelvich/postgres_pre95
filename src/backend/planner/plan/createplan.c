@@ -288,7 +288,7 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 {
     /* Extract the (first if conjunct, only if disjunct) clause from the */
     /* clauseinfo list. */
-     Expr 	index_clause = get_clause (CAR (get_indexqual (best_path)));
+     Expr 	index_clause = (Expr)NULL;
      List 	indxqual = LispNil;
      List 	qpqual = LispNil;
      List 	fixed_indxqual = LispNil;
@@ -299,6 +299,8 @@ create_indexscan_node (best_path,tlist,scan_clauses)
      /*    clause (OR a b c) will generate: ((a) (b) (c)).  Otherwise, the */
      /*   indxqual will simply contain one conjunctive qualification: ((a)). */
 	
+     if (!null(get_indexqual (best_path)))
+	  index_clause = get_clause (CAR (get_indexqual (best_path)));
      if(or_clause_p (index_clause)) {
 	  LispValue temp = LispNil;
 	
@@ -346,11 +348,18 @@ fix_indxqual_references (clause,index_path)
     if(IsA (clause,Var) && 
        CInteger(CAR(get_relids (get_parent(index_path)))) ==
        get_varno (clause)) {
-	set_varattno (clause,
-		      position (get_varattno (clause),
-				get_indexkeys(get_parent(index_path))) + 1);
+	int pos = 0;
+	LispValue x = LispNil;
+	int varatt = get_varattno (clause);
+	foreach (x,get_indexkeys(get_parent(index_path))) {
+	    int att = CInteger(CAR(x));
+	    if (varatt == att) {
+	       break;
+	    }
+	    pos++;
+	}
+	set_varattno (clause, pos + 1);
 	return (clause);
-
     } 
     else 
       if(IsA (clause,Const))
@@ -449,7 +458,7 @@ create_nestloop_node (best_path,tlist,clauses,
 	 */
 
 	List inner_indxqual = CAR (get_indxqual (inner_node));
-	List inner_qual = CAR (inner_indxqual);
+	List inner_qual = (inner_indxqual == LispNil)? LispNil:CAR (inner_indxqual);
 
 	/* If we have in fact found a join index qualification, remove these
 	 * index clauses from the nestloop's join clauses and reset the 
@@ -517,7 +526,7 @@ create_mergejoin_node (best_path,tlist,clauses,
 
      LispValue qpqual = 
        join_references (set_difference (clauses,
-					get_mergeclauses (best_path)),
+					get_path_mergeclauses (best_path)),
 			outer_tlist,
 			inner_tlist);
 
@@ -526,7 +535,7 @@ create_mergejoin_node (best_path,tlist,clauses,
       */
      
      LispValue mergeclauses = 
-       switch_outer (join_references (get_mergeclauses (best_path),
+       switch_outer (join_references (get_path_mergeclauses (best_path),
 				      outer_tlist,
 				      inner_tlist));
      RegProcedure opcode = 
@@ -564,7 +573,7 @@ create_mergejoin_node (best_path,tlist,clauses,
 	  inner_node = (Node)sorted_inner_node;
      }
 
-     join_node = MakeMergeSort (tlist,
+     join_node = make_mergesort (tlist,
 				qpqual,
 				mergeclauses,
 				opcode,
@@ -738,7 +747,7 @@ make_temp (tlist,keys,operators,plan_node,temptype)
 	 retval = (Temp)make_seqscan(tlist,
 				     LispNil,
 				     _TEMP_RELATION_ID_,
-				     MakeSort (temp_tlist,
+				     make_sort (temp_tlist,
 						_TEMP_RELATION_ID_,
 						plan_node,
 						length (keys)));
@@ -946,6 +955,55 @@ make_hash (tlist,tempid,lefttree, keycount)
 
     node->printFunc = PrintHash;
 /*    node->equalFunc = EqualHash;  */
+    node->equalFunc = NULL;
+    return(node);
+}
+
+MergeSort
+make_mergesort(tlist,qpqual,mergeclauses,opcode,righttree,lefttree)
+     LispValue tlist, qpqual,mergeclauses;
+     ObjectId opcode;
+     Plan righttree,lefttree;
+{
+    MergeSort node = CreateNode(MergeSort);
+    
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qpqual (node,qpqual);
+    set_qptargetlist (node,tlist);
+    set_lefttree(node,lefttree);
+    set_righttree(node,righttree);
+    set_mergeclauses(node,mergeclauses);
+    set_mergesortop(node,opcode);
+
+    node->printFunc = PrintMergeSort;
+    /* node->equalFunc = EqualMergeSort;  until function is defined */
+    return(node);
+
+}
+
+Sort
+make_sort (tlist,tempid,lefttree, keycount)
+     LispValue tlist;
+     Count keycount;
+     Plan lefttree;
+     ObjectId tempid;
+{
+    Sort node = CreateNode(Sort);
+
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qpqual (node,LispNil);
+    set_qptargetlist (node,tlist);
+    set_lefttree(node,lefttree);
+    set_righttree(node,LispNil);
+    set_tempid(node,tempid);
+    set_keycount(node,keycount);
+
+    node->printFunc = PrintSort;
+/*    node->equalFunc = EqualSort;  */
     node->equalFunc = NULL;
     return(node);
 }
