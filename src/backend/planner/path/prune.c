@@ -20,6 +20,7 @@
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
+#include "planner/internal.h"
 #include "planner/pathnode.h"
 #include "planner/prune.h"
 
@@ -49,7 +50,6 @@ prune_joinrels (rel_list)
      return(temp_list);
 
 }  /* function end  */
-
 
 /*    
  *    	prune-joinrel
@@ -133,6 +133,98 @@ prune_rel_paths (rel_list)
     }
 }  /* function end  */
 
+bool
+mergepath_contain_redundant_sorts(path)
+MergePath path;
+{
+    MergeOrder morder;
+    Path innerpath, outerpath;
+    List outerorder, innerorder;
+    List outerkeys, innerkeys;
+
+    morder = (MergeOrder)get_p_ordering(path);
+    outerpath = get_outerjoinpath(path);
+    outerorder = get_p_ordering(outerpath);
+    outerkeys = get_keys(outerpath);
+    if (outerorder && 
+	get_left_operator(morder) ==
+	(IsA(outerorder,MergeOrder)?get_left_operator(outerorder):
+	 CInteger(CAR(outerorder))) &&
+	get_outersortkeys(path) &&
+	outerkeys &&
+	CAR(outerkeys) &&
+	member(CAR(CAR(get_outersortkeys(path))),
+	      CAR(outerkeys)))
+	return true;
+    innerpath = get_innerjoinpath(path);
+    innerorder = get_p_ordering(innerpath);
+    innerkeys = get_keys(innerpath);
+    if (innerorder &&
+	get_right_operator(morder) ==
+	(IsA(innerorder,MergeOrder)?get_right_operator(innerorder):
+	 CInteger(CAR(innerorder))) &&
+	get_innersortkeys(path) &&
+	innerkeys &&
+	CAR(innerkeys) &&
+	member(CAR(CAR(get_innersortkeys(path))),
+	      CAR(innerkeys)))
+	return true;
+    return false;
+}
+
+bool
+path_contain_rotated_mergepaths(p1, p2)
+Path p1, p2;
+{
+    Path p;
+    if (p1 == NULL || p2 == NULL) return NULL;
+    if (IsA(p1,MergePath) && IsA(p2,MergePath)) {
+       if (equal(get_outerjoinpath(p1), get_innerjoinpath(p2)) &&
+           equal(get_innerjoinpath(p1), get_outerjoinpath(p2)))
+          return true;
+      }
+    if (IsA(p1,JoinPath) && IsA(p2,JoinPath)) {
+       return path_contain_rotated_mergepaths(get_outerjoinpath(p1),
+                                              get_outerjoinpath(p2)) ||
+              path_contain_rotated_mergepaths(get_innerjoinpath(p1),
+                                              get_innerjoinpath(p2));
+      }
+    return false;
+}
+
+bool
+path_contain_redundant_indexscans(path, order_expected)
+Path path;
+bool order_expected;
+{
+    if (IsA(path,MergePath)) {
+        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
+				!get_outersortkeys(path)) ||
+               path_contain_redundant_indexscans(get_innerjoinpath(path), 
+				!get_innersortkeys(path));
+      }
+    if (IsA(path,HashPath)) {
+        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
+						 false) ||
+               path_contain_redundant_indexscans(get_innerjoinpath(path), 
+						 false);
+      }
+    if (IsA(path,JoinPath)) {
+        if (!IsA(get_innerjoinpath(path),IndexPath) &&
+            !IsA(get_innerjoinpath(path),JoinPath) &&
+            length(get_relids(get_parent(get_innerjoinpath(path)))) == 1)
+           return true;
+        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
+						 order_expected) ||
+               path_contain_redundant_indexscans(get_innerjoinpath(path), 
+						 false);
+      }
+    if (IsA(path,IndexPath)) {
+        return lispNullp(get_indexqual(path)) && !order_expected;
+      }
+    return false;
+}
+
 /*    
  *    	prune-rel-path
  *    
@@ -164,6 +256,42 @@ prune_rel_path (rel,unorderedpath)
 	  set_unorderedpath (rel,unorderedpath);
 
      } 
+
+     if (testFlag) {
+	 LispValue x, y;
+	 Path path, path1;
+	 List newpathlist = LispNil;
+	 List prunelist = LispNil;
+	 List newlist;
+         foreach (x, get_pathlist(rel)) {
+	     path = (Path)CAR(x);
+	     if (IsA(path,MergePath)) {
+		 if (mergepath_contain_redundant_sorts(path))
+		 continue;
+	       }
+	     newpathlist = nappend1(newpathlist, path);
+	  }
+	 newlist = LispNil;
+	 foreach (x, newpathlist) {
+	     path = (Path)CAR(x);
+	     if (!path_contain_redundant_indexscans(path,
+				(length(get_relids(get_parent(path))) !=
+				 length(_query_relation_list_)))) {
+		 newlist = nappend1(newlist, path);
+	       }
+	   }
+	 newpathlist = newlist;
+	 foreach (x, newpathlist) {
+	     path = (Path)CAR(x);
+	     foreach (y, CDR(x)) {
+		 path1 = (Path)CAR(y);
+		 if (path_contain_rotated_mergepaths(path, path1))
+		     prunelist = nappend1(prunelist, path1);
+	       }
+	   }
+	 newpathlist = nset_difference(newpathlist, prunelist);
+	 set_pathlist(rel, newpathlist);
+       }
      
      return(cheapest);
 
