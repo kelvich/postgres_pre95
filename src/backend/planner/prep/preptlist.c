@@ -14,16 +14,19 @@
  *     		preprocess-targetlist
  */
 
-#include "planner/internal.h"
-#include "pg_lisp.h"
-#include "planner/preptlist.h"
-#include "lsyscache.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 #include "tags.h"
-#include "parse.h"
+
+#include "parser/parse.h"
+#include "utils/lsyscache.h"
+
+#include "planner/internal.h"
+#include "planner/preptlist.h"
+
 
 extern LispValue number_list();  /* XXX should #include temp.h in l-lisp */
 

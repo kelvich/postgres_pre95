@@ -14,15 +14,17 @@
  *      EXPORTS
  *     		create-or-index-paths
  */
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+
+#include "tmp/nodeFuncs.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/clauses.h"
 #include "planner/orindxpath.h"
-#include "nodeFuncs.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
 #include "planner/costsize.h"
 #include "planner/cfi.h"
 
