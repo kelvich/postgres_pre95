@@ -403,10 +403,15 @@ MakeFromClause ( from_list, base_rel )
     List i = NULL;
     List j = NULL;
     List flags = NULL;
+    bool IsConcatenation = false;
+
     /* from_list will be a list of strings */
     /* base_rel will be a wierd assortment of things, 
        including timerange, inheritance and union relations */
 
+    if ( length ( base_rel ) > 1 ) {
+	IsConcatenation = true;
+    }
     elog(NOTICE, "the pseudo relations are:");
     lispDisplay ( from_list , 0 );
     elog(NOTICE, "the real relations are:");
@@ -425,6 +430,9 @@ MakeFromClause ( from_list, base_rel )
 
 	    flags = lispCons(lispInteger(0),LispNil);
 
+	    if ( IsConcatenation == true ) {
+		flags = nappend1(flags, lispAtom("union"));
+	    }
 	    if ( ! null ( CADDR(x))) {
 		flags = nappend1(flags, lispAtom("inherits"));
 	    }
