@@ -1,4 +1,4 @@
-.\" This is -*-nroff-*- with tbl and -me macros
+.\" This is -*-nroff-*- with eqn, tbl and -me macros
 .\" 
 .\" POSTGRES Data Base Management System
 .\" 
@@ -27,7 +27,7 @@
 .\" $Header$
 .\" 
 .\" ----------------------------------------------------------------
-.he '\*(dA'DRAFT'\*(tI'		\" comment out in production version
+.\" .he '\*(dA'DRAFT'\*(tI'		\" comment out in production version
 .\"------------------------------------
 .de cW					\" arg3arg1arg2, constant-width arg1
 \&\\$3\\fC\\$1\\fP\\$2
@@ -88,18 +88,38 @@
 .nr ps 0.3v
 .nr ss 1v
 .\"-----------------
-.fo ''\\s+2%\\s0''			\" +2-pt page numbers in center footers
+.fo ''\\s+1%\s0''			\" page numbers in center footers
 .\"-----------------
 .nr $i .5i				\" main text indented
 .nr so -\n($i				\" section headers un-indented
-.\"------------------------------------
+.\"-----------------
 .rm xX					\" scratch register
+.\"-----------------
+.de HL
+.in -\n($i
+.b
+.hl
+.r
+.in +\n($i
+..
+.\"-----------------
+.de $1
+.sp 2
+.sz \n(.s+8
+..
+.\"-----------------
+.EQ
+delim @@
+.EN
 .\"------------------------------------
 .\"!Gexpand
 .\"---------------------------------------------------------------------------
+.lp
+\&
+.sp 10
 .(l C
 .b
-\s+3The \*(PP User Manual\s0
+\s+8The \*(PP User Manual\s-8
 .sp 2
 .i
 Edited by the \*(PP Group
@@ -108,16 +128,49 @@ University of California at Berkeley
 .r
 .)l
 .sp 3
+.(f
+\*(PP is copyright \(co 1989, 1994 by the Regents of the University of
+California.  Permission to use, copy, modify, and distribute this
+software and its documentation for educational, research, and
+non-profit purposes and without fee is hereby granted, provided that
+the above copyright notice appear in all copies and that both that
+copyright notice and this permission notice appear in supporting
+documentation, and that the name of the University of California not
+be used in advertising or publicity pertaining to distribution of the
+software without specific, written prior permission.  Permission to
+incorporate this software into commercial products can be obtained
+from the Campus Software Office, 295 Evans Hall, University of
+California, Berkeley, Ca., 94720.  The University of California makes
+no representations about the suitability of this software for any
+purpose.  It is provided
+.q "as is"
+without express or implied warranty.
+.)f
 .\"---------------------------------------------------------------------------
+.bp
+.HL
 .sh 1 "INTRODUCTION"
+.HL
 .lp
-This document is the user manual for the \*(PP database system under
-development at the University of California at Berkeley.  This
-project, led by Professor Michael Stonebraker, is sponsored by the
-Defense Advanced Research Projects Agency (DARPA), the Army Research
-Office (ARO), the National Science Foundation (NSF), and ESL, Inc.
+This document is the user manual for the \*(PP database management
+system developed at the University of California at Berkeley.  This
+project, led by Professor Michael Stonebraker, has been sponsored by
+the Defense Advanced Research Projects Agency (DARPA), the Army
+Research Office (ARO), the National Science Foundation (NSF), and ESL,
+Inc.
+.lp
+The first part of this manual goes over some basic system concepts and
+procedures for starting the \*(PP system.  We then turn to a tutorial
+overview of the \*(PQ data model and query language, introducing a few
+of its advanced features.  Next, we explain the \*(PP approach to
+extensibility and describe how users can extend \*(PP by adding
+user-defined types, operators, aggregates, and both query language and
+programming language functions.  After an extremely brief overview of
+the \*(PP rule system, the manual concludes with a detailed appendix
+that discusses some of the more involved and operating system-specific
+procedures involved in extending the system.
 .\"------------------------------------
-.sh 2 "An Overview of \*(PP"
+.sh 2 "What is \*(PP?"
 .lp
 Traditional relational database management systems (DBMSs) support a
 data model consisting of a collection of named relations, each
@@ -142,36 +195,63 @@ functions
 in such a way that users can easily extend the system.  In addition,
 \*(PP supports a powerful production rule system.
 .\"------------------------------------
-.sh 2 "Status of the \*(PP Project"
+.sh 2 "A Short History of the \*(PP Project"
 .lp
-The \*(PP DBMS has been under construction since 1986.  The initial
-concepts for the system were presented in [STON86] and the definition
-of the initial data model appeared in [ROWE87].  The first rule system
-that was implemented is discussed in [STON87a] and the storage manager
-concepts are detailed in [STON87b].  The first
+Implementation of the \*(PP DBMS began in 1986.  The initial concepts
+for the system were presented in [STON86] and the definition of the
+initial data model appeared in [ROWE87].  The design of the rule system 
+at that time was described in [STON87a].  The rationale and
+architecture of the storage manager were detailed in [STON87b].
+.lp
+\*(PP has undergone several major releases since then.  The first
 .q demo-ware
-was operational in 1987, and we released Version 1 of \*(PP to a few
-external users in June 1989.  A critique of the first rule system
-followed in [STON89].  A detailed description of Version 1 of \*(PP
-appeared in [STON90a].  Version 2 was released in June 1990 and
-included the new rule system documented in [STON90b].  Version \*(PV,
-the current version of \*(PP, is about 200,000 lines of code in the C
-programming language.  \*(PP is available free of charge, and is being
-used by approximately 500 sites around the world.
+system became operational in 1987 and was shown at the 1988 ACM-SIGMOD
+Conference.  We released Version 1, described in [STON90a], to a few
+external users in June 1989.  In response to a critique of the first
+rule system [STON89], the rule system was redesigned [STON90b] and
+Version 2 was released in June 1990 with the new rule system.  Version
+3 appeared in 1991 and added support for multiple storage managers, an
+improved query executor and a rewritten rewrite rule system.  For the
+most part, releases since then have focused on portability and
+reliability.
 .lp
-This manual describes Version \*(PV of \*(PP.  The \*(PP Group has
+\*(PP has been used to implement many different research and
+production applications.  These include: a financial data analysis
+system, a jet engine performance monitoring package, an asteroid
+tracking database, a medical informatics database and several
+geographic information systems.  \*(PP has also been used as an
+educational tool at several universities.  Finally, at least two
+companies (Multimedia Information Systems and Montage Software) have
+picked up the prototype code and commercialized it.
+.lp
+\*(PP became the primary data manager for the Sequoia 2000 scientific
+computing project in late 1992.  Furthermore, the size of the external
+user community nearly doubled during 1993.  It became increasingly
+obvious that maintenance of the prototype code and support was taking
+up large amounts of time that should have been devoted to database
+research.  In an effort to reduce this support burden, the project
+officially ended with Version 4.2.
+.\"------------------------------------
+.sh 2 "About This Release"
+.lp
+Version \*(PV, the current version of \*(PP, is about 200,000 lines of
+code in the C programming language.  \*(PP is available free of
+charge, and (as of this writing) has been installed by approximately
+600 sites around the world.
+.lp
+This manual describes Version \*(PV of \*(PP.  The \*(PP group has
 compiled and tested Version \*(PV on the following platforms:
 .TS
-center tab(|);
-c | c
-l | l .
-architecture (processor)|operating system
+box center tab(|);
+c|c|c
+l|l|l.
+architecture|processor|operating system
 =
-DECstation 3000 (Alpha AXP)|OSF/1 1.3
-DECstation 3100 and 5000 (MIPS)|ULTRIX 4.2, 4.3a
-Sun4 (SPARC)|SunOS 4.1.2, 4.1.3
-H-P 9000/700 (PA-RISC)|HP-UX 9.01
-IBM RS/6000 (POWER)|AIX 3.2.3
+DECstation 3000|Alpha AXP|OSF/1 1.3
+DECstation 3100 and 5000|MIPS|ULTRIX 4.2, 4.3A
+Sun4|SPARC|SunOS 4.1.3
+H-P 9000/700 and 800|PA-RISC|HP-UX 9.00, 9.01
+IBM RS/6000|POWER|AIX 3.2.5
 .TE
 .(f
 \*(UU is a trademark of Unix Systems Laboratories.  Sun4, SPARC, SunOS
@@ -179,90 +259,45 @@ and Solaris are trademarks of Sun Microsystems, Inc.  DEC, DECstation,
 Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
 PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
 POWER and AIX are trademarks of International Business Machines Corp.
-OSF/1 is a trademark of the Open Systems Foundation.
+OSF/1 is a trademark of the Open Systems Foundation.  NeXTSTEP is a
+trademark of NeXT Computer, Inc.  MIPS and IRIX are trademarks of
+Silicon Graphics, Inc.
 .)f
 Previous versions of \*(PP ran on Sun Microsystems Sun3 and Sequent
 Symmetry machines.  \*(PP no longer runs on these systems, nor does it
-run on Sun Microsystems computers running the Solaris 2 (SunOS 5)
-operating system.
+currently run on Sun Microsystems computers running the Solaris 2
+(SunOS 5) operating system.  Outside users have ported previous
+releases of \*(PP to many platforms, including 
+.sm NeXTSTEP ,
+Solaris 2.2, IRIX, Intel System V Release 4, Linux and NetBSD.
 .lp
 Version \*(PV has been tuned modestly.  On the Wisconsin benchmark,
 one should expect performance about twice that of the public domain,
 University of California version of \*(II, a relational prototype from
 the late 1970s.
-.\"------------------------------------
-.sh 2 "Acknowledgements"
-.lp
-\*(PP has been constructed by a team of undergraduate,
-graduate, and staff programmers.
-The contributors (in alphabetical order) include:
-Jeff Anton,
-Paul Aoki,
-James Bell,
-Jennifer Caetta,
-Philip Chang,
-Jolly Chen,
-Ron Choi,
-Bob Devine,
-Matt Dillon,
-Zelaine Fong,
-Adam Glass,
-Jeffrey Goh,
-Steven Grady,
-Serge Granik,
-Marti Hearst,
-Joey Hellerstein,
-Michael Hirohama,
-Chin-heng Hong,
-Wei Hong,
-Anant Jhingran,
-Greg Kemnitz,
-Case Larsen,
-Boris Livshitz,
-Jeff Meredith,
-Michael Olson,
-Nels Olson,
-Lay-Peng Ong,
-Carol Paxson,
-Avi Pfeffer,
-Spyros Potamianos,
-Sunita Sarawagi,
-David Muir Sharnoff,
-Cimarron Taylor,
-Marc Teitelbaum,
-Yongdong Wang,
-Kristin Wright
-and
-Andrew Yu.
-The HP-UX port is courtesy of Richard Turnbull (University of
-Liverpool) and Sebastian Fernandez (University of California at
-Berkeley).  The initial AIX port was performed by Rafael Morales
-Gamboa (ITESM Campus Morelos, Cuernavaca).
-.lp
-For version \*(PV, Marc Teitelbaum served as chief programmer and was
-responsible for overall coordination of the project.
-.lp
-This manual is a substantial rewrite of a previous version edited by
-Jon Rhein and Greg Kemnitz.  The above implementation team contributed
-significantly to this manual and its predecessor, as did Michael
-Stonebraker, Chandra Ghosh and Claire Mosher.
 .\"---------------------------------------------------------------------------
+.bp
+.HL
 .sh 1 "WHAT YOU SHOULD READ"
+.HL
 .lp
 This manual is primarily intended to provide a broad overview of the
-system, as well as to illustrate how programmers would use functions
-to interact with the \*(PP database server (commonly referred to as
-the
+system, as well as to illustrate how C programmers can tie their own
+code into the \*(PP database server (commonly referred to as the 
+.i "backend server" ,
+or simply
 .q backend ).
 .lp
 In addition to this manual, there is another document, the \*(PP
-Reference Manual.  The Reference Manual fully describes the syntax and
-options for each command in a format similar to that used in \*(UU
+Reference Manual.  The Reference Manual gives full descriptions of the
+syntax and options for each command in a format not unlike \*(UU
 .q "man pages."
-The Reference Manual is designed as a complete reference for the
-experienced \*(PP user and contains few tutorial examples.  This
-manual does not attempt to provide all of the information that the
-Reference Manual provides.  Instead, this manual describes the major
+(In fact, the contents of the Reference Manual should be available
+on-line as actual man pages.)  However, the Reference Manual is
+designed as a complete reference for the experienced \*(PP user and
+contains few tutorial examples.  This User Manual does not attempt to
+provide all of the information that the Reference Manual provides.
+Instead, it describes the major
 .i concepts
 of the system, gives
 .i examples
@@ -275,48 +310,165 @@ If you are new to \*(PP, you should probably read this manual first,
 followed by the parts of the \*(PP Reference Manual necessary to build
 your application.  In particular, you should read the Reference Manual
 section on \*(LP if you intend to build a client application around
-\*(PP, as this is not discussed at all in this manual.
-.\"---------------------------------------------------------------------------
-.sh 1 "ORGANIZATION"
+\*(PP, as that library is not discussed in this manual.
 .lp
-The first part of this manual goes over some basic system concepts and
-procedures for starting the \*(PP system.  We then turn to an overview
-of the \*(PQ query language.  Next, we describe user extensions such
-as user-defined types, operators, aggregates, and both query language
-and programming language functions.  This is followed by an extremely
-brief overview of the \*(PP rule system.  The manual concludes with a
-series of detailed appendices that discuss some of the more involved
-procedures involved in extending the system, such as adding an
-operator class to \*(PP for use in access methods.
+If you are not already familiar with relational databases, you should
+probably find a good introductory text on the subject.  This manual
+assumes that you already have some knowledge of the relational model,
+and it doesn't hurt to know a query language such as QUEL or SQL.
 .\"---------------------------------------------------------------------------
-.sh 1 "GETTING STARTED WITH \*(PP"
+.bp
+.HL
+.sh 1 "POSTGRES ARCHITECTURE CONCEPTS"
+.HL
+.(z
+.hl
+.PSPIC manual-arch.eps 4i 3.88930i
+.sp
+.(c
+\fBFigure 1\fP.  How a connection is established.
+.)c
+.hl
+.)z
 .lp
-In the discussion that follows, examples that begin with the character
+Before we continue, you should understand the basic \*(PP system
+architecture.  Understanding how the parts of \*(PP interact will make
+the next chapter somewhat clearer.
+.lp
+In database jargon, \*(PP uses a simple 
+.q "process-per-user"
+client/server model.  A \*(PP session consists of three cooperating
+\*(UU processes (programs):
+.bu
+A supervisory daemon process (the
+.cW postmaster ),
+.bu
+the user's frontend application (e.g., the 
+.cW monitor
+program), and
+.bu
+the backend database server (the
+.cW postgres
+process itself).
+.lp
+A single
+.cW postmaster
+manages a given collection of 
+.i databases
+on a single host.  Such a collection of databases is called an
+.i installation
+or 
+.i site .
+Frontend applications that wish to access a given database within an
+installation make calls to the \*(LP library.  The library forwards
+the user requests over the network to the
+.cW postmaster
+(Figure 1(a)), which in turn starts a new backend server process
+(Figure 1(b)) and connects the frontend process to its server (Figure
+1(c)).  From that point on, the frontend process and the backend
+server communicate without intervention by the
+.cW postmaster .
+Hence, the
+.cW postmaster
+is always running, waiting for requests, whereas the frontend and
+backend processes come and go.
+.lp
+One implication of this architecture is that the
+.cW postmaster
+and the backend always run on the same machine (the database server),
+while the frontend application may or may not be running on a
+separate machine (e.g., a client workstation).  You should keep this
+in mind, because this means that the files that you can access on your
+machine may not be accessible (or may only be accessed using a
+different filename) on the database server machine.
+.lp
+You should also be aware that the 
+.cW postmaster
+and the
+.cW postgres
+server run with the user-id of the \*(PP 
+.q superuser.
+Note that the \*(PP superuser does not have to be a special user
+(e.g., a user named 
+.q postgres ).
+Furthermore, the \*(PP superuser should definitely not be the \*(UU
+superuser,
+.q root !
+In any case, all files relating to a database should belong to this
+\*(PP superuser.
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "GETTING STARTED WITH POSTGRES"
+.HL
+.lp
+Before you can start learning the \*(PQ query language, you need to
+have a working \*(PP system.  This section discusses how to start
+\*(PP and set up your own environment so that you can use frontend
+applications.
+.lp
+Some of the steps listed in this section will apply to all \*(PP
+users, and some will apply primarily to the site database
+administrator.  This
+.i "site administrator"
+is the person who installed the software, created the database
+directories and started the
+.cW postmaster
+process.  This person does not have to be the \*(UU superuser, 
+.q root,
+or the computer system administrator.
+.lp
+In this section, items for end users are labelled
+.q User
+and items intended for the site administrator are labelled
+.q Admin.
+.lp
+Throughout this manual, any examples that begin with the character
 .cW "%" '' ``
 are commands that should be typed at the \*(UU shell prompt.  Examples
 that begin with the character
 .cW "*" '' ``
 are commands in the \*(PP query language, \*(PQ.
 .\"------------------------------------
-.sh 2 "Installing \*(PP"
+.sh 2 "Admin: Installing \*(PP"
 .lp
-Installation instructions can be found in the \*(PP source code
-distribution.  The 
+Detailed installation instructions can be found in the \*(PP source
+code distribution.  The
 .cW troff
 source is located in the file
-.cW src/doc/postgres-setup.me .
-Those instructions vary from release to release and will not be
-duplicated here.  However, if you are installing \*(PP now, you 
-.i must
-read these instructions and carry them out before going any further.
-.\"------------------------------------
-.sh 2 "Setting Up Your Environment"
+.cW src/doc/postgres-setup.me 
+and a formatted version is located at the top of the distribution
+directory tree.  Those instructions vary from release to release and
+will not be duplicated here.  However, if you are installing \*(PP
+now, you must read these instructions and carry them out before going
+any further.
 .lp
-In the examples that follow, we will assume that \*(PP has been
+A reminder: don't run the regression tests as the 
+.q postgres
+user.  Part of the test is a check of the \*(PP security mechanisms
+that turns off superuser permissions.  If you run the test as 
+.q postgres,
+you may not be able to add users later.
+.\"------------------------------------
+.sh 2 "Admin/User: Setting Up Your Environment"
+.(z
+.hl
+.PSPIC manual-files.eps 6i 2.36196i
+.sp
+.(c
+\fBFigure 2\fP.  \*(PP file layout.
+.)c
+.hl
+.)z
+.lp
+Figure 2 shows how the \*(PP distribution is laid out when installed
+in the default way.  The system can be installed such that the various
+top-level directories can be scattered around your disks, but for the
+sake of simplifying this manual we will assume that this is not the
+case.  In the examples that follow, we will assume that \*(PP has been
 installed in the directory
-.cW /usr/local/postgres
-with the default settings.  In practice, \*(PP can be installed
-anywhere you like.  Throughout this document, wherever you see
+.cW /usr/local/postgres .
+Therefore, wherever you see the directory
 .cW /usr/local/postgres
 you should substitute the name of the directory where \*(PP is
 actually installed.
@@ -331,7 +483,7 @@ or
 .cW tcsh ,
 you would put
 .(C
-set path = ( /usr/local/postgres/bin $path )
+% set path = ( /usr/local/postgres/bin $path )
 .)C
 in the
 .cW .login
@@ -343,8 +495,8 @@ or
 .cW bash ,
 then you would put
 .(C
-PATH=/usr/local/postgres/bin:$PATH
-export PATH
+% PATH=/usr/local/postgres/bin:$PATH
+% export PATH
 .)C
 in the
 .cW .profile 
@@ -361,64 +513,13 @@ throughout this document.  If you did not fully understand the last
 paragraph on modifying your search path, you should consult the \*(UU
 manual pages that describe your user shell before going any further.
 .\"------------------------------------
-.sh 2 "Starting the Postmaster"
+.sh 2 "Admin: Starting the Postmaster"
 .lp
-Before we continue, you should understand the basic \*(PP system
-architecture.  A \*(PP session consists of three cooperating \*(UU
-processes:
-.bu
-the postmaster
-.cW postmaster ), (
-.bu
-the frontend application, such as the terminal monitor
-.cW monitor ), (
-and
-.bu
-the backend database server
-.cW postgres ). (
-.lp
-A single
-.cW postmaster
-process manages a given collection of 
-.i databases .
-Such a collection of databases is called an
-.i installation .
-Frontend applications that wish to access a given database within an
-installation send their requests over the network to the 
-.cW postmaster ,
-which in turn connects each frontend application to a backend server
-that responds to its queries.  Hence, the
-.cW postmaster
-runs all the time, waiting for requests, while the frontend and
-backend processes come and go.  Another implication of this
-architecture is that the
-.cW postmaster
-and the backend always run on the same machine (the database server),
-while the frontend application may or may not be running on a
-separate machine (e.g., a client workstation).
-.lp
-It should be clear from the preceding paragraph that nothing can
+It should be clear from the preceding discussion that nothing can
 happen to a database unless the
 .cW postmaster
-process is running.  If you get the following error message from a
-\*(PP command (such as
-.cW monitor
-or
-.cW createdb ):
-.(C
-FATAL: StreamOpen: connect() failed: errno=61
-FATAL: Failed to connect to postmaster (host=xxx, port=4321)
-        Is the postmaster running?
-.)C
-it is usually because the
-.cW postmaster
-is not running.  Therefore, your local \*(PP site administrator should
-ensure that the
-.cW postmaster
-is running at all times.
-.lp
-If you are the site administrator, there are a number of things you
-should remember before starting the
+process is running.  As the site administrator, there are a number of
+things you should remember before starting the
 .cW postmaster .
 These are discussed in the section of this manual titled,
 .q "Administering \*(PP."
@@ -429,19 +530,41 @@ you should need to start the
 .(C
 % postmaster &
 .)C
-If the 
+If the
 .cW postmaster
 does not start, but instead prints a series of cryptic error messages,
 you should consult the Reference Manual under the heading
 .b postmaster .
 This manual page contains troubleshooting tips.
+.lp
+The 
+.cW postmaster
+occasionally prints out messages to the shell that started it.  This
+is often helpful during troubleshooting.  If you do not wish to see
+these messages, you can type
+.(C
+% postmaster -S
+.)C
+and the 
+.cW postmaster
+will be \*(lqS\*(rqilent.  Notice that there is no ampersand
+(\*(lq&\*(rq) at the end of the last example.
 .\"------------------------------------
-.sh 2 "Starting Applications"
+.sh 2 "Admin: Adding Users"
+.lp
+The
+.cW createuser
+command enables specific users to access \*(PP.  Please read the
+descriptions of these commands in the Reference Manual for specific
+instructions on their use.
+.\"------------------------------------
+.sh 2 "User: Starting Applications"
 .lp
 Assuming that your site administrator has properly started the 
 .cW postmaster
-process, you (as a user) may begin to start up applications.  As
-previously mentioned, you should add 
+process and authorized you to use the database, you (as a user) may
+begin to start up applications.  As previously mentioned, you should
+add
 .cW /usr/local/postgres/bin 
 to your shell search path.  In most cases, this is all you should have
 to do in terms of preparation.\**
@@ -459,17 +582,36 @@ an application program and it complains that it cannot connect to the
 you should immediately consult your site administrator to make sure
 that your environment is properly set up.
 .)f
-.\"---------------------------------------------------------------------------
-.sh 1 "USING THE \*(PQ QUERY LANGUAGE"
 .lp
-\*(PQ is the query language used for interacting with \*(PP.  In this
-section, we give an overview of how to use \*(PQ to access data.  The
-next section will discuss ways in which ordinary users can extend
-\*(PQ.
+If you get the following error message from a
+\*(PP command (such as
+.cW monitor
+or
+.cW createdb ):
+.(C
+FATAL: StreamOpen: connect() failed: errno=61
+FATAL: Failed to connect to postmaster (host=xxx, port=4321)
+        Is the postmaster running?
+.)C
+it is usually because (1) the
+.cW postmaster
+is not running, or (2) you are attempting to connect to the wrong
+server host.
+.lp
+If you get the following error message:
+.(C
+FATAL 1:Feb 17 23:19:55:process userid (2360) != 
+  database owner (268)
+.)C
+it means that the site administrator started the 
+.cW postmaster
+as the wrong user.  Tell him to restart it as the \*(PP superuser.
 .\"------------------------------------
-.sh 2 "Managing a Database"
+.sh 2 "User: Managing a Database"
 .lp
-Here, we describe a few basic commands for managing a database.
+Now that \*(PP is up and running we can make some databases with which
+to experiment.  Here, we describe the basic commands for managing a
+database.
 .\"------------------------------------
 .sh 3 "Creating a Database"
 .lp
@@ -480,10 +622,12 @@ You can do this with the following command:
 % createdb foo
 .)C
 \*(PP allows you to create any number of databases at a given site and
-you automatically become the database administrator of the database
-just created.  Database names must have an alphabetic first character
-and are limited to 16 characters in length.
+you automatically become the 
+.i "database administrator"
+of the database just created.  Database names must have an alphabetic
+first character and are limited to 16 characters in length.
 .lp
+Not every user has authorization to become a database administrator.
 If \*(PP refuses to create databases for you, then the site
 administrator needs to grant you permission to create databases.
 Consult your site administrator if this occurs.
@@ -506,8 +650,9 @@ Manual.
 .bu
 You can use the
 .i "fast path"
-facility, which allows you to directly execute functions stored in the
-This facility is (minimally) described in the Reference Manual under
+facility, which allows you to execute functions within the server
+program itself.  This facility is (minimally) described in the
+Reference Manual under
 .q "Fast Path."
 .lp
 This manual will only discuss access through the terminal monitor.
@@ -527,22 +672,31 @@ Go
 .)C
 This prompt indicates that the terminal monitor is listening to you
 and that you can type \*(PQ queries into a workspace maintained by the
-terminal monitor.  White space (i.e., spaces, tabs and newlines) may
-be used freely in \*(PQ queries.  You may view the current contents of
-the workspace by typing:
+terminal monitor.
+.lp
+The 
+.cW monitor
+program responds to escape codes that begin with the backslash
+character, \*(lq\e\*(rq.  For example, you
+.cW p rint
+the current contents of the workspace by typing:
 .(C
-* \\p
+* \ep
 .)C
 Once you have finished entering your queries into the workspace, you
 can pass the contents of the workspace to the \*(PP server by typing:
 .(C
-* \\g
+* \eg
 .)C
+This tells the server to
+.cW g o.
 If you make a typing mistake, you can invoke the
 .cW vi
-text editor by typing:
+text 
+.cW e ditor
+by typing:
 .(C
-* \\e
+* \ee
 .)C
 The workspace will be passed to the editor, and once you exit
 .cW vi ,
@@ -557,7 +711,25 @@ To get out of the monitor and return to \*(UU, type
 .)C
 and 
 .cW monitor
-will return you to your command shell.
+will 
+.cW q uit
+and return you to your command shell.
+.lp
+There are two other things that 
+.cW monitor
+understands that make it easier to write nice-looking scripts.  First,
+white space (i.e., spaces, tabs and newlines) may be used freely in
+\*(PQ queries.  Second, comments that look like those used in the C
+programming language, e.g.,
+.(C
+/* This is a comment. */
+.)C
+may also be used in your queries.  Beware: you cannot comment out an
+escape code.  In other words, this doesn't work as you might expect:
+.(C
+/* I don't want to send this!\eg  */
+retrieve (message = "but I want to send this!") \eg
+.)C
 .lp
 For a complete description of the
 .cW monitor
@@ -575,10 +747,38 @@ you can destroy it using the following \*(UU command:
 This action physically removes all of the \*(UU files associated with
 the database and cannot be undone, so this should only be done with a
 great deal of forethought.
-.\"------------------------------------
-.sh 2 "Basic Use of the \*(PQ Query Language"
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "THE POSTQUEL QUERY LANGUAGE"
+.HL
+.lp
+\*(PQ is the \*(PP query language.  \*(PQ was derived from the
+.sm QUEL
+language developed by the University of California
+.sm INGRES
+project, but the two languages are different in many ways.  This
+section provides an overview of how to use the more
+.sm QUEL -like
+features of \*(PQ to perform simple operations.
+.lp
+In the examples that follow, we assume that you have created the
+.cW foo
+database as described in the previous subsection and have started the
+terminal monitor.
+.lp
+Before you start reading, take a look at the directory
+.cW /usr/local/postgres/src/examples .
+This directory contains all of the \*(PQ queries listed in this manual
+(the ones that aren't examples of things that don't work, that is)
+broken down by chapter.  Instead of typing the queries below into the
+.cW monitor
+program, you can just cut and paste out of the appropriate file or use
+the
+.cW \ei 
+command at the terminal monitor.
 .\"-----------------
-.sh 3 "Concepts"
+.sh 2 "Concepts"
 .lp
 The fundamental notion in \*(PP is that of a
 .i class,
@@ -588,23 +788,18 @@ Each instance has the same collection of named
 .i attributes ,
 and each attribute is of a specific
 .i type .
-Furthermore, each instance has an installation-wide unique, permanent
+Furthermore, each instance has a permanent
 .i "object identifier"
-(OID).
+(OID) that is unique throughout the installation.
 .lp
 As previously discussed, classes are grouped into databases, and a
 collection of databases managed by a single
 .cW postmaster
-process constitutes an installation.
+process constitutes an installation or site.
 .\"-----------------
-.sh 3 "Creating a New Class"
+.sh 2 "Creating a New Class"
 .lp
-In the examples that follow, we assume that you have created the
-.cW foo
-database as described in the previous subsection and have started the
-terminal monitor.
-.lp
-A user can create a new class by specifying the class name, along with
+You can create a new class by specifying the class name, along with
 all attribute names and their types:
 .(C
 * create EMP (name = text, salary = int4,
@@ -624,18 +819,25 @@ and a fixed-length array of 16 characters
 So far, the \*(PP
 .b create
 command looks exactly like the command used to create a table in a
-traditional relational system.  However, we will presently see that
-classes have properties that are extensions of the relational model,
-so we use a different word to describe them.
+traditional relational system.  This exact syntax was used in
+.sm QUEL ,
+the original
+.sm INGRES
+query language.  However, we will presently see that classes have
+properties that are extensions of the relational model, so we use a
+different word to describe them.
 .\"-----------------
-.sh 3 "Populating a Class with Instances"
+.sh 2 "Populating a Class with Instances"
 .\" we refer to this later
-.ds xX \n($1.\n($2.\n($3
+.ds xX \n($1.\n($2
 .lp
-To populate a class with instances, one can use the
+The 
 .b append
-command:
+command is used to populate a class with instances:
 .(C
+* append EMP (name = "Claire", salary = 2000,
+              age = 40, dept = "shoe") \\g
+
 * append EMP (name = "Joe", salary = 1400,
               age = 40, dept = "shoe") \\g
 
@@ -644,25 +846,51 @@ command:
 
 * append EMP (name = "Bill", salary = 1600,
               age = 36, dept = "candy") \\g
+
+* append DEPT (dname = "shoe", floor = 5, 
+               manager = "Claire") \\g
+
+* append DEPT (dname = "toy", floor = 3, 
+               manager = "Sam") \\g
+
+* append DEPT (dname = "candy", floor = 4, 
+               manager = "(None)") \\g
 .)C
-This will add 3 instances to the
+This adds four instances to the
 .cW EMP 
-class,
-one for each
+class, one for each
 .b append
 command.
+.lp
+You can also use the
+.b copy
+command to perform load large amounts of data from flat (ASCII) files.
+See the Reference Manual under 
+.b copy
+for details.
 .\"-----------------
-.sh 3 "Querying a Class"
+.sh 2 "Querying a Class"
 .lp
 The
 .cW EMP
-class can be queried with normal selection and projection queries.
-For example, to find the employees under 35 years of age, one would
-type:
+class can be queried with normal relational selection and projection
+queries.  The \*(PQ equivalent of the
+.sm SQL
+.b select
+statement is 
+.b retrieve .
+As in 
+.sm SQL ,
+the statement is divided into a
+.i "target list"
+(the part that lists the attributes to be returned) and a
+.i "qualification"
+(the part that specifies any restrictions).  For example, to find the
+employees under 35 years of age, type:
 .(C
 * retrieve (EMP.name) where EMP.age < 35 \\g
 .)C
-and the output would be:
+and the output should be:
 .(T
 .TS
 allbox;
@@ -671,37 +899,90 @@ name
 Sam
 .TE
 .)T
-Notice that parentheses are required around the
-.i "target list"
-of returned attributes
-(e.g.,
-.cW EMP.name .)
+Note that, unlike
+.sm SQL ,
+parentheses are required around the target list,
+.cW EMP.name .
 .lp
 \*(PQ allows you to return arbitrary computations in the target list
-as long as they are given a name (e.g.,
-.cW result ):
+as long as they are given some kind of name:
 .(C
 * retrieve (result = EMP.salary / EMP.age)
       where EMP.name = "Bill" \\g
 .)C
-.\"-----------------
-.sh 3 "Redirecting Retrieve Queries"
+.(T
+.TS
+allbox;
+l.
+result
+44
+.TE
+.)T
+In this case, we divided Bill's salary by his age and called the
+result
+.cW result .
+(Of course, the answer is really 44 @4 over 9@, but division of two
+integers produces another integer so the fraction is lost.).
 .lp
-Any 
-.b retrieve
-query can be redirected to a new class in the database, and arbitrary
-Boolean operators
+Arbitrary Boolean operators
 .b and , (
 .b or
 and
 .b not )
-are allowed in the qualification of any query:
+are allowed in the qualification of any query.  For example,
+.(C
+* retrieve (EMP.all) 
+      where EMP.age < 30
+         or not EMP.name = "Joe" \\g
+.)C
+.(T
+.TS
+allbox;
+l l l l.
+name	salary	age	dept
+Claire	2000	36	shoe
+Sam	1200	29	toy
+Bill	1600	36	candy
+.TE
+.)T
+.lp
+As a final note, you can specify that the results of a
+.b retrieve
+can be returned in a sorted order or with duplicate instances removed.
+See the Reference Manual under
+.b retrieve
+for more information.
+.\"-----------------
+.sh 2 "Redirecting Retrieve Queries"
+.lp
+Any 
+.b retrieve
+query can be redirected to a new class in the database:
 .(C
 * retrieve into temp (EMP.name)
       where EMP.age < 35 and EMP.salary > 1000 \\g
 .)C
+This executes an implicit
+.b create
+command, creating a new class
+.cW temp
+with the attribute names and types specified in the target list of the
+.b "retrieve into"
+command.  We can then, of course, perform any operations on the
+resulting class that we can perform on other classes.
+.(C
+* retrieve (temp.all) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+name
+Sam
+.TE
+.)T
 .\"-----------------
-.sh 3 "Joins Between Classes"
+.sh 2 "Joins Between Classes"
 .lp
 Thus far, our queries have only accessed one class at a time.  Queries
 can access multiple classes at once, or access the same class in such
@@ -730,7 +1011,16 @@ We can do this with the following query:
       from E1 in EMP, E2 in EMP
       where E1.age = E2.age and E1.name != E2.name \\g
 .)C
-In this case both 
+.(T
+.TS
+allbox;
+l l.
+name	name
+Bill	Claire
+Claire	Bill
+.TE
+.)T
+In this case, both
 .cW E1
 and
 .cW E2
@@ -766,9 +1056,9 @@ statement.  See the Reference Manual under
 for more details. 
 .)f
 .\"-----------------
-.sh 3 "Updates"
+.sh 2 "Updates"
 .lp
-Updates are accomplished in \*(PQ using the
+You can update existing instances using the
 .b replace
 command:
 .(C
@@ -786,9 +1076,9 @@ as one range variable and a surrogate name for
 .cW E '') (``
 as another range variable.
 .\"-----------------
-.sh 3 "Deletions"
+.sh 2 "Deletions"
 .lp
-Deletions are done using the
+Deletions are performed using the
 .b delete
 command:
 .(C
@@ -801,161 +1091,98 @@ class empty.
 .lp
 One should be wary of queries of the form
 .(C
-* delete \fIclassname\fP \\g
+delete \fIclassname\fP
 .)C
 Without a qualification, the 
 .b delete
 command will simply delete all instances of the given class, leaving
-it empty.  The system will not request confirmation before doing this.
+it empty.  The system 
+.b "will not request confirmation"
+before doing this.
+.lp
+Before going on, repopulate your EMP database using the 
+.b append
+commands listed above.
 .\"-----------------
-.sh 3 "Arrays"
+.sh 2 "Using Functions"
 .lp
-\*(PP allows attributes of an instance to be defined as fixed-length or
-variable-length multi-dimensional arrays. Arrays of any base type or 
-user-defined type can be created. To illustrate their use, we
-first create a class with arrays of base types.
+\*(PQ queries can contain function calls as well as operators.  If we
+wanted to express our very first
+.b retrieve 
+query as:
 .(C
-* create SAL_EMP (name = text, pay_by_quarter = int4[],
-  		schedule = char16[][]) \\g
+* retrieve (EMP.name) where int4lt(EMP.age, 35) \\g
 .)C
-The above query will create a class named
-.cW SAL_EMP
-with a 
-.cW text
-string
-.cW name ), (
-a one-dimensional array of
-.cW int4
-.cW pay_by_quarter ), (
-which represents the employee's salary by quarter and a two-dimensional array of
-.cW char16
-.cW schedule ), (
-which represents the employee's weekly schedule.  
-Now we do some
-.cW append s;
-note that when appending to an array, we enclose the
-values within braces and separate them by commas (following a C-like syntax).
-.(C
-* append SAL_EMP (name = "bill", 
-		pay_by_quarter[4] = "{10000, 10000, 10000, 10000}", 
-		schedule[7][2] = "{{"meeting", "lunch"}, {}}") \\g
-
-* append SAL_EMP (name = "{"joe"}",
-      	pay_by_quarter = "{20000, 25000, 25000, 25000}", 
-		schedule[5][2] = "{{"talk", "consult"}, {"meeting"}}") \\g
-.)C
-By default, \*(PP uses the 
-.q one-based
-numbering convention for arrays \(em that is, \*(PP arrays start with
-array[1] and end with array[n].  (This is the same convention used in
-Pascal and FORTRAN.). Note that the elements of an array can be specified partly
-or fully. For example, for the attribute
-.cW schedule, 
-we have initialized only part of 
-the array elements. The uninitialized elements are filled with garbage 
-and can be updated later using the 
-.cW replace 
-command.
-.lp
-Now, we can run some queries on
-.cW SAL_EMP .
-This query retrieves the names of the employees whose pay changed in
-the second quarter:
-.(C
-* retrieve (SAL_EMP.name)
-      where SAL_EMP.pay_by_quarter[1] !=
-            SAL_EMP.pay_by_quarter[2] \\g
-.)C
-This query retrieves the third quarter pay of all employees:
-.(C
-* retrieve (SAL_EMP.pay_by_quarter[3]) \\g
-.)C
-This query retrieves the first item on the schedule of the first 
-three working days for 
-.cW "bill".
-.(C
-* retrieve (SAL_EMP.schedule[1:3][1:1]) 
-		where SAL_EMP.name = "bill" \\g
-.)C
-The
-.cW replace
-command can be used to update an element of an array or a subpart of an array.
-This query updates the schedule for the second and third day for 
-.cW "joe".
-.(C
-* replace SAL_EMP (schedule[2:3][1:2] = 
-		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
-		where SAL_EMP.name = "joe" \\g
-.)C
-This query gives a $1000 raise in the first quater to all members whose first
-item on schedule for the first working day is 
-.cW "debugging" 
-.(C
-* replace SAL_EMP (pay_by_quarter[1] = 
-		SAL_EMP.pay_by_quarter[1] + 1000)
-			where SAL_EMP.schedule[1][1] = "debugging" \\g
-.)C
-When arrays are too large to fit in a single page they can be stored as 
-large objects by giving the
-name of a large object file as the array string at 
-.cW append
-time. 
-For example, the following append query will cause the array data to be
-stored as a large object.
-.(C
-* append SAL_EMP (name = "Busy_guy", 
-		schedule[7][101] = "/LO_name") \\g 
-.)C
-The 
-.cW replace 
-query can be used to populate the large object array using the same syntax
-as used for ordinary arrays. This query will cause the first four slots
-on
-.cW "Busy_guy's"
-.cW schedule 
-to be filled.
-.(C
-* replace SAL_EMP (schedule[1:1][1:4] = 
-		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
-		where SAL_EMP.name = "Busy_guy" \\g
-.)C
+.(T
+.TS
+allbox;
+l.
+name
+Sam
+.TE
+.)T
+we could do so.  Obviously, if we need to compute some function of
+more than two arguments, we 
+.i must
+use the function syntax instead of the operator syntax.
 .\"-----------------
-.sh 3 "Aggregate Functions"
+.sh 2 "Using Aggregate Functions"
 .lp
-Like relational query languages such as SQL, \*(PP supports aggregate
-functions.  However, the current implementation of \*(PP aggregate
-functions is very limited.  Specifically, while there are aggregates
-to compute such functions as the count, sum, average, maximum and
-minimum over a set of instances, aggregates can only appear in the
-target list of a query and not in the qualification (also known as the
+Like most other query languages, \*(PP supports aggregate functions.
+However, the current implementation of \*(PP aggregate functions is
+very limited.  Specifically, while there are aggregates to compute
+such functions as the count, sum, average, maximum and minimum over a
+set of instances, aggregates can only appear in the target list of a
+query and not in the qualification (\c
 .cW where
 clause).  As an example, 
 .(C
 * retrieve (how_many = count{EMP.name}) \\g
 .)C
+.(T
+.TS
+allbox;
+l.
+how_many
+4
+.TE
+.)T
 counts all employees, and 
 .(C
 * retrieve (avg_salary = 
       int4ave{EMP.salary
               where EMP.dept = "toy"}) \\g
 .)C
+.(T
+.TS
+allbox;
+l.
+avg_salary
+1200
+.TE
+.)T
 computes the average salary of all employees in the toy department.
 However, the following query (to find out who makes more money than
 any of the toy department employees) will
-.i not
+.b not
 work:
 .(C
 * retrieve (EMP.name) where
       EMP.salary > int4max{EMP.salary 
                            where EMP.dept = "toy"} \\g
+
+WARN:Mar  3 00:40:54:parser: syntax error at or near "{"
 .)C
 because the aggregate is not in the target list.  In addition, if the
 qualification of the aggregate expression contains any join clauses
 (references to other classes), the aggregate may or may not return the
 right result.  (In other words, aggregates with join clauses are
-neither disallowed nor are they supported.)
+neither disallowed nor are they correctly supported.)  See the
+Reference Manual under
+.b postquel
+for more details.
 .\"-----------------
-.sh 3 "Help!  What Are the Valid Types, Operators, Etc.??"
+.sh 2 "Help!  What Are the Valid Types, Operators and Functions?"
 .lp
 So far, we have been rather cavalier in our use of types (such as 
 .cW char16 ),
@@ -964,28 +1191,29 @@ operators (such as
 and aggregate functions (such as 
 .cW count ).
 A large number of pre-defined types, operators and aggregates are
-available by default in \*(PP, and these are listed in Section 3 of
-the Reference Manual.  This would be a good time to go ahead and take
-a peek at that section.
+available by default in \*(PP, and these are listed in the section of
+the Reference Manual labelled
+.b built-in .
+This would be a good time to go ahead and take a peek at that section.
 .lp
 In a later section of this manual, we will describe how to query the
 system to find out the current list of
 .i all
 valid types, operators, functions, etc. known to the system.
-.\"------------------------------------
-.sh 2 "Advanced \*(PQ"
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "ADVANCED POSTQUEL FEATURES"
+.HL
 .lp
-Now we have covered the basics of using \*(PQ to access your data.  In
-this section we will discuss those features of \*(PP which distinguish
-it from other data managers, such as inheritance and time travel.  In
-the next section we will cover how the user can extend the query
-language via query language functions and composite objects, as well
-as additional extensions to \*(PP using user-defined types, operators,
-and programming language functions.
+Having covered the basics of using \*(PQ to access your data, we will
+now discuss those features of \*(PP that distinguish it from
+conventional data managers.  These features include inheritance, time
+travel and non-atomic data values (array- and set-valued attributes).
 .\"-----------------
-.sh 3 "Inheritance"
+.sh 2 "Inheritance"
 .lp
-First, re-populate the
+First, if you haven't done so already, re-populate the
 .cW EMP
 class by repeating the
 .b append
@@ -1023,6 +1251,17 @@ following query finds the employees over 20:
 .(C
 * retrieve (E.name) from E in EMP where E.age > 20 \\g
 .)C
+.(T
+.TS
+allbox;
+l.
+name
+Claire
+Joe
+Sam
+Bill
+.TE
+.)T
 On the other hand, to find the names of all employees, including
 student employees, over age 20, the query is:
 .(C
@@ -1034,6 +1273,7 @@ which returns:
 allbox;
 l.
 name
+Claire
 Joe
 Sam
 Bill
@@ -1049,6 +1289,19 @@ indicates that the query should be run over
 and all classes below
 .cW EMP
 in the inheritance hierarchy.
+Many of the commands that we have already discussed \(em
+.b retrieve ,
+.b replace
+and
+.b delete
+\(em support this
+.cW *
+notation, as do others, such as the
+.b rename
+and 
+.b addattr
+commands.  See the Reference Manual entries for these commands for
+additional details.
 .lp
 Note that
 .cW location
@@ -1058,7 +1311,7 @@ is not a traditional relational data type.  As we will see later,
 \*(PP can be customized with an arbitrary number of user-defined data
 types.
 .\"-----------------
-.sh 3 "Time Travel"
+.sh 2 "Time Travel"
 .lp
 \*(PP supports the notion of
 .i "time travel" .
@@ -1068,6 +1321,14 @@ find Sam's current salary, one would query:
 * retrieve (E.salary) from E in EMP["now"]
       where E.name = "Sam" \\g
 .)C
+.(T
+.TS
+allbox;
+l.
+salary
+1200
+.TE
+.)T
 \*(PP will automatically find the version of Sam's record valid at the
 correct time and get the appropriate salary.
 .lp
@@ -1082,8 +1343,12 @@ would query:
 .)C
 where 
 .q epoch
-indicates the beginning of the \*(UU system clock.  If you have
-executed all of the examples so far, then the above query returns:
+indicates the beginning of the system clock.\**
+.(f
+\** On \*(UU systems, this is always midnight, January 1, 1970 GMT.
+.)f
+If you have executed all of the examples so far, then the above query
+returns:
 .(T
 .TS
 allbox;
@@ -1108,65 +1373,1176 @@ and the introduction to Section 4,
 .b \*(PQ ,
 for a full description of the time types (absolute time, relative time
 and time ranges).
-.\"---------------------------------------------------------------------------
-.sh 1 "USER EXTENSIONS TO \*(PQ"
+.\"-----------------
+.sh 2 "Non-Atomic Values"
 .lp
-Here, we will discuss user extensions to the \*(PQ query language,
-such as:
+One of the tenets of the relational model is that the attributes of a
+relation are 
+.i atomic .
+\*(PP does not have this restriction; attributes can themselves
+contain sub-values that can be accessed from the query language.  For
+example, you can create attributes that are
+.i arrays
+of base types or 
+.i sets 
+of any type.
+.\"-----------------
+.sh 3 "Arrays"
+.lp
+\*(PP allows attributes of an instance to be defined as fixed-length
+or variable-length multi-dimensional arrays. Arrays of any base type
+or user-defined type can be created. To illustrate their use, we first
+create a class with arrays of base types.
+.(C
+* create SAL_EMP (name = text,
+                  pay_by_quarter = int4[],
+                  schedule = char16[][]) \\g
+.)C
+The above query will create a class named
+.cW SAL_EMP
+with a 
+.cW text
+string
+.cW name ), (
+a one-dimensional array of
+.cW int4
+.cW pay_by_quarter ), (
+which represents the employee's salary by quarter and a
+two-dimensional array of
+.cW char16
+.cW schedule ), (
+which represents the employee's weekly schedule.  Now we do some
+.cW append s;
+note that when appending to an array, we enclose the values within
+braces and separate them by commas.  If you know C, this is not unlike
+the syntax for initializing structures.
+.(C
+* append SAL_EMP (name = "Bill", 
+     pay_by_quarter[4] = "{10000, 10000, 10000, 10000}", 
+     schedule[7][2]    = "{{"meeting", "lunch"}, {}}") \\g
+
+* append SAL_EMP (name = "Carol",
+        pay_by_quarter = "{20000, 25000, 25000, 25000}", 
+        schedule[5][2] = "{{"talk", "consult"}, {"meeting"}}") \\g
+.)C
+By default, \*(PP uses the 
+.q one-based
+numbering convention for arrays \(em that is, an array of @n@ elements
+starts with array[1] and ends with array[@n@].  Note that the elements
+of an array do not have to be completely specified.  For example, you
+may have noticed that we did not initialize all of the elements of the 
+attribute
+.cW schedule
+above.  The value of an uninitialized element is undefined, but it can
+be updated later using the
+.cW replace 
+command.
+.lp
+Now, we can run some queries on
+.cW SAL_EMP .
+First, we show how to access a single element of an array at a time.
+This query retrieves the names of the employees whose pay changed in
+the second quarter:
+.(C
+* retrieve (SAL_EMP.name)
+      where SAL_EMP.pay_by_quarter[1] !=
+            SAL_EMP.pay_by_quarter[2] \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+name
+Carol
+.TE
+.)T
+This query retrieves the third quarter pay of all employees:
+.(C
+* retrieve (SAL_EMP.pay_by_quarter[3]) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+pay_by_quarter
+10000
+25000
+.TE
+.)T
+We can also access arbitrary
+.i slices
+of an array, or
+.i subarrays .
+This query retrieves the first item on Bill's schedule for the first
+three days of the week.
+.cW "ill".
+.(C
+* retrieve (SAL_EMP.schedule[1:3][1:1]) 
+      where SAL_EMP.name = "Bill" \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+schedule
+{{"meeting"},{""},{""}}
+.TE
+.)T
+Similarly, the
+.cW replace
+command can be used to update a single array element or an arbitrary
+subarray.  This query updates Carol's schedule for the second and
+third day of the week.
+.(C
+* replace SAL_EMP (schedule[2:3][1:2] = 
+                   "{{"debugging", "shopping"}, {"meeting", "present"}}") 
+                   where SAL_EMP.name = "Carol" \\g
+.)C
+This query gives a $1000 raise in the first quarter to all members
+whose first item on schedule for the first working day is
+.cW "debugging" :
+.(C
+* replace SAL_EMP (pay_by_quarter[1] = 
+                   SAL_EMP.pay_by_quarter[1] + 1000)
+      where SAL_EMP.schedule[1][1] = "debugging" \\g
+.)C
+.if 0 \{
+When arrays are too large to fit in a single page they can be stored as 
+large objects by giving the
+name of a large object file as the array string at 
+.cW append
+time. 
+For example, the following append query will cause the array data to be
+stored as a large object.
+.(C
+* append SAL_EMP (name = "Busy_guy", 
+		schedule[7][101] = "/LO_name") \\g 
+.)C
+The 
+.cW replace 
+query can be used to populate the large object array using the same syntax
+as used for ordinary arrays. This query will cause the first four slots
+on
+.cW "Busy_guy's"
+.cW schedule 
+to be filled.
+.(C
+* replace SAL_EMP (schedule[1:1][1:4] = 
+		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
+		where SAL_EMP.name = "Busy_guy" \\g
+.)C
+\}
+.\"-----------------
+.sh 3 "Sets"
+.lp
+Class attributes can also be 
+.i sets
+that are defined in an
+.i intentional ,
+or declarative, manner.  For example, let's say that we want to
+create a new kind of department class.  A department consists of a
+department name as well as a 
+.b query
+that lists all members of the department.
+.(C
+* create NEW_DEPT (deptname = char16,
+                   members = setof EMP) \\g
+
+* append NEW_DEPT (deptname = "shoe",
+                   members = "retrieve (EMP.all)
+                              where EMP.age >= 40") \\g
+
+* append NEW_DEPT (deptname = "toy",
+                   members = "retrieve (EMP.all)
+                              where EMP.name = \e\e"Sam\e\e"") \\g
+
+* append NEW_DEPT (deptname = "candy",
+                   members = "retrieve (EMP.all)
+                              where EMP.name != \e\e"Sam\e\e"
+                              and EMP.age < 40") \\g
+.)C
+These amount to our business rules: all people over 40 work in the
+shoe department, Sam works alone in the toy department, and everyone
+else works in the candy department.
+.lp
+We can retrieve (but not update) individual attributes of each member
+of a set-valued attribute.  We do with the 
+.i nested-dot
+notation.
+.(C
+* retrieve (NEW_DEPT.deptname,
+            NEW_DEPT.members.name) \\g
+.)C
+.(T
+.TS
+allbox;
+l l.
+deptname	name
+shoe	Claire
+shoe	Joe
+toy	Sam
+candy	Bill
+.TE
+.)T
+That is, we project attributes from our set-valued attribute, 
+.cW NEW_DEPT.members ,
+by adding the reference to the
+.cW EMP
+attribute
+.cW .name .
+There are two caveats: the shorthand
+.cW .all
+doesn't work for set-valued attributes, and retrieval of more than one
+attribute from a set-valued attribute may produce unexpected results.
+.lp
+The main advantage of representing sets in a declarative way (instead
+of storing the actual values, or
+.cW EMP s,
+in this example) is that the set declarations automatically maintain
+their consistency.  If we hire someone new, they will be assigned to
+the proper
+.cW NEW_DEPT
+whether we explicitly give them a department or not.
+.(C
+/* whoops, we forgot to put Ginger in a department... */
+* append EMP (name = "Ginger", salary = 2000,
+              age = 34) \\g
+
+/* ...but it's ok */
+* retrieve (NEW_DEPT.deptname,
+            NEW_DEPT.members.name) \\g
+.)C
+.(T
+.TS
+allbox;
+l l.
+deptname	name
+shoe	Claire
+shoe	Joe
+toy	Sam
+candy	Bill
+candy	Ginger
+.TE
+.)T
+Notice that \*(PP returns several results for each of the departments
+that have more than one employee.  This is because \*(PP 
+.q flattens
+the result when a set attribute contains multiple instances.  In other
+words, an instance is returned for each of the set elements and the
+contents of the other attributes (in this case,
+.cW deptname )
+is just duplicated in each of those instances.
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: AN OVERVIEW"
+.HL
+.lp
+In the sections that follow, we will discuss how you can extend the
+\*(PQ query language by adding:
 .bu
-query language functions
+functions
 .bu
-composite types
+types
 .bu
-user-defined types, operators, functions and aggregates
+operators
+.bu
+aggregates
+.lp
+We will then give some integrated examples of their use.
 .\"------------------------------------
-.sh 2 "Query Language (\*(PQ) Functions"
+.sh 2 "How Extensibility Works"
+.lp
+\*(PP is extensible because its operation is
+.i "catalog-driven" .
+If you are familiar with standard relational systems, you know that
+they store information about databases, tables, columns, etc., in what
+are commonly known as
+.i "system catalogs" .
+(Some systems call this the
+.i "data dictionary" ).
+The catalogs appear to the user as tables, like any other, but the
+DBMS stores its internal bookkeeping in them.  One key difference
+between \*(PP and standard relational systems is that \*(PP stores
+much more information in its catalogs \(em not only information about
+tables and columns, but also information about its types, functions,
+access methods, and so on.  These tables can be modified by the user,
+and since \*(PP bases its internal operation on these tables, this
+means that \*(PP can be extended by users.  By comparison,
+conventional database systems can only be extended by changing
+hard-coded procedures within the DBMS or by loading modules
+specially-written by the DBMS vendor.
+.lp
+\*(PP is also unlike most other data managers in that the server can
+incorporate user-written code into itself through
+.i "dynamic loading" .
+That is, the user can specify an object code file (e.g., a compiled
+.cW .o
+file or shared library) that implements a new type or function and
+\*(PP will load it as required.  Code written in the \*(PQ query
+language are even more trivial to add to the server.
+.lp
+This ability to modify its operation 
+.q "on the fly"
+makes \*(PP uniquely suited for rapid prototyping of new applications
+and storage structures.
+.\"------------------------------------
+.sh 2 "The \*(PP Type System"
+.lp
+The \*(PP type system can be broken down in several ways.
+.lp
+Types are divided into
+.i base
+types and
+.i composite
+types.  Base types are those, like
+.cW int4 ,
+that are implemented in a language such as C.  They generally
+correspond to what are often known as
+.q "abstract data types" ;
+\*(PP can only operate on such types through methods provided
+by the user and only understands the behavior of such types to the
+extent that the user describes them.  Composite types are created
+whenever the user creates a class.  
+.cW EMP
+is an example of a composite type.  \*(PP stores these types in only
+one way (within the file that stores all instances of the class) but
+the user can
+.q "look inside"
+at the attributes of these types from the query language and optimize
+their retrieval by (for example) defining indices on the attributes.
+.lp
+\*(PP base types are further divided into
+.i built-in
+types and
+.i user-defined
+types.  Built-in types (like
+.cW int4 )
+are those that are compiled into the system.  User-defined types are
+those created by the user in the manner to be described below.
+.\"------------------------------------
+.sh 2 "About the \*(PP System Catalogs"
+.lp
+Having introduced the basic extensibility concepts, we can now take a
+look at how the catalogs are actually laid out.  You can skip this
+section for now, but some later sections will be incomprehensible
+without the information given here, so mark this page for later
+reference.
+.lp
+All system catalogs have names that begin with
+.cW pg_ .
+The following classes contain information that may be useful to the
+end user.  (There are many other system catalogs, but there should
+rarely be a reason to query them directly.)
+.TS
+box center tab(|);
+c|c
+lf(C)|l.
+catalog name|description
+=
+pg_database|databases
+pg_class|classes
+pg_attribute|class attributes
+pg_index|secondary indices
+
+pg_proc|procedures (both C and \*(PQ)
+pg_type|types (both base and complex)
+pg_operator|operators
+pg_aggregate|aggregates and aggregate functions
+
+pg_am|access methods
+pg_amop|access method operators
+pg_amproc|access method support functions
+pg_opclass|access method operator classes
+.TE
+The Reference Manual gives a more detailed explanation of these
+catalogs and their attributes.  However, Figure 3 shows the major
+entities and their relationships in the system catalogs.  (Attributes
+that do not refer to other entities are not shown unless they are part
+of a primary key.)
+.lp
+This diagram is more or less incomprehensible until you actually start
+looking at the contents of the catalogs and see how they relate to
+each other.  For now, the main things to take away from this diagram
+are as follows:
+.np
+In several of the sections that follow, we will present various join
+queries on the system catalogs that display information we need to
+extend the system.  Looking at this diagram should make some of these
+join queries (which are often three- or four-way joins) more
+understandable, because you will be able to see that the attributes
+used in the queries form foreign keys in other classes.
+.np
+Many different features (classes, attributes, functions, types, access
+methods, etc.) are tightly integrated in this schema.  A simple 
+.b define
+command may modify many of these catalogs.
+.np
+Types and procedures\**
+.(f
+\** We use the words
+.i procedure
+and 
+.i function
+more or less interchangably.
+.)f
+are central to the schema.  Nearly every catalog contains some
+reference to instances in one or both of these classes.  For example,
+\*(PP frequently uses type signatures (e.g., of functions and
+operators) to identify unique instances of other catalogs.
+.np
+There are many attributes and relationships that have obvious
+meanings, but there are many (particularly those that have to do with
+access methods) that do not.  The relationships between
+.cW pg_am ,
+.cW pg_amop ,
+.cW pg_amproc,
+.cW pg_operator
+and
+.cW pg_opclass
+are particularly hard to understand and will be described in depth (in
+the section on interfacing types and operators to indices) after we
+have discussed basic extensions.
+.(z
+.hl
+.PSPIC manual-er.eps 6i 6.01776i
+.sp
+.(c
+\fBFigure 3\fP.  The major \*(PP system catalogs.
+.)c
+.hl
+.)z
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: FUNCTIONS"
+.HL
+.lp
+As it turns out, part of defining a new type is the definition of
+functions that describe its behavior.  Consequently, while it is
+possible to define a new function without defining a new type, the
+reverse is not true.  We therefore describe how to add new functions
+to \*(PP before describing how to add new types.
 .lp
 \*(PQ provides two types of functions:
 .i "query language functions"
 (functions written in \*(PQ) and
 .i "programming language functions"
-(functions written in a separately-compiled programming language such
-as C.)  In this section we will cover \*(PQ functions; programming
-language functions will be covered below with the discussion on
-user-defined types.
+(functions written in a compiled programming language such as C.)
+Either kind of function can take a base type, a composite type or some
+combination as arguments (parameters).  In addition, both kinds of
+functions can return a base type or a composite type.  It's easier to
+define \*(PQ functions, so we'll start with those.
+.\"------------------------------------
+.bp
+.HL
+.sh 2 "Query Language (\*(PQ) Functions"
+.HL
+.lp
+.\"------------------------------------
+.sh 3 "\*(PQ Functions on Base Types"
+.lp
+The simplest possible \*(PQ function has no arguments and simply
+returns a base type, such
+as
+.cW int4 :
+.(C
+* define function one
+      (language = "postquel", returntype = int4)
+      as "retrieve (one = 1)" \\g
+.)C
+.(C
+* retrieve (answer = one()) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+answer
+1
+.TE
+.)T
+Notice that we defined a target list for the function (with the name
+.cW one ),
+but the target list of the query that invoked the function overrode
+the function's target list.  Hence, the result is labelled
+.cW answer
+instead of
+.cW one .
+.lp
+It's almost as easy to define \*(PQ functions that take base types as
+arguments.  In the example below, notice how we refer to the arguments
+within the function as
+.cW "$1"
+and
+.cW "$2"
+and specify their types using the
+.cW "arg is"
+clause.
+.(C
+* define function add_pq
+      (language = "postquel", returntype = int4)
+      arg is (int4, int4)
+      as "retrieve (sum = $1 + $2)" \\g
+.)C
+.(C
+* retrieve (answer = add_pq(1, 2)) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+answer
+3
+.TE
+.)T
+.\"------------------------------------
+.sh 3 "\*(PQ Functions on Composite Types"
+.lp
+When specifying functions with arguments of composite types (such as 
+.cW EMP ),
+we must not only specify which argument we want (as we did above with 
+.cW "$1"
+and
+.cW "$2" )
+but we must also specify the attributes of that argument.  For
+example, take the function
+.cW double_salary
+that computes what your salary would be if it were doubled.
+.(C
+* define function double_salary
+      (language = "postquel", returntype = int4)
+      arg is (EMP)
+      as "retrieve (salary = $1.salary * 2)" \\g
+
+* retrieve (EMP.name, dream = double_salary(EMP))
+      where EMP.dept = "toy" \\g
+.)C
+.(T
+.TS
+allbox;
+l l.
+name	dream
+Sam	2400
+.TE
+.)T
+This is pretty straightforward.  Notice the use of the syntax
+.cW "$1.salary" .
+.lp
+Before launching into the subject of functions that return composite
+types, we must first introduce the 
+.i function
+notation for projecting attributes.  The simple way to explain this is
+that we can usually use the notation
+.cW attribute(class)
+and
+.cW class.attribute
+interchangably.
+.(C
+/*
+ * this is the same as:
+ * retrieve (youngster = EMP.name)) 
+ *    where EMP.age < 30
+ */
+* retrieve (youngster = name(EMP)) 
+      where age(EMP) < 30 \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+youngster
+Sam
+.TE
+.)T
+As we shall see, however, this is not always the case.
+.lp
+This function notation is important when we want to use a function
+that returns a single instance.  We do this by assembling the entire
+instance within the function, attribute by attribute.  This is an
+example of a function that returns a single
+.cW EMP
+instance:
+.(C
+* define function new_emp
+      (language = "postquel", returntype = EMP)
+      as "retrieve (name = \e\e"None\e\e"::text,
+                    salary = 1000,
+                    age = 25,
+                    dept = \e\e"none\e\e"::char16)"
+.)C
+In this case we have specified each of the attributes with a constant
+value, but any computation or expression could have been substituted
+for these constants.
+.lp
+Defining a function like this can be tricky.  Some of the more
+important caveats are as follows:
+.bu 
+The target list order must be 
+.b exactly
+the same as that in which the fields appear in the 
+.b create
+statement (or when you execute a 
+.cW .all
+query).
+.bu
+You must be careful to typecast the fields (using
+.cW :: )
+very carefully or you will see the following error:
+.(C
+WARN:Mar  3 03:06:18:function declared to return type EMP
+  does not retrieve (EMP.all)
+.)C
+See the Reference Manual under
+.b postquel
+for a discussion of typecasting.
+.lp
+.bu
+When calling a function that returns an instance, we cannot retrieve
+the entire instance.  We must either project an attribute out of the
+instance or pass the entire instance into another function.
+.(C
+* retrieve (nobody = name(new_emp())) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+nobody
+None
+.TE
+.)T
+.bu
+The reason why, in general, we must use the function syntax for
+projecting attributes of function return values is that the parser
+just doesn't understand the other (dot) syntax for projection when
+combined with function calls.
+.(C
+* retrieve (nobody = new_emp().name) \\g
+WARN:Mar  3 03:09:28:parser: syntax error at or near "."
+.)C
 .lp
 Any collection of commands in the \*(PQ query language can be packaged
-together and defined as a function, usually returning either a set of
-instances or a set of base types.  For example, the following function
+together and defined as a function.  The commands can include updates
+(i.e.,
+.b append ,
+.b replace
+and 
+.b delete )
+as well as 
+.b retrieve
+queries.  However, the final command must be a 
+.b retrieve
+that returns whatever is specified as the function's
+.cW returntype .
+.(C
+* define function clean_EMP (language = "postquel",
+                             returntype = int4)
+      as "delete EMP where EMP.salary <= 0
+          retrieve (ignore_this = 1)" \\g
+
+* retrieve (x = clean_EMP()) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+x
+1
+.TE
+.)T
+.\"------------------------------------
+.sh 3 "\*(PQ Functions on Sets"
+.lp
+Unfortunately, \*(PP does not really distinguish between functions
+that return single instances and those that return sets of instances.
+In all cases, instances are returned one-by-one.  Similarly, functions
+can only take single instances as their arguments and cannot have sets
+as an argument.  For example, the following function
 .cW high_pay
-returns all employees in class
+returns the set of all employees in class
 .cW EMP
-whose salaries exceed 50,000:
+whose salaries exceed 1500:
 .(C
 * define function high_pay
       (language = "postquel", returntype = setof EMP)
-      as "retrieve (EMP.all) where EMP.salary > 50000" \\g
+      as "retrieve (EMP.all) where EMP.salary > 1500" \\g
+
+* retrieve (overpaid = name(high_pay())) \\g
 .)C
-\*(PQ functions can also have parameters.  The following function
-.cW large_pay
-allows the threshold salary to be specified as an argument:
+.(T
+.TS
+allbox;
+l.
+overpaid
+Claire
+Bill
+Ginger
+.TE
+.)T
+However, this function could be defined with
 .(C
-* define function large_pay
-      (language = "postquel", returntype = setof EMP)
-      arg is (int4)
-      as "retrieve (EMP.all) where EMP.salary > $1" \\g
+returntype = EMP
 .)C
-In addition to their obvious utility as
-.q aliases
-for commonly-used queries, \*(PQ functions are useful for creating
-composite types, as described below.
+with exactly the same results.
 .\"------------------------------------
-.sh 2 "Composite Types"
+.bp
+.HL
+.sh 2 "Programming Language Functions"
+.HL
 .lp
-Since \*(PQ functions return instances or sets of instances, they are
-the mechanism used to assign values to composite types.  For example,
-consider extending the
+We now turn to the more difficult task of defining programming
+language functions.  Be warned: this section of the manual will not
+make you a programmer.  You must have a good understanding of C
+(including the use of pointers and the
+.cW malloc
+memory manager) before trying to write C functions for use with \*(PP.
+.lp
+While it may be possible to load functions written in languages other
+than C into \*(PP, this is often difficult (when it is possible at all)
+because other languages, such as 
+.sm FORTRAN
+and
+Pascal often do not follow the same 
+.q "calling convention"
+as C.  That is, other languages do not pass argument and return
+values between functions in the same way.  For this reason, we will
+assume that your programming language functions are written in C.
+.lp
+The basic rules for building C functions are as follows:
+.np
+Most of the header (include) files for \*(PP should already be
+installed in
+.cW /usr/local/postgres/include
+(see Figure 2).  You should always include
+.(C
+-I/usr/local/postgres/include
+.)C
+on your 
+.cW cc
+command lines.  Sometimes, you may find that you require header files
+that are in the server source itself (i.e., you need a file we
+neglected to install in
+.cW include ).
+In those cases you may need to add one or more of
+.(C
+-I/usr/local/postgres/src/backend
+-I/usr/local/postgres/src/backend/port/<PORTNAME>
+-I/usr/local/postgres/src/backend/obj
+.)C
+(where 
+.cW <PORTNAME>
+is the name of the port, e.g., 
+.cW alpha
+or 
+.cW sparc).
+.np
+When allocating memory, use the \*(PP routines
+.cW palloc
+and
+.cW pfree
+instead of the corresponding C library routines
+.cW malloc
+and 
+.cW free .
+The memory allocated by
+.cW palloc
+will be freed automatically at the end of each transaction, preventing
+memory leaks.
+.np
+Always zero the bytes of your structures using
+.cW memset
+or 
+.cW bzero .
+Several routines (such as the hash access method, hash join and the
+sort algorithm) compute functions of the raw bits contained in your
+structure.  Even if you initialize all fields of your structure, there
+may be several bytes of alignment padding (holes in the structure)
+that may contain garbage values.
+.np
+Most of the internal \*(PP types are declared in
+.cW tmp/c.h
+and
+.cW tmp/postgres.h ,
+so it's usually a good idea to include those files as well.
+.np
+Compiling and loading your object code so that it can be dynamically
+loaded into \*(PP always requires special flags.  See Appendix A for a
+detailed explanation of how to do it for your particular operating
+system.
+.\"------------------------------------
+.sh 3 "Programming Language Functions on Base Types"
+.lp
+Internally,
+\*(PP regards a base type as a
+.q "blob of memory."
+The user-defined functions that you define over a type in turn define
+the way that \*(PP can operate on it.  That is, \*(PP will only store
+and retrieve the data from disk and use your user-defined functions to
+input, process, and output the data.
+.lp
+Base types can have one of three internal formats:
+.bu
+pass by value, fixed-length
+.bu
+pass by reference, fixed-length
+.bu
+pass by reference, variable-length
+.lp
+By-value types can only be 1, 2 or 4 bytes in length (even if your
+computer supports by-value types of other sizes).  \*(PP itself
+only passes integer types by value.  You should be careful to define
+your types such that they will be the same size (in bytes) on all
+architectures.  For example, the
+.cW long
+type is dangerous because it is 4 bytes on some machines and 8 bytes
+on others, whereas
+.cW int
+type is 4 bytes on most \*(UU machines (though not on most personal
+computers).  A reasonable implementation of the 
+.cW int4 
+type on \*(UU machines might be:
+.(C
+/* 4-byte integer, passed by value */
+typedef int int4;
+.)C
+On the other hand, fixed-length types of any size may be passed
+by-reference.  For example, here is a sample implementation of the
+\*(PP
+.cW char16
+type:
+.(C
+/* 16-byte structure, passed by reference */
+typedef struct {
+    char data[16];
+} char16;
+.)C
+Only pointers to such types can be used when passing them in and out
+of \*(PP functions.
+.lp
+Finally, all variable-length types must also be passed by reference.
+All variable-length types must begin with a length field of exactly 4
+bytes, and all data to be stored within that type must be located in
+the memory immediately following that length field.  The length field
+is the total length of the structure (i.e., it includes the size of
+the length field itself).  We can define the
+.cW text
+type as follows:
+.(C
+typedef struct {
+    int4 length;
+    char data[1];
+} text;
+.)C
+Obviously, the
+.cW data
+field is not long enough to hold all possible strings \(em it's
+impossible to declare such a structure in C.  When manipulating
+variable-length types, we must be careful to allocate the correct
+amount of memory and initialize the length field.  For example, if we
+wanted to store 40 bytes in a
+.cW text
+structure, we might use a code fragment like this:
+.(C
+#include "tmp/c.h"
+#include "tmp/postgres.h"
+#include "utils/palloc.h"
+
+\&...
+
+void *buffer; /* our source data */
+
+\&...
+
+text *destination = (text *) palloc(sizeof(int4) + 40);
+destination->length = sizeof(int4) + 40;
+bcopy(buffer, destination->data, 40);
+
+\&...
+.)C
+.lp
+Now that we've gone over all of the possible structures for base
+types, we can show some examples of real functions.
+.(C
+#include <string.h>
+
+#include "tmp/c.h"
+#include "tmp/postgres.h" /* for char16, etc. */
+#include "utils/palloc.h" /* for palloc */
+
+int
+add_one(arg)
+    int arg;
+{
+    return(arg + 1);
+}
+
+char16 *
+concat16(arg1, arg2)
+    char16 *arg1, *arg2;
+{
+    char16 *new_c16 = (char16 *) palloc(sizeof(char16));
+
+    memset((void *) new_c16, 0, sizeof(char16));
+    (void) strncpy(new_c16, arg1, 16);
+    return(strncat(new_c16, arg2, 16));
+}
+
+text *
+copytext(t)
+    text *t;
+{
+    /*
+     * VARSIZE is the total size of the struct in bytes.
+     */
+    text *new_t = (text *) palloc(VARSIZE(t));
+
+    bzero((char *) new_t, VARSIZE(t));
+
+    /*
+     * VARDATA is a pointer to the data region of the struct.
+     * VARLEN is the size of VARDATA in bytes (so it's always
+     * VARSIZE - sizeof(int4)).
+     */
+    memcpy((void *) VARDATA(new_t), /* destination */
+           (void *) VARDATA(t),     /* source */
+           VARLEN(t));              /* how many bytes */
+    return(new_t);
+}
+.)C
+On 
+.sm ULTRIX 
+we would type:
+.(C
+* define function add_one
+      (language = "C", returntype = int4)
+      arg is (int4)
+      as "/usr/local/postgres/src/examples/chapter8.o" \\g
+
+* define function concat16
+      (language = "C", returntype = char16)
+      arg is (char16, char16)
+      as "/usr/local/postgres/src/examples/chapter8.o" \\g
+
+* define function copytext
+      (language = "C", returntype = text)
+      arg is (text)
+      as "/usr/local/postgres/src/examples/chapter8.o" \\g
+.)C
+On other systems, we might have to make the filename end in
+.cW .so
+or
+.cW .sl
+(to indicate that it's a shared library).
+.\"------------------------------------
+.sh 3 "Programming Language Functions on Composite Types"
+.lp
+Composite types do not have a fixed layout like C structures.
+Instances of a composite type may contain null fields.  In addition,
+composite types that are part of an inheritance hierarchy may have
+different fields than other members of the same inheritance hierarchy.
+Therefore, \*(PP provides a procedural interface for accessing fields
+of composite types from C.
+.lp
+As \*(PP processes a set of instances, each instance will be passed
+into your function as an opaque structure of type TUPLE.
+.lp
+Suppose we want to write a function to answer the query
+.(C
+* retrieve (EMP.all) where c_overpaid(EMP) \\g
+.)C
+In the query above, we can define
+.cW c_overpaid
+as:
+.(C
+#include <tmp/c.h>
+#include <tmp/postgres.h>
+
+bool
+c_overpaid(t, limit) 
+    TUPLE t;   /* the current instance of EMP */
+    int4 limit;
+{
+    extern char *GetAttributeByName();
+    int4 salary;
+
+    salary = (int4) GetAttributeByName(t, "salary");
+
+    return((bool) (salary > limit));
+}
+.)C
+.cW GetAttributeByName
+is the \*(PP system function that returns attributes out of the
+current instance.  It has two arguments: the argument of type TUPLE
+passed into the function, and the name of the desired attribute.
+.cW GetAttributeByName
+will align data properly so you can cast its return value to the
+desired type.  For example, if you have an attribute
+.cW name
+which is of the \*(PQ type
+.cW char16 ,
+the
+.cW GetAttributeByName
+call would look like:
+.(C
+char *str;
+\&...
+str = (char *) GetAttributeByName(t, "name")
+.)C
+.lp
+The following query lets \*(PP know about the
+.cW c_overpaid
+function:
+.(C
+* define function c_overpaid
+      (language = "c", returntype = bool)
+      arg is (EMP, int4)
+      as "/usr/local/postgres/src/examples/overpaid.o" \\g
+.)C
+.lp
+While there are ways to construct new instances or modify existing
+instances from within a C function, these are far too complex to
+discuss in this manual.  See the document
+.(C
+/usr/local/postgres/src/doc/implementation/am.me
+.)C
+for details.
+.\"------------------------------------
+.sh 3 "Programming Language Functions on Sets"
+.lp
+No interface has been defined for passing a set of instances into a
+function as an argument to a C function, nor is there such an
+interface for returning a set of instances from a C function.
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: TYPES"
+.HL
+.lp
+As previously mentioned, there are two kinds of types in \*(PP:
+.i base
+types (defined in a programming language) and 
+.i composite
+types (instances).
+.\"------------------------------------
+.bp
+.HL
+.sh 2 "User-Defined Types"
+.HL
+.lp
+.\"------------------------------------
+.sh 3 "Functions Needed for a User-Defined Type"
+.lp
+A user-defined type must always have
+.i input
+and
+.i output
+functions.  These functions determine how the type appears in strings
+(for input by the user and output to the user) and how the type is
+organized in memory.  The input function takes a null-delimited
+character string as its input and returns the internal representation
+of the type.  The output function takes the internal representation of
+the type and returns a null-delimited character string.
+.lp
+These functions are usually not hard to write, especially the output
+function.  However, there are a number of points to remember.
+.np
+When defining your external (string) representation, remember that you
+must eventually write a complete and robust parser for that
+representation as your input function!  This is easy in some cases, or
+if we are lazy.  For example, an input function for
+.cW int4
+can be as simple as:
+.(C
+int4
+int4_input(s)
+    char *s;
+{
+    return(atoi(s));
+}
+.)C
+if we cheat and use the C library function
+.cW atoi
+(and don't do any checks for such errors as out-of-range integers).
+The output function can be almost as simple:
+.(C
+char *
+int4_output(i)
+    int4 i;
+{
+    /* the largest 32-bit number is 10 digits long */
+    char *buf = palloc(11);
+
+    (void) sprintf(buf, "%d", i);
+    return(buf);
+}
+.)C
+.np
+You should try to make the input and output functions inverses of each
+other.  If you do not, you will have severe problems when you need to
+dump your data into a file and then read it back in (say, into someone
+else's database on another computer).  This is a particularly common
+problem when floating-point numbers are involved.
+.lp
+As discussed earlier, \*(PP fully supports arrays of base types.
+Additionally, \*(PP supports arrays of user-defined types as well.
+When you define a type, \*(PP automatically provides support for
+arrays of that type.  For historical reasons, the array type has the
+same name as the user-defined type with the underscore character
+.cW _
+prepended.
+.lp
+Composite types do not need any function defined on them, since the
+system already understands what they look like inside.
+.\"------------------------------------
+.sh 3 "Large Objects"
+.lp
+The types discussed to this point are all
+.q small
+objects \(em that is, they are smaller than 8KB\**
+.(f
+\** 8 * 1024 == 8192 bytes.  In fact, the type must be considerably
+smaller than 8192 bytes, since the \*(PP tuple and page overhead
+must also fit into this 8KB limitation.  The actual value that fits
+depends on the machine architecture.
+.)f
+in size.  If you require a larger type for something like a document
+retrieval system or for storing bitmaps, you will need to use the
+\*(PP
+.i "large object"
+interface.  The interface to large objects is quite similar to the
+\*(UU file system interface.  The particulars are detailed in Section
+7 of the \*(PP Reference Manual.
+.\"------------------------------------
+.bp
+.HL
+.sh 2 "Composite Types"
+.HL
+.lp
+Instances of a composite type are just instances of a class.  Here, we
+discuss how to create attributes of one class that are composed of one
+or more instances of a composite type (another class).  We can do this
+using 
+.i "set-valued attributes"
+or by using functions to create
+.i "virtual attributes" .
+.lp
+We have already discussed how to define a set-valued attribute using
+the
+.cW setof
+keyword in the 
+.cW create 
+command.  This produces an attribute whose value is procedurally
+defined using a query.
+.lp
+Since \*(PQ functions return instances or sets of instances, they can
+also be used to create
+.q attributes
+of composite types.  For example, consider extending the
 .cW EMP
 class with a
 .cW manager
-field.
-That is, for each instance of
+field.  That is, for each instance of
 .cW EMP ,
 we want to associate another instance of
 .cW EMP 
@@ -1181,161 +2557,296 @@ will define a \*(PQ function
               where E.name = DEPT.manager
               and DEPT.dname = $1.dept" \\g
 .)C
-The function
+When a function takes a single composite type argument, \*(PQ allows
+us to use the same
+.i nested-dot
+notation we used for sets to refer into an instance returned by the
+function.  Here, the function
 .cW manager
-takes an instance as its only argument, so \*(PQ allows referencing
-into it with the use of the nested dot notation.  Whenever such a
-function is defined over a class, a user can utilize the cascaded dot
-notation to reference into (i.e. access the fields of) the objects
-returned by the function.
-.lp
-The following query finds all the employees who work for Joe:
-.(C
-* retrieve (EMP.name) where EMP.manager.name = "Joe" \\g
-.)C
-This is exactly equivalent to:
+takes an 
+.cW EMP
+instance as its only argument, we can write the query
 .(C
 * retrieve (EMP.name)
-      where name(manager(EMP)) = "Joe" \\g
+      where name(manager(EMP)) = "Claire" \\g
 .)C
-Here, we have essentially added an attribute to the
+as
+.(C
+* retrieve (EMP.name)
+      where EMP.manager.name = "Claire" \\g
+.)C
+In either case, we get
+.(T
+.TS
+allbox;
+l.
+name
+Claire
+Joe
+.TE
+.)T
+We have essentially added an attribute to the
 .cW EMP
 class which is of type
 .cW EMP ,
 i.e., it has a value which is an instance of the class
 .cW EMP .
-Since the value of
-.cW manager
-has a record-oriented structure, we call it a
-.i "composite object" .
-Consequently, the user can think of the function
-.cW manager
-as an attribute of
-.cW EMP
-and can reference it just like any other attribute, with the following
-two exceptions.  First, one cannot do direct
-.b append s
-\(em that is,
+The limitations discussed for set-valued attributes generally apply to
+virtual attributes as well.  For example, one cannot do direct updates
+to such columns.  That is,
 .(C
-* append emp (emp.manager.name = "Smith") \\g
+* append EMP (manager.name = "Smith") \\g
+WARN:Mar 10 22:48:42:manager: no such class
 .)C
-.i won't
-work.  Non-projected retrieves will also be rejected.  For example,
+.b won't
+work.  Non-projected retrieves don't work either.  For example,
+queries that attempt to retrieve the entire 
+.cW manager
+attribute, such as
 .(C
-* retrieve (emp.manager) \\g
+* retrieve (EMP.manager) \\g
 .)C
-will result in a warning from the \*(PQ language parser.
+don't return anything useful.
 .lp
 Note that 
 .cW manager
 is defined as returning a single instance of
-.cW EMP.
+.cW EMP .
 We can also write a \*(PQ function that returns sets of instances.
 For example, consider the function
 .(C
-* define function children
-      (language = "postquel", returntype = setof KIDS)
+* define function same_dept
+      (language = "postquel", returntype = setof EMP)
       arg is (EMP)
-      as "retrieve (KIDS.all)
-              where $1.name = KIDS.dad
-              or $1.name = KIDS.mom"\\g
+      as "retrieve (E.all) from E in EMP
+              where $1.dept = E.dept" \\g
 .)C
 The
-.cW children
+.cW same_dept
 function is defined as returning a set of instances, rather than a
 single instance.  Given the query:
 .(C
-* retrieve(emp.name, emp.children.name)
+* retrieve (EMP.name, EMP.same_dept.name) \\g
 .)C
-if the query in the body of the
-.cW children
-function returns many instances, the
+.(T
+.TS
+allbox;
+l l.
+name	name
+Claire	Claire
+Claire	Joe
+Joe	Claire
+Joe	Joe
+Sam	Sam
+Bill	Bill
+Ginger	(null)
+.TE
+.)T
+the query in the body of the
+.cW same_dept
+function returns many instances and the
 .b retrieve
-query will return all of them, in a
+query will return all of them in a
 .q flattened
-form.  If the query in the body of
-.cW manager
-returns more than one instance, the
-.cW manager
-function will return only one instance, arbitrarily chosen from the
-set returned by the query in the function's body.  See the \*(PP
-Reference Manual's entry on the
-.b "define function"
-command for further details and examples.
+form.
 .\"---------------------------------------------------------------------------
-.sh 2 "User-Defined Types, Operators, Functions and Aggregates"
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: OPERATORS"
+.HL
 .lp
-The central concept of extending \*(PP lies in \*(PP's ability to
-.i "dynamically load"
-an object code file (e.g., a
-.cW .o
-file or shared library) created by the user.  This allows \*(PP to
-call arbitrary user-defined functions which can be written in a
-standard programming language, such as C.  These functions can then be
-used:
-.bu
-to convert between
-.i internal
-(binary) and
-.i external
-(C character string) representations of user-defined types;
-.bu
-as operators; and
-.bu
-to define ordering for indices on user-defined types.
+\*(PQ supports left unary, right unary and binary operators.
+Operators can be 
+.i overloaded ,
+or re-used with different numbers and types of arguments.  If there is
+an ambiguous situation and the system cannot determine the correct
+operator to use, it will return an error and you may have to typecast
+the left and/or right operands to help it understand which operator
+you meant to use.  (For a discussion of typecasting, see the Reference
+Manual under
+.b postquel ).
 .lp
-\*(PP's concept of types includes
-.i built-in
-types and
-.i user-defined
-types.  Built-in types are those required by the system to bootstrap
-itself.  User-defined types are those created by the user in the
-manner described below.  There is no intrinsic performance difference
-between using a system type or user-defined type, other than the
-overhead due to the complexity of the type itself.
-.\"------------------------------------
-.sh 3 "Internal Storage of Types"
-.lp
-.(l C
-.hl
-FIX ME
-need examples of by-value, by-ref-fixed, by-ref-varlena
-.hl
-.)l
-Internally,
-\*(PP regards a user-defined type as a
-.q "blob of memory"
-upon which user-defined functions impose structure and meaning.  \*(PP
-will store and retrieve the data from disk and use user-defined
-functions to input, process, and output the data.
-.\"------------------------------------
-.sh 3 "Functions Needed for a User-Defined Type"
-.lp
-A completely defined user type requires the following user-defined
-functions:
-.bu
-.i input
+In this example, we will use some functions that are already built
+into \*(PP to define a set of operators that all have the same name, 
+.cW ## .
+First, we define left unary operators on both
+.cW int4
 and
-.i output
-functions for the type: These functions determine how the type appears
-in strings (for input by the user and output to the user) and how the
-type is organized in memory.  These at least are necessary to define
-the type.
-.bu
-.i operator
-functions for the type: These functions define the meanings of 
-.q "equal to,"
-.q "less than,"
-.q "greater than,"
-etc., for your type.
-.\"------------------------------------
-.sh 3 "An Example User-Defined Type"
+.cW int2
+that have very different meanings:
+.(C
+/* n! (factorial) for int4 */
+* define operator ## (arg2 = int4,
+                      associativity = right,
+                      procedure = int4fac)
+ \\g
+
+/* -n (negation) for int2 */
+* define operator ## (arg2 = int2,
+                      associativity = right,
+                      procedure = int2um)
+ \\g
+.)C
+Next, we define a right unary operator:
+.(C
+/* -n (negation) for int4 */
+* define operator ## (arg1 = int4,
+                      associativity = left,
+                      procedure = int4um)
+ \\g
+.)C
+.lp
+Finally, we define a binary operator:
+.(C
+/* a+b (addition) for int4 */
+* define operator ## (arg1 = int4,
+                      arg2 = int4,
+                      procedure = int4pl,
+                      commutator = ## )
+ \\g
+.)C
+If we give the system enough type information, it can automatically
+figure out which operators to use.  In this case, we can take
+advantage of the fact that plain
+.q numbers
+default to the
+.cW int4
+type to get the following behavior:
+.(C
+* retrieve (four_factorial = ## 4,
+            minus_five = ## 5::int2,
+            minus_four = 4 ##,
+            four_plus_four = 4 ## 4)
+ \\g
+.)C
+.(T
+.TS
+allbox;
+l l l l.
+four_factorial	minus_five	minus_four	four_plus_four
+24	-5	-4	8
+.TE
+.)T
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: AGGREGATES"
+.HL
+.lp
+Creation of user-defined aggregates is explained in the Reference
+Manual under
+.b "define aggregate" .
+The key observation to be made, however, is that any aggregate can be
+expressed in terms of
+.i "state transition functions" .
+That is, an aggregate can be defined in terms of 
+.i state
+that is modified whenever an instance is processed.  Some state
+functions look at a particular value in the instance when computing
+the new state (\c
+.i sfunc1
+in the 
+.b "define aggregate"
+syntax) while others only keep track of their own internal state (\c 
+.i sfunc2 ).
+.lp
+If we define an aggregate that uses only 
+.cW sfunc1 ,
+we define an aggregate that computes a running function of the
+attribute values from each instance.  
+.q "Sum"
+is an example of this kind of aggregate.  
+.q "Sum"
+starts at zero and always adds the current instance's value to its
+running total.
+.(C
+* define aggregate my_sum (sfunc1 = int4pl, /* addition */
+                           basetype = int4, 
+                           stype1 = int4,
+                           initcond1 = "0") \\g
+
+* retrieve (salary_sum = my_sum{EMP.salary}) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+salary_sum
+8200
+.TE
+.)T
+If we define only
+.cW sfunc2 ,
+we are specifying an aggregate that computes a running function that
+is independent of the attribute values from each instance.  
+.q Count
+is the most common example of this kind of aggregate.
+.q Count
+starts at zero and adds one to its running total for each instance,
+ignoring the instance value.
+.(C
+* define aggregate my_count (sfunc2 = int4inc, /* add one */
+                             stype2 = int4,
+                             initcond2 = "0") \\g
+
+* retrieve (emp_count = my_count{EMP.oid}) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+emp_count
+5
+.TE
+.)T
+.q Average
+is an example of an aggregate that requires both a function that
+computes the running sum and a function that computes the running
+count.  When all of the instances have been processed, the final
+answer for the aggregate is the running sum divided by the running
+count. 
+.(C
+* define aggregate my_average (sfunc1 = int4pl, /* sum */
+                               basetype = int4,
+                               stype1 = int4,
+                               sfunc2 = int4inc, /* count */
+                               stype2 = int4,
+                               finalfunc = int4div, /* division */
+                               initcond1 = "0",
+                               initcond2 = "0") \\g
+
+* retrieve (emp_average = my_average{EMP.salary}) \\g
+.)C
+.(T
+.TS
+allbox;
+l.
+emp_average
+1640
+.TE
+.)T
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "EXTENDING POSTQUEL: AN EXAMPLE"
+.HL
 .lp
 In this discussion, we will be defining a
 .cW circle
 type, using functions written in the C programming language.
+.lp
+For additional examples of how to create new types, functions and
+operators, you should look in the directories
+.(C
+/usr/local/postgres/src/regress/demo
+/usr/local/postgres/src/regress/regress
+/usr/local/postgres/src/regress/video
+.)C
+These directories contain several C and \*(PQ files that should how to
+perform various extensions to the system, and the routines we use in
+our regression tests should always work.
 .\"-----------------
-.sh 4 "Data Structures for Our Type"
+.sh 2 "C Data Structures"
 .lp
 Before we do anything, we have to decide on what a circle looks like,
 both in string format and internally in memory.  Circles have a center
@@ -1392,14 +2903,14 @@ structure to which
 presumably points.  \*(PP cannot detect this kind of coding error; you
 must guard against it yourself.
 .\"-----------------
-.sh 4 "Defining the Input and Output Functions for Our Type"
+.sh 2 "Defining the Input and Output Functions"
 .lp
 Suppose in defining our type
 .q circle,
 we have a C source file called
 .cW circle.c ,
 and a corresponding object code file
-.cW /usr/local/postgres/circle.o .
+.cW /usr/local/postgres/src/examples/circle.o .
 (All functions related to our
 .cW circle
 type must be in the same object file.)  For the purposes of this
@@ -1515,21 +3026,7 @@ eq_area_circle(circle1, circle2)
 }
 .)C
 .lp
-Now that we have written these functions and compiled the source
-file,\**
-.(f
-\** You will need to supply an option like
-.cW -I/usr/local/postgres/src/backend
-to your C compiler so it can find the \*(PP header
-.cW .h ) (
-files.  Also, various platform-specific compiler options may be
-required to support \*(PP dynamic linking (for example, the DECstation
-ULTRIX compiler requires the
-.cW "-G 0" '' ``
-option.)  See Appendix B of this manual and the
-.b "define function"
-section of the \*(PP Reference Manual for details.
-.)f
+Now that we have written these functions and compiled the source file,
 we have to let \*(PP know that they exist.  First, we run the
 following queries to define the input and output functions.  These
 functions must be defined
@@ -1543,12 +3040,12 @@ to indicate that the input and/or output of the function is not a
 * define function circle_in
       (language = "c", returntype = circle)
       arg is (any)
-      as "/usr/local/postgres/circle.o" \\g
+      as "/usr/local/postgres/src/examples/circle.o" \\g
 
 * define function circle_out
       (language = "c", returntype = any)
       arg is (any)
-      as "/usr/local/postgres/circle.o" \\g
+      as "/usr/local/postgres/src/examples/circle.o" \\g
 .)C
 Note that the full pathname of the object code file must be specified,
 so you would change
@@ -1573,7 +3070,7 @@ which on most platforms are 8 bytes each, with no additional alignment
 constraints.  However, when defining your own types, you should
 .i not
 make assumptions about structure sizes, but instead write a test
-program that does a
+program that does something like
 .(C
 printf("size is %d\en", sizeof(MYTYPE));
 .)C
@@ -1581,8 +3078,8 @@ on your type.
 .lp
 If
 .cW internallength
-is defined incorrectly, you will encounter strange errors which may
-crash the data manager itself.  If this were to happen with our
+is defined incorrectly, you will encounter strange errors and may
+crash the server.  If this were to happen with our
 .cW CIRCLE
 type, we would have to do a
 .(C
@@ -1595,7 +3092,7 @@ type correctly.  Note that we would
 have to redefine our functions, since their behavior would not have
 changed.
 .\"-----------------
-.sh 4 "Defining an Operator for a New Type"
+.sh 4 "Defining Operators"
 .lp
 Now that we have finished defining the
 .cW circle
@@ -1605,9 +3102,9 @@ classes with circles in them,
 .b append
 records to them with circles defined, and
 .b retrieve
-the values of the entire list of records.  But we can do nothing else
-until we have some circle operators.  To do this, we make use of the
-concept of
+the values of the entire list of records.  However, we can't do
+anything terribly useful with them until we have some operators and/or
+functions.  To do this, we make use of the concept of
 .i "operator overloading" ,
 and in this case we will set the \*(PP equality operator
 .cW = '' ``
@@ -1617,7 +3114,7 @@ equality function exists:
 * define function eq_area_circle
       (language = "c", returntype = bool)
       arg is (circle, circle)
-      as "/usr/local/postgres/circle.o" \\g
+      as "/usr/local/postgres/src/examples/circle.o" \\g
 .)C
 We will now bind this function to the equality symbol with the
 following query:
@@ -1635,7 +3132,7 @@ that contains a
 .cW circle
 attribute, and run some queries against it:
 .(C
-* create tutorial(a = circle) \\g
+* create tutorial (a = circle) \\g
 
 * append tutorial (a = "(1.0, 1.0, 10.0)"::circle) \\g
 
@@ -1661,386 +3158,702 @@ equal.
 .lp
 Other operators (less than, greater than, etc.) can be defined in a
 similar way.  Note that the
-.cW = '' ``
+.cW =
 symbol will still work for other types \(em it has merely had a new
-type added to the list of types it works on.  Any string of
-.q "punctuation characters"
-other than brackets, braces, or parentheses can be used in defining an
-operator.
+type added to the list of types it works on.
+.\"---------------------------------------------------------------------------
+.bp
+.HL
+.sh 1 "INTERFACING EXTENSIONS TO INDICES"
+.HL
 .lp
-If you wish to place indices on attributes that are of the new type,
-you must first tell the index access method the properties of the new
-type.  This is a relatively complicated process and is described in a
-separate section of this manual \(em see Appendix A.
-.\"------------------------------------
-.sh 3 "Additional Information on Creating a User-Defined Function"
-.\"-----------------
-.sh 4 "Use palloc and not malloc"
+The procedures described thus far let you define a new type, new
+functions and new operators.  However, we cannot yet define a
+secondary index (such as a B-tree, R-tree or hash access method) over
+a new type or its operators.
 .lp
-In order for \*(PP to correctly manage memory associated with
-processing your type, you must use the memory allocator
-.cW palloc
-and avoid standard \*(UU memory managers such as
-.cW malloc .
-If you do not, \*(PP will chew up ever increasing amounts of memory.
-Worse yet, \*(PP may attempt to free a chunk of memory allocated by 
-.cW malloc
-in an incorrect way, causing the server to crash.
-.cW palloc
-has the same arguments as
-.cW malloc ,
-that is
-.(C
-char *palloc(size)
-unsigned long size;
-.)C
-To free memory allocated with
-.cW palloc ,
-use
-.cW pfree ,
-which is analogous to the \*(UU library function
-.cW free :
-.(C
-void pfree(ptr)
-char *ptr;
-.)C
-.\"-----------------
-.sh 4 "Re-loading User Functions"
+Look back at Figure 3.  The right half shows the catalogs that we must
+modify in order to tell \*(PP how to use a user-defined type and/or
+user-defined operators with an index (i.e.,
+.cW pg_am ,
+.cW pg_amop ,
+.cW pg_amproc
+and
+.cW pg_opclass ).
+Unfortunately, there is no simple command to do this.  We will
+demonstrate how to modify these catalogs through a running example: a
+new operator class to the B-tree access method that sorts integers in
+ascending absolute value order.
 .lp
-In the process of creating a user-defined type, you may find it
-necessary to re-load a function in the course of debugging.  This is
-.i not
-done automatically when you edit or re-compile the file, but
-.i is
-done if you quit and restart the data manager.
-.lp
-We would re-load our example functions by using the following command:
-.(C
-* load "/usr/local/postgres/circle.o" \\g
-.)C
-.\"-----------------
-.sh 4 "Writing a Function of an Instance"
-.lp
-We've already discussed user functions which take \*(PP base or
-user-defined types as arguments; in this section, we will discuss
-inheritable C functions or methods.
-.lp
-C language methods are useful particularly when we want to make a
-function
-.i inheritable ;
-that is, to have the function process every instance in an inheritance
-hierarchy of classes.
-.lp
-In using a function of an instance in qualifying an instance,
-\*(PP defines the
-.q "current instance"
-to be the instance being qualified at the moment your function is
-called.  The instance itself will be passed in your function's
-parameter list as an opaque structure of type TUPLE, and you will use
-\*(PP library routines to access the data in the object as described
-below.\**
-.(f
-\** In \*(PP \*(PV,
-.cW TUPLE
-is defined as
-.cW "void *" .
-.)f
-.lp
-Suppose we want to write a function to answer the query
-.(C
-* retrieve (EMP.all) where overpaid(EMP) \\g
-.)C
-In the query above, a reasonable
-.cW overpaid
-function might be:
-.(C
-bool
-overpaid(t) 
-TUPLE t;   /* the current instance */
-{
-    extern char *GetAttributeByName();
-    short salary, seniority, performance;
-
-    salary = (short) GetAttributeByName(t, "salary");
-    seniority = (short) GetAttributeByName(t, "seniority");
-    performance = (short) GetAttributeByName(t, "performance");
-
-    return (salary > (seniority * performance));
-}
-.)C
-.cW GetAttributeByName
-is the \*(PP system function that returns attributes out of the
-current instance.  It has two arguments: the argument of type TUPLE
-passed into the function, and the name of the desired attribute.
-.cW GetAttributeByName
-will align data properly so you can cast its return value to the
-desired type.  For example, if you have an attribute
-.cW name
-which is of the \*(PQ type
-.cW char16 ,
-the
-.cW GetAttributeByName
-call would look like:
-.(C
-char *str;
+The
+.cW pg_am
+class contains one instance for every user-defined access method.
+Support for the heap access method is built into \*(PP, but every
+other access method is described here.  The schema is
+.TS
+box center tab(|);
+lf(C)|l.
+amname|name of the access method
+_
+amowner|object id of the owner's instance in pg_user
+_
+amkind|not used at present, but set to 'o' as a place holder
+_
+amstrategies|number of strategies for this access method (see below)
+_
+amsupport|number of support routines for this access method (see below)
+_
+T{
+amgettuple
+aminsert
 \&...
-str = (char *) GetAttributeByName(t, "name")
-.)C
-.lp
-To let \*(PP know about the
-.cW overpaid
-function,
-do:
+T}|T{
+procedure identifiers for interface routines to the access method.
+For example,
+.cW regproc
+ids for opening, closing, and getting instances from the access method
+appear here.
+T}
+.TE
+The object ID of the instance in
+.cW pg_am
+is used as a foreign key in lots of other classes.  You don't need to
+add a new instance to this class; all you're interested in is the
+object ID of the access method instance you want to extend:
 .(C
-* define function overpaid
-      (language = "c", returntype = bool)
-      arg is (EMP)
-      as "/usr/local/postgres/overpaid.o" \\g
-.)C
-.lp
-You can have additional complex, base or user-defined types as
-arguments to the inheritable function.  Thus,
-.(C
-* retrieve (EMP.all)
-      where overpaid2(EMP, DEPT, "bill", 8) \\g
-.)C
-could be written, and
-.cW overpaid2
-would be declared:
-.(C
-bool
-overpaid2(emp, dept, name, number)
-    TUPLE emp, dept;
-    char *name;
-    long number;
-.)C
-.\"------------------------------------
-.sh 3 "Arrays of Types"
-.lp
-As discussed earlier, \*(PP fully supports arrays of base types.
-Additionally, \*(PP supports arrays of user-defined types as well.
-When you define a type, \*(PP
-.i automatically
-provides support for arrays of that type.
-.\"-----------------
-.sh 4 "Arrays of User-Defined Types"
-.lp
-Using the
-.q circle
-example discussed above, we will create a class containing an array of
-circles:
-.(C
-* create circles (list = circle[]) \\g
-.)C
-and do some 
-.b append s:
-.(C
-* append circles (list = "{"(1.0, 1.0, 5.0)",
-                         "(2.0, 2.0, 10.0)"}") \\g
-
-* append circles (list = "{"(2.0, 3.0, 15.0)",
-                         "(2.0, 2.0, 10.0)"}") \\g
-
-* append circles (list = "{"(2.0, 3.0, 4.0)"}") \\g
-.)C
-We can now run queries like:
-.(C
-* retrieve (circles.list[1]) \\g
-.)C
-which returns the first element of each
-.cW list :
-.(T
+* retrieve (pg_am.oid) where pg_am.amname = "btree" \\g
 .TS
 allbox;
 l.
-list
-(1, 1, 5)
-(2, 3, 4)
+oid
+403
 .TE
-.)T
+.)C
+The
+.cW amstrategies
+attribute exists to standardize comparisons across data types.  For
+example, B-trees impose a strict ordering on keys, lesser to greater.
+Since \*(PP allows the user to define operators, \*(PP cannot look at
+the
+.b name
+of an operator (eg,
+.cW >
+or
+.cW < )
+and tell what kind of comparison it is.  In fact, some access methods
+don't impose any ordering at all.  For example, R-trees express a
+rectangle-containment relationship, whereas a hashed data structure
+expresses only bitwise similarity based on the value of a hash
+function.  \*(PP needs some consistent way of taking a qualification
+in your query, looking at the operator and then deciding if a usable
+index exists.  This implies that \*(PP needs to know, for example,
+that the
+.cW <=
 and
+.cW >
+operators partition a B-tree.  \*(PP uses strategies to express these
+relationships between operators and the way they can be used to scan
+indices.
+.lp
+Defining a new set of strategies is beyond the scope of this
+discussion, but we'll explain how B-tree strategies work because
+you'll need to know that to add a new operator class.  In the
+.cW pg_am
+class, the
+.cW amstrategies
+attribute is the number of strategies defined for this access method.
+For B-trees, this number is 5.  These strategies correspond to
+.TS
+allbox center tab(|);
+l n.
+less than|1
+less than or equal|2
+equal|3
+greater than or equal|4
+greater than|5
+.TE
+The idea is that you'll need to add procedures corresponding to the
+comparisons above to the
+.cW pg_amop
+relation (see below).  The access method code can use these strategy
+numbers, regardless of data type, to figure out how to partition the
+B-tree, compute selectivity, and so on.  Don't worry about the details
+of adding procedures yet; just understand that there must be a set of
+these procedures for
+.cW int2 ,
+.cW int4 ,
+.cW oid ,
+and every other data type on which a B-tree can operate.
+.lp
+Sometimes, strategies aren't enough information for the system to
+figure out how to use an index.  Some access methods require other
+support routines in order to work.  For example, the B-tree access
+method must be able to compare two keys and determine whether one is
+greater than, equal to, or less than the other.  Similarly, the R-tree
+access method must be able to compute intersections, unions, and sizes
+of rectangles.  These operations do not correspond to user
+qualifications in \*(PQ queries; they are administrative routines used
+by the access methods, internally.
+.lp
+In order to manage diverse support routines consistently across all
+\*(PP access methods,
+.cW pg_am
+includes a field called
+.cW amsupport .
+This field records the number of support routines used by an access
+method.  For B-trees, this number is one \(em the routine to take two
+keys and return \(mi\^1, 0, or \(pl\^1, depending on whether the first
+key is less than, equal to, or greater than the second.\**
+.(f
+\** Strictly speaking, this routine can return a negative number (<
+0), 0, or a non-zero positive number (> 0).
+.)f
+.lp
+The
+.cW amstrategies
+entry in
+.cW pg_am
+is just the 
+.i number
+of strategies defined for the access method in question.  The
+procedures for less than, less equal, and so on don't appear in
+.cW pg_am .
+Similarly,
+.cW amsupport
+is just the number of support routines required by the access method.
+The actual routines are listed elsewhere.
+.lp
+The next class of interest is
+.cW pg_opclass.
+This class exists only to associate a name with an
+.cW oid .
+In
+.cW pg_amop ,
+every B-tree operator class has a set of procedures, one through five,
+above.  Some existing opclasses are
+.cW int2_ops ,
+.cW int4_ops ,
+and
+.cW oid_ops .
+You need to add an instance with your opclass name (for example,
+.cW int4_abs_ops )
+to
+.cW pg_opclass .
+The
+.cW oid
+of this instance is a foreign key in other classes.
 .(C
-* retrieve (circles.all)
-      where circles.list[1] = "(0.0, 0.0, 4.0)" \\g
+* append pg_opclass (opcname = "int4_abs_ops") \\g
+
+* retrieve (cl.oid, cl.opcname) from cl in pg_opclass
+      where cl.opcname = "int4_abs_ops" \\g
+.TS
+tab(|) allbox;
+l l.
+oid|opcname
+17314|int4_abs_ops
+.TE
+.)C
+Note that the
+.cW oid
+for your
+.cW pg_opclass
+instance
+.b "will be different" !
+You should substitute your value for 17314 wherever it appears in this
+discussion.
+.lp
+So now we have an access method and an operator class.  We still need
+a set of operators; the procedure for defining operators was discussed
+earlier in this manual.  For the
+.cW int4_abs_ops
+operator class on B-trees, the operators we require are:
+.(l
+absolute value less-than
+absolute value less-than-or-equal
+absolute value equal
+absolute value greater-than-or-equal
+absolute value greater-than
+.)l
+Suppose the code that implements the functions defined is stored in
+the file
+.(C
+/usr/local/postgres/src/examples/int4_abs.c
+.)C
+The code is
+.(C
+/*
+ * int4_abs.c -- absolute value comparison functions
+ *               for int4 data
+ */
+
+#include "tmp/c.h"
+
+#define ABS(a) ((a < 0) ? -a : a)
+
+/* routines to implement operators */
+
+bool int4_abs_lt(a, b) int32 a, b;
+     { return(ABS(a) < ABS(b)); }
+
+bool int4_abs_le(a, b) int32 a, b;
+     { return(ABS(a) <= ABS(b)); }
+
+bool int4_abs_eq(a, b) int32 a, b;
+     { return(ABS(a) == ABS(b)); }
+
+bool int4_abs_ge(a, b) int32 a, b;
+     { return(ABS(a) >= ABS(b)); }
+
+bool int4_abs_gt(a, b) int32 a, b;
+     { return(ABS(a) > ABS(b)); }
+
+/* support (signed comparison) routine */
+
+int int4_abs_cmp(a, b) int32 a, b;
+     { return(ABS(a) - ABS(b)); }
+.)C
+There are a couple of important things that are happening below.
+.lp
+First, note that operators for less-than, less-than-or-equal, equal,
+greater-than-or-equal, and greater-than for
+.cW int4
+are being defined.  All of these operators are already defined for
+.cW int4
+under the names
+.cW < ,
+.cW <= ,
+.cW = ,
+.cW >= ,
+and
+.cW > .
+The new operators behave differently, of course.  In order to
+guarantee that \*(PP uses these new operators rather than the old
+ones, they need to be named differently from the old ones.  This is a
+key point: you can overload operators in \*(PP, but only if the
+operator isn't already defined for the argument types.  That is, if
+you have
+.cW <
+defined for
+.cW int4 , (
+.cW int4 ),
+you can't define it again.
+\*(PP
+.b "does not check"
+this when you define your operator, so be careful.  To avoid
+this problem, odd names will be used for the operators.  If you get
+this wrong, the access methods are likely to crash when you try to do
+scans.
+.lp
+The other important point is that all the operator functions return
+.i Boolean
+values.  The access methods rely on this fact.  (On the other hand,
+the support function returns whatever the particular access method
+expects \(em in this case, a signed integer.)
+.lp
+The final routine in the file is the 
+.q "support routine"
+mentioned when we discussed the
+.cW amsupport
+attribute of the
+.cW pg_am
+class.  We will use this later on.  For now, ignore it.
+.(C
+* define function int4_abs_lt
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+
+* define function int4_abs_le
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+
+* define function int4_abs_eq
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+
+* define function int4_abs_ge
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+
+* define function int4_abs_gt
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+.)C
+Now define the operators that use them.  As noted, the operator names
+must be unique among all operators that take two
+.cW int4
+operands.  In order to see if the operator names listed below are
+taken, we can do a query on
+.cW pg_operator :
+.(C
+/*
+ * this query uses the regular expression operator (~)
+ * to find three-character operator names that end in
+ * the character &
+ */
+* retrieve (o.all)
+    from o in pg_operator
+    where o.oprname ~ "^..&$"::text \\g
+.)C
+to see if your name is taken for the types you want.  The important
+things here are the procedure (which are the C functions defined
+above) and the restriction and join selectivity functions.  You should
+just use the ones used below\(emnote that there are different such
+functions for the less-than, equal, and greater-than cases.  These
+.i must
+be supplied, or the access method will crash when it tries to use the
+operator.  You should copy the names for
+.cW restrict
+and
+.cW join ,
+but use the procedure names you defined in the last step.
+.(C
+* define operator <<&
+      (arg1 = int4, arg2 = int4, procedure=int4_abs_lt,
+       associativity = left, restrict = intltsel,
+       join = intltjoinsel) \\g
+
+* define operator <=&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_le,
+       associativity = left, restrict = intltsel,
+       join = intltjoinsel) \\g
+
+* define operator ==&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_eq,
+       associativity = left, restrict = eqsel,
+       join = eqjoinsel) \\g
+
+* define operator >=&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_ge,
+       associativity = left, restrict = intgtsel,
+       join = intgtjoinsel) \\g
+
+* define operator >>&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_gt,
+       associativity = left, restrict = intgtsel,
+       join = intgtjoinsel) \\g
+.)C
+Notice that five operators corresponding to less, less equal, equal,
+greater, and greater equal are defined.
+.lp
+We're just about finished. the last thing we need to do is to update
+the
+.cW pg_amop
+relation.  To do this, we need the following attributes:
+.TS
+allbox center tab(|);
+lf(C) l.
+amopid|T{
+the
+.cW oid
+of the
+.cW pg_am
+instance for B-tree (== 403, see above)
+T}
+amopclaid|T{
+the
+.cW oid
+of the
+.cW pg_opclass
+instance for
+.cW int4_abs_ops
+(== whatever you got instead of 17314, see above)
+T}
+amopopr|T{
+the
+.cW oid s
+of the operators for the opclass (which we'll get in just a minute)
+T}
+T{
+amopselect,
+.br
+amopnpages
+T}|cost functions.
+.TE
+The cost functions are used by the query optimizer to decide whether
+or not to use a given index in a scan.  Fortunately, these already
+exist.  The two functions we'll use are
+.cW btreesel,
+which estimates the selectivity of the B-tree, and
+.cW btreenpage,
+which estimates the number of pages a search will touch in the tree.
+.lp
+So we need the
+.cW oid s
+of the operators we just defined.  We'll look up the names of all the
+operators that take two
+.cW int4 s,
+and pick ours out:
+.(C
+* retrieve (o.oid, o.oprname)
+      from o in pg_operator, t in pg_type
+      where o.oprleft = t.oid and o.oprright = t.oid
+          and t.typname = "int4" \\g
 .)C
 which returns:
 .(T
 .TS
-allbox;
-l.
-list
-{"(2, 3, 4)"}
+tab(|) allbox;
+l l.
+oid|oprname
+96|\\=
+97|<
+514|*
+518|!=
+521|>
+523|<=
+525|>=
+528|/
+530|%
+551|+
+555|-
+17321|<<&
+17322|<=&
+17323|==&
+17324|>=&
+17325|>>&
 .TE
 .)T
-Note the
-.cW {} s,
-indicating that an array has been retrieved, as opposed to a single element.
-.\"-----------------
-.sh 4 "Defining a New Array Type"
+(Again, some of your
+.cW oid
+numbers will almost certainly be different.)  The operators we are
+interested in are those with
+.cW oid s
+17321 through 17325.  The values you get will probably be different,
+and you should substitute them for the values below.  We can look at
+the operator names and pick out the ones we just added.
 .lp
-An array may be defined as an element of a class, as shown above, or it may
-be defined as a type in and of itself.
-This is useful for defining
-.i "arrays of arrays" .
-.lp
-The special built-in functions
-.cW array_in
-and
-.cW array_out
-are used by \*(PP to input and output arrays of any existing type.
-Here, we define an array of integers:
+Now we're ready to update
+.cW pg_amop
+with our new operator class.  The most important thing in this entire
+discussion is that the operators are ordered, from less equal through
+greater equal, in
+.cW pg_amop .
+Recall that the B-tree instance's
+.cW oid
+is 403 and
+.cW int4_abs_ops
+is
+.cW oid
+17314.  Then we add the instances we need:
 .(C
-* define type int_array
-      (element = int4, internallength = variable,
-       input = array_in, output = array_out) \\g
+* append pg_amop
+      (amopid = "403"::oid,          /* btree oid        */
+       amopclaid = "17314"::oid,     /* pg_opclass tuple */
+       amopopr = "17321"::oid,       /* <<& tup oid      */
+       amopstrategy = "1"::int2,     /* 1 is <<&         */
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc) \\g
+
+* append pg_amop (amopid = "403"::oid,
+                  amopclaid = "17314"::oid,
+                  amopopr = "17322"::oid,
+                  amopstrategy = "2"::int2,
+                  amopselect = "btreesel"::regproc,
+                  amopnpages = "btreenpage"::regproc) \\g
+
+* append pg_amop (amopid = "403"::oid,
+                  amopclaid = "17314"::oid,
+                  amopopr = "17323"::oid,
+                  amopstrategy = "3"::int2,
+                  amopselect = "btreesel"::regproc,
+                  amopnpages = "btreenpage"::regproc) \\g
+
+* append pg_amop (amopid = "403"::oid,
+                  amopclaid = "17314"::oid,
+                  amopopr = "17324"::oid,
+                  amopstrategy = "4"::int2,
+                  amopselect = "btreesel"::regproc,
+                  amopnpages = "btreenpage"::regproc) \\g
+
+* append pg_amop (amopid = "403"::oid,
+                  amopclaid = "17314"::oid,
+                  amopopr = "17325"::oid,
+                  amopstrategy = "5"::int2,
+                  amopselect = "btreesel"::regproc,
+                  amopnpages = "btreenpage"::regproc) \\g
 .)C
-The
-.cW element
-parameter indicates that this is an array, and setting
-.cW internallength
-to
-.cW variable
-indicates that the array is a variable-length attribute.\**
+Note the order:
+.q "less than"
+is 1,
+.q "less than or equal"
+is 2,
+.q "equal"
+is 3,
+.q "greater than or equal"
+is 4,
+and
+.q "greater than"
+is 5.
+.lp
+In the file
+.(C
+/usr/local/postgres/src/examples/chapter13
+.)C
+we show the \*(PQ that performs the four-way join between 
+.cW pg_amop ,
+.cW pg_opclass ,
+.cW pg_operator
+and
+.cW pg_type .
+Doing the join obviates the need to write down any 
+.cW oid s
+but the query is considerably more complicated-looking.
+.lp
+The last step (finally!) is registration of the 
+.q "support routine"
+previously described in our discussion of
+.cW pg_am .
+The 
+.cW oid
+of this support routine is stored in the
+.cW pg_amproc
+class, keyed by the access method
+.cW oid
+and the operator class
+.cW oid .
+First, we need to register the function in \*(PP (recall that we put
+the C code that implements this routine in the bottom of the file in
+which we implemented the operator routines):
+.(C
+* define function int4_abs_cmp
+      (language = "c", returntype = int4)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o" \\g
+
+* retrieve (p.oid, p.proname)
+      from p in pg_proc
+      where p.proname = "int4_abs_cmp" \\g
+.TS
+tab(|) allbox;
+l l.
+oid|proname
+17328|int4_abs_cmp
+.TE
+.)C
+(Again, your
+.cW oid
+number will probably be different and you should substitute the value
+you see for the value below.)  Recalling that the B-tree instance's
+.cW oid 
+is 403 and that of 
+.cW int4_abs_ops
+is 17314, we can add the new instance as follows:
+.(C
+* append pg_amproc
+	(amid = "403"::oid,        /* btree oid        */
+	 amopclaid = "17314"::oid, /* pg_opclass tuple */
+	 amproc = "17328"::oid,    /* new pg_proc oid */
+	 amprocnum = "1"::int2) \eg
+.)C
+.lp
+Okay, now it's time to test the new operator class.  First we'll
+create and populate a class\**:
 .(f
-\** Note that any type using
-.cW array_in
-and
-.cW array_out
-.i must
-be variable-length.
+\** In this example, we append only a few instances into the class.
+In fact, \*(PP uses a 
+.q cost-based
+query optimizer that makes the decision whether or not to use an index
+based on how much data is touched.  Since this example creates a very
+small amount of data, the example will likely not work as advertised
+\(em one would have to insert a fair amount of data before using an
+index would actually be cheaper than just scanning the underlying heap
+data structure.
+.q "A fair amount"
+typically means on the order of several kilobytes.
 .)f
-.lp
-We can use our type defined above to create an array of integer
-arrays:
 .(C
-* define type int_arrays
-      (element = int_array, internallength = variable,
-       input = array_in, output = array_out) \\g
+* create pairs (name = char16, number = int4) \\g
 
-* create stuff (a = int_arrays) \\g
+* append pairs (name = "mike", number = -10000) \\g
 
-* append stuff (a = "{"{1, 2, 3}" , "{4, 5}", "{6, 7, 8}"}") \\g
+* append pairs (name = "greg", number = 3000) \\g
 
-* append stuff (a = "{"{88, 99, 3}"}") \\g
+* append pairs (name = "lay peng", number = 5000) \\g
 
-* retrieve (stuff.a[1]) \\g
+* append pairs (name = "jeff", number = -2000) \\g
+
+* append pairs (name = "mao", number = 7000) \\g
+
+* append pairs (name = "cimarron", number = -3000) \\g
+
+* retrieve (pairs.all) \\g
+.TS
+tab(|) allbox;
+l l.
+name|number
+mike|-10000
+greg|3000
+lay peng|5000
+jeff|-2000
+mao|7000
+cimarron|-3000
+.TE
 .)C
-Queries like these will not work on 
-.i "arrays of arrays".
+Okay, looks pretty random.  Define an index using the new opclass:
 .(C
-* retrieve (stuff.a[1][1]) \\g
+* define index pairsind on pairs
+      using btree (number int4_abs_ops) \\g
 .)C
-However, two dimensional arrays can be used to get this behavior.
-.\"------------------------------------
-.sh 3 "Large Object Types"
-.lp
-.(l C
-.hl
-FIX ME
-jaquith large objects
-external large objects
-.hl
-.)l
-The types discussed to this point are all
-.i small
-objects \(em that is, they are smaller than 8KB\**
-.(f
-\** 8 * 1024 == 8192 bytes.  In fact, the type must be considerably
-smaller than 8192 bytes, since the \*(PP tuple and page overhead
-must also fit into this 8KB limitation.  The actual value that fits
-depends on the machine architecture.
-.)f
-in size.  If you require a larger type for something like a document
-retrieval system or for storing bitmaps, you will need to use the
-\*(PP
-.i "large object"
-interface.  The interface to large objects is quite similar to the
-\*(UU file system interface.  The particulars are detailed in Section
-7 of the \*(PP Reference Manual, which you should have available to
-consult as you read the following.
-.\"-----------------
-.sh 4 "Defining a Large Object"
-.lp
-Just like any other type, a large object type requires input and
-output functions.  For the purposes of this discussion, we assume that
-two functions,
-.cW large_in
-and
-.cW large_out
-have been written using the large object interface, and that the
-compiled functions are in
-.cW /usr/local/postgres/large.o .
-We also presume that we are using the
-.q "file as an ADT"
-interface for large objects discussed in the Reference Manual.
-.lp
-We define a large object which could be used for storing map data:
+Now run a query that doesn't use one of our new operators.  What we're
+trying to do here is to run a query that
+.i won't
+use our index, so that we can tell the difference when we see a query
+that
+.i does
+use the index.  This query won't use the index because the operator we
+use in the qualification isn't one that appears in the list of
+strategies for our index.
 .(C
-* define function large_in
-      (language = "c", returntype = map)
-      arg is (any)
-      as "/usr/local/postgres/large.o" \\g
-
-* define function large_out
-      (language = "c", returntype = any)
-      arg is (any)
-      as "/usr/local/postgres/large.o" \\g
-
-* define type map
-      (internallength = variable,
-       input = large_in, output = large_out) \\g
+* retrieve (pairs.all) where pairs.number < 9000 \\g
+.TS
+tab(|) allbox;
+l l.
+name|number
+mike|-10000
+greg|3000
+lay peng|5000
+jeff|-2000
+mao|7000
+cimarron|-3000
+.TE
 .)C
-Note that large objects are
-.i always
-variable-length.
-.lp
-Now we can use our
-.cW map
-object:
+Yup, just as random; that didn't use the index.  Okay, let's run a
+query that
+.i does
+use the index:
 .(C
-* create maps (name = text, a = map) \\g
-
-* append maps (name = "earth",
-               a = "/usr/local/postgres/earth") \\g
-
-* append maps (name = "moon",
-               a = "/usr/local/postgres/moon") \\g
+* retrieve (pairs.all) where pairs.number <<& 9000 \\g
+.TS
+tab(|) allbox;
+l l.
+name|number
+jeff|-2000
+cimarron|-3000
+greg|3000
+lay peng|5000
+mao|7000
+.TE
 .)C
-Notice that the above queries are identical in syntax to those we have
-been using all along to define types and such; the fact that this type
-is a large object is completely hidden in the large object interface
-and \*(PP storage manager.
-.\"-----------------
-.sh 4 "Writing Functions and Operators for Large Object Types"
-.lp
-Like any other \*(PP type, you can define functions and operators for
-large object types.  The only caveat is that, like any other functions
-which process a large object, they
-.i must
-use the large object interface described in Section 7 of the \*(PP
-Reference Manual.  Possible queries which involve functions on large
-objects could include
-.(C
-* retrieve (emp.name) where beard(emp.picture) = "red" \\g
-
-* retrieve (mountain.name)
-      where height(mountain.topomap) > 10000 \\g
-.)C
-Because all functionality is available to large objects,
-.i any
-aspect of \*(PP is available for use with them, including index access
-methods, if the appropriate operator classes have been defined.
-Operator classes for index access methods are discussed in Appendix A.
+Note that the
+.cW number
+values are in order of increasing absolute value (as they should be,
+since the index was used for this scan) and that we got the right
+answer \(em the instance for
+.cW mike
+doesn't appear, because \(mi10000 
+.cW ">=&"
+9000.
 .\"---------------------------------------------------------------------------
-.sh 3 "User-Defined Aggregates"
-.lp
-.(l C
-.hl
-FIX ME
-.hl
-.)l
-.\"---------------------------------------------------------------------------
-.sh 1 "THE \*(PP RULE SYSTEM"
+.bp
+.HL
+.sh 1 "THE POSTGRES RULE SYSTEM"
+.HL
 .lp
 Production rule systems are conceptually simple, but there are many
 subtle points involved in actually using them.  Consequently, we will
@@ -2091,13 +3904,19 @@ when a rule affects only a
 .i few
 instances.
 .\"---------------------------------------------------------------------------
-.sh 1 "ADMINISTERING \*(PP"
+.bp
+.HL
+.sh 1 "ADMINISTERING POSTGRES"
+.HL
 .lp
 In this section, we will discuss aspects of \*(PP that are of interest
 to those who make extensive use of \*(PP, or who are the site
 administrator for a group of \*(PP users.
 .\"------------------------------------
+.bp
+.HL
 .sh 2 "Frequent Tasks"
+.HL
 .lp
 Here we will briefly discuss some procedures that you should be
 familiar with in managing any \*(PP installation.
@@ -2218,7 +4037,96 @@ or
 .cW at (1) 
 commands).
 .\"------------------------------------
+.sh 3 "Tuning"
+.lp
+Once your users start to load a significant amount of data, you will
+typically run into performance problems.  \*(PP is not the fastest
+DBMS in the world, but many of the worst problems encountered by users
+are due to their lack of experience with any DBMS.  Some general tips
+include:
+.np
+Define indices over attributes that are commonly used for
+qualifications.  For example, if you often execute queries of the form
+.(C
+retrieve (EMP.all) where EMP.salary < 5000
+.)C
+then a B-tree index on the 
+.cW salary
+column will probably be useful.  If scans involving equality are more
+common, as in
+.(C
+retrieve (EMP.all) where EMP.salary = 5000
+.)C
+then you should consider defining a hash index on 
+.cW salary .
+It doesn't hurt to define both (though it will use more disk space).
+Scans using indices are
+.b much
+faster than sequential scans of the entire class.
+.np
+Run the
+.cW vacuum
+command a lot.  This command updates the statistics that the query
+optimizer uses to make intelligent decisions; if the statistics are
+inaccurate, the system will make inordinately stupid decisions with
+respect to the way it joins and scans classes.
+.np
+When specifying query qualfications (i.e., the
+.cW where
+part of the query), try to ensure that a clause involving a constant
+can be turned into one of the form
+.i "range_variable operator constant" ,
+e.g.,
+.(C
+EMP.salary = 5000
+.)C
+The \*(PP query optimizer will only use an index with a constant
+qualification of this form.  It doesn't hurt to write the clause as
+.(C
+5000 = EMP.salary
+.)C
+if the operator (in this case,
+.cW = )
+has a 
+.i commutator
+operator defined so that \*(PP can rewrite the query into the desired
+form.  However, if such an operator does not exist, \*(PP will never
+consider the use of an index.
+.np
+When joining several classes together in one query, try to write the
+join clauses in a 
+.q chained
+form, e.g.,
+.(C
+where A.a = B.b and B.b = C.c and ...
+.)C
+rather than in a 
+.q star
+form such as
+.(C
+where A.a = B.b and A.a = C.c and ...
+.)C
+When presented with a query of this form, the \*(PP query optimizer
+will tend to consider far more choices than it should and may run out
+of memory.
+.np
+If you are really desperate to see what query plans look like, you can
+run the
+.cW postmaster
+with the 
+.cW -d
+option and then run 
+.cW monitor
+with the 
+.cW -t
+option.  The format in which query plans will be printed is hard to
+read but you should be able to tell whether any index scans are being
+performed.
+.\"------------------------------------
+.bp
+.HL
 .sh 2 "Infrequent Tasks"
+.HL
 .lp
 At some time or another, every \*(PP site administrator has to perform
 all of the following actions.
@@ -2280,7 +4188,7 @@ directory to the new location (making sure that the new files are
 owned by user
 .q postgres ).
 .(C
-% cp -r /usr/local/postgres/data /new/place/data
+% cp -rp /usr/local/postgres/data /new/place/data
 .)C
 .bu
 Reset your
@@ -2301,7 +4209,8 @@ Restart the
 % postmaster &
 .)C
 .bu
-Remove the old 
+After you run some queries and are sure that the newly-moved database
+works, you can remove the old
 .cW data
 directory.
 .(C
@@ -2328,7 +4237,7 @@ owned by the
 .q postgres
 user.
 .(C
-% cp -r /usr/local/postgres/data/base/foo /new/place/foo
+% cp -rp /usr/local/postgres/data/base/foo /new/place/foo
 .)C
 .bu
 Remove the directory
@@ -2368,7 +4277,7 @@ commands.  Notice that as of Version 4.2, the method by which you
 generate object code for user-defined functions has changed, so you
 may have to modify your old
 .cW .o
-files.  See Appendix B for more details.
+files.  See Appendix A for more details.
 .bu
 .i Data
 must be dumped from the old classes into ASCII files (using the \*(PQ 
@@ -2398,60 +4307,10 @@ after you have destroyed your old databases!  (This should be standard
 procedure when updating any software package, but some people try to
 economize on disk space without applying enough foresight.)
 .\"------------------------------------
-.sh 2 "Troubleshooting \*(PP"
-.lp
-Occasionally, \*(PP will fail with cryptic error messages that are due
-to relatively simple problems.  The following are a list of \*(PP
-error messages and the likely fix.  These messages are ones you would
-likely see in the
-.cW monitor
-program.
-.(C
-Message: semget: No space left on device
-
-Explanation and Likely Fix:
-.)C
-Either the kernel has not been configured for System V shared memory,
-or some other program is using it up.  On most machines, the \*(UU
-command
-.cW ipcs
-will show shared memory and semaphore usage.
-.lp
-To delete all shared memory and semaphores (may be necessary if a
-backend fails), run the
-.cW ipcclean
-command.  Note, however, that
-.cW ipcclean
-deletes
-.i all
-semaphores belonging to the user running it, so the user should be
-certain that none of his/her non-\*(PP processes are using semaphores
-before running this command.
-.(C
-Message: Unable to get shared buffers
-
-Explanation and Likely Fix:
-.)C
-This message means that a \*(PP backend was expecting shared memory to
-be available and it was not.  Usually this is due to
-.cW ipcclean
-being run while a
-.cW postmaster
-was also running.
-.(C
-Message: Can't connect to the backend (...)
-
-Explanation and Likely Fix:
-.)C
-This message means that you are running a \*(LP application but it
-could not link up with a
-.cW postmaster .
-If you see this error message, you should see if a
-.cW postmaster
-is truly running.  If one is running, the problem is likely related to
-your network.
-.\"------------------------------------
+.bp
+.HL
 .sh 2 "Database Security"
+.HL
 .lp
 Most sites that use \*(PP are educational or research institutions and
 do not pay much attention to security in their \*(PP installations.
@@ -2480,68 +4339,23 @@ command.  See the Reference Manual under the heading
 .b "change acl"
 for more details.
 .\"------------------------------------
-.sh 2 "How to Find Out What's in a Database"
+.bp
+.HL
+.sh 2 "Querying the System Catalogs"
+.HL
 .lp
-This section explains how you can answer questions such as,
-.q "What tables do I have in this database?"
-and
-.q "What extensions have been added to my database?"
-.\"------------------------------------
-.sh 3 "About the \*(PP System Catalogs"
-.lp
-If you are familiar with standard relational systems, you know that
-they store information about databases, tables, etc., in what are
-commonly known as
-.i "system catalogs" .
-(Some systems call this the
-.i "data dictionary" ).
-The catalogs appear to the user as tables, like any other, but the
-DBMS stores its internal bookkeeping in them.  One key difference
-between \*(PP and standard relational systems is that \*(PP stores
-much more information in its catalogs \(em not only information about
-tables and attributes, but also information about the types,
-procedures, access methods, and so on.  These tables can be modified
-by the user, and since \*(PP bases its internal operation on these
-tables, this means that \*(PP can be extended by users.  By
-comparison, standard relational systems can only be extended by
-changing hard-coded procedures within the DBMS.
-.lp
-The following classes contain information that may be useful to the
-end user.  There are many other system catalogs, but there should
-never be a reason to query them.
-.TS
-center tab(|);
-cf(C)|c
-lf(C)|l.
-catalog name|description
-=
-pg_database|databases
-pg_class|class
-pg_attribute|attributes
-pg_index|indexes
-
-pg_proc|procedures
-pg_type|types
-pg_operator|operators
-pg_aggregate|aggregates
-
-pg_am|access methods
-pg_amop|access method operators
-pg_amproc|access method support functions
-pg_opclass|access method operator classes
-
-pg_user|users
-pg_group|user groups
-.TE
-.\"------------------------------------
-.sh 3 "Querying the System Catalogs"
-.lp
-Before executing any of the queries below, be sure to execute the \*(PP
+As an administrator (or sometimes as a plain user), you want to find
+out what extensions have been added to a given database.  The queries
+listed below are
+.q canned
+queries that you can run on any database to get simple answers.
+Before executing any of the queries below, be sure to execute the
+\*(PP
 .cW vacuum
 command.  (The queries will run much more quickly that way.)  Also,
 note that the text used to generate this document can be found in
 .(C
-\&.../src/doc/manual.me
+/usr/local/postgres/src/examples/chapter15
 .)C
 so use cut-and-paste instead of doing a lot of typing.
 .lp
@@ -2560,7 +4374,7 @@ This query lists all user-defined classes in the database.
 .(C
 * retrieve (class_name = c.relname)
       from c in pg_class
-      where c.relkind = 'r'      /* no indexes */
+      where c.relkind = 'r'      /* no indices */
         and c.relname !~ "^pg_"  /* no catalogs */
       sort by class_name
  \\g
@@ -2592,7 +4406,7 @@ types for all user-defined classes in the database.
       from c in pg_class,
            a in pg_attribute,
            t in pg_type
-      where c.relkind = 'r'     /* no indexes */
+      where c.relkind = 'r'     /* no indices */
         and c.relname !~ "^pg_" /* no catalogs */
         and a.attnum > 0        /* no system att's */
         and a.attrelid = c.oid
@@ -2616,13 +4430,13 @@ types).
 .)C
 This query lists all left-associative (post-fix) operators.
 .(C
-* retrieve (left_assoc = o.oprname,
+* retrieve (left_unary = o.oprname,
             operand = right.typname,
             return_type = result.typname)
       from o in pg_operator,
            right in pg_type,
            result in pg_type
-      where o.oprkind = 'l'           /* left assoc */
+      where o.oprkind = 'l'           /* left unary */
         and o.oprright = right.oid
         and o.oprresult = result.oid
       sort by operand
@@ -2630,13 +4444,13 @@ This query lists all left-associative (post-fix) operators.
 .)C
 This query lists all right-associative (pre-fix) operators.
 .(C
-* retrieve (right_assoc = o.oprname,
+* retrieve (right_unary = o.oprname,
             operand = left.typname,
             return_type = result.typname)
       from o in pg_operator,
            left in pg_type,
            result in pg_type
-      where o.oprkind = 'r'          /* right assoc */
+      where o.oprkind = 'r'          /* right unary */
         and o.oprleft = left.oid
         and o.oprresult = result.oid
       sort by operand
@@ -2714,7 +4528,10 @@ respective operator classes.
  \\g
 .)C
 .\"---------------------------------------------------------------------------
+.bp
+.HL
 .sh 1 "REFERENCES"
+.HL
 .\"------------------------------------
 .xP [ONG90]
 Ong, L. and Goh, J.,
@@ -2774,665 +4591,9 @@ Atlantic City, N.J.,
 June 1990.
 .\"---------------------------------------------------------------------------
 .bp
-.lp
-.sh 0 "APPENDIX A: User-Defined Types and Indices"
-.lp
-In this section, we will discuss how to extend \*(PP to use a
-user-defined type and associated functions with existing access
-methods.  This way, you can define a BTREE or RTREE index on your own
-type.  To do this, we will discuss how to define a new operator class
-in \*(PP for use with an existing access method.
-.lp
-Our example will be to add a new operator class to the BTREE access
-method.  The new operator class will sort integers in ascending
-absolute value order.  This tutorial will describe how to define the
-operator class.  If you work the example, you will be able to define
-and use indices that sort integer keys by absolute value.
-.lp
-There are several \*(PP system classes that are important in
-understanding how the access methods work.  These will be discussed,
-and then a sample procedure for adding a new set of operators to an
-existing access method will be shown as an example.
-.lp
-The
-.cW pg_am
-class contains one instance for every user-defined access method.
-Support for the HEAP access method is built into \*(PP, but every
-other access method is described here.  The schema is
-.TS
-center tab(|);
-lf(C)|l.
-amname|name of the access method
-_
-amowner|object id of the owner's instance in pg_user
-_
-amkind|not used at present, but set to 'o' as a place holder
-_
-amstrategies|number of strategies for this access method (see below)
-_
-amsupport|number of support routines for this access method (see below)
-_
-am*|T{
-procedure identifiers for interface routines to the access method.
-For example,
-.cW regproc
-ids for opening, closing, and getting instances from the access method
-appear here.
-T}
-.TE
-The object ID of the instance in
-.cW pg_am
-is used as a foreign key in lots of other classes.  For BTREEs, this
-object ID is 403.  You don't need to add a new instance to this class;
-all you're interested in is the object ID of the access method
-instance you want to extend:
-.(C
-* retrieve (pg_am.oid) where pg_am.amname = "btree" \\g
-.TS
-allbox;
-l.
-oid
-403
-.TE
-.)C
-The
-.cW amstrategies
-attribute exists to standardize comparisons across data types.  For
-example, BTREEs impose a strict ordering on keys, less to greater.
-Since \*(PP allows the user to define operators, \*(PP cannot in
-general look at the name of an operator (eg,
-.cW > ,
-.cW < )
-and tell what kind of comparison it is.  In fact, some access methods
-(like RTREEs) don't impose a less-to-greater ordering, but some other
-ordering, like containment.  \*(PP needs some consistent way of taking
-a scan qualification, looking at the operator, deciding if a usable
-index exists, and rewriting the query qualification in order to
-improve access speeds.  This implies that \*(PP needs to know, for
-example, that
-.cW <=
-and
-.cW >
-partition a BTREE.  Strategies is the way that we do this.
-.lp
-Defining a new set of strategies is beyond the scope of this
-discussion, but how the BTREE strategies work will be explained, since
-you'll need to know that to add a new operator class.  In the
-.cW pg_am
-class, the
-.cW amstrategies
-attribute is the number of strategies defined for this access method.
-For BTREES, this number is 5.  These strategies correspond to
-.TS
-center tab(|);
-l|l.
-less than|1
-_
-less than or equal|2
-_
-equal|3
-_
-greater than or equal|4
-_
-greater than|5
-.TE
-The idea is that you'll add procedures corresponding to the
-comparisons above to the
-.cW pg_amop
-relation (see below).  The access method code can use these numbers,
-regardless of data type, to figure out how to partition the BTREE,
-compute selectivity, and so on.  Don't worry about the details of
-adding procedures yet; just understand that there's a set of these for
-.cW int2 ,
-.cW int4 ,
-.cW oid ,
-and every other data type on which a BTREE can operate.
-.lp
-Strategies are used by all of the \*(PP access methods.  Some access
-methods require other support routines in order to work.  For example,
-the BTREE access method must be able to compare two keys and determine
-whether one is greater than, equal to, or less than the other.
-Similarly, the RTREE access method must be able to compute
-intersections, unions, and sizes of rectangles.  These operations do
-not correspond to user qualifications in \*(PQ queries; they are
-administrative routines used by the access methods, internally.
-.lp
-In order to manage diverse support routines consistently across all
-\*(PP access methods,
-.cW pg_am
-includes a field called
-.cW amsupport .
-This field records the number of support routines used by an access
-method.  For BTREEs, this number is one \(em the routine to take two
-keys and return \(mi\^1, 0, or \(pl\^1, depending on whether the first
-key is less than, equal to, or greater than the second.\**
-.(f
-\** Strictly speaking, this routine can return a negative number (<
-0), 0, or a non-zero positive number (> 0).
-.)f
-.lp
-The
-.cW amstrategies
-entry in
-.cW pg_am
-is just the 
-.i number
-of strategies defined for the access method in question.  The
-procedures for less than, less equal, and so on don't appear in
-.cW pg_am .
-Similarly,
-.cW amsupport
-is just the number of support routines required by the access method.
-The actual routines are listed elsewhere.
-.lp
-The next class of interest is
-.cW pg_opclass.
-This class exists only to associate a name with an
-.cW oid .
-In
-.cW pg_amop ,
-every BTREE operator class has a set of procedures, one through five,
-above.  Some existing opclasses are
-.cW int2_ops ,
-.cW int4_ops ,
-and
-.cW oid_ops .
-You need to add an instance with your opclass name (for example,
-.cW int4_abs_ops )
-to
-.cW pg_opclass .
-The
-.cW oid
-of this instance is a foreign key in other classes.
-.(C
-* append pg_opclass (opcname = "int4_abs_ops") \\g
-
-* retrieve (cl.oid, cl.opcname) from cl in pg_opclass
-      where cl.opcname = "int4_abs_ops" \\g
-.TS
-tab(|) allbox;
-l l.
-oid|opcname
-17314|int4_abs_ops
-.TE
-.)C
-.i NOTE:
-The
-.cW oid
-for your
-.cW pg_opclass
-instance
-.i "may be different!"
-You should substitute your value for 17314 wherever it appears in this
-discussion.
-.lp
-So now we have an access method and an operator class.  We still need
-a set of operators; the procedure for defining operators was discussed
-earlier in this manual.  For the
-.cW int4_abs_ops
-operator class on BTREEs, the operators we require are:
-.(l
-absolute value less-than
-absolute value less-than-or-equal
-absolute value equal
-absolute value greater-than-or-equal
-absolute value greater-than
-.)l
-Suppose the code that implements the functions defined is stored in
-the file
-.cW /usr/local/postgres/int4_abs.c .
-The code is
-.(C
-/*
- * int4_abs.c -- absolute value comparison functions
- *               for int4 data
- */
-
-#include "tmp/c.h"
-
-#define ABS(a) a = ((a < 0) ? -a : a)
-
-/* routines to implement operators */
-
-bool int4_abs_lt(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a < b); }
-
-bool int4_abs_le(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a <= b); }
-
-bool int4_abs_eq(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a == b); }
-
-bool int4_abs_ge(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a >= b); }
-
-bool int4_abs_gt(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a > b); }
-
-/* support (signed comparison) routine */
-
-int int4_abs_cmp(a, b) int32 a, b;
-     { ABS(a); ABS(b); return (a - b); }
-.)C
-There are a couple of important things that are happening below.
-First, note that operators for less-than, less-than-or-equal, equal,
-greater-than-or-equal, and greater-than for
-.cW int4
-are being defined.  All of these operators are already defined for
-.cW int4
-under the names
-.cW < ,
-.cW <= ,
-.cW = ,
-.cW >= ,
-and
-.cW > .
-The new operators behave differently, of course.  In order to
-guarantee that \*(PP uses these new operators rather than the old
-ones, they need to be named differently from the old ones.  This is a
-key point: you can overload operators in \*(PP, but only if the
-operator isn't already defined for the argument types.
-.lp
-That is, if you have
-.cW <
-defined for
-.cW int4 , (
-.cW int4 ),
-you can't define it again.
-\*(PP
-.i doesn't
-check this when you define your operator, so be careful.  To avoid
-this problem, odd names will be used for the operators.  If you get
-this wrong, the access methods are likely to crash when you try to do
-scans.
-.lp
-The other important point is that all the operator functions return
-.i Boolean
-values; the access methods rely on this fact.
-.lp
-The final routine in the file is the 
-.q "support routine"
-mentioned when we discussed the
-.cW amsupport
-attribute of the
-.cW pg_am
-class.  We will use this later on.  For now, ignore it.
-.(C
-* define function int4_abs_lt
-      (language = "c", returntype = bool)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-
-* define function int4_abs_le
-      (language = "c", returntype = bool)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-
-* define function int4_abs_eq
-      (language = "c", returntype = bool)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-
-* define function int4_abs_ge
-      (language = "c", returntype = bool)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-
-* define function int4_abs_gt
-      (language = "c", returntype = bool)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-.)C
-Now define the operators that use them.  As noted, the operator names
-must be unique for two
-.cW int4
-operands.  You can do a query on
-.cW pg_operator :
-.(C
-* retrieve (pg_operator.all) \\g
-.)C
-to see if your name is taken for the types you want.  The important
-things here are the procedure (which are the C functions defined
-above) and the restriction and join selectivity functions.  You should
-just use the ones used below\(emnote that there are different such
-functions for the less-than, equal, and greater-than cases.  These
-.i must
-be supplied, or the access method will crash when it tries to use the
-operator.  You should copy the names for
-.cW restrict
-and
-.cW join ,
-but use the procedure names you defined in the last step.
-.(C
-* define operator <<&
-      (arg1 = int4, arg2 = int4, procedure=int4_abs_lt,
-       associativity = left, restrict = intltsel,
-       join = intltjoinsel) \\g
-
-* define operator <=&
-      (arg1 = int4, arg2 = int4, procedure = int4_abs_le,
-       associativity = left, restrict = intltsel,
-       join = intltjoinsel) \\g
-
-* define operator ==&
-      (arg1 = int4, arg2 = int4, procedure = int4_abs_eq,
-       associativity = left, restrict = eqsel,
-       join = eqjoinsel) \\g
-
-* define operator >=&
-      (arg1 = int4, arg2 = int4, procedure = int4_abs_ge,
-       associativity = left, restrict = intgtsel,
-       join = intgtjoinsel) \\g
-
-* define operator >>&
-      (arg1 = int4, arg2 = int4, procedure = int4_abs_gt,
-       associativity = left, restrict = intgtsel,
-       join = intgtjoinsel) \\g
-.)C
-Notice that five operators corresponding to less, less equal, equal,
-greater, and greater equal are defined.
-.lp
-We're just about finished. the last thing we need to do is to update
-the
-.cW pg_amop
-relation.  To do this, we need the following attributes:
-.TS
-center tab(|);
-lf(C)|l.
-amopid|T{
-the
-.cW oid
-of the
-.cW pg_am
-instance for BTREE (== 403, see above)
-T}
-_
-amopclaid|T{
-the
-.cW oid
-of the
-.cW pg_opclass
-instance for
-.cW int4_abs_ops
-(== whatever you got instead of 17314, see above)
-T}
-_
-amopopr|T{
-the
-.cW oid s
-of the operators for the opclass (which we'll get in just a minute)
-T}
-_
-T{
-amopselect,
-.br
-amopnpages
-T}|cost functions.
-.TE
-The cost functions are used by the query optimizer to decide whether
-or not to use a given index in a scan.  Fortunately, these already
-exist.  The two functions we'll use are
-.cW btreesel,
-which estimates the selectivity of the BTREE, and
-.cW btreenpage,
-which estimates the number of pages a search will touch in the tree.
-.lp
-So we need the
-.cW oid s
-of the operators we just defined.  We'll look up the names of all the
-operators that take two
-.cW int4 s,
-and pick ours out:
-.(C
-* retrieve (o.oid, o.oprname)
-      from o in pg_operator, t in pg_type
-      where o.oprleft = t.oid and o.oprright = t.oid
-          and t.typname = "int4" \\g
-.)C
-which returns:
-.(T
-.TS
-tab(|) allbox;
-l l.
-oid|oprname
-96|\\=
-97|<
-514|*
-518|!=
-521|>
-523|<=
-525|>=
-528|/
-530|%
-551|+
-555|-
-17321|<<&
-17322|<=&
-17323|==*
-17324|>=&
-17325|>>&
-.TE
-.)T
-(Note that your
-.cW oid
-numbers may be different.)  The operators we are interested in are
-those with
-.cW oid s
-17321 through 17325.  The values you get will probably be different,
-and you should substitute them for the values below.  We can look at
-the operator names and pick out the ones we just added.  (Of course,
-there are lots of other queries we could used to get the oids we
-wanted.)
-.lp
-Now we're ready to update
-.cW pg_amop
-with our new operator class.  The most important thing in this entire
-discussion is that the operators are ordered, from less equal through
-greater equal, in
-.cW pg_amop .
-Recall that the BTREE instance's
-.cW oid
-is 403 and
-.cW int4_abs_ops
-is
-.cW oid
-17314.  Then we add the instances we need:
-.(C
-* append pg_amop
-      (amopid = "403"::oid,          /* btree oid        */
-       amopclaid = "17314"::oid,     /* pg_opclass tuple */
-       amopopr = "17321"::oid,       /* <<& tup oid      */
-       amopstrategy = "1"::int2,     /* 1 is <<&         */
-       amopselect = "btreesel"::regproc,
-       amopnpages = "btreenpage"::regproc) \\g
-
-* append pg_amop (amopid = "403"::oid,
-                  amopclaid = "17314"::oid,
-                  amopopr = "17322"::oid,
-                  amopstrategy = "2"::int2,
-                  amopselect = "btreesel"::regproc,
-                  amopnpages = "btreenpage"::regproc) \\g
-
-* append pg_amop (amopid = "403"::oid,
-                  amopclaid = "17314"::oid,
-                  amopopr = "17323"::oid,
-                  amopstrategy = "3"::int2,
-                  amopselect = "btreesel"::regproc,
-                  amopnpages = "btreenpage"::regproc) \\g
-
-* append pg_amop (amopid = "403"::oid,
-                  amopclaid = "17314"::oid,
-                  amopopr = "17324"::oid,
-                  amopstrategy = "4"::int2,
-                  amopselect = "btreesel"::regproc,
-                  amopnpages = "btreenpage"::regproc) \\g
-
-* append pg_amop (amopid = "403"::oid,
-                  amopclaid = "17314"::oid,
-                  amopopr = "17325"::oid,
-                  amopstrategy = "5"::int2,
-                  amopselect = "btreesel"::regproc,
-                  amopnpages = "btreenpage"::regproc) \\g
-.)C
-NOTE the order:
-.q "less than"
-is 1,
-.q "less than or equal"
-is 2,
-.q "equal"
-is 3,
-.q "greater than or equal"
-is 4,
-and
-.q "greater than"
-is 5.
-.lp
-The last step (finally!) is registration of the 
-.q "support routine"
-previously described in our discussion of
-.cW pg_am .
-The 
-.cW oid
-of this support routine is stored in the
-.cW pg_amproc
-class, keyed by the access method
-.cW oid
-and the operator class
-.cW oid .
-First, we need to register the function in \*(PP (recall that we put
-the C code that implements this routine in the bottom of the file in
-which we implemented the operator routines):
-.(C
-* define function int4_abs_cmp
-      (language = "c", returntype = int)
-      arg is (int4, int4)
-      as "/usr/local/postgres/int4_abs.o" \\g
-
-* retrieve (p.oid, p.proname)
-      from p in pg_proc
-      where p.proname = "int4_abs_cmp" \\g
-.TS
-tab(|) allbox;
-l l.
-oid|proname
-17328|int4_abs_cmp
-.TE
-.)C
-(Again, your
-.cW oid
-number will probably be different and you should substitute the value
-you see for the value below.)  Recalling that the BTREE instance's
-.cW oid 
-is 403 and that of 
-.cW int4_abs_ops
-is 17314, we can add the new instance as follows:
-.(C
-* append pg_amproc
-	(amid = "403"::oid,        /* btree oid        */
-	 amopclaid = "17314"::oid, /* pg_opclass tuple */
-	 amproc = "17328"::oid,    /* new pg_proc oid */
-	 amprocnum = "1"::int2) \eg
-.)C
-.lp
-Okay, now it's time to test the new operator class.  First we'll
-create and populate a class\**:
-.(f
-\** In this example, we append only a few instances into the class.
-In fact, \*(PP uses a 
-.q cost-based
-query optimizer that makes the decision whether or not to use an index
-based on how much data is touched.  Since this example creates a very
-small amount of data, the example will likely not work as advertised
-\(em one would have to insert a fair amount of data before using an
-index would actually be cheaper than just scanning the underlying HEAP
-data structure.
-.q "A fair amount"
-typically means on the order of several kilobytes.
-.)f
-.(C
-* create pairs (name = char16, number = int4) \\g
-
-* append pairs (name = "mike", number = -10000) \\g
-
-* append pairs (name = "greg", number = 3000) \\g
-
-* append pairs (name = "lay peng", number = 5000) \\g
-
-* append pairs (name = "jeff", number = -2000) \\g
-
-* append pairs (name = "mao", number = 7000) \\g
-
-* append pairs (name = "cimarron", number = -3000) \\g
-
-* retrieve (pairs.all) \\g
-.TS
-tab(|) allbox;
-l l.
-name|number
-mike|-10000
-greg|3000
-lay peng|5000
-jeff|-2000
-mao|7000
-cimarron|-3000
-.TE
-.)C
-Okay, looks pretty random.  Define an index using the new opclass:
-.(C
-* define index pairsind on pairs
-      using btree (number int4_abs_ops) \\g
-.)C
-Now run a query that doesn't use one of our new operators.  What we're
-trying to do here is to run a query that
-.i won't
-use our index, so that we can tell the difference when we see a query
-that
-.i does
-use the index.  This query won't use the index because the operator we
-use in the qualification isn't one that appears in the list of
-strategies for our index.
-.(C
-* retrieve (pairs.all) where pairs.number < 9000 \\g
-.TS
-tab(|) allbox;
-l l.
-name|number
-mike|-10000
-greg|3000
-lay peng|5000
-jeff|-2000
-mao|7000
-cimarron|-3000
-.TE
-.)C
-Yup, just as random; that didn't use the index.  Okay, let's run a
-query that
-.i does
-use the index:
-.(C
-* retrieve (pairs.all) where pairs.number <<& 9000 \\g
-.TS
-tab(|) allbox;
-l l.
-name|number
-jeff|-2000
-cimarron|-3000
-greg|3000
-lay peng|5000
-mao|7000
-.TE
-.)C
-Note that the
-.cW number
-values are in order of increasing absolute value (as they should be,
-since the index was used for this scan) and that we got the right
-answer \(em the instance for
-.cW mike
-doesn't appear, because \(mi10000 >=& 9000.
-.\"---------------------------------------------------------------------------
-.bp
-.lp
-.sh 0 "Appendix B: Linking Dynamically-Loaded Functions"
+.HL
+.sh 0 "Appendix A: Linking Dynamically-Loaded Functions"
+.HL
 .lp
 After you have created and registered a user-defined function, your
 work is essentially done.  \*(PP, however, must load the 
@@ -3481,7 +4642,7 @@ the running \*(PP server and the functions and variables within the
 file are made available to the functions within the \*(PP process.
 \*(PP does this using the dynamic loading mechanism provided by the
 operating system.
-.ip "Link editing"
+.ip "Loading and link editing"
 is what you do to an object file in order to produce another kind of
 object file (e.g., an executable program or a shared library).  You
 perform this using the link editing program,
@@ -3544,25 +4705,19 @@ For example,
 .)C
 produces an object file called
 .cW "foo.o"
-that can then be dynamically-loaded into \*(PP.  No additional loading
+that can then be dynamically loaded into \*(PP.  No additional loading
 or link-editing must be performed.
-.uh "Alpha OSF/1 and SunOS 4"
+.uh "DEC OSF/1"
 .lp
-Both Alpha OSF/1 and SunOS 4 can take any simple object file and
-produce a shared object file by running the 
+Under DEC OSF/1, you can take any simple object file and produce a
+shared object file by running the
 .cW ld
 command over it with the correct options.  The commands to do this
-under Alpha OSF/1 look like:
+look like:
 .(C
-	# simple Alpha OSF/1 example
+	# simple DEC OSF/1 example
 	% cc -c foo.c
 	% ld -shared -expect_unresolved '*' -o foo.so foo.o
-.)C
-whereas under SunOS 4, the commands look like:
-.(C
-	# simple SunOS 4 example
-	% cc -c foo.c
-	% ld -Bdynamic -o foo.so foo.o
 .)C
 The resulting shared object file can then be loaded into \*(PP.  When
 specifying the object file name to the
@@ -3576,10 +4731,10 @@ rather than the simple object file.\**
 is a shared object file.  If you prefer to name your shared object
 files with the extension
 .cW ".o" ,
-this is fine with \*(PP so long as you make sure that the correct
-file name is given to the 
+this is fine with \*(PP so long as you make sure that the correct file
+name is given to the
 .b "define function"
-command.  In other words, you must be absolutely consistent.  However,
+command.  In other words, you must simply be consistent.  However,
 from a pragmatic point of view, we discourage this practice because
 you will undoubtedly confuse yourself with regards to which files have
 been made into shared object files and which have not.  For example,
@@ -3589,13 +4744,14 @@ to do the link-editing automatically if both the object file and the
 shared object file end in
 .cW ".o" !
 .)f
-.uh "HP-UX"
+.uh "SunOS 4 and HP-UX"
 .lp
-Under HP-UX, the simple object file must be created by compiling the
-source file with special compiler flags
+Under both SunOS 4 and HP-UX, the simple object file must be created
+by compiling the source file with special compiler flags
 .i and
 a shared library must be produced.
-Specifically, the
+.lp
+The necessary steps with HP-UX are as follows.  The
 .cW "+z"
 flag to the HP-UX C compiler produces so-called 
 .q "Position Independent Code"
@@ -3620,6 +4776,18 @@ command must be told which file is the correct file to load (i.e., you
 must give it the location of the shared library, or
 .cW ".sl"
 file).
+.lp
+Under SunOS 4, the commands look like:
+.(C
+	# simple SunOS 4 example
+	% cc -PIC -c foo.c
+	% ld -dc -dp -Bdynamic -o foo.so foo.o
+.)C
+When linking shared libraries, you may have to specify some additional
+shared libraries (typically system libraries, such as the C and math
+libraries) on your
+.cW ld
+command line.
 .uh "AIX"
 .lp
 AIX, like SunOS, OSF/1 and HP-UX, requires users to build shared
@@ -3680,8 +4848,7 @@ and
 .cW -e
 flags to 
 .cW ld
-should simply be taken as voodoo.
-The file specified by the 
+should simply be taken as voodoo.  The file specified by the
 .cW -bI:
 flag is produced when the \*(PP server is compiled and installed.
 (The library directory 
@@ -3717,3 +4884,11 @@ of the various object files are hardcoded into the export/import files
 visible to the user.  Finally, by putting the export/import files
 under user control, the user can do as the designers of AIX intended
 and actually edit the files (i.e., control link-editing) as desired.
+.lp
+If you want an actual understanding of how the AIX loader actually
+works, you should take a look at the tutorials written by Gary Hook at
+the IBM AIX Systems Center.  These tutorials are located in 
+.(l
+.cW /usr/local/postgres/src/doc/useful/aix-linking.ps
+.cW /usr/local/postgres/src/doc/useful/aix-advlink.ps
+.)l
