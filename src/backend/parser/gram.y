@@ -1563,7 +1563,7 @@ a_expr:
 		{ 
 		     Var temp = (Var)NULL;
 		     temp = (Var) 
-		     make_array_ref_var ( CString(CAR($1)),
+		     $$ = make_array_ref_var ( CString(CAR($1)),
 		                          CString(CADR($1)),
 					  CInteger($3));
 		}
