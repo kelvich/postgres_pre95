@@ -194,7 +194,7 @@ InitLocks()
    * set up the invalid transaction id.
    * -------------------
    */
-  TransactionIdSetTransactionIdValue(&InvalidXid, NullTransactionIdValue);
+  PointerStoreInvalidTransactionId(&InvalidXid);
 
   bit = 1;
   /* -------------------
