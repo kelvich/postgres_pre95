@@ -507,6 +507,14 @@ pg_eval_dest(query_string, dest)
 	    lispDisplay(parsetree);
 	    printf("\n");
 	}
+        /* ---
+         * This crap here because the notify statement 
+	 * has to look like a query to work as a rule action.
+	 */
+	 if (NOTIFY == LISPVALUE_INTEGER(CAR(CDR(CAR(parsetree))))) {
+	   new_list = nappend1(new_list,CDR(CAR(parsetree)));
+	   continue;
+	 }
 	
 	/* ----------------
 	 *   rewrite queries (retrieve, append, delete, replace)

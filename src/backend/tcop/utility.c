@@ -34,6 +34,7 @@
 #include "tcop/tcopdebug.h"
 
 #include "parser/parse.h"
+#include "parser/parsetree.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
@@ -464,7 +465,8 @@ ProcessUtility(command, args, commandString, dest)
 	CHECK_IF_ABORTED();
 	{
 	    char *relname;
-	    relname = CString(CAR(args));
+	    relname = CString(rt_relname(nth(CInteger(CAR(args))-1,
+					 CAR(CDR(args)))));
 	    Async_Notify(relname);
 	}
         break;
