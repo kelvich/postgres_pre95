@@ -273,8 +273,6 @@ int2	!\(eq	bool int2ne(int2, int2)	inequality
 	>	bool int2gt(int2, int2)	greater than
 	>	int4 int24gt(int2, int4)	greater than
 		int2 int2ave(int2)	increment
-The increment function does not yet have an operator, and must
-be called by name.
 _
 int4	!!\(eq	bool int4notin(int4, char16)	T{
 This is the relational ``not in'' operator,
@@ -303,8 +301,6 @@ T}
 	>	bool int4gt(int4, int4)	greater than
 	>	int4 int42lt(int4, int2)	less than
 		int4 int4inc(int4)	increment
-The increment function does not yet have an operator, and must
-be called by name.
 _
 oid	!!\(eq	bool oidnotin(oid, char16)	T{
 This is the relational ``not in'' operator,
