@@ -377,7 +377,23 @@ prs2RemoveLocks ARGS((
 #define prs2GetQualFromRulePlan(x)	(CADR(x))
 #define prs2GetActionsFromRulePlan(x)	(CDR(CDR(x)))
 
-#define prs2IsRuleInsteadFromRuleInfo(x) (!strcmp(CString(CAR(x)),"instead"))
+extern
+Boolean
+prs2IsRuleInsteadFromRuleInfo ARGS((
+    LispValue ruleInfo
+));
+
+extern
+AttributeNumber
+prs2GetEventAttributeNumberFromRuleInfo ARGS((
+    LispValue ruleInfo
+));
+
+extern
+AttributeNumber
+prs2GetUpdatedAttributeNumberFromRuleInfo ARGS((
+    LispValue ruleInfo
+));
 
 #define prs2GetParseTreeFromOneActionPlan(x)	(CAR(x))
 #define prs2GetPlanFromOneActionPlan(x)		(CADR(x))
@@ -479,6 +495,24 @@ attributeValuesMakeNewTuple ARGS((
     HeapTuple *newTupleP;
 ));
 
+/*--------------------------------------------------------------------
+ * attributeValuesCombineNewAndOldTuple
+ *    In the case of a replace command, given the 'raw' tuple, i.e.
+ *    the tuple as retrieved by the AM (*not* changed by any backward
+ *    chaining rules) and the 'new' tuple (the one with all backward
+ *    chaning rules activated + with all user updates)
+ *    form the tuple that will finally replace the old one.
+ */
+extern
+HeapTuple
+attributeValuesCombineNewAndOldTuple ARGS((
+    AttributeValues rawAttrValues,
+    AttributeValues newAttrValues,
+    Relation relation,
+    AttributeNumberPtr attributeArray,
+    AttributeNumber numberOfAttributes
+));
+
 /*========================================================================
  * EState Rule Info + Rule Stack
  *
@@ -494,8 +528,6 @@ attributeValuesMakeNewTuple ARGS((
  *	and we have to reallocate some more memory...
  *
  * MISC INFO:
- * prs2QueryDesc: the query descriptor of a recursive call made by the
- *      rule manager to the executor.
  * 
  *========================================================================
  */
@@ -508,7 +540,6 @@ typedef struct Prs2StackData {
 typedef Prs2StackData *Prs2Stack;
 
 typedef struct Prs2EStateInfoData {
-    LispValue	prs2QueryDesc;
     Prs2Stack	prs2Stack;	/* the stack used for loop detection */
     int		prs2StackPointer;	/* the next free stack entry */
     int		prs2MaxStackSize;	/* the max number of entries */
