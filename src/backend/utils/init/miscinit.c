@@ -333,9 +333,19 @@ ValidateBackend(path)
      * XXX if you have a broken system where stat() looks at the symlink
      *     instead of the underlying file, you lose.
      */
-    if (strlen(path) >= MAXPGPATH ||
-	(stat(path, &buf) < 0) ||
-	!(buf.st_mode & S_IFREG)) {
+    if (strlen(path) >= MAXPGPATH) {
+	if (DebugLvl > 1)
+	    fprintf(stderr, "ValidateBackend: pathname \"%s\" is too long\n",
+		    path);
+	return(-1);
+    }
+    if (stat(path, &buf) < 0) {
+	if (DebugLvl > 1)
+	    fprintf(stderr, "ValidateBackend: can't stat \"%s\"\n",
+		    path);
+	return(-1);
+    }
+    if (!(buf.st_mode & S_IFREG)) {
 	if (DebugLvl > 1)
 	    fprintf(stderr, "ValidateBackend: \"%s\" is not a regular file\n",
 		    path);
