@@ -10,10 +10,6 @@ char copyright[] =
  All rights reserved.\n";
 #endif not lint
 
-#ifndef lint
-static	char sccsid[] = "@(#)mv.c 1.1 90/03/23 SMI"; /* from UCB 5.3 5/15/86 */
-#endif not lint
-
 /*
  * mv file1 file2
  */
@@ -25,6 +21,7 @@ static	char sccsid[] = "@(#)mv.c 1.1 90/03/23 SMI"; /* from UCB 5.3 5/15/86 */
 #include <sys/dir.h>
 #include <errno.h>
 #include <signal.h>
+#include "tmp/libpq-fs.h"
 
 #define	DELIM	'/'
 #define MODEBITS 07777
@@ -39,10 +36,10 @@ static	char sccsid[] = "@(#)mv.c 1.1 90/03/23 SMI"; /* from UCB 5.3 5/15/86 */
 
 char	*sprintf();
 char	*dname();
-struct	stat s1, s2;
+struct	pgstat s1, s2;
 int	iflag = 0;	/* interactive mode */
 int	fflag = 0;	/* force overwriting */
-extern	int errno;
+extern	int p_errno;
 
 main(argc, argv)
 	register char *argv[];
@@ -53,6 +50,7 @@ main(argc, argv)
 
 	if (argc < 2)
 		goto usage;
+	PQsetdb(getenv("USER"));
 	while (argc > 1 && *argv[1] == '-') {
 		argc--;
 		arg = *++argv;
@@ -80,7 +78,7 @@ main(argc, argv)
 	if (argc < 3)
 		goto usage;
 	dest = argv[argc-1];
-	if (stat(dest, &s2) >= 0 && ISDIR(s2)) {
+	if (p_stat(dest, &s2) >= 0 && ISDIR(s2)) {
 		r = 0;
 		for (i = 1; i < argc-1; i++)
 			r |= movewithshortname(argv[i], dest);
@@ -89,6 +87,7 @@ main(argc, argv)
 	if (argc > 3)
 		goto usage;
 	r = move(argv[1], argv[2]);
+	PQfinish();
 	exit(r);
 	/*NOTREACHED*/
 usage:
@@ -118,7 +117,7 @@ move(source, target)
 {
 	int targetexists;
 
-	if (lstat(source, &s1) < 0) {
+	if (p_stat(source, &s1) < 0) {
 		Perror2(source, "Cannot access");
 		return (1);
 	}
@@ -128,128 +127,88 @@ move(source, target)
 	 * the move is on a nondirectory and not across
 	 * file systems.
 	 */
-	targetexists = lstat(target, &s2) >= 0;
+	targetexists = p_stat(target, &s2) >= 0;
 	if (targetexists) {
-		if (s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino) {
+		if (s1.st_ino == s2.st_ino) {
 			error("%s and %s are identical", source, target);
 			return (1);
 		}
 		if (iflag && !fflag && isatty(fileno(stdin)) &&
 		    query("remove %s? ", target) == 0)
 			return (1);
+#if 0		
 		if (access(target, 2) < 0 && !fflag && isatty(fileno(stdin))) {
 			if (query("override protection %o for %s? ",
 			  s2.st_mode & MODEBITS, target) == 0)
 				return (1);
 		}
+#endif
 	}
-	if (rename(source, target) >= 0)
+	if (p_rename(source, target) >= 0)
 		return (0);
-	if (errno != EXDEV) {
-		Perror2(errno == ENOENT && targetexists == 0 ? target : source,
-		    "rename");
-		return (1);
-	}
-	if (ISDIR(s1)) {
-		error("can't mv directories across file systems");
-		return (1);
-	}
-	if (targetexists && unlink(target) < 0) {
+	Perror2(p_errno == PENOENT && targetexists == 0 ? target : source,
+	        "rename");
+	return (1);
+
+#if 0
+	if (targetexists && p_unlink(target) < 0) {
 		Perror2(target, "Cannot unlink");
 		return (1);
-	}
-	/*
-	 * File can't be renamed, try to recreate the symbolic
-	 * link or special device, or copy the file wholesale
-	 * between file systems.
-	 */
-	if (ISLNK(s1)) {
-		register m;
-		char symln[MAXPATHLEN + 1];
-
-		m = readlink(source, symln, sizeof (symln) - 1);
-		if (m < 0) {
-			Perror(source);
-			return (1);
-		}
-		symln[m] = '\0';
-
-		m = umask(~(s1.st_mode & MODEBITS));
-		if (symlink(symln, target) < 0) {
-			Perror(target);
-			return (1);
-		}
-		(void) umask(m);
-		goto cleanup;
-	}
-	if (ISDEV(s1)) {
-		struct timeval tv[2];
-
-		if (mknod(target, s1.st_mode, s1.st_rdev) < 0) {
-			Perror(target);
-			return (1);
-		}
-
-		tv[0].tv_sec = s1.st_atime;
-		tv[0].tv_usec = 0;
-		tv[1].tv_sec = s1.st_mtime;
-		tv[1].tv_usec = 0;
-		(void) utimes(target, tv);
-		goto cleanup;
 	}
 	if (ISREG(s1)) {
 		register int fi, fo, n;
 		struct timeval tv[2];
 		char buf[MAXBSIZE];
 
-		fi = open(source, 0);
+		fi = p_open(source, 0);
 		if (fi < 0) {
 			Perror(source);
 			return (1);
 		}
 
-		fo = creat(target, s1.st_mode & MODEBITS);
+		fo = p_creat(target, s1.st_mode & MODEBITS,Unix);
 		if (fo < 0) {
 			Perror(target);
-			close(fi);
+			p_close(fi);
 			return (1);
 		}
 
 		for (;;) {
-			n = read(fi, buf, sizeof buf);
+			n = p_read(fi, buf, sizeof buf);
 			if (n == 0) {
 				break;
 			} else if (n < 0) {
-				Perror2(source, "read");
-				close(fi);
-				close(fo);
+				Perror2(source, "p_read");
+				p_close(fi);
+				p_close(fo);
 				return (1);
-			} else if (write(fo, buf, n) != n) {
-				Perror2(target, "write");
-				close(fi);
-				close(fo);
+			} else if (p_write(fo, buf, n) != n) {
+				Perror2(target, "p_write");
+				p_close(fi);
+				p_close(fo);
 				return (1);
 			}
 		}
 
-		close(fi);
-		if (close(fo) < 0) {
-			Perror2(target, "write");
+		p_close(fi);
+		if (p_close(fo) < 0) {
+			Perror2(target, "p_write");
 			return (1);
 		}
-
+#if 0
 		tv[0].tv_sec = s1.st_atime;
 		tv[0].tv_usec = 0;
 		tv[1].tv_sec = s1.st_mtime;
 		tv[1].tv_usec = 0;
-		(void) utimes(target, tv);
+		(void) utimes(target, tv); 
+#endif
 		goto cleanup;
 	}
 	error("%s: unknown file type %o", source, s1.st_mode);
 	return (1);
 
 cleanup:
-	if (unlink(source) < 0) {
+	if (p_unlink(source) < 0) {
 		/*
 		 * If the unlink failed because of ENOENT we will assume
 		 * that somebody rm'ed the file before we got a chance
@@ -257,15 +216,16 @@ cleanup:
 		 * target there.  Also, don't remove target when target
 		 * existed previously.
 		 */
-		if (errno == ENOENT || targetexists)
+		if (p_errno == PENOENT || targetexists)
 			Perror2(source, "Cannot unlink");
 		else  {
-			(void) unlink(target);
+			(void) p_unlink(target);
 			Perror2(source, "Cannot unlink");
 		}
 		return (1);
 	}
 	return (0);
+#endif
 }
 
 /*VARARGS*/

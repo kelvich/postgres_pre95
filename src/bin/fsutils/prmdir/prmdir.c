@@ -10,14 +10,12 @@ char copyright[] =
  All rights reserved.\n";
 #endif not lint
 
-#ifndef lint
-static	char sccsid[] = "@(#)rmdir.c 1.1 90/03/23 SMI"; /* from UCB 5.1 4/30/85 */
-#endif not lint
 
 /*
  * Remove directory
  */
 #include <stdio.h>
+#include "tmp/libpq-fs.h"
 
 main(argc,argv)
 	int argc;
@@ -25,16 +23,19 @@ main(argc,argv)
 {
 	int errors = 0;
 
+	PQsetdb(getenv("USER"));
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s directory ...\n", argv[0]);
+		PQfinish();
 		exit(1);
 	}
 	while (--argc)
-		if (rmdir(*++argv) < 0) {
-			fprintf(stderr, "rmdir: ");
+		if (p_rmdir(*++argv) < 0) {
+			fprintf(stderr, "p_rmdir: ");
 			perror(*argv);;
 			errors++;
 		}
+	PQfinish();
 	exit(errors != 0);
 	/* NOTREACHED */
 }
