@@ -7,13 +7,15 @@
  * a running query (or a fixed sequence of queries).  The "blank portal" is
  * a portal with an InvalidName.  This blank portal is in existance except
  * between calls to BlankPortalAssignName and GetPortalByName(NULL).
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	PortalIncluded		/* Include this file only once */
 #define PortalIncluded	1
+
+/*
+ * Identification:
+ */
+#define PORTAL_H	"$Header$"
 
 #ifndef	C_H
 #include "c.h"
@@ -22,6 +24,7 @@
 #include "execnodes.h"		/* for EState */
 #include "mnodes.h"
 #include "nodes.h"
+#include "pg_lisp.h"
 #include "plannodes.h"		/* for Plan */
 
 typedef struct PortalBlockData {
@@ -38,8 +41,7 @@ struct PortalD {
 	String				name;	/* XXX PortalName */
 	classObj(PortalVariableMemory)	variable;
 	classObj(PortalHeapMemory)	heap;
-	LispValue			parse;
-	Plan				plan;
+	List				queryDesc;
 	EState				state;
 	void				(*cleanup) ARGS((Portal portal));
 };
@@ -110,46 +112,30 @@ BlankPortalAssignName ARGS((
  * Exceptions:
  *	BadState if called when disabled.
  *	BadArg if portal is invalid.
- *	BadArg if parse is "invalid."
- *	BadArg if plan is "invalid."
+ *	BadArg if queryDesc is "invalid."
  *	BadArg if state is "invalid."
  */
 extern
 void
 PortalSetQuery ARGS((
 	Portal	portal,
-	List	parse,
-	Plan	plan,
+	List	queryDesc,
 	EState	state,
 	void	(*cleanup) ARGS((Portal portal))
 ));
 
 /*
- * PortalGetParse --
- *	Returns parse attached to portal.
+ * PortalGetQueryDesc --
+ *	Returns query attached to portal.
  *
  * Exceptions:
  *	BadState if called when disabled.
  *	BadArg if portal is invalid.
  */
 extern
-LispValue	/* Parse */
-PortalGetParse ARGS((
-	Portal		portal
-));
-
-/*
- * PortalGetPlan --
- *	Returns plan attached to portal.
- *
- * Exceptions:
- *	BadState if called when disabled.
- *	BadArg if portal is invalid.
- */
-extern
-Plan
-PortalGetPlan ARGS((
-	Portal		portal
+List	/* QueryDesc */
+PortalGetQueryDesc ARGS((
+	Portal	portal
 ));
 
 /*
