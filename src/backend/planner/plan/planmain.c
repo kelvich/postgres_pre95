@@ -11,18 +11,22 @@
 
 /*     
  *      EXPORTS
- *     		query_planner
+ *     		Plan query_planner();
  */
 
 #include "internal.h"
-
-
-extern LispValue subplanner();
-
-#define DELETE  10
-#define APPEND  11
-#define RETRIEVE 12
-#define REPLACE 13
+#include "pg_lisp.h"
+#include "parse.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "plannodes.h"
+#include "plannodes.a.h"
+#include "clause.h"
+#include "sortresult.h"
+#include "tlist.h"
+#include "sortresult.h"
+#include "createplan.h"
+#include "allpaths.h"
 
 /*    
  *    	query_planner
@@ -48,22 +52,28 @@ extern LispValue subplanner();
 
 /*  .. init-query-planner, query_planner    */
 
-LispValue
+Plan
 query_planner (command_type,tlist,qual,currentlevel,maxlevel)
-     LispValue command_type,tlist,qual,currentlevel,maxlevel ;
+     int command_type;
+     List tlist,qual;
+     int currentlevel;
+     int maxlevel ;
 {
      /* XXX - prog form, maybe incorrect */
      LispValue constant_qual = LispNil;
      LispValue sortkeys = LispNil;
      LispValue flattened_tlist = LispNil;
-     LispValue level_tlist = LispNil;
-     LispValue subplan = LispNil;
-     LispValue subtlist = LispNil;
-     LispValue restplan = LispNil;
-     LispValue resttlist = LispNil;
-     LispValue relation_level_clauses = LispNil;
-     LispValue plan = LispNil;
+     List 	level_tlist = LispNil;
+     Plan	subplan;
+     List	subtlist;
+     Plan 	restplan;
+     List	resttlist = LispNil;
+     List	relation_level_clauses = LispNil;
+     Plan 	plan;
 
+     extern Plan subplanner();
+     
+     
      /*    For the topmost nesting level, */
      /* 1. Pull out any non-variable qualifications so these can be put in */
      /*    the topmost result node.  The opids for the remaining */
@@ -71,30 +81,34 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      /* 2. Determine the keys on which the result is to be sorted. */
      /* 3. Create a target list that consists solely of (resdom var) target */
      /*    list entries, i.e., contains no arbitrary expressions. */
-
+     
      if ( currentlevel == 1) {
-	  /* A command without a target list or qualification is an error, */
-	  /* except for "delete foo". */
-		
-	  if (null (tlist) && null (qual)) {
-	       if ( equal (command_type,DELETE) ) {
-		    return (make_seqscan (LispNil,
-					  LispNil,
-					  _query_result_relation_,
-					  LispNil));
-	       } 
-	       else
-		 return(LispNil);
-	  }
-	  constant_qual = pull_constant_clauses (qual);
-	  qual = set_difference (qual,constant_qual);
-	  fix_opids (constant_qual);
-	  sortkeys = relation_sortkeys (tlist);
-	  flattened_tlist = flatten_tlist (tlist);
-	  level_tlist = or (flattened_tlist,tlist);
-     }
+	 /* A command without a target list or qualification is an error, */
+	 /* except for "delete foo". */
+	 
+	 if (null (tlist) && null (qual)) {
+	     if ( command_type == DELETE ) {
+		 return ((Plan)make_seqscan ((List) NULL, 
+					     (List) NULL,
+					 (Index) _query_result_relation_,
+					     (Node) NULL ));
+	     } else
+	       return((Plan)NULL);
+	 }
+	 constant_qual = pull_constant_clauses (qual);
+	 qual = set_difference (qual,constant_qual);
+	 fix_opids (constant_qual);
+	 sortkeys = relation_sortkeys (tlist);
+	 flattened_tlist = flatten_tlist (tlist);
+	 if (flattened_tlist)
+	   level_tlist = flattened_tlist;
+	 else if (tlist)
+	   level_tlist = tlist;
+	 else
+	   level_tlist = (List)NULL;
+}
 
-     /*    A query may have a non-variable target list and a non-variable */
+/*    A query may have a non-variable target list and a non-variable */
      /*    qualification only under certain conditions: */
      /*    - the query creates all-new tuples, or */
      /*   - the query is a replace (a scan must still be done in this case). */
@@ -106,7 +120,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	       
 	     case RETRIEVE : 
 	     case APPEND :
-	       return (make_result (tlist,
+	       return ((Plan)MakeResult (tlist,
 				    LispNil,
 				    constant_qual,
 				    LispNil,
@@ -116,25 +130,25 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	     case REPLACE : 
 	       {
 		    /* XXX - let form, maybe incorrect */
-		    LispValue scan = make_seqscan (tlist,
-						   LispNil,
-						   _query_result_relation_,
-						   LispNil);
-		    if ( consp (constant_qual) ) {
-			 return (make_result (tlist,
-					      LispNil,
-					      constant_qual,
-					      scan,
-					      LispNil));
-		    } 
-		    else {
-			 return (scan);
-		    } 
+		   SeqScan scan = MakeSeqScan (tlist,
+					       LispNil,
+					       _query_result_relation_,
+					       LispNil);
+		   if ( consp (constant_qual) ) {
+		       return ((Plan)MakeResult (tlist,
+						 LispNil,
+						 constant_qual,
+						 scan,
+						 LispNil));
+		   } 
+		   else {
+		       return ((Plan)scan);
+		   } 
 	       }
 	       break;
-
+	       
 	     default: /* return nil */
-	       return(LispNil);
+	       return((Plan)NULL);
 	  }
      }
 /*    Find the subplan (access path) for attributes at this nesting level */
@@ -174,25 +188,26 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      if ( restplan ||
 	 relation_level_clauses ||
 	 constant_qual) {
-	  LispValue resttlist = LispNil;
-	  LispValue subtlist = LispNil;
-	  LispValue plan = LispNil;
+	  List resttlist = LispNil;
+	  List subtlist = LispNil;
+	  Plan plan;
 	  
 	  if ( restplan ) 
 	    resttlist = get_qptargetlist (restplan);
 	  subtlist = get_qptargetlist (subplan);
-	  plan = make_result (new_result_tlist (tlist,
-						subtlist,
-						resttlist,
-						currentlevel,
+	  plan = (Plan)MakeResult (new_result_tlist (tlist,
+						     subtlist,
+						     resttlist,
+						     currentlevel,
 						valid_sortkeys(sortkeys)),
-			      new_result_qual(relation_level_clauses,
-					      subtlist,
-					      resttlist,
-					      currentlevel),
-			      constant_qual,
-			      subplan,
-			      restplan);
+				   new_result_qual(relation_level_clauses,
+						   subtlist,
+						   resttlist,
+						   currentlevel),
+				   constant_qual,
+				   subplan,
+				   restplan);
+
 	  if ( valid_numkeys (sortkeys) ) 
 	    return (sort_level_result (plan,sortkeys));
 	  else 
@@ -241,7 +256,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 
 /*  .. query_planner    */
 
-LispValue
+Plan
 subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      LispValue flat_tlist,original_tlist,qual,level,sortkeys ;
 {
