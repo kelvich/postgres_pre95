@@ -62,6 +62,7 @@ int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
+int		NBuffers = 2;		/* number of pages in buffer pool */
 
 bool override = false;
 
@@ -113,7 +114,7 @@ main(argc, argv)
      * ----------------
      */
     flagC = flagQ = 0;
-    while ((flag = getopt(argc, argv, "CQOdpP:")) != EOF)
+    while ((flag = getopt(argc, argv, "CQOdpPBb:")) != EOF)
       switch (flag) {
 	case 'd':	/* -debug mode */
 	  /* DebugMode = true; */
@@ -133,6 +134,10 @@ main(argc, argv)
 	  break;
 	case 'P':
           /* Portfd = atoi(optarg); */
+	  break;
+	case 'b':
+	case 'B':
+	  NBuffers = atoi(optarg);
 	  break;
 	default:
 	  errs += 1;
