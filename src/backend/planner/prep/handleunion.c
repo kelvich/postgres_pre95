@@ -423,7 +423,7 @@ find_union_vars (rangetable)
     uvarno += 1;
     if (member(lispAtom("union"),rt_flags(rt_entry))) {
       unionlist = nappend1(unionlist, lispInteger(uvarno));
-      rt_flags(rt_entry) = remove(lispAtom("union"), 
+      rt_flags(rt_entry) = LispRemove(lispAtom("union"), 
 				  rt_flags(rt_entry)); 
     }     
   }
