@@ -2,6 +2,11 @@
 .\" $Header$
 .SS "FAST PATH" 6/14/90
 .XA 0 "Section 6 \*- Fast Path"
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 6 \*- FAST PATH"
+.sp 3
 .uh NAME
 .lp
 fast path \*- trap door into system internals
