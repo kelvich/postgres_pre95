@@ -1,5 +1,9 @@
 BINDIR=	/usr/local/bin
 LIBDIR=	/usr/local/lib
+
+CFLAGS= -O
+LDFLAGS=
+INSTALL= -s
 #
 # Normally MACHINE gets set by a parent Makefile.global, but if the
 # tools subtree is detached to bootstrap, we'll dummy it up here.
