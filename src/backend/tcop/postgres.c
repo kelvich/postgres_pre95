@@ -280,7 +280,6 @@ InteractiveBackend(inBuf)
 	if (end) {
 	    if (!Quiet) puts("EOF");
 	    IsEmptyQuery = true;
-	    AbortCurrentTransaction();
 	    exitpg(0);
 	}
 
@@ -333,9 +332,8 @@ InteractiveBackend(inBuf)
  * ----------------
  */
 
-char SocketBackend(inBuf, parseList)
+char SocketBackend(inBuf)
     char *inBuf;
-    LispValue parseList;
 {
     char *qtype = "?";
     int pq_qid;
@@ -349,7 +347,6 @@ char SocketBackend(inBuf, parseList)
 	 *  when front-end applications quits/dies
 	 * ------------
 	 */
-	AbortCurrentTransaction();
 	exitpg(0);
     }
 
@@ -361,13 +358,9 @@ char SocketBackend(inBuf, parseList)
     case 'Q':
 	pq_qid = pq_getint(4);
 	pq_getstr(inBuf, MAX_PARSE_BUFFER);
-
-	if (!Quiet)
-	    printf("Received Query: \"%s\"\n", inBuf);
-	
 	return('Q');
 	break;
-	
+
 	/* ----------------
 	 *  'F':  calling user/system functions
 	 * ----------------
@@ -793,15 +786,6 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 		}
 	    }
 	}
-
-	/*
-	 *  In a query block, we want to increment the command counter
-	 *  between queries so that the effects of early queries are
-	 *  visible to subsequent ones.
-	 */
-
-	if (parsetree_list != LispNil)
-	    CommandCounterIncrement();
     }
 }
     
@@ -867,6 +851,7 @@ PostgresMain(argc, argv)
     int			errs = 0;
     char		*DatabaseName;
 
+    char		firstchar;
     char		parser_input[MAX_PARSE_BUFFER];
     
     extern	int	Noversion;		/* util/version.c */
@@ -1385,23 +1370,16 @@ PostgresMain(argc, argv)
 
     for (;;) {
 	/* ----------------
-	 *   (1) start the current transaction
-	 * ----------------
-	 */
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tStartTransactionCommand() at %s\n", ctime(&tim));
-	}
-	StartTransactionCommand();
-
-	/* ----------------
-	 *   (2) read and process a command. 
+	 *   (1) read a command. 
 	 * ----------------
 	 */
 	for (i=0; i< MAX_PARSE_BUFFER; i++) 
 	    parser_input[i] = 0;
 
-	switch (ReadCommand(parser_input)) {
+	firstchar = ReadCommand(parser_input);
+
+	/* process the command */
+	switch (firstchar) {
 	    /* ----------------
 	     *	'F' incicates a fastpath call.
 	     *      XXX HandleFunctionRequest
@@ -1409,6 +1387,14 @@ PostgresMain(argc, argv)
 	     */
 	case 'F':
 	    IsEmptyQuery = false;
+
+	    /* start an xact for this funciton invocation */
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tStartTransactionCommand() at %s\n", ctime(&tim));
+	    }
+
+	    StartTransactionCommand();
 	    HandleFunctionRequest();
 	    break;
 	    
@@ -1434,6 +1420,13 @@ PostgresMain(argc, argv)
 	        IsEmptyQuery = false;
 		if (ShowStats)
 		    ResetUsage();
+
+		/* start an xact for this query */
+		if (! Quiet) {
+		    time(&tim);
+		    printf("\tStartTransactionCommand() at %s\n", ctime(&tim));
+		}
+		StartTransactionCommand();
 
 		pg_eval(parser_input, (char *) NULL, (ObjectId *) NULL, 0);
 
