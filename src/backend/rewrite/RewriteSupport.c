@@ -50,7 +50,10 @@ RuleIdGetActionInfo ( ruleoid , instead_flag)
     int  instead;
     ruleRelation = amopenr (RewriteRelationName);
     ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
-    ruletuple = SearchSysCacheTuple ( RULOID,  ruleoid );
+    ruletuple = SearchSysCacheTuple (RULOID,
+				     (char *) ObjectIdGetDatum(ruleoid),
+				     (char *) NULL, (char *) NULL,
+				     (char *) NULL);
     if (ruletuple == NULL)
 	elog(WARN, "rule %d isn't in rewrite system relation");
     ruleaction = amgetattr ( ruletuple, InvalidBuffer, Anum_pg_rewrite_action, 
@@ -88,7 +91,9 @@ OperOidGetName ( oproid )
     HeapTuple oprtuple = NULL;
     OperatorTupleForm opform = NULL;
 
-    oprtuple = SearchSysCacheTuple ( OPROID, oproid );
+    oprtuple = SearchSysCacheTuple(OPROID, (char *) ObjectIdGetDatum(oproid),
+				   (char *) NULL, (char *) NULL,
+				   (char *) NULL);
     if ( oprtuple ) {
 	opform = (OperatorTupleForm)GETSTRUCT(oprtuple);
 	return ( (char *)&(opform->oprname));

@@ -54,7 +54,8 @@ Name relationName;
     /*
      * If the relation exists, destroy it
      */
-    tuple = SearchSysCacheTuple(RELNAME, relationName);
+    tuple = SearchSysCacheTuple(RELNAME, (char *) relationName,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     if (HeapTupleIsValid(tuple)) {
 	RelationNameDestroyHeapRelation((char *)relationName);
     }

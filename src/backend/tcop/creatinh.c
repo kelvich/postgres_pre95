@@ -400,7 +400,9 @@ MergeAttributes(schema, supers)
 	     */
 	    attributeName = lispString(&(attribute->attname.data[0]));
 	    tuple = SearchSysCacheTuple(TYPOID,
-					attribute->atttypid);
+					(char *) ObjectIdGetDatum(attribute->atttypid),
+					(char *) NULL, (char *) NULL,
+					(char *) NULL);
 	    AssertState(HeapTupleIsValid(tuple));
 	    attributeType =
 		lispString(&(((TypeTupleForm)GETSTRUCT(tuple))->typname.data[0]));
@@ -505,7 +507,9 @@ StoreCatalogInheritance(relationId, supers)
 	Datum		datum[ InheritsRelationNumberOfAttributes ];
 	char		nullarr[ InheritsRelationNumberOfAttributes ];
 	
-	tuple = SearchSysCacheTuple(RELNAME, CString(CAR(entry)));
+	tuple = SearchSysCacheTuple(RELNAME, (char *) CString(CAR(entry)),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 	AssertArg(HeapTupleIsValid(tuple));
 	
 	/*
@@ -560,7 +564,10 @@ StoreCatalogInheritance(relationId, supers)
 	next = CDR(entry);
 	
 	for (number = 1; ; number += 1) {
-	    tuple = SearchSysCacheTuple(INHRELID, id, number);
+	    tuple = SearchSysCacheTuple(INHRELID,
+					(char *) ObjectIdGetDatum(id),
+					(char *) Int16GetDatum(number),
+					(char *) NULL, (char *) NULL);
 	    
 	    if (! HeapTupleIsValid(tuple))
 		break;
