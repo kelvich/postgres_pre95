@@ -9,5 +9,5 @@ char **argv;
 {
 	char *path = argv[1];
 
-    SetPgVersion(path);
+    /* SetPgVersion(path); */
 }
