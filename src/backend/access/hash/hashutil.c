@@ -11,6 +11,7 @@
 
 #include "fmgr.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
@@ -107,7 +108,7 @@ _hash_call(rel, metad, key)
 	RegProcedure proc;
 
 	proc = metad->hashm_procid;
-	n = (uint32) fmgr(proc, key);
+	n = (unsigned long) fmgr(proc, key);
 	bucket = n & metad->hashm_highmask;
 	if (bucket > metad->hashm_maxbucket)
 		bucket = bucket & metad->hashm_lowmask;

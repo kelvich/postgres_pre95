@@ -66,7 +66,7 @@
      ((Pointer) palloc(noSkeys * sizeof(struct skey))))
  
 #define ExecSetSkeys(index, skeys, attNo, opr, value) \
-    ScanKeyEntryInitialize(&((skeys)[index]), NULL, attNo, opr, value)
+    ScanKeyEntryInitialize(&((skeys)[index]), 0x0, attNo, opr, value)
 
 #define ExecSetSkeysValue(index, skeys, value) \
     ((ScanKey) skeys)->data[index].argument = ((Datum) value)

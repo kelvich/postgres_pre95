@@ -110,7 +110,7 @@ add		{ return(ADD); }
 		    YYTEXTCHAR *in, *out;
 		    for (in = out = yytext; *out = *in; ++out)
 			if (*in++ == '\\')
-			    *out = (unsigned char) MapEscape(&in);
+			    *out = (unsigned char) MapEscape((char **) &in);
 #if 0
 		    *(out+1) = '\000';
 #endif
@@ -143,7 +143,7 @@ add		{ return(ADD); }
 		    YYTEXTCHAR *in, *out;
 		    for (in = out = yytext; *out = *in; ++out)
 			if (*in++ == '\\')
-			    *out = (unsigned char) MapEscape(&in);
+			    *out = (unsigned char) MapEscape((char **) &in);
 #if 0
 		    *(out+1) = '\000';
 #endif
