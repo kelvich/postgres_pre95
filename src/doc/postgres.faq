@@ -12,28 +12,30 @@ A.  POSTGRES was a database research project directed by Prof. Michael
     The major purpose of this software is to provide a platform and a
     basis for the testing of implementations of new ideas in database
     research.  Several graduate students, staff members, as well as
-    undergraduate programmers have been working on the implementation
+    undergraduate programmers have contributed to the implementation
     of the POSTGRES software.  After this paragraph, all references to
-    "POSTGRES" refer to the software itself.  As of this writing,
-    POSTGRES is no longer an official research effort at
-    U.C. Berkeley.
+    "POSTGRES" refer to the software itself.
+    
+    As of this writing, POSTGRES is no longer an official research 
+    effort at U.C. Berkeley.
 
-    POSTGRES Is:
+    POSTGRES is:
 
-    o	Relational.  One of the major goals of POSTGRES is to show that an
-	essentially relational DBMS can be extended to handle complex
-	objects, rules, and be highly extensible.
+    o	Relational.  One of the major goals of POSTGRES was to show 
+	that an essentially relational DBMS can be extended to handle 
+	complex objects, rules, and be highly extensible.
 
     o	Highly extensible.  POSTGRES allows user-defined operators,
-	user-defined types, and user-defined functions.
+	types, functions and access methods.
 
-    o	While POSTGRES is relational, object oriented ideas have been
+    o	While POSTGRES is relational, object-oriented ideas have been
 	implemented in POSTGRES (inheritance, etc).
 
-    o	Numerous other features, such as query language procedures, rules,
-	etc.  which are beyond the scope of this discussion.
+    POSTGRES also has many other features, such as query language 
+    procedures, rules, triggers, etc., which are beyond the scope of 
+    this discussion.
 
-    For more info on the POSTGRES research itself, you can get the
+    For more info on the POSTGRES research itself, you should get the
     POSTGRES technical documentation described below.
 
 Q.  What is the connection between POSTGRES and University Ingres?
@@ -41,8 +43,11 @@ Q.  What is the connection between POSTGRES and University Ingres?
 A.  There is none, aside from Prof. Stonebraker.  There is no
     compatibility between the two software packages, and the research
     projects had differing objectives.  We do not support University
-    Ingres at all; questions about it should be sent to the USENET
-    newsgroup "comp.databases" or "comp.databases.ingres".
+    Ingres at all.  Questions about it should be sent to the USENET
+    newsgroup "comp.databases" or "comp.databases.ingres".  You can
+    also, in a pinch, try the mailing list:
+
+	ingres-mail@idiom.berkeley.ca.us
 
 Q.  How do I get the POSTGRES software package?
 
@@ -56,7 +61,7 @@ A.  In one of two ways:
 	(Note: transmit .Z  files in BINARY mode.)
 
     2.  If you don't have Internet access, you can get POSTGRES by sending a
-        check for US $150 payable to
+        check for US$150 payable to
 
         Regents of the University of California
 
@@ -76,12 +81,14 @@ A.  In one of two ways:
     FTPmail).  However, you can also get POSTGRES on a variety of
     "freeware" CDROMs (such as those from PrimeTime Freeware or
     Yggdrasil Computing).  We have nothing to do with the distributors
-    of these CDROMs; if you are interested in obtaining POSTGRES this
-    way, contact your local computer bookstore.
+    of these CDROMs, and if you are interested in obtaining POSTGRES 
+    this way you should contact your local computer bookstore.  Do
+    note that, if you can get them, they will cost much less than
+    US$150.
 
 Q.  What is the POSTGRES query language?
 
-A.  Postquel, which is an incompatible, extended version of Quel (the
+A.  PostQUEL, which is an incompatible, extended version of QUEL (the
     Ingres query language).
 
 Q.  What about SQL support?
@@ -95,7 +102,8 @@ A.  POSTGRES 4.2 is known to run on Sun-4 (SPARC) computers running SunOS
     4.1.2 or higher, DECstation 3100 and 5000 (MIPS) computers running
     Ultrix 4.2 or higher, H-P 9000 Model 700 and 800 (PA-RISC)
     computers running HP-UX 9.00 or higher, DECstation 3000 (Alpha
-    AXP) running OSF/1 1.3, and IBM RS/6000 (POWER) running AIX 3.2.5.
+    AXP) running OSF/1 1.3, and IBM RS/6000 (POWER) running AIX 3.2.3
+    or higher.
 
     The experience of outside developers indicates that POSTGRES is
     relatively easy to port to any system that supports:
@@ -117,9 +125,9 @@ A.  The documents and manpages are available directly in the POSTGRES
     src/doc directory and there is a directory in there that has
     pre-formatted postscript files.  You can order hard-copies of
     technical reports individually.  For more details, send e-mail or
-    call Elisa Kwon at (510) 642-3417; her e-mail address is
+    call Michelle Mattera at (510) 642-3417; her e-mail address is
 
-        elisa@postgres.berkeley.edu
+        michelle@postgres.berkeley.edu
 
 Q.  What is the status of the POSTGRES implementation?
 
@@ -135,17 +143,17 @@ A.  It is not up to commercial levels of reliability.  I would not want
 Q.  Does POSTGRES have a user interface?  A report generator?  An
     embedded query language interface?
 
-A.  No, no and no, not as shipped.  "pgbrowse," a powerful and
+A.  No, no and no.  On the other hand, "pgbrowse," a powerful and
     extensible graphical user interface based on Tcl/TK, is available
     from crseo.ucsb.edu (128.111.100.50) in pub/pgbrowse.
 
 Q.  What about a C-callable interface for writing applications?
 
-A.  There most definitiely is one, called libpq.  There is also an
+A.  There most definitely is one, called libpq.  There is also an
     interface for referencing POSTGRES data from shell and perl
     scripts.  See the POSTGRES Reference Manual for details.
 
-Q.  Is there a BBS/discussion group about POSTGRES?
+Q.  Is there a discussion group about POSTGRES?
 
 A.  Yes - the mailing list
 
@@ -197,17 +205,17 @@ A.  Mailing Address              Purpose
 
 Q.  Please summarize the main contacts at the POSTGRES group.
 
-A.  Unfortunately POSTGRES is no longer an active research project at
-    U.C. Berkeley so there is no longer a POSTGRES group.  Some of the
-    developers will probably be staying in touch on the previousely
+A.  Unfortunately, POSTGRES is no longer an active research project at
+    U.C. Berkeley, so there is no longer a POSTGRES group.  Some of the
+    developers will probably be staying in touch on the previously
     mentioned mailing lists, so that is your best bet.
 
 Q.  Is there a commercial version of POSTGRES?
 
 A.  Yes.  Montage Software, Inc. has performed a substantial amount of
-    bullet-proofing and performance enhancement and has added many new
-    features (true log-based crash recovery, an improved type system,
-    SQL support).  They also provide technical support.  You can
+    bullet-proofing and performance improvement and has added many new
+    features (true log-based crash recovery, an type system that makes
+    sense, SQL support).  They also provide technical support.  You can
     contact them at:
 
 	Montage Software, Inc.
