@@ -18,14 +18,17 @@
  *     		new-join-pathkeys
  */
 
-#include "internal.h"
 #include "pg_lisp.h"
+#include "internal.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "plannodes.h"
+#include "plannodes.a.h"
+#include "joinutils.h"
+#include "var.h"
+#include "keys.h"
+#include "tlist.h"
 
-extern LispValue new_join_pathkey();
-extern LispValue new_matching_subkeys();
-extern LispValue match_pathkey_joinkeys();
-
-extern Boolean var_equal();
 
 /*     	===============
  *     	KEY COMPARISONS
@@ -67,19 +70,16 @@ LispValue
 match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
      LispValue pathkeys,joinkeys,joinclauses,which_subkey ;
 {
-	/* XXX - let form, maybe incorrect */
      LispValue matched_joinkeys = LispNil;
      LispValue matched_joinclauses = LispNil;
      LispValue pathkey = LispNil;
      LispValue t_list = LispNil;
 
      foreach (pathkey, pathkeys) {
-	  /* XXX - let form, maybe incorrect */
-	  LispValue matched_joinkey_index = 
+	  int matched_joinkey_index = 
 	    match_pathkey_joinkeys (pathkey,joinkeys,which_subkey);
 	  
 	  if(integerp (matched_joinkey_index) ) {
-	       /* XXX - let form, maybe incorrect */
 	       LispValue xjoinkey = nth (matched_joinkey_index,joinkeys);
 	       LispValue joinclause = nth (matched_joinkey_index,joinclauses);
 	       push (xjoinkey,matched_joinkeys);
@@ -110,20 +110,22 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
 
 /*  .. match-pathkeys-joinkeys	 */
 
-LispValue
+int
 match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
      LispValue pathkey,joinkeys,which_subkey ;
 {
      LispValue path_subkey = LispNil;
-     LispValue temp = LispNil;
-
+     int temp;
+     bool flag = false;
      foreach(path_subkey,pathkey) {
 	  if (temp = position(path_subkey,joinkeys,test(var_equal),
 			      extract_subkey(joinkeys, which_subkey))) {
-	       /*  XXX fix me !  */
-	       return(temp);
+	       flag = true;
 	  }
+	  if (flag == true)
+	    return(temp);
      }
+
 }  /* function end   */
 
 /*    
@@ -150,48 +152,56 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
  *    
  */
 
+/*  function used by match_paths_joinkeys */
+bool
+every_func (joinkeys, pathkey, which_subkey)
+     LispValue joinkeys, pathkey, which_subkey;
+{
+     LispValue xjoinkey;
+     LispValue temp = LispNil;
+     LispValue tempkey = LispNil;
+     bool found = false;
+
+     foreach (xjoinkey,joinkeys) {
+	  found = false;
+	  foreach(temp,pathkey) {
+	       tempkey = extract_subkey(xjoinkey,which_subkey);
+	       if (var_equal(tempkey,temp)) {
+		    found = true;
+		    break;
+	       }
+	  }
+	  if (found == false)
+	    return(false);
+     }
+     return(found);
+}
+
 /*  .. match-unsorted-outer	 */
 
-LispValue
+Path
 match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
      LispValue joinkeys,ordering,paths,which_subkey ;
 {
-#ifdef 
-		opus43;
+     LispValue path ;
+     bool key_match ;
+     
+     foreach(path,paths) {
+	  key_match = every_func(joinkeys,
+				 get_keys (path),
+				 which_subkey);
 
-#endif
-		;
-		declare (special (joinkeys,ordering,which_subkey));
-		find_if (/* XXX - hash-quote */ LispValue
+	  if (equal_path_path_ordering (ordering,
+					get_ordering (path)) &&
+	      length (joinkeys) == length (get_keys (path)) &&
+	      key_match) {
+	       return((Path)path);
+	  }
+     }
+     return((Path) LispNil);
+}  /* function end  */
 
-		/* XXX - Move me */ 
-		LAMBDA_UNKNOWN_FUNCTION (path)
-		    LispValue path ;
-		{
-#ifdef 
-			opus43;
 
-#endif
-			;
-			declare (special (joinkeys,ordering,which_subkey));
-			and (equal_path_path_ordering (ordering,get_ordering (path)),length (joinkeys) == length (get_keys (path)),every (/* XXX - hash-quote */ LispValue
-
-			/* XXX - Move me */ 
-			LAMBDA_UNKNOWN_FUNCTION (joinkey,pathkey)
-			    LispValue joinkey,pathkey ;
-			{
-#ifdef 
-				opus43;
-
-#endif
-				;
-				declare (special (which_subkey));
-				find (extract_subkey (joinkey,which_subkey),pathkey,test/* XXX - hash-quote */ ,var_equal);
-			}
-			,joinkeys,get_keys (path)));
-		}
-		,paths);
-	}
 
 /*    
  *    	extract-path-keys
@@ -216,13 +226,13 @@ LispValue
 extract_path_keys (joinkeys,tlist,which_subkey)
      LispValue joinkeys,tlist,which_subkey ;
 {
-     LispValue joinkey = LispNil;
+     LispValue xjoinkey = LispNil;
      LispValue t_list = LispNil;
      LispValue temp_node = LispNil;
 
-     foreach(joinkey,joinkeys) {
+     foreach(xjoinkey,joinkeys) {
 	  temp_node =
-	    list (matching_tlvar (extract_subkey (joinkey,
+	    list (matching_tlvar (extract_subkey (xjoinkey,
 						  which_subkey),tlist));
 	  t_list = nappend1(t_list,temp_node);
      }
@@ -300,7 +310,6 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
      LispValue subkeys,considered_subkeys,join_rel_tlist,joinclauses ;
 {
      LispValue t_list = LispNil;
-     LispValue temp_node = LispNil;
      LispValue subkey = LispNil;
 
      foreach(subkey,subkeys) {
@@ -308,11 +317,13 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 	  LispValue matched_subkeys = 
 	    new_matching_subkeys (subkey,considered_subkeys,
 				  join_rel_tlist,joinclauses);
-	  LispValue tlist_key = matching_tlvar (subkey,join_rel_tlist);
+	  Expr tlist_key = matching_tlvar (subkey,join_rel_tlist);
 	  LispValue newly_considered_subkeys = LispNil;
 
 	  if ( tlist_key ) {
-	       newly_considered_subkeys = adjoin (tlist_key,matched_subkeys);
+	       if (member(tlist_key,matched_subkeys))
+		 newly_considered_subkeys = list(lispCons(tlist_key,
+							  matched_subkeys));
 	  } 
 	  else {
 	       newly_considered_subkeys = matched_subkeys;
@@ -320,9 +331,10 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 	  
 	  considered_subkeys = 
 	    append (considered_subkeys,newly_considered_subkeys);
-	  return(newly_considered_subkeys);
+	  t_list = nconc(t_list,newly_considered_subkeys);
      }
-
+     return(t_list);
+     
 }  /* function end  */
 
 /*    
@@ -356,7 +368,7 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
 
      foreach(joinclause,joinclauses) {
 	  /* XXX - let form, maybe incorrect */
-	  LispValue tlist_other_var = 
+	  Expr tlist_other_var = 
 	    matching_tlvar (other_join_clause_var (subkey,joinclause),
 			    join_rel_tlist);
 
