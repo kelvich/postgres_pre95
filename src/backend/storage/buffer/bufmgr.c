@@ -45,7 +45,7 @@ static char
 #include <sys/file.h>
 
 #include "postgres.h"
-#include "access.h"
+#include "skey.h"
 
 #include "c.h"
 #include "os.h"
