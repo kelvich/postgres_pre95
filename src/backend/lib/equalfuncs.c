@@ -629,8 +629,8 @@ _equalEState(a, b)
 		if (a->es_error_message != b->es_error_message)
 			return (false);
 	} else {
-		if (strcmp(a->es_error_message, b->es_error_message) != 0)
-			return (false);
+	    if (!NameIsEqual(a->es_error_message, b->es_error_message))
+		return (false);
 	}
 	if (!_equalLispValue(a->es_range_table, b->es_range_table))
 		return (false);
