@@ -185,4 +185,9 @@ then
 	exit 1;
 fi
 
+if test $debug -eq 0
+then
+    echo "vacuum" | postgres -Q template1 > /dev/null
+fi
+
 rm -f /tmp/create.$$
