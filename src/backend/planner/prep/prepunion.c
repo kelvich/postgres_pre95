@@ -421,7 +421,7 @@ fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
       foreach(i,CDR(parsetree)) {
 	  foo = (Node)CAR(i);
 	  if (!null(foo) && IsA(foo,Var) && 
-	      equal (get_varno (foo),rt_index)) {
+	       (get_varno (foo) == rt_index)) {
 	      set_varattno (foo, 
 			    get_attnum (new_relid,
 					get_attname(old_relid,
