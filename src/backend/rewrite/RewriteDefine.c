@@ -137,9 +137,9 @@ void ValidateRule(event_type, eobj_string, eslot_string, event_qual,
     if (event_qual && !*action && is_instead)
 	elog(WARN,
 	     "event_quals on 'instead nothing' rules not currently supported");
-    if (event_type == RETRIEVE && is_instead && count > 1)
+/*    if (event_type == RETRIEVE && is_instead && count > 1)
 	elog(WARN,
-	     "multiple rule actions not supported on 'retrieve instead' rules");
+	     "multiple rule actions not supported on 'retrieve instead' rules");*/
     /* on retrieve to class.attribute do instead nothing is converted
      * to 'on retrieve to class.attribute do instead
      *        retrieve (attribute = NULL)'
