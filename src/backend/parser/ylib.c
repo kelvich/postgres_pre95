@@ -414,10 +414,12 @@ MakeFromClause ( from_list, base_rel )
 {
     List i = NULL;
     List j = NULL;
+    List k = NULL;
     List flags = NULL;
     List entry = NULL;
     bool IsConcatenation = false;
-    int existing_varno = 0;
+    List existing_varnos = NULL;
+    extern List RangeTablePositions();
 
     /* from_list will be a list of strings */
     /* base_rel will be a wierd assortment of things, 
@@ -430,10 +432,10 @@ MakeFromClause ( from_list, base_rel )
     lispDisplay ( from_list , 0 );
     elog(NOTICE, "the real relations are:");
     lispDisplay ( base_rel , 0 );
-
+    
     foreach ( i , from_list ) {
         List temp = CAR(i);
-
+	
 	foreach ( j , base_rel ) {
 	    List x = CAR(j);
 
@@ -441,25 +443,26 @@ MakeFromClause ( from_list, base_rel )
 	     * get inheritance or time range queries for
 	     * relations that we didn't want them on 
 	     */
-
+	    
 	    flags = lispCons(lispInteger(0),LispNil);
-
+	    
 	    if ( IsConcatenation == true ) {
 		flags = nappend1(flags, lispAtom("union"));
 	    }
 	    if ( ! null ( CADDR(x))) {
 		flags = nappend1(flags, lispAtom("inherits"));
 	    }
-
+	    
 	    if ( ! null ( CADR(x))) {
 		/* set time range, if one exists */
 		CAR(flags) = CADR(x);
 	    }
-
-	    existing_varno = RangeTablePosn ( CString( CAR(x)), LispNil );
+	    
+	    existing_varnos = 
+	      RangeTablePositions ( CString( CAR(x)), LispNil );
 	    /* XXX - 2nd argument is currently ignored */
-
-	    if ( existing_varno == 0 ) {
+	    
+	    if ( existing_varnos == NULL ) {
 		/* if the base relation does not exist in the rangetable
 		 * as a virtual name, make a new rangetable entry
 		 */
@@ -471,26 +474,32 @@ MakeFromClause ( from_list, base_rel )
 		/* XXX - temporary, should append the existing flags
 		 * to the new flags or not ?
 		 */
-		List rt_entry = nth ( existing_varno-1 , p_rtable );
-		if ( IsA(CAR(rt_entry),LispStr)) {
-		    /* first time consing it */
-		    CAR(rt_entry) = lispCons ( CAR(rt_entry) , 
-					  lispCons (temp,LispNil ));
-		} else {
-		    /* subsequent consing */
-		    CAR(rt_entry) = nappend1 ( CAR(rt_entry) , temp);
-		}
-		/* in either case, if no union flag exists, 
-		 * cons one in
-		 */
-		rt_flags (rt_entry) = nappend1 ( rt_flags(rt_entry),
-						lispAtom("union"));
-	    }
+		foreach(k,existing_varnos) {
+		    int existing_varno = CInteger(CAR(k));
+		    List rt_entry = nth ( existing_varno-1 , p_rtable );
+		    if ( IsA(CAR(rt_entry),LispStr)) {
+			/* first time consing it */
+			CAR(rt_entry) = lispCons ( CAR(rt_entry) , 
+						  lispCons (temp,LispNil ));
+		    } else {
+			/* subsequent consing */
+			CAR(rt_entry) = nappend1 ( CAR(rt_entry) , temp);
+		    }
+		    /* in either case, if no union flag exists, 
+		     * cons one in
+		     */
+		    rt_flags (rt_entry) = nappend1 ( rt_flags(rt_entry),
+						    lispAtom("union"));
+		} /* foreach k */
+
+	    } /* if existing_varnos == NULL */
+
 	    /* NOTE : we dont' pfree old "flags" because they are
 	     * really still present in the parsetree
 	     */
-	}
-    }
+
+	  } /* foreach j */
+      } /* foreach i */
 
     return ( entry );
 }
