@@ -262,7 +262,8 @@ GetHeapRelationOid(heapRelationName, indexRelationName)
 				     false);
       
     if (ObjectIdIsValid(indoid))
-	elog(WARN, "AMcreati: %s exists", indexRelationName);
+	elog(WARN, "Cannot create index: '%s' already exists",
+		    indexRelationName);
 
     /* ----------------
      *	get the object id of the heap relation
@@ -277,7 +278,8 @@ GetHeapRelationOid(heapRelationName, indexRelationName)
      * ----------------
      */
     if (! ObjectIdIsValid(heapoid))
-	elog(WARN, "AMcreati: %s non-existant", heapRelationName);
+	elog(WARN, "Cannot create index on '%s': relation does not exist",
+		    heapRelationName);
 
     /* ----------------
      *    close pg_relation and return the heap relation oid
@@ -399,7 +401,8 @@ ConstructTupleDescriptor(heapoid, heapRelation, numatts, attNums)
 	 */
 	atnum = attNums[i];
 	if (atnum > natts)
-	    elog(WARN, "AMcreati: attribute %d non-existant", atnum);
+	    elog(WARN, "Cannot create index: attribute %d does not exist",
+			atnum);
 	
 	indexTupDesc->data[i] = (AttributeTupleForm) palloc(AFSIZE);
 
@@ -417,8 +420,7 @@ ConstructTupleDescriptor(heapoid, heapRelation, numatts, attNums)
 	     * ----------------
 	     */
 	    if (atnum <= FirstLowInvalidHeapAttributeNumber || atnum >= 0 )
-		elog(WARN, "AMcreati: %s (%d)",
-		     "invalid system attribute number", atnum);
+		elog(WARN, "Cannot create index on system attribute: attribute number out of range (%d)", atnum);
 	    atind = (-atnum) - 1;
 
 	    from = (char *) (& sysatts[atind]);
@@ -914,7 +916,7 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      * ----------------
      */
     if (numatts < 1)
-	elog(WARN, "AMcreati: must index at least one attribute");
+	elog(WARN, "must index at least one attribute");
 
     /* ----------------
      *    get heap relation oid and open the heap relation
