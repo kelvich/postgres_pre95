@@ -51,6 +51,20 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 
 	Assert(NameIsValid(relationName));
 
+	/*
+	 * XXX for some reason getmyrelids (in inval.c) barfs when
+	 * you heap_replace tuples from these classes.  i thought
+	 * setheapoverride would fix it but it didn't.  for now,
+	 * just disallow purge on these classes.
+	 */
+	if (NameIsEqual(RelationRelationName, relationName) ||
+	    NameIsEqual(AttributeRelationName, relationName) ||
+	    NameIsEqual(AccessMethodRelationName, relationName) ||
+	    NameIsEqual(AccessMethodOperatorRelationName, relationName)) {
+		elog(WARN, "%s: cannot purge catalog \"%.16s\"",
+		     cmdname, relationName->data);
+	}
+
 	if (PointerIsValid(absoluteTimeString)) {
 		absoluteTime = (int32) nabstimein(absoluteTimeString);
 		absoluteTimeString[0] = '\0';
@@ -62,8 +76,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	}
 
 #ifdef	PURGEDEBUG
-		elog(DEBUG, "RelationPurge: absolute time `%s' is %d.",
-		    absoluteTimeString, absoluteTime);
+		elog(DEBUG, "%s: absolute time `%s' is %d.",
+		    cmdname, absoluteTimeString, absoluteTime);
 #endif	/* defined(PURGEDEBUG) */
 
 	if (PointerIsValid(relativeTimeString)) {
@@ -74,8 +88,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		relativeTime = reltimein(relativeTimeString);
 
 #ifdef	PURGEDEBUG
-		elog(DEBUG, "RelationPurge: relative time `%s' is %d.",
-		    relativeTimeString, relativeTime);
+		elog(DEBUG, "%s: relative time `%s' is %d.",
+		    cmdname, relativeTimeString, relativeTime);
 #endif	/* defined(PURGEDEBUG) */
 	}
 
