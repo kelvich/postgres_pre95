@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION "SYSTEM CATALOGS" 03/10/94
+.TH INTRODUCTION "SYSTEM CATALOGS" 03/13/94
 .XA 0 "Section 8 \(em System Catalogs"
 .BH "SECTION 8 \(em SYSTEM CATALOGS"
 .de LS
@@ -34,9 +34,9 @@ These catalogs form the core of the extensibility system:
 	pg_index	local	secondary indices
 	pg_inherits	local	class inheritance hierarchy
 	pg_language	local	procedure implementation languages
-	pg_opclass	local	
-	pg_operator	local	
-	pg_proc	local	procedure
+	pg_opclass	local	operator classes
+	pg_operator	local	query language operators
+	pg_proc	local	procedures (functions)
 	pg_type	local	data types
 .LE
 .SH "ENTITIES"
@@ -51,9 +51,9 @@ the site:
 .SH "RULE SYSTEM CATALOGS"
 .LS
 	\fBname\fP	\fBshared/local\fP	\fBdescription\fP
-	pg_listener	local	
-	pg_prs2plans	local	procedure
-	pg_prs2rule	local	
+	pg_listener	local	processes waiting on alerters
+	pg_prs2plans	local	instance system procedures
+	pg_prs2rule	local	instance system rules
 	pg_prs2stub	local	instance system ``stubs''
 	pg_rewrite	local	rewrite system information
 .LE
@@ -87,7 +87,7 @@ are all obsolete or otherwise deprecated.
 .SH "CLASS/TYPE SYSTEM CATALOGS"
 .PP
 The following catalogs relate to the class/type system.
-.(C
+.(C M
 /*
  * aggregates
  *
@@ -109,7 +109,7 @@ pg_aggregate
     text        agginitval2	/* external format of initial
 				   (starting) value of aggtransfn2 */
 .)C
-.(C
+.(C M
 pg_am
     char16      amname		/* access method name */
     oid         amowner	/* usesysid of creator */
@@ -142,7 +142,7 @@ pg_am
     regproc     amcreate 	/* - deprecated */
     regproc     amdestroy	/* - deprecated */
 .)C
-.(C
+.(C M
 pg_amop
     oid         amopid		/* access method with which this 
 				   operator be used */
@@ -156,7 +156,7 @@ pg_amop
     regproc     amopnpages	/* function to calculate the number of
 				   pages that will be examined */
 .)C
-.(C
+.(C M
 pg_amproc
     oid         amid		/* access method with which this
 				   procedure is associated */
@@ -166,7 +166,7 @@ pg_amproc
     int2        amprocnum	/* support function number to which
 				   this operator applies */
 .)C
-.(C
+.(C M
 pg_class
      char16     relname	/* class name */
      oid        relowner	/* usesysid of owner */
@@ -199,7 +199,7 @@ pg_class
      oid8       relkeyop	/* - unused */
      aclitem    relacl[1]	/* access control lists */
 .)C
-.(C
+.(C M
 pg_attribute
     oid         attrelid	/* class containing this attribute */
     char16      attname	/* attribute name */
@@ -220,27 +220,29 @@ pg_attribute
     int4        attcacheoff	/* cached offset into tuple */
     bool        attisset	/* is attribute set-valued? */
 .)C
-.(C
+.(C M
 pg_inherits
     oid         inhrel	/* child class */
     oid         inhparent	/* parent class */
     int4        inhseqno	/* - deprecated */
 .)C
-.(C
+.(C M
     oid         indexrelid	/* oid of secondary index class */
     oid         indrelid	/* oid of indexed heap class */
     oid         indproc	/* function to compute index key from
 				   attribute(s) in heap
 				   0=not a functional index */
-    int28       indkey	/* attribute numbers of key attribute(s) */
+    int28       indkey	/* attribute numbers of key 
+			   attribute(s) */
     oid8        indclass	/* opclass of each key */
     bool        indisclustered	/* is the index clustered?
 				   - unused */
     bool        indisarchived	/* is the index archival?
 				   - unused */
-    text        indpred	/* query plan for partial index predicate */
+    text        indpred	/* query plan for partial index 
+			   predicate */
 .)C
-.(C
+.(C M
 pg_type
     char16      typname	/* type name */
     oid         typowner	/* usesysid of owner */
@@ -263,7 +265,7 @@ pg_type
     regproc     typsend	/* server-client conversion function */
     text        typdefault	/* default value */
 .)C
-.(C
+.(C M
 pg_operator
     char16      oprname	/* operator name */
     oid         oprowner	/* usesysid of owner */
@@ -287,11 +289,11 @@ pg_operator
     regproc     oprjoin	/* function to calculate operator 
 			   join selectivity */
 .)C
-.(C
+.(C M
 pg_opclass
     char16      opcname	/* operator class name */
 .)C
-.(C
+.(C M
 pg_proc
     char16      proname	/* function name */
     oid         proowner	/* usesysid of owner */
@@ -320,26 +322,26 @@ pg_proc
     text        prosrc	/* function definition (postquel only) */
     bytea       probin	/* path to object file (C only) */
 .)C
-.(C
+.(C M
 pg_language
     char16      lanname	/* language name */
     text        lancompiler	/* - deprecated */
 .)C
 .SH "ENTITIES"
-.(C
+.(C M
 pg_database
     char16      datname		/* database name */
     oid         datdba		/* usesysid of database administrator */
     text        datpath		/* directory of database under
 				   $PGDATA */ 
 .)C
-.(C
+.(C M
 pg_group
     char16      groname	/* group name */
     int2        grosysid	/* group's UNIX group id */
     int2        grolist[1]	/* list of usesysids of group members */
 .)C
-.(C
+.(C M
 pg_user
     char16      usename		/* user's name */
     int2        usesysid	/* user's UNIX user id */
@@ -349,10 +351,10 @@ pg_user
     bool        usecatupd	/* can user update catalogs? */
 .)C
 .SH "RULE SYSTEM CATALOGS"
-.(C
+.(C M
 pg_listener
-    char16      relname	/* class for which asynchronous notification
-			   is desired */
+    char16      relname	/* class for which asynchronous 
+			   notification is desired */
     int4        listenerpid	/* process id of server corresponding
 				   to a frontend program waiting for
 				   asynchronous notification */
@@ -360,7 +362,7 @@ pg_listener
 				   this process id still pending */
 
 .)C
-.(C
+.(C M
 pg_prs2rule
     char16      prs2name	/* rule name */
     char        prs2eventtype	/* rule event type:
@@ -374,7 +376,7 @@ pg_prs2rule
     float8      sufficient	/* - deprecated */
     text        prs2text	/* text of original rule definition */
 .)C
-.(C
+.(C M
 pg_prs2plans
     oid         prs2ruleid	/* prs2rule instance for which this
 				   plan is used */
@@ -382,14 +384,14 @@ pg_prs2plans
 				   multiple plans) */
     text        prs2code	/* external representation of the plan */
 .)C
-.(C
+.(C M
 pg_prs2stub
     oid         prs2relid	/* class to which this rule applies */
     bool        prs2islast	/* is this the last stub fragment? */
     int4        prs2no		/* stub fragment number */
     stub        prs2stub	/* stub fragment */
 .)C
-.(C
+.(C M
 pg_rewrite
     char16      rulename	/* rule name */
     char        ev_type	/* event type:
@@ -399,11 +401,12 @@ pg_rewrite
     int2        ev_attr	/* attribute to which this rule applies */
     bool        is_instead	/* is this an "instead" rule? */
     text        ev_qual	/* qualification with which to modify
-			   (rewrite) the plan that triggered this rule */
+			   (rewrite) the plan that triggered this
+			   rule */
     text        action	/* parse tree of action */
 .)C
 .SH "LARGE OBJECT CATALOGS"
-.(C
+.(C M
 pg_lobj
     oid         ourid		/* 'ourid' from pg_naming that
 				   identifies this object in the
@@ -415,7 +418,7 @@ pg_lobj
 				   3=Jaquith */
     bytea       object_descripto/* opaque object-handle structure */
 .)C
-.(C
+.(C M
 pg_naming
     char16      filename	/* filename component */
     oid         ourid		/* random oid used to identify this
@@ -425,12 +428,12 @@ pg_naming
     oid         parentid	/* pg_naming instance of parent
 				   Inversion file system directory */
 .)C
-.(C
+.(C M
 pg_platter
      char16     plname		/* platter name */
      int4       plstart		/* the highest OCCUPIED extent */
 .)C
-.(C
+.(C M
 pg_plmap
      oid        plid		/* platter (in pg_platter) on which
 				   this extent (of blocks) resides */
