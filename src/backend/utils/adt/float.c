@@ -59,10 +59,18 @@ RcsId("$Header$");
 #define MAXDOUBLEWIDTH	128
 
 extern double	atof ARGS((const char *p));
-#ifndef NEED_CBRT
+
+#ifdef NEED_CBRT
+#define cbrt my_cbrt
+static double   cbrt ARGS((double x));
+#else /* NEED_CBRT */
 extern double   cbrt ARGS((double x));
 #endif /* NEED_CBRT */
-#ifndef NEED_RINT
+
+#ifdef NEED_RINT
+#define rint my_rint
+static double   rint ARGS((double x));
+#else /* NEED_RINT */
 extern double   rint ARGS((double x));
 #endif /* NEED_RINT */
 
@@ -689,14 +697,7 @@ dround(arg1)
 	result = (float64) palloc(sizeof(float64data));
 
 	tmp = *arg1;
-#ifdef NEED_RINT
-	if (tmp < 0.0)
-		*result = (float64data) ((long) (tmp - 0.5));
-	else
-		*result = (float64data) ((long) (tmp + 0.5));
-#else /* NEED_RINT */
 	*result = (float64data) rint(tmp);
-#endif /* NEED_RINT */
 	return(result);
 }
 
@@ -766,11 +767,7 @@ dcbrt(arg1)
 	result = (float64) palloc(sizeof(float64data));
 
 	tmp = *arg1;
-#ifdef NEED_CBRT
-	*result = (float64data) pow(tmp, 1.0 / 3.0);
-#else /* NEED_CBRT */
 	*result = (float64data) cbrt(tmp);
-#endif /* NEED_CBRT */
 	return(result);
 }
 
@@ -1131,8 +1128,185 @@ float84ge(arg1, arg2)
 	return(*arg1 >= *arg2);
 }
 
-
-
 	     /* ========== PRIVATE ROUTINES ========== */
 
-			     /* (none) */
+/* From "fdlibm" @ netlib.att.com */
+
+#ifdef NEED_RINT
+
+/* @(#)s_rint.c 5.1 93/09/24 */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunPro, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice 
+ * is preserved.
+ * ====================================================
+ */
+
+/*
+ * rint(x)
+ * Return x rounded to integral value according to the prevailing
+ * rounding mode.
+ * Method:
+ *	Using floating addition.
+ * Exception:
+ *	Inexact flag raised if x not equal to rint(x).
+ */
+
+#ifdef __STDC__
+static const double
+#else
+static double 
+#endif
+one = 1.0,
+TWO52[2]={
+  4.50359962737049600000e+15, /* 0x43300000, 0x00000000 */
+ -4.50359962737049600000e+15, /* 0xC3300000, 0x00000000 */
+};
+
+#ifdef __STDC__
+	static double rint(double x)
+#else
+	static double rint(x)
+	double x;
+#endif
+{
+	int i0,n0,j0,sx;
+	unsigned i,i1;
+	double w,t;
+	n0 = (*((int *)&one)>>29)^1;
+	i0 =  *(n0+(int*)&x);
+	sx = (i0>>31)&1;
+	i1 =  *(1-n0+(int*)&x);
+	j0 = ((i0>>20)&0x7ff)-0x3ff;
+	if(j0<20) {
+	    if(j0<0) { 	
+		if(((i0&0x7fffffff)|i1)==0) return x;
+		i1 |= (i0&0x0fffff);
+		i0 &= 0xfffe0000;
+		i0 |= ((i1|-i1)>>12)&0x80000;
+		*(n0+(int*)&x)=i0;
+	        w = TWO52[sx]+x;
+	        t =  w-TWO52[sx];
+	        i0 = *(n0+(int*)&t);
+	        *(n0+(int*)&t) = (i0&0x7fffffff)|(sx<<31);
+	        return t;
+	    } else {
+		i = (0x000fffff)>>j0;
+		if(((i0&i)|i1)==0) return x; /* x is integral */
+		i>>=1;
+		if(((i0&i)|i1)!=0) {
+		    if(j0==19) i1 = 0x40000000; else
+		    i0 = (i0&(~i))|((0x20000)>>j0);
+		}
+	    }
+	} else if (j0>51) {
+	    if(j0==0x400) return x+x;	/* inf or NaN */
+	    else return x;		/* x is integral */
+	} else {
+	    i = ((unsigned)(0xffffffff))>>(j0-20);
+	    if((i1&i)==0) return x;	/* x is integral */
+	    i>>=1;
+	    if((i1&i)!=0) i1 = (i1&(~i))|((0x40000000)>>(j0-20));
+	}
+	*(n0+(int*)&x) = i0;
+	*(1-n0+(int*)&x) = i1;
+	w = TWO52[sx]+x;
+	return w-TWO52[sx];
+}
+
+#endif /* NEED_RINT */
+
+#ifdef NEED_CBRT
+
+/* @(#)s_cbrt.c 5.1 93/09/24 */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunPro, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice 
+ * is preserved.
+ * ====================================================
+ *
+ */
+
+/* cbrt(x)
+ * Return cube root of x
+ */
+#ifdef __STDC__
+static const unsigned 
+#else
+static unsigned 
+#endif
+	B1 = 715094163, /* B1 = (682-0.03306235651)*2**20 */
+	B2 = 696219795; /* B2 = (664-0.03306235651)*2**20 */
+
+#ifdef __STDC__
+static const double
+#else
+static double
+#endif
+C =  5.42857142857142815906e-01, /* 19/35     = 0x3FE15F15, 0xF15F15F1 */
+D = -7.05306122448979611050e-01, /* -864/1225 = 0xBFE691DE, 0x2532C834 */
+E =  1.41428571428571436819e+00, /* 99/70     = 0x3FF6A0EA, 0x0EA0EA0F */
+F =  1.60714285714285720630e+00, /* 45/28     = 0x3FF9B6DB, 0x6DB6DB6E */
+G =  3.57142857142857150787e-01; /* 5/14      = 0x3FD6DB6D, 0xB6DB6DB7 */
+
+#ifdef __STDC__
+	double cbrt(double x) 
+#else
+	double cbrt(x) 
+	double x;
+#endif
+{
+	double	one	= 1.0;
+	int	n0,hx;
+	double r,s,t=0.0,w;
+	unsigned *pt = (unsigned *) &t, sign;
+
+
+	n0 = ((*(int*)&one)>>29)^1;	/* index of high word */
+	hx = *( n0 + (int*)&x);		/* high word of x */
+	sign=hx&0x80000000; 		/* sign= sign(x) */
+	hx  ^=sign;
+	if(hx>=0x7ff00000) return(x+x); /* cbrt(NaN,INF) is itself */
+	if((hx|*(1-n0+(int*)&x))==0) 
+	    return(x);		/* cbrt(0) is itself */
+
+	*(n0+(int*)&x) = hx;	/* x <- |x| */
+    /* rough cbrt to 5 bits */
+	if(hx<0x00100000) 		/* subnormal number */
+	  {pt[n0]=0x43500000; 		/* set t= 2**54 */
+	   t*=x; pt[n0]=pt[n0]/3+B2;
+	  }
+	else
+	  pt[n0]=hx/3+B1;	
+
+
+    /* new cbrt to 23 bits, may be implemented in single precision */
+	r=t*t/x;
+	s=C+r*t;
+	t*=G+F/(s+E+D/s);	
+
+    /* chopped to 20 bits and make it larger than cbrt(x) */ 
+	pt[1-n0]=0; pt[n0]+=0x00000001;
+
+
+    /* one step newton iteration to 53 bits with error less than 0.667 ulps */
+	s=t*t;		/* t*t is exact */
+	r=x/s;
+	w=t+t;
+	r=(r-t)/(w+r);	/* r-s is exact */
+	t=t+t*r;
+
+    /* retore the sign bit */
+	pt[n0] |= sign;
+	return(t);
+}
+
+#endif /* NEED_CBRT */
