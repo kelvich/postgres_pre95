@@ -1,4 +1,3 @@
-
 /*     
  * utility.c --
  *     
@@ -13,6 +12,7 @@
 
 RcsId("$Header$");
 
+#include "command.h"
 #include "creatinh.h"
 #include "defrem.h"
 #include "pg_lisp.h"		/* lisp-compat package */
@@ -22,43 +22,22 @@ extern int PG_INTERACTIVE;
 #include "parse.h"		/* y.tab.h, created by yacc'ing gram.y */
 #include "log.h"		/* error logging */
 
-/*   
- *    Note:
- *   	XXX most of the (pgerror *WARN* ...) calls below indicate an
- *   	non-fatal internal error.  The rest of the system should work fine.
- *   
- */
-
-/*    
- *     general utility execution completion code
- *    
- */
-LispValue
-utility_end (name)
-LispValue name ;
-{
-#if 0
-	declare (special (PG_INTERACTIVE));
-	/* XXX unless interactive?  why not always? */
-	if (!PG_INTERACTIVE) {
-		endportal(name);
-	}
-#endif
-}
-
 /*    
  *     general utility function invoker
  *    
  */
-LispValue
-utility_invoke (command, args)
+void
+ProcessUtility(command, args)
 	int		command;	/* "tag" */
 	LispValue	args;
 {
+	String	commandTag = NULL;
+
 	switch (command) {
 #if 0
 		/* transactions */
 	case BEGIN_TRANS:
+		commandTag = "BEGIN";
 		if ( null (args) ) {
 			start_transaction_block ();
 		} else {
@@ -66,6 +45,7 @@ utility_invoke (command, args)
 		}
 		break;
 	case END_TRANS:
+		commandTag = "END";
 		if ( null (args) ) {
 			commit_transaction_block ();
 		} else {
@@ -73,6 +53,7 @@ utility_invoke (command, args)
 		};
 		break;
 	case ABORT_TRANS:
+		commandTag = "ABORT";
 		if ( null (args) ) {
 			abort_transaction_block ();
 		} else {
@@ -80,29 +61,34 @@ utility_invoke (command, args)
 		}
 		break;
 #endif
-#if 0
-		/* portal manipulation */
+
+		/*
+		 * portal manipulation
+		 */
 	case CLOSE:
-	{
-		LispValue portal_name;
-		foreach (portal_name, args) {
-			if (! lispStringp(portal_name))
-				elog(WARN,"portal list not strings");
-			else
-				portal_close (CString(portal_name));
-		}
-	}
+		commandTag = "CLOSE";
+#ifndef	PERFECTPARSER
+		AssertArg(consp(args));
+		AssertArg(null(CDR(args)));
+		AssertArg(null(CAR(args)) || lispStringp(CAR(args)));
+#endif
+		PerformPortalClose((null(CAR(args))) ? NULL :
+			CString(CAR(args)));
 		break;
 	case FETCH:
-
+		commandTag = "FETCH";
+#if 0
 		portal_fetch(CString(CAR(args)),     	/* portal name */
 			((CInteger(CADR(args)) ==  FORWARD) ?
 				true : false ),		/* forward ? */
 			CInteger(CADDR (args)));	/* ntups to scan 
 							   -1 means "ALL" */
 		break;
-
+#endif
 	case MOVE:
+		commandTag = "MOVE";
+		elog(WARN, "MOVE: unimplemented");
+#if 0
 		portal_move (CAR (args),
 			((CInteger(CADR(args)) ==  FORWARD) ?
 				true : false ),		/* forward ? */
@@ -115,12 +101,14 @@ utility_invoke (command, args)
 		 * relation and attribute manipulation
 		 */
 	case CREATE:
+		commandTag = "CREATE";
 		DefineRelation(CAR(args),	/*  relation name */
 			CADR(args),		/*  parameters */
 			CDR(CDR(args)));	/*  schema */
 		break;
 
 	case DESTROY:
+		commandTag = "DESTROY";
 	{
 		LispValue relationName;
 		foreach (relationName, args) {
@@ -135,12 +123,14 @@ utility_invoke (command, args)
 
 #if 0	  
 	case PURGE:
+		commandTag = "PURGE";
 		relation_purge (CAR(args),		/* relation name */
 			CADR(args));
 		break;
 
 		/* tags/date alist */
 	case COPY:
+		commandTag = "COPY";
 		relation_transform (CAR(CARargs),
 			CADR(CAR(args)),
 			nth (2,nth (0,args))
@@ -153,17 +143,20 @@ utility_invoke (command, args)
 		/* domain list */
 
 	case ADD_ATTR:
+		commandTag = "ADD";
 		relation_add_attribute (CAR (args),	/* relation name */
 			CDR (args));
 		break;
 
 		/* schema */
 	case RENAME:
+		commandTag = "RENAME";
 		rename_utility_invoke (CAR (args),cdr (args));
 		break;
 #endif
 		/* object creation */
 	case DEFINE:
+		commandTag = "DEFINE";
 #ifndef	PERFECTPARSER
 		AssertArg(listp(args));
 		/*
@@ -244,6 +237,7 @@ utility_invoke (command, args)
 		 * object destruction
 		 */
 	case REMOVE:
+		commandTag = "REMOVE";
 #ifndef	PERFECTPARSER
 		AssertArg(consp(args));
 #endif
@@ -308,6 +302,7 @@ utility_invoke (command, args)
 		/* XXX Can this be generalized to more than a single retrieve? */
 		/* Should it? */
 	case PORTAL:
+		commandTag = "PORTAL";
 		/*    check validity */
 		portal_retrieve (CAR (args),		/* portal name */
 			CADR (args),			/* command */
@@ -320,6 +315,8 @@ utility_invoke (command, args)
 		cons (command,args);
 		break;
 	}
+
+	EndCommand(commandTag);
 }
 
 
