@@ -11,6 +11,7 @@
  */
 
 #include <sys/file.h>
+
 #include "tmp/c.h"
 #include "tmp/libpq-fs.h"
 #include "access/relscan.h"
@@ -18,6 +19,7 @@
 #include "catalog/pg_naming.h"
 #include "catalog/pg_lobj.h"
 #include "storage/itemptr.h"
+#include "storage/fd.h"		/* for SEEK_ */
 #include "utils/rel.h"
 #include "utils/large_object.h"
 #include "utils/log.h"
@@ -182,7 +184,7 @@ XOOpen(object, open_mode)
     retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
 
     if (object->lo_nblocks)
-	(void) FileSeek(fd, object->lo_nblocks, L_SET);
+	(void) FileSeek(fd, object->lo_nblocks, SEEK_SET);
     retval->ofs.u_fs.fd = fd;
     retval->object = object;
 #endif
@@ -355,14 +357,14 @@ LOStat(obj_desc, nblocks, byte_offset)
 
     /* do a seek to find number of bytes */
 
-    len = FileSeek(obj_desc->ofs.u_fs.fd, 0L, L_XTND);
+    len = FileSeek(obj_desc->ofs.u_fs.fd, 0L, SEEK_END);
 
     if (object->lo_nblocks) len -= object->lo_nblocks;
     if (len < 0) len = 0;
 
     /* seek back to original position */
 
-    FileSeek(obj_desc->ofs.u_fs.fd, pos, L_SET);
+    FileSeek(obj_desc->ofs.u_fs.fd, pos, SEEK_SET);
 
     *nblocks = (len < 0) ? 0 : len / LARGE_OBJECT_BLOCK;
     *byte_offset = len % LARGE_OBJECT_BLOCK;
@@ -532,7 +534,7 @@ LOSeek(obj_desc,offset,whence)
     Assert(PointerIsValid(object));
     Assert((object->lo_storage_type == PURE_FILE) || (object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE));
 
-    if (object->lo_nblocks && whence == L_SET)
+    if (object->lo_nblocks && whence == SEEK_SET)
 	offset += object->lo_nblocks;
     ret = FileSeek(obj_desc->ofs.u_fs.fd,offset,whence);
     if (object->lo_nblocks)

@@ -297,7 +297,7 @@ fimport(name)
 	return ((ObjectId) NULL);
 
     /* start at beginning of file */
-    FileSeek(vfd, 0L, L_SET);
+    FileSeek(vfd, 0L, SEEK_SET);
 
     /*
      *  Next allocate a varlena big enough to hold one tuple's worth
@@ -579,7 +579,7 @@ fexport(name, foid)
 	return (-1);
 
     /* start at beginning of file */
-    FileSeek(vfd, 0L, L_SET);
+    FileSeek(vfd, 0L, SEEK_SET);
 
     f = f262open(foid);
 

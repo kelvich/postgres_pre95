@@ -16,6 +16,7 @@
 
 #include "tmp/miscadmin.h"
 
+#include "storage/fd.h"
 #include "storage/ipci.h"
 #include "storage/ipc.h"
 #include "storage/smgr.h"
@@ -344,7 +345,7 @@ _sjcacheinit()
     }
 
     /* suck in the metadata */
-    if (FileSeek(SJMetaVfd, 0L, L_SET) != 0)
+    if (FileSeek(SJMetaVfd, 0L, SEEK_SET) != 0)
 	elog(FATAL, "cannot seek on jukebox metadata cache");
 
     nbytes = SJCACHESIZE * sizeof(SJCacheItem);
@@ -1242,7 +1243,7 @@ _sjwritegrp(item, grpno)
     /* first update the metadata file */
     seekpos = grpno * sizeof(*item);
 
-    if ((loc = FileSeek(SJMetaVfd, seekpos, L_SET)) != seekpos)
+    if ((loc = FileSeek(SJMetaVfd, seekpos, SEEK_SET)) != seekpos)
 	return (SM_FAIL);
 
     nbytes = sizeof(*item);
@@ -1259,7 +1260,7 @@ _sjwritegrp(item, grpno)
 
     /* now update the cache file */
     seekpos = grpno * SJBUFSIZE;
-    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos)
+    if ((loc = FileSeek(SJCacheVfd, seekpos, SEEK_SET)) != seekpos)
 	return (SM_FAIL);
 
     nbytes = SJBUFSIZE;
@@ -1365,7 +1366,7 @@ sjextend(reln, buffer)
     /* write the page */
     seekpos = (grpno * SJBUFSIZE) + ((nblocks % SJGRPSIZE) * BLCKSZ)
 	      + JBBLOCKSZ;
-    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJCacheVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjextend: failed to seek to buffer lock (%d)", seekpos);
 	_sjunpin(item);
 	_sjunwait_io(item);
@@ -1382,7 +1383,7 @@ sjextend(reln, buffer)
     /* write the updated cache metadata entry */
     seekpos = grpno * sizeof(*item);
 
-    if (FileSeek(SJMetaVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJMetaVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjextend: seek to %d on metadata file failed", seekpos);
 	_sjunwait_io(item);
 	_sjunpin(item);
@@ -1419,7 +1420,7 @@ _sjreadgrp(item, grpno)
 
     /* get the group from the cache file */
     seekpos = grpno * SJBUFSIZE;
-    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
+    if ((loc = FileSeek(SJCacheVfd, seekpos, SEEK_SET)) != seekpos) {
 	elog(NOTICE, "_sjreadgrp: cannot seek");
 	return (SM_FAIL);
     }
@@ -1656,7 +1657,7 @@ sjread(reln, blocknum, buffer)
     /* By here, group descriptor metadata is okay */
     seekpos = (grpno * SJBUFSIZE) + ((blocknum % SJGRPSIZE) * BLCKSZ)
 	      + JBBLOCKSZ;
-    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJCacheVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjread: failed to seek to buffer lock (%d)", seekpos);
 	_sjunpin(item);
 	_sjunwait_io(item);
@@ -1685,7 +1686,7 @@ _sjgroupvrfy(item, grpno)
     SJGroupDesc gdesc;
 
     seekpos = SJBUFSIZE * grpno;
-    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJCacheVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjgroupvrfy: Cannot seek to %d on sj cache file",
 		     seekpos);
 	return (SM_FAIL);
@@ -1766,7 +1767,7 @@ _sjdowrite(reldbid, relid, blocknum, buffer)
     /* write the page */
     seekpos = (grpno * SJBUFSIZE) + ((blocknum % SJGRPSIZE) * BLCKSZ)
 	      + JBBLOCKSZ;
-    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJCacheVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjwrite: failed to seek to buffer lock (%d)", seekpos);
 	_sjunpin(item);
 	_sjunwait_io(item);
@@ -1783,7 +1784,7 @@ _sjdowrite(reldbid, relid, blocknum, buffer)
     /* write the updated cache metadata entry */
     seekpos = grpno * sizeof(*item);
 
-    if (FileSeek(SJMetaVfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(SJMetaVfd, seekpos, SEEK_SET) != seekpos) {
 	elog(NOTICE, "sjwrite: seek to %d on metadata file failed", seekpos);
 	_sjunwait_io(item);
 	_sjunpin(item);
@@ -1875,7 +1876,7 @@ _sjfindnblocks(tag)
 	cachetag++;
     }
 
-    if (FileSeek(SJBlockVfd, 0L, L_SET) != 0) {
+    if (FileSeek(SJBlockVfd, 0L, SEEK_SET) != 0) {
 	elog(FATAL, "_sjfindnblocks: cannot seek to zero on block count file");
     }
 
@@ -1936,7 +1937,7 @@ _sjregnblocks(tag)
     cachetag->sjct_base = tag->sjct_base;
 
     /* update block count file */
-    if (FileSeek(SJBlockVfd, 0L, L_SET) < 0) {
+    if (FileSeek(SJBlockVfd, 0L, SEEK_SET) < 0) {
 	elog(FATAL, "_sjregnblocks: cannot seek to zero on block count file");
     }
 
@@ -1947,7 +1948,8 @@ _sjregnblocks(tag)
     while (FileRead(SJBlockVfd, (char *) &mytag, sizeof(mytag)) > 0) {
 	if (mytag.sjct_dbid == tag->sjct_dbid
 	    && mytag.sjct_relid == tag->sjct_relid) {
-	    if (FileSeek(SJBlockVfd, (loc * sizeof(SJCacheTag)), L_SET) < 0)
+	    if (FileSeek(SJBlockVfd, (loc * sizeof(SJCacheTag)),
+			 SEEK_SET) < 0)
 		elog(FATAL, "_sjregnblocks: cannot seek to loc");
 	    if (FileWrite(SJBlockVfd, (char *) tag, sizeof(*tag)) < 0)
 		elog(FATAL, "_sjregnblocks: cannot write nblocks");
@@ -2078,7 +2080,7 @@ sjmaxseg(plid)
 	/* if IO_IN_PROG is set, we need to look at the group desc on disk */
 	if (SJCache[i].sjc_gflags & SJC_IOINPROG) {
 	    seekpos = i * SJBUFSIZE;
-	    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
+	    if ((loc = FileSeek(SJCacheVfd, seekpos, SEEK_SET)) != seekpos) {
 		SpinRelease(SJCacheLock);
 		elog(NOTICE, "sjmaxseg: cannot seek");
 		return (-1);

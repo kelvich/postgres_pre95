@@ -19,6 +19,7 @@
 
 #include <math.h>
 #include <sys/file.h>
+#include "storage/fd.h"		/* for SEEK_ */
 #include "storage/ipci.h"
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
@@ -145,7 +146,7 @@ Hash node;
      * end of build phase, flush all the last pages of the batches.
      */
     for (i=0; i<nbatch; i++) {
-	if (FileSeek(batches[i], 0L, L_XTND) < 0)
+	if (FileSeek(batches[i], 0L, SEEK_END) < 0)
 	    perror("FileSeek");
 	if (FileWrite(batches[i],ABSADDR(hashtable->batch)+i*BLCKSZ,BLCKSZ) < 0)
 	    perror("FileWrite");

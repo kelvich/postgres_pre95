@@ -129,7 +129,7 @@ int p_open(fname,mode)
 
 	/* have to do this to reset offset in shared fd cache */
 	/* but only if fd is valid */
-	if (fd >= 0 && p_lseek(fd, 0L, L_SET) < 0)
+	if (fd >= 0 && p_lseek(fd, 0L, SEEK_SET) < 0)
 		return -1;
 
 	return fd;

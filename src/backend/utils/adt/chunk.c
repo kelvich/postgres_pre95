@@ -3,6 +3,8 @@
 #include "utils/memutils.h"
 #include "tmp/libpq-fs.h"
 
+#include "storage/fd.h"		/* for SEEK_ */
+
 #include "catalog/pg_type.h"
 #include "catalog/pg_lobj.h"
 
@@ -267,13 +269,13 @@ char a_chunk[];
     for (i = 0; i < n; indx[i++] = 0)
 		;
     fpOff = start_pos;
-    seek_and_read(fpOff, unit_transfer, a_chunk, srcfd, L_SET);
+    seek_and_read(fpOff, unit_transfer, a_chunk, srcfd, SEEK_SET);
     fpOff += unit_transfer;
     cp = unit_transfer;
 
     while ((j = next_tuple(n-1, indx, C)) != -1) {
         fpOff += dist[j];
-        seek_and_read(fpOff, unit_transfer, &(a_chunk[cp]), srcfd, L_SET);
+        seek_and_read(fpOff, unit_transfer, &(a_chunk[cp]), srcfd, SEEK_SET);
         cp += unit_transfer;
         fpOff += unit_transfer;
     }
@@ -386,7 +388,7 @@ bool *isNull;
     for (i = j = 0; i < n; i++)
         j+= chunk_st[i]*PC[i];
     temp_seek = srcOff = j * csize * bsize;
-    if (LOlseek(fp, srcOff, L_SET) < 0) RETURN_NULL;
+    if (LOlseek(fp, srcOff, SEEK_SET) < 0) RETURN_NULL;
     
     jj = n-1;
     for (i = 0; i < n; chunk_off[i++] = 0)
@@ -402,7 +404,7 @@ bool *isNull;
         for (i = 0; i < n; range[i++] = 0);
         j = n-1; bptr *= bsize;
         if (isDestLO) { 
-            if (LOlseek(destfp, bptr, L_SET) < 0)
+            if (LOlseek(destfp, bptr, SEEK_SET) < 0)
 				RETURN_NULL;
         }
         else 
@@ -413,7 +415,7 @@ bool *isNull;
         if (dist[jj] + block_seek + temp_seek) {
             temp = (dist[jj]*csize+block_seek+temp_seek)*bsize;
             srcOff += temp;
-            if (LOlseek(fp, srcOff, L_SET) < 0)
+            if (LOlseek(fp, srcOff, SEEK_SET) < 0)
 				RETURN_NULL;
         }
         for (i = n-1, to_read = bsize; i >= 0; 
@@ -423,13 +425,13 @@ bool *isNull;
         do {
             if (cdist[j]) {
                 srcOff += (cdist[j]*bsize);
-                if (LOlseek(fp, srcOff, L_SET) < 0)
+                if (LOlseek(fp, srcOff, SEEK_SET) < 0)
 					RETURN_NULL;
             }
             block_seek += cdist[j];
             bptr += adist[j]*bsize;
             if (isDestLO) { 
-                if (LOlseek(destfp, bptr, L_SET) < 0)
+                if (LOlseek(destfp, bptr, SEEK_SET) < 0)
 					RETURN_NULL;
             }
             else 
@@ -533,7 +535,7 @@ bool *isNull;
         srcOff += (st[i]-chunk_st[i]*C[i])*PCHUNK[i];
 
     srcOff *= bsize;
-    if (LOlseek(fp, srcOff, L_SET) < 0)
+    if (LOlseek(fp, srcOff, SEEK_SET) < 0)
 		RETURN_NULL;
 
     return (struct varlena *) LOread(fp, bsize);

@@ -16,7 +16,9 @@
  */
 
 #include <sys/file.h>
+
 #include "storage/bufmgr.h"	/* for BLCKSZ */
+#include "storage/fd.h"		/* for SEEK_ */
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 #include "planner/clauses.h"
@@ -760,7 +762,7 @@ ExecHashJoinGetSavedTuple(hjstate, buffer, file, tupleSlot, block, position)
 		(*block) += hashtable->nprocess;
 	    else
 	        (*block)++;
-	FileSeek(file, *block * BLCKSZ, L_SET);
+	FileSeek(file, *block * BLCKSZ, SEEK_SET);
 	cc = FileRead(file, buffer, BLCKSZ);
 	NDirectFileRead++;
 	if (cc < 0)
@@ -848,7 +850,7 @@ ExecHashJoinNewBatch(hjstate)
 	     */
 	    outerBatches = get_hj_OuterBatches(hjstate);
 	    for (i=0; i<nbatch; i++) {
-		cc = FileSeek(outerBatches[i], 0L, L_XTND);
+		cc = FileSeek(outerBatches[i], 0L, SEEK_END);
 		if (cc < 0)
 		    perror("FileSeek");
 		cc = FileWrite(outerBatches[i],
@@ -1029,7 +1031,7 @@ ExecHashJoinSaveTuple(heapTuple, buffer, file, position)
        position = pagestart;
     
     if (position + heapTuple->t_len >= pagebound) {
-       cc = FileSeek(file, 0L, L_XTND);
+       cc = FileSeek(file, 0L, SEEK_END);
        if (cc < 0)
 	  perror("FileSeek");
        cc = FileWrite(file, buffer, BLCKSZ);

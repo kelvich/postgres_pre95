@@ -20,7 +20,13 @@
  */
 
 #include <stdio.h>
+#include <fcntl.h>
+#ifndef O_RDONLY
 #include <sys/file.h>
+#endif /* O_RDONLY */
+#ifndef SEEK_SET
+#include <unistd.h>
+#endif /* SEEK_SET */
 
 static char *RcsId = "$Header$";
 
@@ -216,7 +222,7 @@ pagedoc(fd, level, reltype)
 
     i = StartPage;
     loc = (long) (StartPage * 8192);
-    if (lseek(fd, loc, L_SET) != loc) {
+    if (lseek(fd, loc, SEEK_SET) != loc) {
 	fprintf(stderr, "cannot seek to page %d\n", StartPage);
 	fflush(stderr);
 	exit (1);

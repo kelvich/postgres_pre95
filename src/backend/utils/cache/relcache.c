@@ -50,6 +50,7 @@ RcsId("$Header$");
  
 #include "rules/prs2locks.h"
 #include "storage/buf.h"
+#include "storage/fd.h"		/* for SEEK_ */
 #include "storage/lmgr.h"
  
 #include "tmp/hasht.h"
@@ -77,8 +78,6 @@ RcsId("$Header$");
 #include "catalog/indexing.h"
 
 #include "utils/relcache.h"
-
-#include "storage/fd.h"
 
 /* ----------------
  *	defines
@@ -1451,7 +1450,7 @@ init_irels()
 	return;
     }
 
-    (void) FileSeek(fd, 0L, L_SET);
+    (void) FileSeek(fd, 0L, SEEK_SET);
 
     for (relno = 0; relno < Num_indices_bootstrap; relno++) {
 	/* first read the relation descriptor */
@@ -1581,7 +1580,7 @@ write_irels()
     if (fd < 0)
 	elog(FATAL, "cannot create init file %s", INIT_FILENAME);
 
-    (void) FileSeek(fd, 0L, L_SET);
+    (void) FileSeek(fd, 0L, SEEK_SET);
 
     /*
      *  Build a relation descriptor for pg_attnumind without resort to the

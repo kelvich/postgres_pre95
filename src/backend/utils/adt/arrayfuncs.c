@@ -8,6 +8,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+
 #include "tmp/postgres.h"
 #include "tmp/libpq-fs.h"
 
@@ -17,6 +18,7 @@
 
 #include "utils/palloc.h"
 #include "utils/memutils.h"
+#include "storage/fd.h"		/* for SEEK_ */
 #include "fmgr.h"
 #include "utils/log.h"
 #include "array.h"
@@ -654,7 +656,7 @@ bool *isNull;
         if (ARR_IS_CHUNKED(array))
             v = _ReadChunkArray1El(indx, elmlen, fd, array, isNull);
         else {
-            if (LOlseek(fd, offset, L_SET) < 0)
+            if (LOlseek(fd, offset, SEEK_SET) < 0)
                 RETURN_NULL;
             v = (struct varlena *) LOread(fd, elmlen);
         }
@@ -859,7 +861,7 @@ int reftype, elmlen, arraylen;
         if ((fd = LOopen(lo_name, ARR_IS_INV(array)?INV_WRITE:O_WRONLY)) < 0)
             return((char *)array);
 
-        if (LOlseek(fd, offset, L_SET) < 0)
+        if (LOlseek(fd, offset, SEEK_SET) < 0)
             return((char *)array);
         v = (struct varlena *) palloc(elmlen + 4);
         VARSIZE (v) = elmlen + 4;
@@ -1193,7 +1195,7 @@ bool *isNull;
     get_prod(n, dim, prod);
     st_pos = tuple2linear(n, st, prod);
     offset = st_pos*bsize;
-    if (LOlseek(srcfd, offset, L_SET) < 0) 
+    if (LOlseek(srcfd, offset, SEEK_SET) < 0) 
         return;
     get_range(n, span, st, endp);
     get_offset_values(n, dist, prod, span);
@@ -1204,7 +1206,7 @@ bool *isNull;
     j = n-1;
     do {
         offset += (dist[j]*bsize);
-        if (LOlseek(srcfd,  offset, L_SET) < 0) 
+        if (LOlseek(srcfd,  offset, SEEK_SET) < 0) 
             return;
         tmp = _LOtransfer(&srcfd, inc, 1, &destfd, isSrcLO, 1);
         if ( tmp < inc )
@@ -1231,7 +1233,7 @@ bool *isNull;
     get_prod(n, dim, prod);
     st_pos = tuple2linear(n, st, prod);
     offset = st_pos*bsize;
-    if (LOlseek(srcfd, offset, L_SET) < 0)
+    if (LOlseek(srcfd, offset, SEEK_SET) < 0)
         RETURN_NULL;
     get_range(n, span, st, endp);
     get_offset_values(n, dist, prod, span);
@@ -1242,7 +1244,7 @@ bool *isNull;
     j = n-1;
     do {
         offset += (dist[j]*bsize);
-        if (LOlseek(srcfd,  offset, L_SET) < 0) 
+        if (LOlseek(srcfd,  offset, SEEK_SET) < 0) 
             RETURN_NULL;
         tmp = _LOtransfer(&destfd, inc, 1, &srcfd, 1, isDestLO);
         if ( tmp < inc ) 

@@ -196,7 +196,7 @@ mdextend(reln, buffer)
     nblocks = mdnblocks(reln);
     v = _mdfd_getseg(reln, nblocks, O_CREAT);
 
-    if ((pos = FileSeek(v->mdfd_vfd, 0L, L_XTND)) < 0)
+    if ((pos = FileSeek(v->mdfd_vfd, 0L, SEEK_END)) < 0)
 	return (SM_FAIL);
 
     if (FileWrite(v->mdfd_vfd, buffer, BLCKSZ) != BLCKSZ)
@@ -322,7 +322,7 @@ mdread(reln, blocknum, buffer)
 	elog(FATAL, "seekpos too big!");
 #endif
 
-    if (FileSeek(v->mdfd_vfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos) {
 	return (SM_FAIL);
     }
 
@@ -362,7 +362,7 @@ mdwrite(reln, blocknum, buffer)
 	elog(FATAL, "seekpos too big!");
 #endif
 
-    if (FileSeek(v->mdfd_vfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos) {
 	return (SM_FAIL);
     }
 
@@ -400,7 +400,7 @@ mdflush(reln, blocknum, buffer)
 	elog(FATAL, "seekpos too big!");
 #endif
 
-    if (FileSeek(v->mdfd_vfd, seekpos, L_SET) != seekpos) {
+    if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos) {
 	return (SM_FAIL);
     }
 
@@ -474,7 +474,7 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
 
     /* seek to the right spot */
     seekpos = (long) (BLCKSZ * (blkno % RELSEG_SIZE));
-    if (lseek(fd, seekpos, L_SET) != seekpos) {
+    if (lseek(fd, seekpos, SEEK_SET) != seekpos) {
 	(void) close(fd);
 	return (SM_FAIL);
     }
