@@ -6,12 +6,20 @@ CFLAGS+= -I${.CURDIR}/../../backend
 #
 .if exists(${.CURDIR}/../../libpq/obj/libpq.a)
 LIBPQ= ${.CURDIR}/../../libpq/obj/libpq.a
-.else exists(${.CURDIR}/../../libpq/libpq.a)
+.elif exists(${.CURDIR}/../../libpq/libpq.a)
 LIBPQ= ${.CURDIR}/../../libpq/libpq.a
 .endif
 
 LDADD= ${LIBPQ}
 DPADD= ${LIBPQ}
+
+#
+# And where libpq goes, so goes the authentication stuff...
+#
+.ifdef KRBVERS
+LDADD+= ${KRBLIBS}
+CFLAGS+= ${KRBFLAGS}
+.endif
 
 #
 # And all the shell scripts here get stuffed with the default
