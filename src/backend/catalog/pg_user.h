@@ -79,6 +79,7 @@ DATA(insert OID = 1517 ( sullivan 1517 t t t t ));
 DATA(insert OID = 3491 ( kemnitz 3491 t t t t ));
 DATA(insert OID = 3898 ( choi 3898 t t t t ));
 DATA(insert OID = 3665 ( plai 3665 t t t t ));
+DATA(insert OID = 3918 ( glass 3918 t t t t ));
 
 /* ----------------
  *	old definition of struct user
