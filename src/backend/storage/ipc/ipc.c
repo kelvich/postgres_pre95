@@ -530,7 +530,7 @@ IpcMemoryCreate(memKey, size, permission)
     IpcMemoryId	 shmid;
     int		 errStatus; 
 
-    if ( memKey == PrivateIPCKey ) {
+    if ( memKey == PrivateIPCKey && !(ParallelExecutorEnabled()) ) {
 	/* private */
 	shmid = PrivateMemoryCreate ( memKey, size , IPC_CREAT|permission);
     } else {
@@ -567,7 +567,7 @@ IpcMemoryCreateWithoutOnExit(memKey, size, permission)
     IpcMemoryId	 shmid;
     int		 errStatus; 
     
-    if ( memKey == PrivateIPCKey ) {
+    if ( memKey == PrivateIPCKey && (!(ParallelExecutorEnabled())) ) {
 	/* private */
 	shmid = PrivateMemoryCreate ( memKey, size , IPC_CREAT|permission);
     } else {
