@@ -2056,7 +2056,8 @@ ParamNo: PARAM				{
 		     paramno);
 	    }
 	    $$ = (LispValue) MakeParam(PARAM_NUM, (AttributeNumber) paramno,
-				       (Name)"<unnamed>", (ObjectId)toid);
+				       (Name)"<unnamed>", (ObjectId)toid,
+				       (List) NULL);
 	  }
 	;
 
