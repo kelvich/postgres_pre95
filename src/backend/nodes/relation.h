@@ -73,6 +73,7 @@ extern void     PrintJoinMethod();
 #define EqualHeapTupleExists 1
 #define EqualRelationExists 1
 #define EqualLispValueExists 1
+#define EqualIterExists 1
 
 
 /* copy funcs that exist in lib/C/copyfunc.c and aren't defined elsewhere*/
@@ -93,6 +94,7 @@ extern void     PrintJoinMethod();
 #define CopyHInfoExists 1
 #define CopyMInfoExists 1
 #define CopyJInfoExists 1
+#define CopyIterExists 1
 
 /* out funcs from lib/C/outfuncs.c that aren't defined elsewhere */
 #define OutPlanInfoExists 1
@@ -113,6 +115,7 @@ extern void     PrintJoinMethod();
 #define OutHInfoExists 1
 #define OutJInfoExists 1
 #define OutDatumExists 1
+#define OutIterExists 1
 
 
 /*
