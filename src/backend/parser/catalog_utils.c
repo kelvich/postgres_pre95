@@ -568,7 +568,7 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
 	    while (**oid_vector != InvalidObjectId) {
 		oid_array = *oid_vector++;
 		if (bcmp(fargs, oid_array, 8 * sizeof(ObjectId)) == 0)
-		    break;
+		    goto okay;
 	    }
 	    if (**oid_vector == InvalidObjectId)
 		elog(WARN, "type mismatch in invocation of function %s",
@@ -576,6 +576,7 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
 	}
     }
 
+okay:
     /* by here, we have a match */
     *funcid = ftup->t_oid;
     *rettype = (ObjectId) pform->prorettype;
@@ -653,6 +654,7 @@ findsupers(relid, supervec)
     int nvisited;
     SuperQE *qentry, *vnode;
     SLList visited, queue;
+    Relation rd;
     Buffer buf;
     Datum d;
     bool newrelid;
@@ -713,6 +715,13 @@ findsupers(relid, supervec)
 	} while (!newrelid);
 
 	if (qentry != (SuperQE *) NULL) {
+
+	    /* save the type id, rather than the relation id */
+	    if ((rd = heap_open(qentry->sqe_relid)) == (Relation) NULL)
+		elog(WARN, "relid %d does not exist", qentry->sqe_relid);
+	    qentry->sqe_relid = typeid(type(RelationGetRelationName(rd)));
+	    heap_close(rd);
+
 	    SLAddTail(&visited, &(qentry->sqe_node));
 	    nvisited++;
 	}
@@ -768,6 +777,8 @@ genxprod(arginh)
 	    return (result);
 	}
 
+	/* no, increment this column and zero the ones after it */
+	cur[i] = cur[i] + 1;
 	for (j = MAXFARGS - 1; j > i; j--)
 	    cur[j] = 0;
 
@@ -775,7 +786,7 @@ genxprod(arginh)
 	    if (cur[i] == 0)
 		oneres[i] = arginh[i].self;
 	    else
-		oneres[i] = arginh[i].supervec[cur[i]];
+		oneres[i] = arginh[i].supervec[cur[i] - 1];
 	}
 
 	*iter++ = oneres;
