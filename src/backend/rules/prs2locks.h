@@ -187,9 +187,22 @@ typedef struct Prs2LocksData {
 typedef Prs2LocksData	*RuleLock;
 
 
+/*------------------------------------------------------------------
+ * INVALID RULE LOCK:
+ *
+ * This is an illegal value for a (main memory representation) of a
+ * rule lock. You must not confuse it with the "empty" lock, i.e.
+ * the lock: "(numOfLocs: 0)"::lock.
+ *
+ * However note that (as even an empty rule lock is 4 bytes long)
+ * in order to save disk space, when we 
+ * store an empty lock in the disk, we use an InvalidItemPointer
+ *
+ * NOTE: `RuleLockIsValid' only applies for the main memory
+ * representation of a lock!
+ */
 #define InvalidRuleLock		((RuleLock) NULL)
-#define RuleLockIsValid(x)	PointerIsValid(x)
-
+#define RuleLockIsValid(x)    PointerIsValid(x)
 
 /*------------------------------------------------------------------
  * #defines to access/set Prs2Lock data...
