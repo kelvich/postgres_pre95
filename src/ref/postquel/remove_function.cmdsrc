@@ -4,7 +4,7 @@
 .XA 2 "Remove Function"
 .uh NAME
 .lp
-remove function \*- remove a user defined function 
+remove function \*- remove a user defined 'C' function 
 .uh SYNOPSIS
 .lp
 .b "remove function"
@@ -12,7 +12,7 @@ functionname
 .uh DESCRIPTION
 .lp
 .b "Remove function"
-will remove all references to an existing function.
+will remove all references to an existing 'C' function.
 To execute this command the user must be the owner of the function.
 .uh EXAMPLE
 .lp
@@ -23,3 +23,6 @@ remove function sqrt
 .uh "SEE ALSO"
 .lp
 define C function(commands).
+.uh BUGS
+.lp
+No support is provided for removing postquel functions.
